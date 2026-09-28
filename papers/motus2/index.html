@@ -1,0 +1,1275 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"PingFang SC","Noto Sans SC",sans-serif;background:#fafaf9}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>Motus2 精读</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;500;700;900&display=swap">
+<style>
+:root{
+  --bg:#F1F3F6; --surface:#FFFFFF; --surface-2:#E7EAF0; --ink:#161B26; --ink-2:#434B5C; --muted:#687084;
+  --rule:#D7DBE3; --grid:#E3E6EC; --plate:#FFFFFF;
+  --c-policy:#B8307A; --c-sim:#2F5BD3; --c-eval:#C98A10; --c-tac:#16A08C; --c-base:#BCC2CC;
+  --c-policy-soft:#F7E4EF; --c-sim-soft:#E3E9FB; --c-eval-soft:#F9EDD5; --c-tac-soft:#DCF2EE;
+  --link:#2F5BD3; --focus:#2F5BD3;
+  --f-display:"Bricolage Grotesque","Noto Sans SC","PingFang SC","Hiragino Sans GB",system-ui,sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --f-math:"STIX Two Text","Cambria Math","Times New Roman","Noto Serif SC",serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0E1117; --surface:#161A22; --surface-2:#1F2430; --ink:#E7EAF0; --ink-2:#B6BDCA; --muted:#8C94A6;
+    --rule:#2A3140; --grid:#252C38; --plate:#F4F5F7;
+    --c-policy:#B03C84; --c-sim:#6283EE; --c-eval:#BF8A2A; --c-tac:#22A890; --c-base:#4C5463;
+    --c-policy-soft:#3A1E31; --c-sim-soft:#1C2645; --c-eval-soft:#35291A; --c-tac-soft:#14302B;
+    --link:#8FA8F5; --focus:#8FA8F5;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0E1117; --surface:#161A22; --surface-2:#1F2430; --ink:#E7EAF0; --ink-2:#B6BDCA; --muted:#8C94A6;
+  --rule:#2A3140; --grid:#252C38; --plate:#F4F5F7;
+  --c-policy:#B03C84; --c-sim:#6283EE; --c-eval:#BF8A2A; --c-tac:#22A890; --c-base:#4C5463;
+  --c-policy-soft:#3A1E31; --c-sim-soft:#1C2645; --c-eval-soft:#35291A; --c-tac-soft:#14302B;
+  --link:#8FA8F5; --focus:#8FA8F5;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{background:var(--bg);color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-underline-offset:3px;text-decoration-thickness:1px}
+a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:20px}
+.prose{max-width:720px}
+.prose p,.prose li{color:var(--ink)}
+p{margin:0 0 14px}
+ul,ol{margin:0 0 14px;padding-left:1.3em}
+li{margin-bottom:6px}
+strong{font-weight:700}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+sub,sup{font-size:.72em;line-height:0}
+
+/* top bar */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);background:color-mix(in oklab,var(--bg) 90%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;height:52px}
+.brand{font:800 17px/1 var(--f-display);letter-spacing:-.01em;white-space:nowrap;color:var(--ink);text-decoration:none}
+.brand span{color:var(--c-policy)}
+.nav{position:relative;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+.nav::-webkit-scrollbar{display:none}
+.nav a{font:500 13px/1 var(--f-body);color:var(--ink-2);text-decoration:none;padding:8px 10px;border-radius:999px;white-space:nowrap}
+.nav a:hover{background:var(--surface-2)}
+.nav a.on{background:var(--ink);color:var(--bg)}
+
+/* hero */
+.hero{padding-block:48px 40px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:40px;align-items:center}
+.eyebrow{font:600 12px/1.5 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font:800 clamp(64px,11vw,124px)/.9 var(--f-display);letter-spacing:-.035em;margin:14px 0 10px;font-variation-settings:"opsz" 96}
+h1 em{font-style:normal;color:var(--c-policy)}
+.en-title{font:500 18px/1.45 var(--f-display);color:var(--ink-2);margin:0 0 22px;max-width:34ch;text-wrap:balance}
+.thesis{font:700 clamp(19px,2.2vw,23px)/1.6 var(--f-body);margin:0 0 16px;text-wrap:pretty}
+.thesis .k-p{color:var(--c-policy)} .thesis .k-s{color:var(--c-sim)} .thesis .k-e{color:var(--c-eval)}
+.hero-sub{color:var(--ink-2);margin:0 0 18px;max-width:40em}
+.meta{font-size:13px;color:var(--muted);line-height:1.7}
+.meta b{color:var(--ink-2);font-weight:500}
+.ring{width:100%;max-width:460px;height:auto;display:block;margin-inline:auto}
+.ring .arc{fill:none;stroke-width:14;stroke-linecap:round}
+.ring .lbl{font:700 18px var(--f-display);fill:var(--ink)}
+.ring .sub{font:400 12px var(--f-body);fill:var(--muted)}
+.ring-cap{font-size:13px;color:var(--muted);text-align:center;margin-top:6px}
+
+/* sections */
+section{padding-block:56px;border-top:1px solid var(--rule)}
+h2{font:800 clamp(26px,3.4vw,34px)/1.25 var(--f-display);letter-spacing:-.01em;margin:8px 0 18px;text-wrap:balance}
+h3{font:700 20px/1.4 var(--f-display);margin:40px 0 12px;text-wrap:balance}
+h4{font:700 16px/1.5 var(--f-body);margin:22px 0 8px}
+.lead{font-size:17px;color:var(--ink-2)}
+.tag{display:inline-block;font:600 11px/1 var(--f-mono);letter-spacing:.06em;padding:4px 7px 3px;border-radius:4px;vertical-align:2px;margin-right:6px}
+.tag.read{background:var(--surface-2);color:var(--ink);border:1px solid var(--rule)}
+.tag.paper{background:transparent;color:var(--muted);border:1px solid var(--rule)}
+.tag.warn{background:var(--c-eval-soft);color:var(--ink);border:1px solid color-mix(in oklab,var(--c-eval) 45%,transparent)}
+.chip{display:inline-block;font:600 12px/1 var(--f-mono);padding:4px 7px;border-radius:5px;color:var(--ink)}
+.chip.p{background:var(--c-policy-soft);box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--c-policy) 50%,transparent)}
+.chip.s{background:var(--c-sim-soft);box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--c-sim) 50%,transparent)}
+.chip.e{background:var(--c-eval-soft);box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--c-eval) 55%,transparent)}
+.chip.t{background:var(--c-tac-soft);box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--c-tac) 50%,transparent)}
+
+/* RQ overview */
+.rq{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:10px;overflow:hidden;margin-top:8px}
+.rq > div{background:var(--surface);padding:18px 20px}
+.rq .n{font:600 12px var(--f-mono);color:var(--muted);letter-spacing:.06em}
+.rq .q{font:700 16px/1.5 var(--f-body);margin:4px 0 6px}
+.rq .a{font-size:14.5px;color:var(--ink-2);margin:0}
+.rq .a b{color:var(--ink);font-family:var(--f-mono);font-weight:600;font-size:.95em}
+
+/* figures */
+figure{margin:24px 0}
+.plate{background:var(--plate);border:1px solid var(--rule);border-radius:8px;padding:12px;display:block}
+.plate img{display:block;width:100%;height:auto}
+figcaption{font-size:14px;line-height:1.7;color:var(--ink-2);margin-top:10px;max-width:760px}
+figcaption b{color:var(--ink)}
+figcaption .src{font:500 11.5px var(--f-mono);color:var(--muted);letter-spacing:.03em;display:block;margin-bottom:2px}
+.fig-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.fig-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.fig-4 .plate{padding:6px}
+.fig-4 .sublab{font-size:12.5px;color:var(--ink-2);margin-top:6px;line-height:1.5}
+
+/* equations */
+.eq{font-family:var(--f-math);font-size:19px;line-height:1.9;background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:14px 18px;margin:16px 0;overflow-x:auto;white-space:nowrap;max-width:100%}
+.eq i{font-style:italic}
+.eq .no{float:right;font:500 12px var(--f-mono);color:var(--muted);margin-left:18px;line-height:2.6}
+.ss{display:inline-flex;flex-direction:column;vertical-align:-.45em;line-height:1;font-size:.66em;margin-left:1px}
+.ss sup,.ss sub{position:static;font-size:1em;line-height:1.1}
+.brace{display:inline-flex;flex-direction:column;align-items:center;vertical-align:top;line-height:1.5}
+.brace > span:first-child{padding:0 4px 2px;border-bottom:2px solid var(--bc)}
+.brace small{font:600 11px/1.6 var(--f-mono);color:var(--muted);letter-spacing:.02em}
+.eq-note{font-size:14px;color:var(--ink-2);margin-top:-6px}
+
+/* panels & controls */
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:20px;margin:22px 0}
+.panel-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 16px;margin-bottom:14px}
+.panel-h h4{margin:0;font:700 16px var(--f-display)}
+.panel-h .hint{font-size:12.5px;color:var(--muted)}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button,.btn{font:600 13px/1 var(--f-body);color:var(--ink);background:var(--surface-2);border:1px solid var(--rule);border-radius:8px;padding:9px 12px;cursor:pointer}
+.seg button[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.seg button .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.btn:hover,.seg button:hover{border-color:var(--muted)}
+.btn[disabled]{opacity:.45;cursor:default}
+input[type=range]{width:100%;accent-color:var(--ink)}
+
+/* mode switcher */
+.mode-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:24px;margin-top:18px}
+.toks{display:flex;gap:8px;flex-wrap:wrap}
+.tok{flex:1 1 90px;min-width:84px;border-radius:9px;padding:10px 10px 9px;border:1.5px solid var(--rule);background:var(--surface);position:relative;transition:background .25s,border-color .25s}
+.tok .nm{font:700 20px/1.1 var(--f-math);font-style:italic}
+.tok .ds{font-size:12px;color:var(--muted);line-height:1.35;margin-top:3px}
+.tok .st{font:600 11px/1.3 var(--f-mono);margin-top:7px;color:var(--ink-2)}
+.tok.cond{background:var(--surface-2);border-color:var(--surface-2)}
+.tok.noisy{background:var(--m-soft);border-color:var(--m);background-image:repeating-linear-gradient(135deg,transparent 0 6px,color-mix(in oklab,var(--m) 16%,transparent) 6px 8px)}
+.tok.idle{border-style:dashed;border-color:var(--muted)}
+.tok.absent{opacity:.35;border-style:dotted}
+.tok.sup{border-color:var(--m)}
+.tok.sup::after{content:"loss";position:absolute;top:7px;right:8px;font:600 10px var(--f-mono);color:var(--bg);background:var(--m);padding:2px 5px;border-radius:4px}
+.legend-row{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--ink-2);margin:12px 0 0}
+.legend-row i{display:inline-block;width:14px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px;border:1.5px solid var(--rule)}
+.mask{display:grid;grid-template-columns:44px repeat(4,minmax(0,1fr));gap:4px;max-width:340px}
+.mask .h{font:italic 600 15px/32px var(--f-math);text-align:center;color:var(--ink-2)}
+.mask .c{height:32px;border-radius:5px;border:1.5px solid var(--rule);background:var(--surface)}
+.mask .c.on{background:var(--m);border-color:var(--m)}
+.mask .c.na{border-style:dotted;opacity:.4}
+.mask-cap{font-size:12.5px;color:var(--muted);margin:8px 0 0;max-width:340px}
+.kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:8px 14px;margin:16px 0 0;font-size:14px}
+.kv dt{font:600 12px/1.9 var(--f-mono);color:var(--muted)}
+.kv dd{margin:0;color:var(--ink)}
+.kv dd .f{font-family:var(--f-math);font-style:italic;font-size:15.5px}
+
+/* tables */
+.tbl-wrap{overflow-x:auto;margin:16px 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:14px}
+.tbl-wrap > table{min-width:var(--tmin,0px)}
+.fig-tasks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px}
+.fig-tasks .sublab{font-size:12.5px;color:var(--ink-2);margin-top:6px;line-height:1.5}
+.fig-tasks .plate{padding:6px}
+.cap-cell{font-size:14px;line-height:1.7;color:var(--ink-2)}
+.cap-cell b{color:var(--ink)}
+.cap-cell .src{font:500 11.5px var(--f-mono);color:var(--muted);letter-spacing:.03em;display:block;margin-bottom:2px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:600 12px/1.5 var(--f-mono);color:var(--muted);letter-spacing:.03em;border-bottom:1.5px solid var(--ink-2)}
+td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.best td{font-weight:700}
+.bar-cell{display:flex;align-items:center;gap:8px;min-width:160px}
+.bar-cell i{display:block;height:10px;border-radius:0 3px 3px 0;background:var(--c-base)}
+.bar-cell i.st{background:var(--ink-2)}
+
+/* stages */
+.stages{list-style:none;padding:0;margin:18px 0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;counter-reset:st}
+.stages li{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:14px 14px 12px;margin:0;position:relative}
+.stages .sn{font:600 11.5px var(--f-mono);color:var(--muted);letter-spacing:.05em}
+.stages .st{font:700 16px/1.35 var(--f-display);margin:4px 0 8px}
+.stages ul{padding-left:1.1em;margin:0;font-size:13.5px;color:var(--ink-2)}
+.stages ul li{background:none;border:0;padding:0;margin:0 0 4px;border-radius:0}
+
+/* loop stepper */
+.pipe{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0}
+.pipe .step{font:600 12.5px/1.2 var(--f-body);padding:8px 10px;border-radius:8px;border:1px solid var(--rule);color:var(--muted);background:var(--surface)}
+.pipe .step.done{color:var(--ink-2)}
+.pipe .step.cur{color:var(--ink);border-color:var(--ink);box-shadow:inset 0 -3px 0 var(--sc,var(--ink))}
+.step-text{min-height:78px;font-size:14.5px;color:var(--ink);background:var(--surface-2);border-radius:8px;padding:12px 14px;margin-bottom:14px}
+.cands{display:grid;gap:6px}
+.cand{display:grid;grid-template-columns:52px minmax(0,1fr) 54px minmax(0,.8fr) 46px;gap:10px;align-items:center;font:500 12.5px var(--f-mono);padding:4px 6px;border-radius:6px}
+.cand .nm{font:italic 600 14px var(--f-math)}
+.cand .zbox{display:flex;gap:3px}
+.cand .zbox i{width:14px;height:14px;border-radius:3px;background:var(--c-sim-soft);border:1px solid color-mix(in oklab,var(--c-sim) 55%,transparent)}
+.track{display:block;position:relative;height:14px;background:var(--surface-2);border-radius:3px}
+.track .mid{position:absolute;top:-3px;bottom:-3px;width:1px;background:var(--muted)}
+.track .fill{position:absolute;top:2px;bottom:2px;border-radius:2px;transition:all .3s}
+.track .fill.v{background:var(--c-eval)}
+.track .fill.r{background:var(--c-policy)}
+.cand.best{box-shadow:inset 0 0 0 2px var(--ink)}
+.cand.gt{background:var(--surface-2)}
+.cand .val{text-align:right;color:var(--ink)}
+.cand-h{display:grid;grid-template-columns:52px minmax(0,1fr) 54px minmax(0,.8fr) 46px;gap:10px;font:600 11px var(--f-mono);color:var(--muted);padding:0 6px 4px}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px}
+.ctl .sp{flex:1}
+.stats{font:500 12.5px var(--f-mono);color:var(--ink-2);margin-top:10px}
+
+/* memory */
+.mem-row{display:grid;grid-template-columns:120px minmax(0,1fr) 150px;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--rule)}
+.mem-row:last-of-type{border-bottom:0}
+.mem-row .nm{font:700 14px/1.3 var(--f-body)}
+.mem-row .nm small{display:block;font:400 12px var(--f-body);color:var(--muted)}
+.cells{display:grid;grid-template-columns:repeat(40,minmax(0,1fr));gap:2px}
+.cells i{height:18px;border-radius:2px;background:transparent;border:1px dashed var(--rule)}
+.cells i.full{background:var(--c-sim);border:0}
+.cells i.mem{background:repeating-linear-gradient(135deg,var(--c-sim) 0 2px,transparent 2px 5px);border:1px solid color-mix(in oklab,var(--c-sim) 60%,transparent)}
+.cells i.gone{background:var(--surface-2);border:1px solid var(--surface-2)}
+.cells i.key{box-shadow:0 0 0 2px var(--c-eval)}
+.mem-row .cnt{font:500 12.5px/1.5 var(--f-mono);color:var(--ink-2)}
+.mem-row .cnt b{color:var(--ink);font-weight:600}
+
+/* tactile timeline */
+.tl{display:grid;grid-template-columns:96px repeat(9,minmax(0,1fr));gap:4px;align-items:stretch;font-size:12px}
+.tl .ln{font:600 12px/1.3 var(--f-body);color:var(--ink-2);display:flex;align-items:center}
+.tl .ln small{display:block;font:400 11px var(--f-mono);color:var(--muted)}
+.tl .cell{border-radius:5px;min-height:34px;display:flex;align-items:center;justify-content:center;font:600 11.5px var(--f-mono);color:var(--muted);border:1px solid var(--rule);background:var(--surface);text-align:center;padding:2px;transition:background .2s,border-color .2s}
+.tl .bb{grid-column:3 / span 8;background:var(--c-policy-soft);border-color:color-mix(in oklab,var(--c-policy) 45%,transparent);color:var(--ink);font:600 12px/1.35 var(--f-body);padding:6px 8px}
+.tl .cell.tw.in{background:var(--c-tac);border-color:var(--c-tac);color:#fff}
+.tl .cell.tw.past{background:var(--c-tac-soft)}
+.tl .cell.ex.done{background:var(--surface-2);color:var(--ink-2)}
+.tl .cell.ex.now{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.tl .cell.xp.now{background:var(--c-tac-soft);border-color:var(--c-tac);color:var(--ink)}
+.tl .cell.pr{border-style:dashed}
+.tl .cell.pr.now{border-color:var(--c-tac);color:var(--ink)}
+.tl .ax{font:500 10.5px var(--f-mono);color:var(--muted);text-align:left;padding-left:1px}
+.tl .blank{border:0;background:none}
+.tl-read{font-size:14px;background:var(--surface-2);border-radius:8px;padding:12px 14px;margin-top:14px;min-height:72px}
+
+/* charts */
+.chart{position:relative;margin:10px 0 4px}
+.chart svg{display:block;max-width:100%}
+.chart .gl{stroke:var(--grid);stroke-width:1}
+.chart .base{stroke:var(--muted);stroke-width:1}
+.chart .tk{fill:var(--muted);font:500 11px var(--f-mono)}
+.chart .rl{fill:var(--ink-2);font:500 13px var(--f-body)}
+.chart .rl.strong{fill:var(--ink);font-weight:700}
+.chart .grp{fill:var(--muted);font:600 11.5px var(--f-mono);letter-spacing:.04em}
+.chart .vl{fill:var(--ink);font:600 12px var(--f-mono)}
+.chart .bar{transition:opacity .15s}
+.chart .bar.on{opacity:.72}
+.chart .hit{fill:transparent;cursor:default}
+.chart .hit:focus{outline:none}
+.s-base{fill:var(--c-base)} .s-policy{fill:var(--c-policy)} .s-sim{fill:var(--c-sim)} .s-tac{fill:var(--c-tac)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--ink-2);margin:6px 0 2px}
+.legend span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;background:var(--sw)}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font:500 12.5px/1.45 var(--f-body);padding:7px 10px;border-radius:6px;white-space:nowrap;transform:translate(-50%,-110%);opacity:0;transition:opacity .12s;z-index:5}
+.tip b{font:600 14px var(--f-mono)}
+.tip.show{opacity:1}
+.chart-note{font-size:13px;color:var(--muted);margin:4px 0 0}
+details.raw{margin:10px 0 0;font-size:14px}
+details.raw summary{cursor:pointer;color:var(--ink-2);font:600 13px var(--f-body)}
+
+/* 2x2 */
+.fact{display:grid;grid-template-columns:110px repeat(2,minmax(0,1fr));gap:6px;max-width:620px;margin:16px 0}
+.fact .hd{font:600 12px/1.4 var(--f-mono);color:var(--muted);display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;text-align:center}
+.fact .rh{font:600 12px/1.4 var(--f-mono);color:var(--muted);display:flex;align-items:center}
+.fact .cell{border-radius:8px;padding:14px 12px;text-align:center;border:1px solid var(--rule)}
+.fact .big{font:700 26px/1.1 var(--f-display);font-variant-numeric:tabular-nums}
+.fact .sm{font:500 12px/1.6 var(--f-mono);color:var(--ink-2);margin-top:4px}
+
+/* compare */
+.cmp td:first-child{font:600 12.5px/1.5 var(--f-mono);color:var(--muted);white-space:nowrap}
+.cmp th.me{color:var(--ink)}
+.cmp td.me{background:color-mix(in oklab,var(--c-policy-soft) 60%,transparent)}
+.quad{display:grid;grid-template-columns:120px repeat(2,minmax(0,1fr));gap:6px;max-width:720px;margin:18px 0}
+.quad .hd{font:600 12px/1.4 var(--f-mono);color:var(--muted);text-align:center;padding:4px}
+.quad .rh{font:600 12px/1.4 var(--f-mono);color:var(--muted);display:flex;align-items:center}
+.quad .q{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:12px 14px;font-size:14px;min-height:72px}
+.quad .q b{display:block;font:700 15px var(--f-display)}
+.quad .q.empty{background:transparent;border-style:dashed;color:var(--muted)}
+
+/* faq, glossary */
+.faq details{border-top:1px solid var(--rule);padding:12px 0}
+.faq details:last-child{border-bottom:1px solid var(--rule)}
+.faq summary{cursor:pointer;font:700 16px/1.5 var(--f-body);list-style-position:outside}
+.faq details > div{padding-top:8px;color:var(--ink)}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
+.two h4{margin-top:0}
+.gl-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 32px;margin-top:14px}
+.gl-list dl{margin:0}
+.gl-list dt{font:700 14.5px var(--f-body);margin-top:14px}
+.gl-list dt .en{font:500 12px var(--f-mono);color:var(--muted);margin-left:6px}
+.gl-list dd{margin:2px 0 0;font-size:14px;color:var(--ink-2)}
+details.gloss > summary{cursor:pointer;font:700 15px var(--f-body);padding:10px 14px;background:var(--surface);border:1px solid var(--rule);border-radius:8px}
+footer{padding-block:36px 56px;border-top:1px solid var(--rule);font-size:13px;color:var(--muted)}
+
+@media (max-width:860px){
+  .hero-grid{grid-template-columns:1fr;gap:12px}
+  .ring{max-width:380px}
+  .mode-grid{grid-template-columns:1fr}
+  .stages{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fig-4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .two,.gl-list{grid-template-columns:1fr}
+}
+@media (max-width:560px){
+  body{font-size:15.5px}
+  .fig-tasks{grid-template-columns:1fr}
+  .wrap{padding-inline:16px}
+  section{padding-block:44px}
+  .rq{grid-template-columns:1fr}
+  .stages{grid-template-columns:1fr}
+  .fig-2{grid-template-columns:1fr}
+  .mem-row{grid-template-columns:1fr;gap:6px}
+  .cand,.cand-h{grid-template-columns:40px minmax(0,1fr) 44px minmax(0,.7fr) 40px;gap:6px}
+  .cand .zbox i{width:9px;height:9px}
+  .tl{grid-template-columns:64px repeat(9,minmax(0,1fr));gap:3px}
+  .tl .ln{font-size:11px}
+  .tl .bb{font-size:11px}
+  .fact{grid-template-columns:72px repeat(2,minmax(0,1fr))}
+  .quad{grid-template-columns:74px repeat(2,minmax(0,1fr))}
+  .eq{font-size:17px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/force-tactile/">力与触觉</a></span><span class="vapnav-links"><a href="../../papers/forcevla/">ForceVLA</a><a href="../../papers/tactile-vla/">Tactile-VLA</a><a href="../../papers/motus2/" aria-current="page">Motus2</a><a href="../../papers/me-dex/">ME-Dex 1.0</a></span></div></div>
+<!-- /vap:nav -->
+<div class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#top">Motus<span>2</span> 精读</a>
+    <nav class="nav" aria-label="章节">
+      <a href="#problem">问题</a>
+      <a href="#method">三接口</a>
+      <a href="#data">数据课程</a>
+      <a href="#loop">闭环</a>
+      <a href="#memory">记忆</a>
+      <a href="#tactile">触觉</a>
+      <a href="#setup">实验设置</a>
+      <a href="#results">结果</a>
+      <a href="#reading">读懂它</a>
+      <a href="#doubts">局限与疑点</a>
+      <a href="#four">四篇对照</a>
+      <a href="#glossary">术语</a>
+    </nav>
+  </div>
+</div>
+
+<header class="hero wrap" id="top">
+  <div class="hero-grid">
+    <div>
+      <div class="eyebrow">arXiv 2608.30237v2 · cs.RO · 2026-09-10 · GensPI / 清华大学</div>
+      <h1>Motus<em>2</em></h1>
+      <p class="en-title">A Self-Evolving General World Model for Dexterous Manipulation</p>
+      <p class="thesis">一套共享权重的视频-动作模型，只靠切换哪些 token 加噪、哪些 loss 打开，就能分别当 <span class="k-p">策略</span>（出动作块）、<span class="k-s">模拟器</span>（预测这个动作的视觉后果）和 <span class="k-e">评估器</span>（给后果打进度分）。三者串起来，推理时用来挑动作，训练时用来改策略。</p>
+      <p class="hero-sub">数据侧，主干先在约 13 万小时的人类第一视角视频上预训练（先单目，再双目加手部动作），再用 100 多小时机器人与人机对齐数据做域适配。另有一个轻量触觉专家，在灵巧手上用最新的力信号修正即将执行的动作。</p>
+      <div class="meta"><b>作者</b> Hongzhe Bi（项目负责人）、Zihao Zhou、Yihang Tang、Jingrui Pang、Shuhe Huang 等 19 人，通讯作者 Jun Zhu（朱军）<br><b>机构</b> 生数科技 GensPI、清华大学 · <b>项目页</b> <a href="https://motus-robotics.github.io/motus2" target="_blank" rel="noopener">motus-robotics.github.io/motus2</a></div>
+    </div>
+    <div>
+      <svg class="ring" viewBox="0 0 420 350" role="img" aria-label="Policy、Simulator、Evaluator 三个接口围绕同一套共享权重形成闭环">
+        <circle cx="210" cy="170" r="66" style="fill:var(--surface-2)"/>
+        <text x="210" y="178" text-anchor="middle" style="font:italic 700 46px var(--f-math);fill:var(--ink)">θ</text>
+        <text x="210" y="204" text-anchor="middle" class="sub">一套共享权重</text>
+        <path class="arc" d="M103.5,204.6 A112,112 0 0 1 186.7,60.4" style="stroke:var(--c-policy)"/>
+        <polygon points="190.6,59.6 174.7,56.8 177.2,68.6" style="fill:var(--c-policy)"/>
+        <path class="arc" d="M233.3,60.4 A112,112 0 0 1 316.5,204.6" style="stroke:var(--c-sim)"/>
+        <polygon points="315.3,208.4 325.6,196 314.2,192.3" style="fill:var(--c-sim)"/>
+        <path class="arc" d="M293.2,244.9 A112,112 0 0 1 126.8,244.9" style="stroke:var(--c-eval)"/>
+        <polygon points="124.1,241.9 129.7,257.1 138.6,249.1" style="fill:var(--c-eval)"/>
+        <text x="14" y="40" class="lbl">Policy</text>
+        <text x="14" y="58" class="sub">策略 · 提候选动作块</text>
+        <text x="406" y="40" text-anchor="end" class="lbl">Simulator</text>
+        <text x="406" y="58" text-anchor="end" class="sub">模拟器 · 想象后果</text>
+        <text x="210" y="316" text-anchor="middle" class="lbl">Evaluator</text>
+        <text x="210" y="334" text-anchor="middle" class="sub">评估器 · 给后果打进度分</text>
+        <g>
+          <line x1="72" y1="252" x2="100" y2="222" style="stroke:var(--c-tac);stroke-width:1.5;stroke-dasharray:3 3"/>
+          <circle cx="62" cy="262" r="15" style="fill:var(--c-tac)"/>
+          <text x="62" y="267" text-anchor="middle" style="font:700 13px var(--f-display);fill:#fff">T</text>
+          <text x="62" y="296" text-anchor="middle" class="sub">触觉专家</text>
+        </g>
+        <circle r="6.5" style="fill:var(--ink);stroke:var(--bg);stroke-width:2">
+          <animateMotion dur="8s" repeatCount="indefinite" path="M103.5,204.6 A112,112 0 1 1 103.6,204.8"/>
+        </circle>
+      </svg>
+      <p class="ring-cap">策略 → 模拟器 → 评估器 → 回到策略（规划时挑分最高的，MBRL 时拿分数更新策略）</p>
+    </div>
+  </div>
+</header>
+
+<section class="wrap" id="glance" style="border-top:1px solid var(--rule)">
+  <div class="eyebrow">读前速览 · 论文 §5 的四个研究问题</div>
+  <h2>四个问题，四个答案</h2>
+  <div class="rq">
+    <div><div class="n">RQ1 · 表 2</div><div class="q">人类第一视角预训练对机器人控制有没有用？</div><p class="a">同一套目标任务 SFT，只换初始化：从 Wan 视频模型出发 <b>0%</b>，从人类预训练权重出发 <b>51%</b>，再加机器人域中训练 <b>84%</b>（5 个任务宏平均，每任务 20 次）。π<sub>0.5</sub> 同协议下也是 <b>0%</b>。</p></div>
+    <div><div class="n">RQ2 · 表 3</div><div class="q">MBRL 和规划能否超过纯模仿？</div><p class="a">2 个任务平均：基线 <b>65.0%</b>，只加规划 <b>67.5%</b>，只加 MBRL <b>72.5%</b>，两者都加 <b>75.0%</b>。</p></div>
+    <div><div class="n">RQ3 · 表 4</div><div class="q">长时程任务里，哪种上下文机制更好？</div><p class="a">全局自回归（保留全部历史）胜过混合记忆：仿真 <b>78%</b> 对 <b>52%</b>，真机 <b>57.5%</b> 对 <b>25.0%</b>。</p></div>
+    <div><div class="n">RQ4 · 表 5</div><div class="q">触觉专家对接触密集任务有没有帮助？</div><p class="a">同一中训练权重出发，去掉触觉 <b>60.0%</b>，加上触觉 <b>72.5%</b>（抽纸杯、撕纸 2 个任务）。</p></div>
+  </div>
+</section>
+
+<section class="wrap" id="problem">
+  <div class="prose">
+    <div class="eyebrow">§1 引言 · §2 相关工作</div>
+    <h2>它要解决什么问题</h2>
+    <p class="lead">论文的出发点是：通用具身智能体应当在一个统一系统里完成感知、预测、行动、评估和改进，而现有的机器人基础模型大多只做了“行动”这一步。</p>
+    <p>作者指出了三处不足。</p>
+    <ol>
+      <li><strong>只靠模仿。</strong>今天的机器人基础模型主要在精选的动作示范上训练。对齐本体的示范很贵；模仿本身也不知道一个动作好不好，模型没法从自己的执行结果里继续改进。</li>
+      <li><strong>人类数据难以直接迁移。</strong>第一视角的人类视频能提供大规模的手-物交互先验（双目还能提供深度线索和更准的 3D 手部姿态），但指尖打滑、抓握成形、松手这类接触事件单看画面很模糊；第一视角下手会挡住物体，有些后果要过一会儿才显现。这是论文后面做机器人域适配、长时程上下文和触觉反馈的动机。</li>
+      <li><strong>“世界模拟器 + 动作头”缺了评估。</strong>world–action model（WAM）能当策略，action-conditioned world model（AC-WM）能当模拟器，前作 Motus 已经用 UniDiffuser 式的联合建模把二者放进同一个模型。但预测出的未来本身不说明它是否推进了任务，所以还需要第三个接口：评估器，也就是价值模型。</li>
+    </ol>
+    <p>作者把核心问题写成一句话：<em>如何在一个共享模型里实现这些因果接口，同时不把未来观测暴露给动作预测；又如何把结果价值转换成策略更新？</em></p>
+    <p><span class="tag read">解读</span>“在世界模拟器上接一个动作头”不够，原因有两层。其一，没有评估器，模拟器想象出来的后果无法用来挑选或改进动作，失败数据也只能丢掉或被错误地模仿。其二，如果动作 token 能看到同一块的未来视频，部署时每一步都得先把视频生成出来，控制就被视频生成的开销拖住。Motus2 的做法是用“动作优先”的掩码切断这条依赖，让三个接口共享权重但各司其职。</p>
+  </div>
+  <figure>
+    <div class="plate"><img src="fig/overview.jpg" alt="Motus2 总览：左边是视频-动作因果 DiT 主干加触觉专家，输入语言、动作、双目视频和触觉；右边是 Policy、Simulator、Evaluator 组成的 MBRL/规划闭环" width="1800" height="914" loading="lazy"></div>
+    <figcaption><span class="src">Figure 1 · Motus2 overview</span><b>一张图看完整篇。</b>左半边是架构：文本编码器经交叉注意力进入；动作编码器、VAE 编码器（双目视频）和价值查询（Value Query）的 token 一起进入视频-动作因果 DiT 块，顶上输出未来动作块、未来帧和价值。右侧窄一些的 Tactile Expert 吃触觉编码器的 token 和“部分加噪的子块”，输出未来触觉与动作子块。右半边是闭环：历史观测进 Policy (WAM) 得到 N 个候选动作 A<sub>1..N</sub>，Simulator (AC-WM) 为每个候选想象画面 Z<sub>1..N</sub>，Evaluator (VM) 打出 V<sub>1..N</sub>，再走两条路之一：Opt1 用 RL loss 更新策略，Opt2 取最大值执行（测试时扩展）。</figcaption>
+  </figure>
+</section>
+
+<section class="wrap" id="method">
+  <div class="prose">
+    <div class="eyebrow">§3.1 Overview · §3.2 General World Modeling</div>
+    <h2>一套权重，三个接口</h2>
+    <p>作者把任务写成部分可观测马尔可夫决策过程：观测 <i>o<sub>t</sub></i> = (图像, 本体感受, 可选触觉)，因为手经常挡住物体和接触点，当前观测不够当马尔可夫状态，所以策略条件在历史上。实际中，核心模型用上下文 <i>c<sub>t</sub></i> 表示历史：语言、当前本体感受，以及由工作记忆机制（见<a href="#memory">记忆</a>一节）提供的编码后视觉历史。</p>
+    <p>给定上下文，设 <i>A<sub>t</sub></i> 为可执行的动作块，<i>Z<sub>t</sub></i> 为它对应的未来观测 latent，<i>Y<sub>t</sub></i> 为离散化的任务进度值。从机器人域中训练开始，三者的联合密度按“动作优先”的顺序分解：</p>
+  </div>
+  <div class="eq"><span class="no">Eq. 2</span><i>p</i><sub>θ</sub>(<i>A<sub>t</sub></i>, <i>Z<sub>t</sub></i>, <i>Y<sub>t</sub></i> | <i>c<sub>t</sub></i>) =
+    <span class="brace" style="--bc:var(--c-policy)"><span>π<sub>θ</sub>(<i>A<sub>t</sub></i> | <i>c<sub>t</sub></i>)</span><small>policy (WAM)</small></span> ·
+    <span class="brace" style="--bc:var(--c-sim)"><span><i>p</i><span class="ss"><sup>wm</sup><sub>θ</sub></span>(<i>Z<sub>t</sub></i> | <i>c<sub>t</sub></i>, <i>A<sub>t</sub></i>)</span><small>simulator (AC-WM)</small></span> ·
+    <span class="brace" style="--bc:var(--c-eval)"><span><i>p</i><span class="ss"><sup>vm</sup><sub>θ</sub></span>(<i>Y<sub>t</sub></i> | <i>c<sub>t</sub></i>, <i>A<sub>t</sub></i>, <i>Z<sub>t</sub></i>)</span><small>evaluator (VM)</small></span>
+  </div>
+  <div class="prose">
+    <p>这三个因子是同一个共享参数模型的三种调用方式，并不是三个分别训练的网络。给分支排序用的分数是评估器的条件期望 <i>V</i><sub>θ</sub>(<i>c<sub>t</sub></i>, <i>A<sub>t</sub></i>, <i>Z<sub>t</sub></i>) = 𝔼[<i>Y<sub>t</sub></i>]（Eq. 3）。</p>
+    <h3>token 怎么排：chunk 自回归</h3>
+    <p>从中训练开始，每个训练窗口排成“干净的历史观测 + 若干个动作优先的块”：<i>x</i> = (<i>Z</i><sup>ctx</sup>; <i>B</i><sub>1</sub>; …; <i>B<sub>M</sub></i>)，每块 <i>B<sub>j</sub></i> = (<i>q<sub>j</sub></i>; <i>A<sub>j</sub></i>; <i>Z<sub>j</sub></i>; <i>U<sub>j</sub></i>)，其中 <i>q<sub>j</sub></i> 是可选的本体感受，<i>U<sub>j</sub></i> 是只读的价值查询 token。</p>
+    <ul>
+      <li><strong>块内</strong>：动作 token 读不到本块的未来视频和价值；未来视频 token 可以读当前动作；价值查询可以读两者，但对其他所有 token 隐藏。于是块内依赖是 <i>A<sub>j</sub></i> → <i>Z<sub>j</sub></i> → <i>U<sub>j</sub></i>。</li>
+      <li><strong>块间</strong>：因果且有窗口，块 <i>j</i> 可以用之前的干净观测，永远看不到后面的块。自回归发生在块与块之间，块内的一串低层动作由 flow matching 一起生成。作者称之为 <em>chunk-autoregressive</em>。</li>
+      <li><strong>其余</strong>：主干从基础视频扩散模型初始化（附录 E：Wan 2.2-TI2V-5B）。双目的左右视图 latent 共享时间和竖直方向的 RoPE 坐标，水平方向用错开的区间；本体感受、动作和价值查询进入同一个 Transformer 计算，语言走交叉注意力。</li>
+    </ul>
+    <p>下面这个示意把论文 Eq. 7 的三种训练模式和 Figure 2 的掩码放在一起。点上面的按钮切换模式，看哪些 token 是干净条件、哪些被加噪并计 loss，以及注意力怎么连。</p>
+  </div>
+
+  <div class="panel" id="modes">
+    <div class="panel-h"><h4>三种调用模式（外加预训练的联合模式）</h4><span class="hint">依据 Eq. 6–7、Figure 2、附录 E.2</span></div>
+    <div class="seg" role="tablist" aria-label="训练模式">
+      <button role="tab" data-mode="joint" aria-selected="false" id="mode-joint"><span class="dot" style="background:var(--muted)"></span>联合预训练</button>
+      <button role="tab" data-mode="policy" aria-selected="true" id="mode-policy"><span class="dot" style="background:var(--c-policy)"></span>Policy 策略</button>
+      <button role="tab" data-mode="sim" aria-selected="false" id="mode-sim"><span class="dot" style="background:var(--c-sim)"></span>Simulator 模拟器</button>
+      <button role="tab" data-mode="eval" aria-selected="false" id="mode-eval"><span class="dot" style="background:var(--c-eval)"></span>Evaluator 评估器</button>
+    </div>
+    <div class="mode-grid" id="mode-body" style="--m:var(--c-policy);--m-soft:var(--c-policy-soft)">
+      <div>
+        <div class="eyebrow" style="margin-bottom:8px">块 j 里的 token</div>
+        <div class="toks">
+          <div class="tok cond" data-t="C"><div class="nm">C<sub>&lt;j</sub></div><div class="ds">干净的历史观测</div><div class="st">条件</div></div>
+          <div class="tok" data-t="A"><div class="nm">A<sub>j</sub></div><div class="ds">动作块</div><div class="st"></div></div>
+          <div class="tok" data-t="Z"><div class="nm">Z<sub>j</sub></div><div class="ds">未来视频 latent</div><div class="st"></div></div>
+          <div class="tok" data-t="U"><div class="nm">U<sub>j</sub></div><div class="ds">价值查询</div><div class="st"></div></div>
+        </div>
+        <div class="legend-row">
+          <span><i style="background:var(--surface-2);border-color:var(--surface-2)"></i>干净条件</span>
+          <span><i style="background:var(--m-soft);border-color:var(--m)"></i>加噪，由模型去噪</span>
+          <span><i style="border-style:dashed;border-color:var(--muted)"></i>在场，但 loss 关闭</span>
+          <span><i style="border-style:dotted;opacity:.5"></i>不存在</span>
+        </div>
+        <dl class="kv" id="mode-kv"></dl>
+      </div>
+      <div>
+        <div class="eyebrow" style="margin-bottom:8px">块内注意力（行＝query，列＝key）</div>
+        <div class="mask" id="mask" aria-label="注意力掩码示意"></div>
+        <p class="mask-cap" id="mask-cap"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="prose">
+    <p>训练目标把三件事写进一个式子。对干净目标 <i>x</i> ∈ {<i>Z<sub>j</sub></i>, <i>A<sub>j</sub></i>} 和高斯噪声 ε，<i>x</i><sub>σ</sub> = (1 − σ)<i>x</i> + σε，速度目标 <i>v</i>* = ε − <i>x</i>。共享主干同时预测视频速度、动作速度和一个价值的类别分布：</p>
+  </div>
+  <div class="eq"><span class="no">Eq. 6</span>ℒ = <i>w<sub>z</sub></i>‖<i>v</i><span class="ss"><sup>z</sup><sub>θ</sub></span> − <i>v</i><span class="ss"><sup>z*</sup><sub>&nbsp;</sub></span>‖² + λ<sub><i>a</i></sub><i>w<sub>a</sub></i>‖<i>v</i><span class="ss"><sup>a</sup><sub>θ</sub></span> − <i>v</i><span class="ss"><sup>a*</sup><sub>&nbsp;</sub></span>‖² + λ<sub><i>v</i></sub><i>w<sub>v</sub></i> CE(<i>p</i><span class="ss"><sup>vm</sup><sub>θ</sub></span>, <i>Y<sub>t</sub></i>)</div>
+  <div class="prose">
+    <p>三个 loss 开关 (<i>w<sub>z</sub></i>, <i>w<sub>a</sub></i>, <i>w<sub>v</sub></i>) 和两路独立的噪声水平 (σ<sup>z</sup>, σ<sup>a</sup>) 一起决定当前是哪种模式：</p>
+    <div class="tbl-wrap">
+      <table style="--tmin:560px">
+        <thead><tr><th>模式</th><th>(σ<sup>z</sup>, σ<sup>a</sup>)</th><th>(w<sub>z</sub>, w<sub>a</sub>, w<sub>v</sub>)</th><th>监督的条件分布</th><th class="num">中训练样本占比</th></tr></thead>
+        <tbody>
+          <tr><td><span class="chip p">policy</span></td><td class="mono">(&gt;0, &gt;0)</td><td class="mono">(1, 1, 0)</td><td><i>p</i><sub>θ</sub>(<i>A<sub>t</sub></i>, <i>Z<sub>t</sub></i> | <i>c<sub>t</sub></i>)</td><td class="num">其余 ≈ 0.85</td></tr>
+          <tr><td><span class="chip s">simulation</span></td><td class="mono">(&gt;0, 0)</td><td class="mono">(1, 0, 0)</td><td><i>p</i><sub>θ</sub>(<i>Z<sub>t</sub></i> | <i>c<sub>t</sub></i>, <i>A<sub>t</sub></i>)</td><td class="num">0.10</td></tr>
+          <tr><td><span class="chip e">evaluation</span></td><td class="mono">(0, 0)</td><td class="mono">(0, 0, 1)</td><td><i>p</i><sub>θ</sub>(<i>Y<sub>t</sub></i> | <i>c<sub>t</sub></i>, <i>A<sub>t</sub></i>, <i>Z<sub>t</sub></i>)</td><td class="num">0.05</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:14px;color:var(--ink-2)">占比来自附录 E.2：simulation 和 evaluation 模式各占训练样本的 0.10 和 0.05，其余为 policy。价值目标离散成 201 个 bin，loss 权重 0.05。</p>
+
+    <h3>按轨迹类型分配监督</h3>
+    <p>掩码保证了依赖方向正确，但它不能判断一条录下来的动作值不值得模仿。所以每条轨迹只路由到它能正确监督的因子：</p>
+    <ul>
+      <li><span class="chip p">policy</span> 从中训练开始，<strong>只有精选的成功轨迹</strong>会打开动作监督。</li>
+      <li><span class="chip s">simulation</span> <span class="chip e">evaluation</span> 失败轨迹、次优轨迹，以及与任务无关的交互，只进入模拟或评估模式。这时录下的动作只是干净的条件变量，不是模仿目标。模型从这些数据里学转移和结果，但不会学着复现坏动作。</li>
+    </ul>
+    <h3>部署时只查询动作</h3>
+    <p>训练好以后，普通控制只查询动作因子 π<sub>θ</sub>(<i>A<sub>t</sub></i> | <i>c<sub>t</sub></i>)，未来视频和价值只在规划或策略优化时才生成。因为动作 token 看不到本块的未来视频，这样做不会改变动作的分布。论文强调这保留了视频-动作联合训练的好处，又不必在每个控制步都做一次未来预测（引用 Fast-WAM、GigaWorld-Policy）。默认部署时，动作块用 5 步 flow-matching 去噪采样（附录 E.3）。</p>
+  </div>
+  <figure>
+    <div class="fig-2">
+      <div class="plate"><img src="fig/mask_joint.jpg" alt="联合预训练的块掩码" width="981" height="1000" loading="lazy"></div>
+      <div class="plate"><img src="fig/mask_actionfirst.jpg" alt="动作优先的块掩码" width="981" height="1000" loading="lazy"></div>
+    </div>
+    <figcaption><span class="src">Figure 2 · Stage-specific chunk masks</span><b>左：预训练的联合掩码；右：中训练和后训练的动作优先掩码。</b>行是 query，列是 key，深色格子表示能看到。看每块的 A、Z 两行：左图里 A1 能看到 Z1（块内双向），且 U 行全空（价值查询在预训练阶段还不存在）；右图里 A1 只看到 C0 和自己，Z1 能看到 A1，U1 能看到 C0、A1、Z1。再往下看块间：块 2、块 3 的 token 只看前面的干净上下文 C，看不到前面块的加噪 A、Z，也看不到后面的块。两图中浅色和深色的区别是不同块的着色。</figcaption>
+  </figure>
+</section>
+
+<section class="wrap" id="data">
+  <div class="prose">
+    <div class="eyebrow">§3.2 Data-scaling curriculum · §4 · 附录 B–E</div>
+    <h2>数据课程：从人类视频到目标机器人</h2>
+    <p>训练分四段。前两段只用人类第一视角数据，后两段才进入机器人域。动作优先掩码和监督路由也是从机器人域适配开始才启用的。</p>
+  </div>
+  <ol class="stages">
+    <li><div class="sn">预训练 · Stage 1</div><div class="st">只训视频通路</div><ul><li>单目第一视角：先低分辨率 500K 步，再高分辨率 340K 步</li><li>双向条件 flow matching，给 1–2 帧干净 latent 作上下文</li><li>没有动作和价值 token</li></ul></li>
+    <li><div class="sn">预训练 · Stage 2</div><div class="st">视频-动作联合</div><ul><li>多分辨率双目第一视角视频 + 人手动作，450K 步</li><li>块内视频与动作双向可见（联合掩码），价值 loss 关闭</li><li>窗口 W = 12 个 latent 帧，每块 κ = 2 帧，可见历史 1–5 块</li></ul></li>
+    <li><div class="sn">中训练 Mid-training</div><div class="st">机器人域适配</div><ul><li>100 多小时：机器人轨迹 + 几十小时人机对齐数据</li><li>换成动作优先掩码，三种模式混合训练</li><li>640×384 双目，W = 8，κ = 2，历史 1–3 块</li></ul></li>
+    <li><div class="sn">后训练 Post-training</div><div class="st">目标机器人 SFT 与三个扩展</div><ul><li>默认：滑动窗口 SFT（同中训练的窗口设置）</li><li>扩展：价值引导 MBRL、长历史上下文、触觉专家</li></ul></li>
+  </ol>
+  <div class="prose">
+    <p>优化器设置（附录 E）：Stage 2 与中训练都用 AdamW，学习率 2×10<sup>−5</sup>，weight decay 0.01，梯度裁剪 0.5，bfloat16；Stage 2 常数学习率、1K 步 warm-up，中训练线性调度、200 步 warm-up。</p>
+    <h3>约 13 万小时的第一视角语料</h3>
+    <p>表 1 列的是过滤、切分和标注之前的原始录制时长（约数）。条形长度按线性比例画。</p>
+  </div>
+  <div class="tbl-wrap">
+    <table style="--tmin:600px">
+      <thead><tr><th>数据集</th><th>相机</th><th>原始时长（小时）</th><th>分辨率 (W×H)</th><th>来源</th></tr></thead>
+      <tbody id="corpus"></tbody>
+    </table>
+  </div>
+  <div class="prose">
+    <p class="chart-note">条形颜色：浅灰＝单目，深灰＝双目。来源：论文 Table 1。</p>
+    <p><span class="tag read">解读</span>按表中数字，单目合计 112,500 小时，其中 Egocentric-100K 一个源就占 100,500 小时（约占总量 77%，分辨率只有 480×360）；双目合计 17,400 小时。也就是说，“13 万小时”的大头是低分辨率单目视频，只进入 Stage 1 的视频通路；带手部动作、真正参与视频-动作联合训练的双目数据是一万多小时量级。</p>
+    <p>论文还说明：同一个源可以进入多个阶段，例如 LightWheel 的单目录像进 Stage 1，双目录像进 Stage 2。此外，团队用 Wuji Human Gloves 采了几十小时人机对齐数据，作为中训练的补充。</p>
+  </div>
+  <figure>
+    <div class="fig-2">
+      <div class="plate"><img src="fig/pyramid.jpg" alt="第一视角数据金字塔" width="1600" height="1037" loading="lazy"></div>
+      <div class="plate"><img src="fig/semantics.jpg" alt="标注子集的语义分布" width="1600" height="1149" loading="lazy"></div>
+    </div>
+    <figcaption><span class="src">Figure 4 · Egocentric data pyramid and corpus semantics</span><b>左：数据金字塔。</b>从底到顶：网络视频、单目第一视角视频、双目第一视角数据、人机对齐数据、（带触觉的）机器人数据。越往上越少、越接近目标本体。注意“触觉”只出现在塔尖。<b>右：标注子集的语义多样性</b>（不含 Egocentric-100K）：(a) 99 个细粒度动作动词（grasp、pick、lift、press 最多），(b) 物体相关词，(c) 12 个互斥的高层任务类别，(d) 前 20 个场景关键词。</figcaption>
+  </figure>
+  <div class="prose">
+    <h3>人类数据怎么变成“动作”</h3>
+    <ul>
+      <li><strong>统一的 134 维手部表示</strong>（附录 C.1）：每只手 = 世界系腕部平移 <i>p</i> ∈ ℝ³ + 四元数 <i>q</i> ∈ ℝ⁴ + 20 个非腕部关键点在腕部局部系下的坐标 <i>k</i> ∈ ℝ⁶⁰，两只手共 134 维。</li>
+      <li><strong>BoxTrim 时间清洗</strong>（附录 C.2）：用腕部轨迹的突变（自适应阈值 τ<sub>motion</sub> = max(α·median, τ<sub>min</sub>)）近似检测快速转身和大幅位移，用“双手关键点同时无效”近似检测手出画或跟踪失败，把这些区间切掉，再把长片段切成更均衡的块。</li>
+      <li><strong>语言标注</strong>（附录 C.3）：用视觉-语言模型给每个片段写环境、整体行为、左右手分别在做什么。</li>
+      <li><strong>重定向到灵巧手</strong>（附录 D）：预训练用的人类数据把 21 个 MediaPipe 关键点通过带关节限位的 IK 映射到第一代 Wuji 手的 20 维关节空间，损失结合“整根手指构型”和“指尖位置与末节方向”，按指尖与拇指的距离动态加权，并加时间正则和低通滤波。后训练用的 Wuji Hand 2（20 自由度）和 Sharpa Wave（22 自由度）则直接用遥操作系统记录的原生关节角。</li>
+    </ul>
+    <h3>平台</h3>
+    <p>附录 A 列出三套双臂配置：天机 Marvin 双臂 + 两只 20 自由度 Wuji 手（另装 ZED Mini、ZED 2 相机和 Wuji Robot Glove 触觉）；天机 Gento Luna 双臂 + 20 自由度 Wuji Hand 2；Gento Luna + 22 自由度 Sharpa Wave。摘要称之为“完全仿生”的平台：双目视觉、双臂、双灵巧手和触觉。遥操作上，Marvin–Wuji 用 MANUS 手套（先转 21 点 MediaPipe 表示再重定向）加三个 VIVE Ultimate Tracker（躯干和双腕）；两套 Gento Luna 用 PICO 手柄位姿给双臂目标，手套数据分别重定向到 Wuji 或 Sharpa 手。人机对齐数据不驱动机器人：操作者戴一双 Wuji Human Gloves，双腕各一个 HTC VIVE Tracker，桌上固定第三个 Tracker 作参考系，头戴 ZED 2 录左右目 RGB。</p>
+  </div>
+  <figure>
+    <div class="fig-4">
+      <div><div class="plate"><img src="fig/plat_marvin_wuji.jpg" alt="Wuji 手 + 天机 Marvin 双臂" width="824" height="1100" loading="lazy"></div><div class="sublab">(a) Wuji 手 + 天机 Marvin 双臂</div></div>
+      <div><div class="plate"><img src="fig/plat_luna_wuji2.jpg" alt="Wuji Hand 2 + 天机 Gento Luna" width="825" height="1100" loading="lazy"></div><div class="sublab">(b) Wuji Hand 2 + 天机 Gento Luna</div></div>
+      <div><div class="plate"><img src="fig/plat_luna_sharpa.jpg" alt="Sharpa Wave + 天机 Gento Luna" width="825" height="1100" loading="lazy"></div><div class="sublab">(c) Sharpa Wave + 天机 Gento Luna</div></div>
+      <div><div class="plate"><img src="fig/plat_human.jpg" alt="人机对齐数据采集" width="824" height="1100" loading="lazy"></div><div class="sublab">(d) 人机对齐数据采集</div></div>
+    </div>
+    <figcaption><span class="src">Figure 6 · Robot platforms and human–robot alignment collection</span>(a) 上能看到头部双目相机和戴手套的灵巧手；(d) 是人戴 Wuji Human Gloves、腕部 Tracker 和头戴双目相机采集对齐数据，不驱动机器人。</figcaption>
+  </figure>
+</section>
+
+<section class="wrap" id="loop">
+  <div class="prose">
+    <div class="eyebrow">§3.3 Value-Guided Closed-Loop Self-Evolution · 附录 E.3</div>
+    <h2>闭环：规划与 MBRL</h2>
+    <p class="lead">动作优先的分解让“提候选 → 想后果 → 打分”可以按顺序执行。要让模型自我改进，还需要把评估器的反馈送回策略。</p>
+    <h3>评估器学的是“相对进度”</h3>
+    <p>沿用 VLAC 的相对进度定义。对成功轨迹中从时刻 <i>t</i> 开始、长度为 Δ<i>t</i> 的片段，目标是</p>
+  </div>
+  <div class="eq"><span class="no">Eq. 8 / 9</span><i>r<sub>t</sub></i> = + Δ<i>t</i> / (<i>T</i> − <i>t</i>)　（成功轨迹的片段）　　<i>r<sub>t</sub></i> = − Δ<i>t</i> / (<i>T</i> − <i>t</i>)　（失败遥操作、任务无关交互的片段）</div>
+  <div class="prose">
+    <p>其中 <i>T</i> 是轨迹总长。正目标落在 [0, 1]，衡量这一段相对“剩余任务长度”推进了多少。只有正样本，评估器学不会怎样给偏离任务的行为打分，所以用两类负样本补上：失败的遥操作轨迹（抓不准、意外接触、偏离指令流程）和与任务无关的交互。正负值再离散成 Eq. 6 里的类别目标 <i>Y<sub>t</sub></i>。</p>
+    <h3>两种用法</h3>
+    <ul>
+      <li><strong>推理时规划（Best-of-N，滚动时域）</strong>：提 N 个动作块，逐个模拟并打分，执行分最高的那块 <i>A</i><sub><i>i</i>*</sub>，<i>i</i>* = argmax <i>V<sub>i</sub></i>，拿到真实观测后重复。每执行一块就重新规划，减少对长想象链的依赖。论文没有给出规划时的 N。</li>
+      <li><strong>训练时 MBRL（DiffusionNFT）</strong>：规划只能在现有策略的分布里挑，改变不了“提议分布”本身。MBRL 把评估器的分数喂回动作通路，用 DiffusionNFT 把标量分数变成 flow-matching 策略更新，模拟器和评估器保持不动。</li>
+    </ul>
+    <p>MBRL 的核心是把分数变成 [0, 1] 的“最优性权重”，再用它在两个隐式速度场之间插值：</p>
+  </div>
+  <div class="eq"><span class="no">Eq. 11</span><i>r̂<sub>i</sub></i> = 0.5 + 0.5 · clip( (<i>V<sub>i</sub></i> − mean(<i>V</i>)) / max(std(<i>V</i>), ε), −1, 1 )</div>
+  <div class="eq"><span class="no">Eq. 12 / 13</span><i>v</i><span class="ss"><sup>+</sup><sub><i>i</i></sub></span> = (1 − β)<i>v</i><sub>ref,<i>i</i></sub> + β<i>v</i><sub>θ,<i>i</i></sub>，　<i>v</i><span class="ss"><sup>−</sup><sub><i>i</i></sub></span> = (1 + β)<i>v</i><sub>ref,<i>i</i></sub> − β<i>v</i><sub>θ,<i>i</i></sub>，　ℒ<sub>NFT</sub> = 𝔼<sub><i>i</i></sub>[ <i>r̂<sub>i</sub></i>‖<i>v</i><span class="ss"><sup>+</sup><sub><i>i</i></sub></span> − <i>v</i><span class="ss"><sup>tar</sup><sub><i>i</i></sub></span>‖² + (1 − <i>r̂<sub>i</sub></i>)‖<i>v</i><span class="ss"><sup>−</sup><sub><i>i</i></sub></span> − <i>v</i><span class="ss"><sup>tar</sup><sub><i>i</i></sub></span>‖² ]</div>
+  <div class="prose">
+    <p>mean 和 std 只在策略生成的候选上算（总体标准差），ε 防止方差接近零时数值不稳。每组候选另外放入一条真值“动作-未来”对，固定 <i>r̂</i> = 1 作为正锚点，不参与均值方差计算。<i>v</i><sub>ref</sub> 来自 EMA 参考策略，更新时固定。直观地说：高分候选让在线策略的速度场朝它靠拢，低分候选让策略朝反方向走，<i>r̂</i> ≈ 0.5 的候选两边抵消，策略留在参考附近。1/β 相当于强化引导的强度。预测出的未来 <i>Z<sub>i</sub></i> 只通过分数 <i>V<sub>i</sub></i> 影响更新，不会作为输入暴露给动作速度预测器。</p>
+    <p>下面用示意数值走一遍两种用法。候选分数是随机生成的，不是论文数据。</p>
+  </div>
+
+  <div class="panel" id="loopsim">
+    <div class="panel-h"><h4>闭环分步演示</h4><span class="hint">分数为示意数值 · 公式与超参来自 Eq. 11 与附录 E.3</span></div>
+    <div class="seg" role="tablist" aria-label="用法">
+      <button role="tab" data-lm="plan" aria-selected="true" id="lm-plan">推理时规划</button>
+      <button role="tab" data-lm="mbrl" aria-selected="false" id="lm-mbrl">训练时 MBRL</button>
+    </div>
+    <div class="pipe" id="pipe"></div>
+    <div class="step-text" id="steptext" aria-live="polite"></div>
+    <div class="cand-h"><span>候选</span><span>想象的 Z · 分数 V（−1 到 1）</span><span style="text-align:right">V</span><span>权重 r̂（0 到 1）</span><span style="text-align:right">r̂</span></div>
+    <div class="cands" id="cands"></div>
+    <div class="stats" id="stats"></div>
+    <div class="ctl">
+      <button class="btn" id="prev">上一步</button>
+      <button class="btn" id="next">下一步</button>
+      <span class="sp"></span>
+      <button class="btn" id="resample">换一组分数</button>
+    </div>
+  </div>
+
+  <div class="prose">
+    <h3>MBRL 的工程实现</h3>
+    <p>候选生成、价值打分、参考目标构造和策略优化四个阶段吞吐不匹配，串行执行会让昂贵组件空转。作者参考 AcceRL 做了基于 Ray 的宏观异步流水线，各阶段用有界 FIFO 缓冲解耦。附录 E.3 给出的设置：</p>
+    <ul>
+      <li>每个前缀从<strong>离线数据</strong>采样，含 1–4 个块；每个前缀生成 8 个策略候选 + 1 条真值候选；想象时域只有 <strong>1 个块</strong>。</li>
+      <li>动作采样 4 步去噪，未来视频采样 8 步去噪。DiffusionNFT 取 β = 0.1，每个候选采一个噪声水平。</li>
+      <li>EMA 参考策略衰减 0.99，每 10 次训练更新发布一次；参考版本过旧或超过 600 秒的样本丢弃。</li>
+      <li><strong>只优化动作相关参数</strong>，共享的视频主干和价值组件都冻结。</li>
+    </ul>
+  </div>
+  <figure>
+    <div class="fig-2">
+      <div class="plate"><img src="fig/mbrl.jpg" alt="MBRL 训练闭环" width="1800" height="991" loading="lazy"></div>
+      <div class="plate"><img src="fig/planning.jpg" alt="测试时规划" width="1800" height="1010" loading="lazy"></div>
+    </div>
+    <figcaption><span class="src">Figure 3 · Self-evolution and planning modules</span><b>左：MBRL 训练闭环；右：测试时规划。</b>两张图结构几乎一样，下面都是同一个“General World Model”分出三个接口。区别只在最右边：左图的价值 V<sub>1..N</sub> 进 RL loss，虚线回到 Policy 做策略优化；右图对价值取 argmax 直接执行。</figcaption>
+  </figure>
+</section>
+
+<section class="wrap" id="memory">
+  <div class="prose">
+    <div class="eyebrow">§3.4 Working Memory · 附录 E.3</div>
+    <h2>工作记忆：能看到多久以前</h2>
+    <p>闭环只能用 <i>c<sub>t</sub></i> 里保留下来的证据。有界上下文会丢掉任务早期看到、后面又需要的信息，手也可能在后面的画面里挡住物体。作者把“可访问的历史”当成一个显式的设计维度，做了三种方案：</p>
+    <ul>
+      <li><strong>滑动窗口（默认）</strong>：固定成本的流式方案。部署时只保留真实观测到的视觉 latent（不用想象出的），KV cache 只存最近的干净观测，执行完一块就追加新观测、挤掉最旧的。时间 RoPE 是窗口相对的，挤掉之后剩下的视频 key 会重新定位，保证位置落在训练见过的范围内。附录 E.3：W = 8，κ = 2，两块的流式缓存。</li>
+      <li><strong>全局自回归</strong>：保留全部历史干净 latent，用整条 episode 的时间坐标，每个预测块都能看到完整历史。代价是 KV cache 和注意力开销随 episode 长度增长（<i>N</i> 个 latent 帧后保留 <i>NL</i> 个视觉 KV token）。</li>
+      <li><strong>混合工作记忆</strong>：MemoryWAM 式。保留开头的 2 个全分辨率锚点帧和最近 4 个全分辨率帧，更早的中间观测压成持久的记忆 token（每个 latent 帧 8 个）。</li>
+    </ul>
+    <p>两种长历史变体都在完整 episode 上训练，长度差异大，所以作者把多条 episode 打包进一次注意力调用，用块对角因果掩码隔开，各自生成 RoPE，padding 不计 loss。这只改变计算布局，与分开处理等价。拖动下面的滑块，看随着任务推进，三种方案各自还能“看见”哪些帧。</p>
+  </div>
+
+  <div class="panel" id="memsim">
+    <div class="panel-h"><h4>三种上下文方案，谁还记得第 3 帧</h4><span class="hint">L ＝ 每个 latent 帧的视觉 token 数 · 橙框帧是示意的“关键证据”（比如方块藏在哪个杯子下）</span></div>
+    <label for="memN" style="font-size:13.5px;color:var(--ink-2)">已观测的 latent 帧数 N = <b id="memNv" class="mono">24</b></label>
+    <input type="range" id="memN" min="4" max="40" value="24">
+    <div id="memrows" style="margin-top:10px"></div>
+    <div class="legend-row">
+      <span><i style="background:var(--c-sim);border-color:var(--c-sim)"></i>全分辨率可见</span>
+      <span><i style="background:repeating-linear-gradient(135deg,var(--c-sim) 0 2px,transparent 2px 5px)"></i>压成记忆 token</span>
+      <span><i style="background:var(--surface-2);border-color:var(--surface-2)"></i>已观测但看不到</span>
+      <span><i style="border-style:dashed"></i>尚未发生</span>
+    </div>
+  </div>
+  <div class="prose">
+    <p class="chart-note">示意说明：滑动窗口按“最近 2 块 × κ = 2 = 4 个 latent 帧”画；混合记忆按“前 2 帧锚点 + 最近 4 帧 + 中间每帧 8 个记忆 token”画。token 计数只算视觉历史。</p>
+  </div>
+</section>
+
+<section class="wrap" id="tactile">
+  <div class="prose">
+    <div class="eyebrow">§3.5 Tactile Expert · 附录 E.3 · §5.6</div>
+    <h2>触觉专家：在去噪的最后一段接入力信号</h2>
+    <p class="lead">工作记忆扩展了视觉历史，但接触状态单靠视觉仍然可能模糊。作者想把高频的触觉证据接进来，又不想每来一段触觉就把整个主干重跑一遍。办法是挂一个轻量专家，复用主干算好的中间结果。</p>
+    <h3>结构：一条窄而深的旁路</h3>
+    <ul>
+      <li><strong>规模</strong>：30 层 Transformer，隐藏宽度 128，4 个注意力头，FFN 宽度 512。每层与共享主干的对应层一一配对。</li>
+      <li><strong>读什么</strong>：每层对“触觉 token + 中间动作 token”做自注意力，同时读主干对应层缓存好的 K/V。</li>
+      <li><strong>主干只跑一次</strong>：参照 T-Rex，主干把整个 48 个动作的块从 σ = 1 去噪到固定的 σ<sub>c</sub> = 0.2，在这个中间状态刷新动作的 K/V，与可见的视频上下文 K/V 拼起来。这份逐层缓存被 detach，供专家反复使用。</li>
+      <li><strong>专家分段收尾</strong>：动作频率 30 Hz，一块切成 8 个子块，每个 6 个动作、0.2 秒。每执行一个子块之前，专家拿<em>紧挨着它之前</em>的触觉窗口，完成这个子块从 σ<sub>c</sub> 到 0 的最后一步更新。同一份中间动作块和 KV cache 在 8 次调用里复用。</li>
+    </ul>
+  </div>
+  <div class="eq"><span class="no">Eq. 14 / 15</span><i>Ã<sub>t,k</sub></i> = <i>A</i><span class="ss"><sup>σ<sub>c</sub></sup><sub><i>t,k</i></sub></span> − σ<sub>c</sub> <i>v</i><span class="ss"><sup>a</sup><sub>φ,<i>t,k</i></sub></span>　　ℒ<sub>ref</sub> = 𝔼‖ <i>v</i><span class="ss"><sup>a</sup><sub>φ,<i>t,k</i></sub></span> − (<i>A</i><span class="ss"><sup>σ<sub>c</sub></sup><sub><i>t,k</i></sub></span> − <i>A<sub>t,k</sub></i>) / σ<sub>c</sub> ‖²</div>
+  <div class="prose">
+    <p>也就是说，专家读入第 <i>k</i> 个子块的中间动作、它之前的触觉窗口 τ<span class="ss" style="font-style:normal"><sup>pre</sup><sub>t,k</sub></span> 和缓存，预测最终动作速度，一步走完剩下的 σ<sub>c</sub>。</p>
+  </div>
+
+  <div class="panel" id="tacsim">
+    <div class="panel-h"><h4>一个动作块（48 个动作，1.6 秒）里发生了什么</h4><span class="hint">依据 §3.5 与附录 E.3 · 拖动或播放</span></div>
+    <div class="tl" id="tl" aria-label="触觉专家时间线"></div>
+    <div class="ctl">
+      <label for="tacK" style="font-size:13.5px;color:var(--ink-2);white-space:nowrap">当前子块 k = <b id="tacKv" class="mono">3</b></label>
+      <input type="range" id="tacK" min="1" max="8" value="3" style="flex:1;min-width:140px">
+      <button class="btn" id="tacPlay">播放</button>
+    </div>
+    <div class="tl-read" id="tacread" aria-live="polite"></div>
+  </div>
+
+  <div class="prose">
+    <h3>还要预测未来的力，但只在训练时</h3>
+    <p>修正动作只用到了“之前”的触觉。为了让专家也学会接触在这个动作下会怎样演化，作者在每个子块之后预测真实的力窗口 <b>f</b><span class="ss"><sup>post</sup><sub>t,k</sub></span>：前一个窗口保持干净作条件，后一个窗口在归一化的力信号空间里加噪，用同样的 flow matching 目标去噪（Eq. 16）。</p>
+    <ul>
+      <li><strong>方向约束</strong>：未来力 token 可以看中间动作 token；动作修正 token 看不到加噪的未来力 token。动作优先的依赖在专家内部也成立。</li>
+      <li><strong>总目标</strong>：ℒ<sub>tac</sub> = ℒ<sub>ref</sub> + λ<sub>pred</sub>ℒ<sub>pred</sub>，λ<sub>pred</sub> = 0.1；AdamW，学习率 5×10<sup>−5</sup>，weight decay 0.01。</li>
+      <li><strong>部署时不预测力</strong>：力预测只在训练时使用，部署只输出修正后的动作。</li>
+      <li><strong>主干不受触觉梯度影响</strong>：中间动作和缓存状态都被 detach，触觉 loss 只更新专家、力编码器与解码器，以及 Sharpa Wave 的形变编码器。</li>
+    </ul>
+    <h3>两种灵巧手的触觉输入</h3>
+  </div>
+  <div class="tbl-wrap">
+    <table style="--tmin:600px">
+      <thead><tr><th>手</th><th>输入给专家的信号</th><th>是否被预测</th><th>用于哪个任务</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Sharpa Wave</strong><br><span style="color:var(--muted);font-size:13px">22 自由度</span></td><td>60 维双手力/力矩向量；外加 10 个指腹的形变图像，时间卷积编码器把连续 6 帧形变图压成 20 个条件 token</td><td>力：预测（仅训练）<br>形变图：只作条件，不预测</td><td>Pull Out Paper Cup</td></tr>
+        <tr><td><strong>Wuji Hand 2</strong><br><span style="color:var(--muted);font-size:13px">20 自由度</span></td><td>1086 维双手向量：每只手 176 个三轴传感点共 1056 个逐点力值，加 30 个逐指三轴合力值</td><td>力：预测（仅训练）</td><td>Tear Paper</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="prose">
+    <p style="font-size:14px;color:var(--ink-2)">两种手共用同一套专家结构和时间调度。力信号采样 90 Hz，Sharpa Wave 每个窗口额外提供 6 帧形变图；力输入按训练数据统计量归一化，无效通道置零。</p>
+    <h3>实验结果（表 5）</h3>
+  </div>
+  <div class="panel">
+    <div class="legend"><span style="--sw:var(--c-base)">w/o Tactile（去掉触觉专家）</span><span style="--sw:var(--c-tac)">w/ Tactile（完整的修正 + 预测目标）</span></div>
+    <div class="chart" id="ch-tac"></div>
+    <p class="chart-note">成功率，每格 20 次试验。两个变体从同一个中训练权重出发，用同样的目标任务后训练数据。Table 5。</p>
+    <details class="raw"><summary>原表数字</summary><div class="tbl-wrap"><table><thead><tr><th>Variant</th><th class="num">Pull Out Paper Cup</th><th class="num">Tear Paper</th><th class="num">Avg. SR</th></tr></thead><tbody><tr><td>w/o Tactile</td><td class="num">65%</td><td class="num">55%</td><td class="num">60.0%</td></tr><tr class="best"><td>w/ Tactile</td><td class="num">75%</td><td class="num">70%</td><td class="num">72.5%</td></tr></tbody></table></div></details>
+  </div>
+  <figure>
+    <div class="fig-tasks">
+      <div><div class="plate"><img src="fig/task_tactile_pull_paper_cup.jpg" alt="Pull Out Paper Cup 任务的 8 帧" width="1800" height="507" loading="lazy"></div><div class="sublab">(h) Pull Out Paper Cup · Sharpa Wave</div></div>
+      <div><div class="plate"><img src="fig/task_tactile_tear_paper.jpg" alt="Tear Paper 任务的 8 帧" width="1800" height="507" loading="lazy"></div><div class="sublab">(i) Tear Paper · Wuji Hand 2</div></div>
+    </div>
+    <figcaption><span class="src">Figure 8 (h)(i) · 触觉任务</span><b>Pull Out Paper Cup</b>：稳住一摞套叠的纸杯，抽出一只，不能掉也不能捏扁。<b>Tear Paper</b>：双手配合抓住一张纸并从纸卷上撕下。原图是一行 8 帧，这里排成 2 行 × 4 帧，从左上到右下是时间顺序。</figcaption>
+  </figure>
+  <div class="prose">
+    <p><span class="tag read">解读</span>这里的触觉设计本质上是“双速率”：主干以块为单位（1.6 秒）做一次重计算，专家以 0.2 秒为单位用新的力信号做一次轻量修正，从而在不重跑 5B 主干的前提下拿到更高的反应频率。代价是触觉只作用在动作生成的最后一段：主干、模拟器和评估器都看不到触觉，规划和 MBRL 也就没法对接触后果做推理。这一点在<a href="#four">四篇对照</a>里与 ME-Dex 1.0 对比会更清楚。</p>
+  </div>
+</section>
+
+<section class="wrap" id="setup">
+  <div class="prose">
+    <div class="eyebrow">§5.1 Experiment Setup · 附录 G</div>
+    <h2>实验怎么做的</h2>
+    <h3>任务分组</h3>
+  </div>
+  <div class="tbl-wrap">
+    <table style="--tmin:600px">
+      <thead><tr><th>用途</th><th>任务</th><th>考察什么</th><th class="num">每任务试验数</th></tr></thead>
+      <tbody>
+        <tr><td>主任务集（表 2）</td><td>Place Ball、Put Phone</td><td>空间定位与放置</td><td class="num">20（真机）</td></tr>
+        <tr><td></td><td>Attach Eraser、Screw Bulb</td><td>精确对齐与持续接触</td><td class="num">20（真机）</td></tr>
+        <tr><td></td><td>Multi-Finger</td><td>多指协调抓取不同形状物体</td><td class="num">20（真机）</td></tr>
+        <tr><td>MBRL 与规划（表 3）</td><td>Put Phone、Multi-Finger（复用主任务）</td><td>隔离策略优化和测试时规划的效果</td><td class="num">20（真机）</td></tr>
+        <tr><td>工作记忆（表 4）</td><td>Find Square、Press Button</td><td>关键证据可能被遮挡或早于短窗口</td><td class="num">25（仿真）/ 20（真机）</td></tr>
+        <tr><td>触觉（表 5）</td><td>Pull Out Paper Cup、Tear Paper</td><td>接触敏感的抓握调整与双手持续交互</td><td class="num">20（真机）</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="prose">
+    <p><strong>评测协议</strong>：同一组对比内所有方法用相同的初始配置；真机每任务 20 个配置，长时程上下文研究的仿真分支每任务 25 个；每个配置跑一次闭环。只有所有任务谓词都在时限内满足才算成功，部分完成算失败。平均值是任务间的宏平均。仿真和真机结果分开报告。</p>
+    <p><strong>受控对比</strong>：与 π<sub>0.5</sub> 比时，目标任务 SFT 数据、观测接口和评测协议都一致。WAN-SFT、Pretrain-SFT 和 Motus2 (Midtrain-SFT) 用同一套 SFT 流程，只有初始化不同：分别是 Wan 视频模型、两阶段第一视角预训练权重、机器人域中训练权重。</p>
+    <p><span class="tag read">解读</span>真机每格 20 次，一次成功就是 5 个百分点；两任务平均的 2.5 个百分点等于其中一个任务多成功一次。读后面的小差距时请记住这个粒度。论文没有报告置信区间或多随机种子。</p>
+  </div>
+  <figure>
+    <div class="fig-tasks">
+      <div><div class="plate"><img src="fig/task_main_place_ball.jpg" alt="Place Ball" width="1800" height="507" loading="lazy"></div><div class="sublab">(a) Place Ball</div></div>
+      <div><div class="plate"><img src="fig/task_main_put_phone.jpg" alt="Put Phone" width="1800" height="507" loading="lazy"></div><div class="sublab">(b) Put Phone</div></div>
+      <div><div class="plate"><img src="fig/task_main_attach_eraser.jpg" alt="Attach Eraser" width="1800" height="507" loading="lazy"></div><div class="sublab">(c) Attach Eraser</div></div>
+      <div><div class="plate"><img src="fig/task_main_screw_bulb.jpg" alt="Screw Bulb" width="1800" height="507" loading="lazy"></div><div class="sublab">(d) Screw Bulb</div></div>
+      <div><div class="plate"><img src="fig/task_main_multi_object.jpg" alt="Multi-Finger" width="1800" height="507" loading="lazy"></div><div class="sublab">(e) Multi-Finger</div></div>
+      <div class="cap-cell"><span class="src">Figure 8 (a)–(e) · 主任务集</span><b>Place Ball</b>（左手拿球放到倒扣的杯子上）、<b>Put Phone</b>（右手从紫色块上拿起手机放进白色手机支架）、<b>Attach Eraser</b>（左手拿板擦贴到白板上）、<b>Screw Bulb</b>（右手把灯泡拧进灯座直到亮，然后松手）、<b>Multi-Finger</b>（从一组形状各异的物体中抓一个放进橙色篮子）。每张 8 帧，原图一行，这里排成 2×4，按时间从左上到右下。</div>
+    </div>
+  </figure>
+</section>
+
+<section class="wrap" id="results">
+  <div class="prose">
+    <div class="eyebrow">§5.2–5.6</div>
+    <h2>结果</h2>
+    <h3>主结果：预训练和中训练各贡献了多少（表 2）</h3>
+    <p>π<sub>0.5</sub> 和 WAN-SFT 在五个任务上全部是 0%，下图只画 Pretrain-SFT 和 Motus2，两者的差别只在是否做了机器人域中训练。</p>
+  </div>
+  <div class="panel">
+    <div class="legend"><span style="--sw:var(--c-base)">Pretrain-SFT（人类第一视角预训练 → SFT）</span><span style="--sw:var(--c-policy)">Motus2 (Midtrain-SFT)（再加机器人域中训练 → SFT）</span></div>
+    <div class="chart" id="ch-main"></div>
+    <p class="chart-note">成功率，每格 20 次。π<sub>0.5</sub> 与 WAN-SFT 各任务均为 0%，未画出。Table 2。</p>
+    <details class="raw"><summary>原表数字</summary><div class="tbl-wrap"><table><thead><tr><th>Method</th><th class="num">Place Ball</th><th class="num">Multi-Finger</th><th class="num">Attach Eraser</th><th class="num">Screw Bulb</th><th class="num">Put Phone</th><th class="num">Avg. SR</th></tr></thead><tbody><tr><td>π<sub>0.5</sub></td><td class="num">0%</td><td class="num">0%</td><td class="num">0%</td><td class="num">0%</td><td class="num">0%</td><td class="num">0%</td></tr><tr><td>WAN-SFT</td><td class="num">0%</td><td class="num">0%</td><td class="num">0%</td><td class="num">0%</td><td class="num">0%</td><td class="num">0%</td></tr><tr><td>Pretrain-SFT</td><td class="num">60%</td><td class="num">35%</td><td class="num">90%</td><td class="num">55%</td><td class="num">15%</td><td class="num">51%</td></tr><tr class="best"><td>Motus2 (Midtrain-SFT)</td><td class="num">100%</td><td class="num">70%</td><td class="num">100%</td><td class="num">90%</td><td class="num">60%</td><td class="num">84%</td></tr></tbody></table></div></details>
+  </div>
+  <div class="prose">
+    <p>论文的结论：第一视角预训练把宏平均从 WAN-SFT 的 0% 提到 51%，机器人域中训练再提到 84%，比 Pretrain-SFT 高 33 个百分点。在同样的目标任务 SFT 协议下，这支持了第一视角预训练和中训练各自的贡献。</p>
+    <p><span class="tag read">解读</span>提升最大的是 Put Phone（15% → 60%，+45）和 Place Ball（60% → 100%，+40）；Attach Eraser 在 Pretrain-SFT 时已经是 90%。π<sub>0.5</sub> 在所有任务上都是 0%，这一点需要谨慎看待，放在<a href="#doubts">疑点</a>里讨论。</p>
+
+    <h3>双目人类数据的缩放规律（Figure 5）</h3>
+    <p>用嵌套的 2k、4k、10k、20k 小时双目子集（保持来源和分辨率比例）分别预训练，在同一个轨迹不相交的双目留出集上测人手动作预测误差：每个样本生成多个动作块，取均值与归一化后的真值腕部和手部动作比 MSE。每个数据量取所有 epoch 里最好的验证误差，拟合得到</p>
+  </div>
+  <div class="eq"><span class="no">Eq. 18</span>ℒ<span class="ss"><sup>*</sup><sub>val</sub></span>(<i>D</i>) ≈ 0.101 − 0.005 ln <i>D</i></div>
+  <figure>
+    <div class="plate"><img src="fig/scaling.jpg" alt="双目第一视角人类数据的缩放规律" width="1800" height="818" loading="lazy"></div>
+    <figcaption><span class="src">Figure 5 · Scaling laws of stereo egocentric human data</span><b>左：</b>四个数据量下验证误差随 epoch 的变化，数据越少越早进入平台。<b>右：</b>最优验证误差对原始小时数（对数横轴）近似一条直线。按拟合式，数据每增加 10 倍，最优误差下降约 0.005 × ln 10 ≈ 0.0115。注意这里的指标是人手动作预测误差，不是机器人成功率；横轴是过滤和切分之前的原始小时数，实际训练数据更少。</figcaption>
+  </figure>
+
+  <div class="prose">
+    <h3>MBRL 与规划：2×2 因子实验（表 3）</h3>
+    <p>从同一个目标机器人权重出发，分别打开 DiffusionNFT 策略优化和 Best-of-N 规划。MBRL 改权重，规划只改推理。</p>
+  </div>
+  <div class="fact" role="table" aria-label="MBRL 与规划 2×2 结果">
+    <div></div><div class="hd" role="columnheader">不规划</div><div class="hd" role="columnheader">+ 规划</div>
+    <div class="rh" role="rowheader">无 MBRL</div>
+    <div class="cell" style="background:color-mix(in oklab,var(--c-policy) 8%,var(--surface))"><div class="big">65.0%</div><div class="sm">Put Phone 60 · Multi-Finger 70</div></div>
+    <div class="cell" style="background:color-mix(in oklab,var(--c-policy) 14%,var(--surface))"><div class="big">67.5%</div><div class="sm">Put Phone 65 · Multi-Finger 70</div></div>
+    <div class="rh" role="rowheader">+ MBRL</div>
+    <div class="cell" style="background:color-mix(in oklab,var(--c-policy) 24%,var(--surface))"><div class="big">72.5%</div><div class="sm">Put Phone 65 · Multi-Finger 80</div></div>
+    <div class="cell" style="background:color-mix(in oklab,var(--c-policy) 32%,var(--surface))"><div class="big">75.0%</div><div class="sm">Put Phone 70 · Multi-Finger 80</div></div>
+  </div>
+  <div class="prose">
+    <p class="chart-note">格子颜色越深表示平均成功率越高。每个任务 20 次。Table 3。</p>
+    <p>论文的解读：规划带来 +2.5（65.0 → 67.5），MBRL 带来 +7.5（65.0 → 72.5），两者叠加到 75.0。MBRL 之后规划仍然有 +2.5，开着规划时 MBRL 仍然有 +7.5，说明两者在所评测的任务上互补。</p>
+    <p><span class="tag read">解读</span>换算成次数：规划的 +2.5 是 Put Phone 多成功 1 次（Multi-Finger 不变）；MBRL 的 +7.5 是 Put Phone 多 1 次、Multi-Finger 多 2 次。方向一致，但样本量很小。</p>
+
+    <h3>评估器的打分长什么样（附录 F）</h3>
+    <p>附录 F 在四个任务上各画了一条成功、一条失败轨迹的预测进度。读数用 Eq. 7 的评估模式：每块的预测只条件在上下文、已执行的动作和这一块实际观测到的视频上，从不条件在最终结果上；按 latent 帧逐点读出，值域 [−1, 1]，训练目的是给 rollout 排序，<strong>不是校准过的成功概率</strong>。</p>
+  </div>
+  <figure>
+    <div class="fig-2">
+      <div class="plate"><img src="fig/value_a.jpg" alt="预测任务进度：Cut Reeds 和 Make Tea" width="1430" height="1694" loading="lazy"></div>
+      <div class="plate"><img src="fig/value_b.jpg" alt="预测任务进度：Multi-Finger 和 Put Phone" width="1430" height="1694" loading="lazy"></div>
+    </div>
+    <figcaption><span class="src">Figure 7a / 7b · Predicted task progress</span>蓝色是成功，橙色是失败，所有面板纵轴相同。<b>成功</b>（a、c、e、g）都结束在 0.63–0.65，但形状不同：Cut Reeds 前 15 秒手在接近和对准、还没剪断芦苇时几乎为 0，之后随两次剪断分两级上升；其余三个任务平滑上升。<b>失败</b>曲线的形状更有信息量：Cut Reeds (b) 先跟成功一样升到 0.27，第一剪没剪断反而把芦苇提起来，两秒内掉到 −0.39，架子被碰歪后到 −0.51；Put Phone (h) 在手机放进盒子后峰值到 0.60，反复盖不上盖子后才掉到 −0.26；Make Tea (d) 在约 35 秒倒完水时到 0.14，之后 80 秒里因为拿不起盖子一路降到 −0.47；Multi-Finger (f) 在约 50 秒到 0.18，最后所有物体被放进同一个容器，降到 −0.53。</figcaption>
+  </figure>
+  <div class="prose">
+    <p><span class="tag warn">注意</span>正文 §5.4 说附录 F 展示的是“Screw Bulb 的一条成功和三条失败轨迹，成功轨迹从 0.34 升到约 0.81”，但附录 F 实际是上面四个任务各一成一败、成功终点 0.63–0.65 的图；其中 Cut Reeds 和 Make Tea 不在 Figure 8 列出的 9 个评测任务里。LaTeX 源码里正文和附录就是这样写的，应是版本更新时没有同步。</p>
+
+    <h3>长时程上下文（表 4）</h3>
+    <p>在 Find Square 和 Press Button 两个记忆探针上，比较全局自回归和混合工作记忆，训练和配对评测设置一致，仿真与真机都测。</p>
+  </div>
+  <div class="panel">
+    <div class="legend"><span style="--sw:var(--c-base)">Hybrid memory 混合记忆</span><span style="--sw:var(--c-sim)">Global autoregression 全局自回归</span></div>
+    <div class="chart" id="ch-mem"></div>
+    <p class="chart-note">仿真每格 25 次，真机每格 20 次。两种变体都只训练了 10K 步（附录 E.3）。Table 4。</p>
+    <details class="raw"><summary>原表数字</summary><div class="tbl-wrap"><table><thead><tr><th>Setting</th><th>Context mechanism</th><th class="num">Find Square</th><th class="num">Press Button</th><th class="num">Avg. SR</th></tr></thead><tbody><tr><td>Simulation</td><td>Hybrid memory</td><td class="num">64%</td><td class="num">40%</td><td class="num">52%</td></tr><tr class="best"><td></td><td>Global autoregression</td><td class="num">84%</td><td class="num">72%</td><td class="num">78%</td></tr><tr><td>Real robot</td><td>Hybrid memory</td><td class="num">30%</td><td class="num">20%</td><td class="num">25.0%</td></tr><tr class="best"><td></td><td>Global autoregression</td><td class="num">65%</td><td class="num">50%</td><td class="num">57.5%</td></tr></tbody></table></div></details>
+  </div>
+  <figure>
+    <div class="fig-tasks">
+      <div><div class="plate"><img src="fig/task_memory_find_square.jpg" alt="Find Square" width="1800" height="507" loading="lazy"></div><div class="sublab">(f) Find Square</div></div>
+      <div><div class="plate"><img src="fig/task_memory_press_button.jpg" alt="Press Button" width="1800" height="507" loading="lazy"></div><div class="sublab">(g) Press Button</div></div>
+    </div>
+    <figcaption><span class="src">Figure 8 (f)(g) · 记忆任务</span><b>Find Square</b>：有人把橙色方块藏进三只杯子之一并打乱，机器人要靠之前的观测掀开正确的杯子。<b>Press Button</b>：机器人先看一个视觉提示，在动作过程中记住它，再按提示的顺序按实体按钮。</figcaption>
+  </figure>
+  <div class="prose">
+    <p><span class="tag read">解读</span>表 4 只比了两种长历史扩展，<strong>没有放默认的滑动窗口</strong>，所以从这张表看不出“长历史”本身比滑动窗口好多少。全局自回归的代价随 episode 长度线性增长，论文也没有报告它的推理延迟。</p>
+  </div>
+</section>
+
+<section class="wrap" id="reading">
+  <div class="prose">
+    <div class="eyebrow">关键 insight · 常见误解 · FAQ</div>
+    <h2>读懂它</h2>
+    <h3>值得带走的几个设计</h3>
+    <ol>
+      <li><strong>三个接口的区别只在“哪些 token 加噪、哪些 loss 打开”。</strong>没有三个网络，也没有三个独立的头：同一个 DiT，同一张动作优先掩码，靠 (σ<sup>z</sup>, σ<sup>a</sup>) 和 (w<sub>z</sub>, w<sub>a</sub>, w<sub>v</sub>) 切换。评估器唯一多出来的是价值查询 token 和 201 bin 的类别读出。</li>
+      <li><strong>动作优先的掩码同时解决了两件事。</strong>动作不看本块未来视频，所以部署时可以只去噪动作；视频 token 能看动作，所以同一个模型天然是动作条件的模拟器。预训练阶段则保持块内双向，先把视频-动作的联合先验学好，到机器人域才切换。</li>
+      <li><strong>失败数据有用，但不能拿来模仿。</strong>成功轨迹训策略，失败、次优和无关交互只训模拟器和评估器。这让同一批数据按“能正确监督什么”被分别利用。</li>
+      <li><strong>规划改“选哪个”，MBRL 改“提什么”。</strong>两者用同样的三接口，一个在推理时从当前分布里挑，一个在训练时移动分布，实验里二者可以叠加。</li>
+      <li><strong>触觉走旁路、按双速率运行。</strong>主干每块跑一次，专家每 0.2 秒用新触觉修正一次，不必重跑主干。</li>
+    </ol>
+    <h3>容易误解的地方</h3>
+    <ul>
+      <li><strong>“自进化”不等于在线真机强化学习。</strong>论文实际做的 MBRL 是：从离线数据采前缀，想象 1 个块的后果，用冻结的评估器打分，只更新动作相关参数。论文没有报告“更新策略 → 采新真机数据 → 再训模拟器和评估器”的多轮迭代。</li>
+      <li><strong>policy 模式也在训视频。</strong>policy 模式的 loss 开关是 (1, 1, 0)，未来视频也被加噪和监督；只是部署时只读动作因子。</li>
+      <li><strong>价值不是成功概率。</strong>论文明确说价值用于排序，没有校准。</li>
+      <li><strong>触觉预测不在部署链路里。</strong>未来力的预测只是训练时的辅助目标；Sharpa Wave 的形变图也只作条件。</li>
+      <li><strong>缩放规律测的是人手动作误差。</strong>Figure 5 说明双目人类数据越多、人手动作预测越准，并没有直接给出机器人成功率随数据量的曲线。</li>
+    </ul>
+  </div>
+  <div class="prose faq">
+    <h3>FAQ</h3>
+    <details><summary>评估器的分数靠得住吗？</summary><div>
+      <p>论文给的证据有三类。定性上，附录 F 的八条轨迹里，成功轨迹都升到 0.63–0.65，失败轨迹在进度丢失后下降。定量上是间接的：用这个分数做 Best-of-N 规划带来 +2.5，做 MBRL 带来 +7.5（表 3）。论文没有报告价值模型本身的排序准确率或与真实结果的相关性。</p>
+      <p><span class="tag read">解读</span>还有一个值得注意的细节：Put Phone 的失败轨迹 (h) 中途峰值 0.60，与成功轨迹的终点 0.65 很接近，它是在后面反复盖不上盖子时才掉下去的。而 MBRL 的想象时域只有 1 个块，打分看的是一小段后果，这种“看上去快成功了”的状态能否与真正会成功的状态区分开，论文没有直接回答。</p>
+    </div></details>
+    <details><summary>自进化到底进化了什么？</summary><div>
+      <p>按 §3.3 和附录 E.3，被更新的只有<strong>策略的动作相关参数</strong>；共享的视频主干（也就是模拟器的大部分能力）和评估器都冻结。所以进化的是“提议分布”：高分候选的方向被加强，低分候选的方向被削弱。模拟器和评估器本身在这个循环里不变。</p>
+    </div></details>
+    <details><summary>为什么动作 token 不能看本块的未来视频？</summary><div>
+      <p>论文的核心问题里就写了“不把未来观测暴露给动作预测”。如果动作依赖本块未来视频，部署时就必须先把视频生成出来才能出动作；而且作为 π(<i>A</i>|<i>c</i>) 这一因子的策略，本来就不应条件在尚未发生的观测上。作者的做法是预训练保留块内双向（学联合先验），到机器人域中训练时切成动作优先。</p>
+    </div></details>
+    <details><summary>为什么触觉不直接放进主干？</summary><div>
+      <p>论文给的理由是：要接入高频触觉证据，又不想为每段触觉重跑整个主干。于是主干每块只到 σ<sub>c</sub> = 0.2，剩下的一步交给读缓存的专家。</p>
+      <p><span class="tag read">解读</span>另一个现实原因写在局限里：可穿戴触觉数据很难跨本体扩展，人类第一视角数据基本不带触觉。把触觉限制在后训练的旁路里，主干就能继续吃 13 万小时的无触觉数据。</p>
+    </div></details>
+    <details><summary>人类数据和机器人动作空间怎么对上？</summary><div>
+      <p>预训练阶段，人手 21 个 MediaPipe 关键点通过 IK 重定向到第一代 Wuji 手的 20 维关节空间；统一的 134 维表示记录双手腕部位姿和指关键点。中训练加入用 Wuji Human Gloves 采集的人机对齐数据，并用机器人轨迹做适配；后训练时 Wuji Hand 2 和 Sharpa Wave 用各自的原生关节角。表 2 中 Pretrain-SFT 与 Midtrain-SFT 相差 33 个百分点，说明这一步域适配很关键。</p>
+    </div></details>
+  </div>
+</section>
+
+<section class="wrap" id="doubts">
+  <div class="prose">
+    <div class="eyebrow">§7 Limitations · 我们的阅读</div>
+    <h2>局限与疑点</h2>
+  </div>
+  <div class="two">
+    <div class="prose">
+      <h4><span class="tag paper">论文自述</span>局限与未来工作</h4>
+      <ul>
+        <li><strong>可穿戴触觉监督难以跨本体扩展</strong>，这是作者认为的首要局限。触觉手套无论戴在人手还是机器手上，都会随手的构型变形；即使没有外部接触，材料拉伸和内部织物接触也会产生噪声，难以与有意义的物理接触区分。</li>
+        <li><strong>灵巧手与人手在几何上不同构</strong>：小指常被拉长，有些手明显更粗更大，一种手套版型没法同时适配人手和机器手。用人类手套采的触觉数据不能直接迁移到戴专用手套的灵巧手上，这限制了跨本体触觉学习的规模和可靠性。</li>
+        <li><strong>未来工作</strong>：数据侧，期待可穿戴触觉材料让全手触觉的多模态第一视角采集可扩展，更拟人的灵巧手缩小形态差距；模型侧，期待更强的视频基础模型和统一多模态模型带来更长时程、更可信的多模态模拟，把视觉、语言、动作、触觉和价值统一进同一个生成与决策过程。</li>
+      </ul>
+    </div>
+    <div class="prose">
+      <h4><span class="tag read">解读</span>我们读出来的疑点</h4>
+      <ol>
+        <li><strong>π<sub>0.5</sub> 全 0% 的基线强度存疑。</strong>五个任务全部 0%，WAN-SFT 也全部 0%。论文说 SFT 数据与接口一致，但没有给出每个任务的 SFT 数据量、π<sub>0.5</sub> 如何适配 20/22 自由度灵巧手的动作空间、训练了多少步。全零更像是适配或数据量问题，而不是能力差距的刻画。</li>
+        <li><strong>评测规模小。</strong>每格 20 次，1 次 = 5 个百分点。MBRL/规划的增益合计只涉及几次成功，没有置信区间或多种子。</li>
+        <li><strong>“自进化”在实验里只做了一轮。</strong>MBRL 的前缀来自离线数据，想象时域 1 块，模拟器和评估器冻结。标题里的闭环自进化，实验上验证的是“单轮、离线前缀、想象打分”的策略改进。</li>
+        <li><strong>正文与附录不一致。</strong>§5.4 描述的 Screw Bulb（0.34 → 0.81）与附录 F 实际展示的四任务图对不上，且 Cut Reeds、Make Tea 不在评测任务列表中。</li>
+        <li><strong>数据量对不上。</strong>表 1 双目数据合计 17,400 小时（7,000 + 6,000 + 1,200 + 2,000 + 1,200），而缩放实验的最大嵌套子集标为 20k 小时原始双目数据，论文没有解释差额。</li>
+        <li><strong>记忆实验缺少滑动窗口基线，也没有延迟数据。</strong>两种长历史变体都只训练 10K 步，混合记忆可能欠训练；仿真平台也没有写明。</li>
+        <li><strong>触觉实验偏薄。</strong>两个任务、每个只在一种手上测、各 20 次；没有拆开“修正”与“预测辅助损失”各自的贡献，也没有和“把触觉直接拼进主干”之类的方案比较。</li>
+        <li><strong>算力与延迟没有报告。</strong>预训练共 129 万步（500K + 340K + 450K），5B 级主干；规划需要对 N 个候选各生成一次未来视频，论文没有给出规划模式下的控制频率，也没有给出 MBRL 的 GPU 规模和时长。</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<section class="wrap" id="four">
+  <div class="prose">
+    <div class="eyebrow">本批四篇 · ForceVLA · Tactile-VLA · ME-Dex 1.0 · Motus2</div>
+    <h2>放到四篇里看</h2>
+    <p>这四篇都在回答“力和触觉怎么进入机器人基础模型”。其中两篇走 VLA 路线，把力或触觉接进视觉-语言-动作模型；另两篇走世界模型路线，模型要预测未来。Motus2 的主要贡献其实在三接口的通用世界模型和第一视角数据扩展，触觉只占一节和一张表；但它给出了一种与 ME-Dex 1.0 很不一样的触觉接入方式。</p>
+  </div>
+  <div class="tbl-wrap">
+    <table class="cmp" style="--tmin:860px">
+      <thead><tr><th></th><th>ForceVLA</th><th>Tactile-VLA</th><th>ME-Dex 1.0</th><th class="me">Motus2</th></tr></thead>
+      <tbody>
+        <tr><td>来源</td><td>arXiv 2505.22159 · 复旦、上交</td><td>arXiv 2507.09160 · 清华（高阳组）</td><td>arXiv 2609.21449 · 理想汽车基础模型团队</td><td class="me">arXiv 2608.30237 · 生数、清华（朱军组）</td></tr>
+        <tr><td>路线</td><td>VLA，基于 π<sub>0</sub></td><td>VLA</td><td>World Action Tactile Model：MoT 三专家（Video / Tactile / Action），全部 flow matching</td><td class="me">通用世界模型：视频-动作因果 DiT，一套权重三接口</td></tr>
+        <tr><td>力/触觉信号</td><td>6 轴力/力矩</td><td>触觉</td><td>多源异构触觉（不同本体、不同传感布局）</td><td class="me">灵巧手力信号：Wuji Hand 2 为 1086 维；Sharpa Wave 为 60 维力/力矩 + 指腹形变图</td></tr>
+        <tr><td>接入方式</td><td>force-aware MoE（FVLMoE）在动作解码阶段融合 VL 嵌入与实时力反馈</td><td>深度融合进 VLA，配混合位置-力控制器和基于触觉反馈的推理模块</td><td>Tactile Expert 与视频、动作专家在中间层共享注意力，联合去噪；Canonical Hand Model + Unified Tactile Autoencoder 统一空间与隐空间</td><td class="me">旁路触觉专家读主干 detached KV，只负责每块去噪的最后一段（σ 0.2 → 0）</td></tr>
+        <tr><td>触觉的角色</td><td>条件</td><td>条件</td><td>被预测的未来观测，与视频同等</td><td class="me">前一窗口作条件修正动作；后一窗口的预测只是训练辅助，部署不用；主干不受触觉梯度</td></tr>
+        <tr><td>数据</td><td>自采 ForceVLA-Data：视觉、本体、力/力矩同步，5 个接触密集任务</td><td>少量示范激活 VLM 先验</td><td>Agentic Tactile Data Engine 在 RoboTwin、DexJoCo 轨迹回放中补录力传感器数据</td><td class="me">真机后训练数据；人类第一视角预训练数据不含触觉</td></tr>
+        <tr><td>主要证据</td><td>平均成功率比 π<sub>0</sub> 基线高 23.2%，插头插入等任务最高 80%</td><td>零样本泛化到触觉相关的指令跟随、常识和推理</td><td>RoboTwin、DexJoCo、ManiFeel 仿真 + 真机（夹爪与灵巧手）</td><td class="me">2 个任务 × 20 次：60.0% → 72.5%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="prose">
+    <p class="chart-note">其余三篇的信息取自本批次的摘要级概述，细节以各自的精读页为准。</p>
+    <h3>触觉在模型里处于什么位置 <span class="tag read" style="vertical-align:3px">解读</span></h3>
+  </div>
+  <div class="quad">
+    <div></div><div class="hd">力/触觉作为条件</div><div class="hd">力/触觉也被预测</div>
+    <div class="rh">VLA 路线</div>
+    <div class="q"><b>ForceVLA · Tactile-VLA</b>力或触觉作为当前观测输入，影响动作生成</div>
+    <div class="q empty">本批无</div>
+    <div class="rh">世界模型路线</div>
+    <div class="q" style="box-shadow:inset 0 0 0 2px var(--c-policy)"><b>Motus2</b>以条件为主：旁路专家用之前的触觉修正动作；力预测只是训练辅助，不进主干</div>
+    <div class="q"><b>ME-Dex 1.0</b>触觉和视频一样是要预测的未来观测，在联合去噪中与动作共享注意力</div>
+  </div>
+  <div class="prose">
+    <h3>和 ME-Dex 1.0 的关键区别</h3>
+    <p><span class="tag read">解读</span>两篇都是世界模型路线，但对触觉的定位几乎相反。</p>
+    <ul>
+      <li><strong>ME-Dex 1.0</strong> 的主张是触觉和视频一样是世界状态的观测，应该和视频一起作为未来观测来预测。触觉动态由此进入共享表示，动作生成在联合去噪时能直接用到它。代价是需要大量视觉-触觉-动作配对数据，所以它要专门做一个数据引擎，在仿真回放中补录力信号，还要用统一的手模型和自编码器处理异构传感器。</li>
+      <li><strong>Motus2</strong> 让主干保持纯视觉-动作，触觉通过旁路专家在最后一步修正动作。好处是主干可以用 13 万小时不带触觉的人类数据预训练，触觉只在后训练用少量真机数据；专家每 0.2 秒修正一次，不必重跑主干。代价是模拟器和评估器看不到触觉，规划和 MBRL 无法推理接触后果；力预测只影响旁路专家，不塑造主干的世界表示。</li>
+    </ul>
+    <p>换句话说，如果问“触觉是条件还是被预测的观测”：ME-Dex 1.0 明确选了后者；Motus2 两者都做了一点，但真正进入部署链路的只有条件这一面，它的“世界模型”部分仍然是视觉的。两篇放在一起读，正好对应了触觉进入世界模型的两种代价取舍：要表示层面的统一，就得解决数据；要数据可扩展，触觉就只能晚一点、浅一点地接入。</p>
+  </div>
+</section>
+
+<section class="wrap" id="glossary">
+  <details class="gloss">
+    <summary>术语表（点开）</summary>
+    <div class="gl-list">
+      <dl>
+        <dt>通用世界模型<span class="en">GWM</span></dt><dd>论文用语：理解当前世界、想象可能的与动作条件的未来、并以外部反馈落地动作的整体框架；与它暴露的单个功能接口区分。</dd>
+        <dt>世界动作模型<span class="en">WAM</span></dt><dd>从观测和任务上下文生成动作、同时建模视频的模型，在 Motus2 中充当 policy 接口。</dd>
+        <dt>动作条件世界模型<span class="en">AC-WM</span></dt><dd>给定候选动作预测未来观测，充当 simulator 接口。</dd>
+        <dt>价值模型<span class="en">VM</span></dt><dd>评估预测结果、给出任务进度分，充当 evaluator 接口。</dd>
+        <dt>动作优先掩码<span class="en">action-first mask</span></dt><dd>块内 A 看不到 Z 和 U，Z 能看 A，U 能看 A 和 Z，其他 token 看不到 U。中训练起启用。</dd>
+        <dt>块自回归<span class="en">chunk-autoregressive</span></dt><dd>块与块之间因果自回归，块内的一串动作由 flow matching 一起生成。</dd>
+        <dt>价值查询 token<span class="en">value query U</span></dt><dd>只读的查询 token，读出 201 个 bin 的进度分布；其期望 V 用于排序。</dd>
+        <dt>loss 开关<span class="en">loss gates</span></dt><dd>(w<sub>z</sub>, w<sub>a</sub>, w<sub>v</sub>)，与两路噪声水平一起决定当前是哪种训练模式。</dd>
+        <dt>监督路由<span class="en">supervision routing</span></dt><dd>成功轨迹训策略；失败、次优与无关交互只训模拟器和评估器。</dd>
+        <dt>相对进度<span class="en">relative progress</span></dt><dd>片段目标 ±Δt/(T−t)，来自 VLAC。</dd>
+        <dt>κ 与 W</dt><dd>κ 是每块的 latent 帧数（这里为 2），W 是一个训练窗口里的 latent 帧总数（Stage 2 为 12，之后为 8）。</dd>
+        <dt>中训练<span class="en">mid-training</span></dt><dd>预训练与目标机器人后训练之间的机器人域适配阶段，100 多小时数据。</dd>
+      </dl>
+      <dl>
+        <dt>Best-of-N 规划<span class="en">test-time planning</span></dt><dd>提 N 个候选、模拟、打分、执行最高分，每步用真实观测重新规划（滚动时域）。</dd>
+        <dt>DiffusionNFT</dt><dd>把标量分数变成 flow-matching 策略更新的方法：用 r̂ 在正、负两个隐式速度场之间加权，参考策略为 EMA。</dd>
+        <dt>最优性权重<span class="en">r̂</span></dt><dd>候选分数在组内标准化后截断映射到 [0, 1]；真值候选固定为 1。</dd>
+        <dt>AcceRL 式异步流水线</dt><dd>用 Ray 把前缀采样、想象与打分、参考目标构造、策略优化解耦，中间用有界 FIFO 缓冲。</dd>
+        <dt>窗口相对 RoPE</dt><dd>滑动窗口挤掉旧帧后，剩余视频 key 的时间坐标重新定位，保持在训练范围内。</dd>
+        <dt>全局自回归<span class="en">global AR</span></dt><dd>保留全部历史干净 latent，使用整条 episode 的时间坐标。</dd>
+        <dt>混合工作记忆<span class="en">hybrid memory</span></dt><dd>MemoryWAM 式：2 个锚点帧 + 最近 4 帧全分辨率，更早的帧压成记忆 token。</dd>
+        <dt>episode 打包<span class="en">packing</span></dt><dd>多条完整 episode 放进一次注意力调用，块对角因果掩码隔开，等价于分开处理。</dd>
+        <dt>σ<sub>c</sub></dt><dd>主干去噪停下的中间噪声水平（0.2），剩下的一步交给触觉专家。</dd>
+        <dt>T-Rex</dt><dd>触觉反应式灵巧操作的前序工作，Motus2 的触觉专家沿用了其“主干去噪到中间、专家收尾”的思路。</dd>
+        <dt>BoxTrim</dt><dd>论文的第一视角数据时间清洗流程，切掉快速转身、轨迹突变和双手失踪的区间。</dd>
+        <dt>宏平均<span class="en">macro-average</span></dt><dd>先算每个任务的成功率，再对任务取平均，每个任务权重相同。</dd>
+      </dl>
+    </div>
+  </details>
+</section>
+
+<footer class="wrap">
+  所有数字取自 arXiv 2608.30237v2 的 LaTeX 源码（表格来自 Tables/*.tex，超参来自附录 E），图片来自源码 Figures/ 目录的原图，未改动内容；任务图把原来一行 8 帧重排为 2×4。标 <span class="tag read">解读</span> 的段落是我们的判断，不是论文的主张。
+</footer>
+
+<script>
+(function(){
+  const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+  const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  if(reduce){const svg=$('.ring'); if(svg&&svg.pauseAnimations) svg.pauseAnimations();}
+
+  /* nav highlight */
+  const links=$$('.nav a'); const map=new Map(links.map(a=>[a.getAttribute('href').slice(1),a]));
+  if('IntersectionObserver' in window){
+    const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.remove('on'));const a=map.get(e.target.id);if(a){a.classList.add('on');const nv=a.parentElement;if(nv.scrollWidth>nv.clientWidth){nv.scrollLeft=a.offsetLeft-nv.clientWidth/2+a.clientWidth/2;}}}})},{rootMargin:'-45% 0px -50% 0px'});
+    map.forEach((a,id)=>{const s=document.getElementById(id); if(s) io.observe(s);});
+  }
+
+  /* ===== mode switcher ===== */
+  const MODES={
+    joint:{color:'var(--muted)',soft:'var(--surface-2)',
+      tok:{A:['noisy sup','加噪 · 计 loss'],Z:['noisy sup','加噪 · 计 loss'],U:['absent','预训练中不存在']},
+      mask:{A:['C','A','Z'],Z:['C','A','Z'],U:null},
+      cap:'块内双向：A 与 Z 互相可见。价值查询 U 在预训练阶段还不存在。',
+      kv:[['噪声','σ<sup>z</sup> &gt; 0，σ<sup>a</sup> &gt; 0'],['loss','视频与动作一起 flow matching；价值 loss 关闭'],['学到','<span class="f">p</span>(A, Z | c) 的联合先验'],['数据','Stage 2：双目人类第一视角视频 + 人手动作（Stage 1 只训视频通路）'],['用途','为机器人域打底，450K 步']]},
+    policy:{color:'var(--c-policy)',soft:'var(--c-policy-soft)',
+      tok:{A:['noisy sup','加噪 · 计 loss'],Z:['noisy sup','加噪 · 计 loss'],U:['idle','在场 · loss 关']},
+      mask:{A:['C','A'],Z:['C','A','Z'],U:['C','A','Z','U']},
+      cap:'动作优先：A 只看历史和自己；Z 能看 A；U 能看 A 和 Z，但没人看 U。三种模式共用这张掩码。',
+      kv:[['噪声','σ<sup>z</sup> &gt; 0，σ<sup>a</sup> &gt; 0'],['开关','(w<sub>z</sub>, w<sub>a</sub>, w<sub>v</sub>) = (1, 1, 0)'],['监督','<span class="f">p</span><sub>θ</sub>(A<sub>t</sub>, Z<sub>t</sub> | c<sub>t</sub>)'],['数据','只用精选的成功轨迹'],['占比','中训练约 85% 的样本'],['部署','常规控制只读 π<sub>θ</sub>(A<sub>t</sub> | c<sub>t</sub>)，只去噪动作（默认 5 步），不生成视频']]},
+    sim:{color:'var(--c-sim)',soft:'var(--c-sim-soft)',
+      tok:{A:['cond','干净条件'],Z:['noisy sup','加噪 · 计 loss'],U:['idle','在场 · loss 关']},
+      mask:{A:['C','A'],Z:['C','A','Z'],U:['C','A','Z','U']},
+      cap:'同一张动作优先掩码。区别在于 A 是干净的：Z 读到的是一个给定的动作。',
+      kv:[['噪声','σ<sup>z</sup> &gt; 0，σ<sup>a</sup> = 0'],['开关','(w<sub>z</sub>, w<sub>a</sub>, w<sub>v</sub>) = (1, 0, 0)'],['监督','<span class="f">p</span><sub>θ</sub>(Z<sub>t</sub> | c<sub>t</sub>, A<sub>t</sub>)'],['数据','成功轨迹之外，失败、次优和任务无关交互也可用；录下的动作只作条件'],['占比','中训练 10% 的样本'],['用途','规划和 MBRL 中为候选动作想象下一块画面（MBRL 中 8 步去噪）']]},
+    eval:{color:'var(--c-eval)',soft:'var(--c-eval-soft)',
+      tok:{A:['cond','干净条件'],Z:['cond','干净条件'],U:['sup','读出 · 计 loss']},
+      mask:{A:['C','A'],Z:['C','A','Z'],U:['C','A','Z','U']},
+      cap:'同一张动作优先掩码。A、Z 都是干净的，只有 U 的读出计 loss。',
+      kv:[['噪声','σ<sup>z</sup> = 0，σ<sup>a</sup> = 0'],['开关','(w<sub>z</sub>, w<sub>a</sub>, w<sub>v</sub>) = (0, 0, 1)'],['监督','<span class="f">p</span><sub>θ</sub>(Y<sub>t</sub> | c<sub>t</sub>, A<sub>t</sub>, Z<sub>t</sub>)，201 个 bin 的交叉熵，权重 0.05'],['数据','成功片段给正的相对进度；失败遥操作和任务无关交互给负进度'],['占比','中训练 5% 的样本'],['用途','V = 𝔼[Y] 给候选分支排序']]}
+  };
+  const body=$('#mode-body'), maskEl=$('#mask');
+  function renderMode(m){
+    const M=MODES[m];
+    body.style.setProperty('--m',M.color); body.style.setProperty('--m-soft',M.soft);
+    $$('.tok',body).forEach(t=>{
+      const k=t.dataset.t; if(k==='C') return;
+      const [st,txt]=M.tok[k];
+      t.className='tok'+(st.includes('noisy')?' noisy':'')+(st.includes('sup')?' sup':'')+(st==='cond'?' cond':'')+(st==='idle'?' idle':'')+(st==='absent'?' absent':'');
+      $('.st',t).textContent=txt;
+    });
+    const cols=['C','A','Z','U']; let h='<div></div>'+cols.map(c=>`<div class="h">${c}</div>`).join('');
+    ['A','Z','U'].forEach(r=>{
+      h+=`<div class="h">${r}</div>`;
+      cols.forEach(c=>{
+        const allow=M.mask[r]; let cls='c';
+        if(allow===null||(m==='joint'&&c==='U')) cls+=' na'; else if(allow.includes(c)) cls+=' on';
+        h+=`<div class="${cls}" title="${r} → ${c}"></div>`;
+      });
+    });
+    maskEl.innerHTML=h;
+    $('#mask-cap').textContent=M.cap;
+    $('#mode-kv').innerHTML=M.kv.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('');
+    $$('#modes .seg button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.mode===m)));
+  }
+  $$('#modes .seg button').forEach(b=>b.addEventListener('click',()=>renderMode(b.dataset.mode)));
+  renderMode('policy');
+
+  /* ===== corpus table ===== */
+  const corpus=[['Egocentric-100K','单目',100500,'480×360','开源'],['Egocentric-10K','单目',10000,'480×360, 512×512','开源'],['EgoVerse','单目',1200,'512×512','开源'],['EgoDex','单目',800,'480×360, 512×512','开源'],['Ropedia','双目',7000,'512×512','混合'],['EgoScale','双目',6000,'640×384','采购'],['LightWheel','双目',1200,'640×480','采购'],['JD-Group','双目',2000,'512×512','采购'],['CyberOrigin','双目',1200,'640×416','采购']];
+  $('#corpus').innerHTML=corpus.map(r=>`<tr><td>${esc(r[0])}</td><td>${r[1]}</td><td><div class="bar-cell"><i class="${r[1]==='双目'?'st':''}" style="width:${Math.max(.6,r[2]/100500*100)}%"></i><span class="mono">${r[2].toLocaleString('en-US')}</span></div></td><td class="mono" style="white-space:nowrap">${r[3]}</td><td>${r[4]}</td></tr>`).join('')+`<tr><td><strong>合计</strong></td><td>混合</td><td><strong class="mono">130,000</strong></td><td>混合</td><td>混合</td></tr>`;
+
+  /* ===== loop stepper ===== */
+  let lm='plan', step=0, seed=7;
+  const rng=s=>()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+  function genVals(){const r=rng(seed);const out=[];for(let i=0;i<8;i++){const u=(r()+r()+r())/3;out.push(Math.round((u*1.2-0.35)*100)/100);}return out;}
+  let vals=genVals();
+  const STEPS={
+    plan:[
+      {t:'历史观测',c:'var(--ink)',d:'部署中的某一时刻：上下文 c<sub>t</sub> 里是语言指令、当前本体感受，以及工作记忆提供的<strong>真实</strong>视觉历史。'},
+      {t:'策略提候选',c:'var(--c-policy)',d:'Policy 接口采样 N 个候选动作块 A<sub>1..N</sub>（这里示意 N = 8；论文没有给出规划时的 N）。'},
+      {t:'模拟器想象',c:'var(--c-sim)',d:'Simulator 接口对每个候选预测下一块的未来视频 latent Z<sub>i</sub>。'},
+      {t:'评估器打分',c:'var(--c-eval)',d:'Evaluator 接口读出 V<sub>i</sub> = V<sub>θ</sub>(c<sub>t</sub>, A<sub>i</sub>, Z<sub>i</sub>)，即 201 bin 进度分布的期望。'},
+      {t:'执行最高分',c:'var(--ink)',d:'执行 A<sub>i*</sub>，i* = argmax V<sub>i</sub>。拿到真实观测后追加进上下文，回到第一步重新规划。策略权重不变。'}
+    ],
+    mbrl:[
+      {t:'采前缀',c:'var(--ink)',d:'从<strong>离线</strong>数据中采样一个前缀（1–4 个块的干净历史）。'},
+      {t:'策略提候选',c:'var(--c-policy)',d:'Policy 生成 8 个候选（动作 4 步去噪），另加 1 条真值“动作-未来”对作为正锚点。'},
+      {t:'模拟器想象',c:'var(--c-sim)',d:'Simulator 为每个候选想象 <strong>1 个块</strong>的未来视频（8 步去噪）。'},
+      {t:'评估器打分',c:'var(--c-eval)',d:'Evaluator 给每个分支打分 V<sub>i</sub>。模拟器和评估器在整个 MBRL 中冻结。'},
+      {t:'分数变权重',c:'var(--c-policy)',d:'只在 8 个策略候选上算均值和总体标准差，r̂<sub>i</sub> = 0.5 + 0.5·clip((V<sub>i</sub> − mean)/max(std, ε), −1, 1)。真值候选固定 r̂ = 1。高于均值的 r̂ &gt; 0.5。'},
+      {t:'NFT 更新',c:'var(--c-policy)',d:'对每个候选采一个噪声水平，EMA 参考策略给出 v<sub>ref</sub>，按 Eq. 13 更新<strong>动作相关参数</strong>：r̂ 高的把策略拉向它，r̂ 低的把策略推离它。EMA 衰减 0.99，每 10 次更新发布一次。'}
+    ]
+  };
+  function stats(){const n=vals.length,m=vals.reduce((a,b)=>a+b,0)/n,sd=Math.sqrt(vals.reduce((a,b)=>a+(b-m)*(b-m),0)/n);const eps=1e-3;const r=vals.map(v=>0.5+0.5*Math.max(-1,Math.min(1,(v-m)/Math.max(sd,eps))));return{m,sd,r};}
+  function renderLoop(){
+    const S=STEPS[lm]; step=Math.max(0,Math.min(step,S.length-1));
+    $('#pipe').innerHTML=S.map((s,i)=>`<span class="step ${i<step?'done':''} ${i===step?'cur':''}" style="--sc:${s.c}">${i+1}. ${s.t}</span>`).join('');
+    $('#steptext').innerHTML=S[step].d;
+    const showZ=step>=2, showV=step>=3, showR=lm==='mbrl'&&step>=4, pick=lm==='plan'&&step>=4;
+    const st=stats(); const best=vals.indexOf(Math.max(...vals));
+    let rows=vals.map((v,i)=>{
+      const left=v>=0?50:50+v*50, w=Math.abs(v)*50;
+      const vbar=showV?`<div class="fill v" style="left:${left}%;width:${w}%"></div>`:'';
+      const rb=showR?`<div class="fill r" style="left:0;width:${st.r[i]*100}%"></div>`:'';
+      return `<div class="cand ${pick&&i===best?'best':''}"><span class="nm">A<sub>${i+1}</sub>${pick&&i===best?' ✓':''}</span><span class="zbox">${showZ?'<i></i><i></i>':''}<span class="track" style="flex:1;${showZ?'margin-left:6px':''}"><span class="mid" style="left:50%"></span>${vbar}</span></span><span class="val">${showV?(v>=0?'+':'')+v.toFixed(2):'·'}</span><span class="track">${lm==='mbrl'?'<span class="mid" style="left:50%"></span>':''}${rb}</span><span class="val">${showR?st.r[i].toFixed(2):(lm==='mbrl'?'·':'—')}</span></div>`;
+    }).join('');
+    if(lm==='mbrl'&&step>=1){
+      rows+=`<div class="cand gt"><span class="nm">真值</span><span class="zbox">${showZ?'<i></i><i></i>':''}<span style="flex:1;font-size:11.5px;color:var(--muted);${showZ?'margin-left:6px':''}">录制的动作与未来</span></span><span class="val">—</span><span class="track">${showR?'<div class="fill r" style="left:0;width:100%"></div>':''}</span><span class="val">${showR?'1.00':'·'}</span></div>`;
+    }
+    $('#cands').innerHTML=rows;
+    $('#stats').innerHTML = showV ? (lm==='plan' ? `最高分 A<sub>${best+1}</sub> = ${vals[best].toFixed(2)}${pick?'，被执行':''}` : `8 个策略候选：mean = ${st.m.toFixed(3)}，std = ${st.sd.toFixed(3)}（总体标准差；示意取 ε = 0.001）`) : '';
+    $('#prev').disabled=step===0; $('#next').disabled=step===S.length-1;
+    $$('#loopsim .seg button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.lm===lm)));
+  }
+  $$('#loopsim .seg button').forEach(b=>b.addEventListener('click',()=>{lm=b.dataset.lm;step=Math.min(step,STEPS[lm].length-1);renderLoop();}));
+  $('#prev').addEventListener('click',()=>{step--;renderLoop();});
+  $('#next').addEventListener('click',()=>{step++;renderLoop();});
+  $('#resample').addEventListener('click',()=>{seed=(seed*31+17)%100003;vals=genVals();renderLoop();});
+  step=3; renderLoop();
+
+  /* ===== memory ===== */
+  const KEY=3, TOT=40;
+  function memCells(kind,N){
+    let h='';
+    for(let f=1;f<=TOT;f++){
+      let c='';
+      if(f>N) c='';
+      else if(kind==='slide') c=(f>N-4)?'full':'gone';
+      else if(kind==='global') c='full';
+      else { if(f<=2||f>N-4) c='full'; else c='mem'; }
+      h+=`<i class="${c}${f===KEY?' key':''}" title="第 ${f} 帧"></i>`;
+    }
+    return h;
+  }
+  function renderMem(){
+    const N=+$('#memN').value; $('#memNv').textContent=N;
+    const keyState={
+      slide: N<KEY?'尚未发生':(KEY>N-4?'全分辨率可见':'已被挤出窗口'),
+      global: N<KEY?'尚未发生':'全分辨率可见',
+      hybrid: N<KEY?'尚未发生':((KEY<=2||KEY>N-4)?'全分辨率可见':'只剩 8 个记忆 token')
+    };
+    const cnt={
+      slide:`<b>${Math.min(N,4)}L</b>，上限固定`,
+      global:`<b>${N}L</b>，随 N 线性增长`,
+      hybrid: N<=6?`<b>${N}L</b>`:`<b>6L + ${8*(N-6)}</b>（${N-6} 帧 × 8）`
+    };
+    const rows=[['slide','滑动窗口','默认 · 最近 2 块'],['global','全局自回归','保留全部历史'],['hybrid','混合记忆','MemoryWAM 式']];
+    $('#memrows').innerHTML=rows.map(([k,n,s])=>`<div class="mem-row"><div class="nm">${n}<small>${s}</small></div><div class="cells">${memCells(k,N)}</div><div class="cnt">视觉 KV：${cnt[k]}<br>第 3 帧：${keyState[k]}</div></div>`).join('');
+  }
+  $('#memN').addEventListener('input',renderMem); renderMem();
+
+  /* ===== tactile timeline ===== */
+  const tl=$('#tl'); let playing=null;
+  function renderTac(){
+    const k=+$('#tacK').value; $('#tacKv').textContent=k;
+    let h='';
+    // axis
+    h+='<div class="ln"></div><div class="ax"></div>'; for(let i=1;i<=8;i++) h+=`<div class="ax">${((i-1)*0.2).toFixed(1)}s</div>`;
+    // backbone
+    h+='<div class="ln">主干<small>每块一次</small></div><div class="cell blank"></div><div class="cell bb">σ 1 → 0.2，输出中间动作块 A<sup>σc</sup>（48 个动作）与逐层 KV（detach）</div>';
+    // tactile stream
+    h+='<div class="ln">触觉流<small>90 Hz</small></div>';
+    for(let i=0;i<=8;i++){ const cls=i===k-1?'in':(i<k-1?'past':''); h+=`<div class="cell tw ${cls}">${i===0?'前':'τ'+(i)}</div>`; }
+    // expert
+    h+='<div class="ln">触觉专家<small>30 层 · 宽 128</small></div><div class="cell blank"></div>';
+    for(let i=1;i<=8;i++){ h+=`<div class="cell xp ${i===k?'now':''}">${i===k?'修正':i}</div>`; }
+    // execute
+    h+='<div class="ln">执行<small>30 Hz · 每子块 6 个</small></div><div class="cell blank"></div>';
+    for(let i=1;i<=8;i++){ h+=`<div class="cell ex ${i<k?'done':''} ${i===k?'now':''}">${i}</div>`; }
+    // predict
+    h+='<div class="ln">预测未来力<small>仅训练</small></div><div class="cell blank"></div>';
+    for(let i=1;i<=8;i++){ h+=`<div class="cell pr ${i===k?'now':''}">${i===k?'f<sup>post</sup>':''}</div>`; }
+    tl.innerHTML=h;
+    const a0=6*k-5, a1=6*k, t0=((k-1)*0.2).toFixed(1), t1=(k*0.2).toFixed(1);
+    const pre = k===1 ? '本块开始前最近的触觉窗口' : `执行子块 ${k-1} 期间新采到的触觉窗口 τ${k-1}`;
+    $('#tacread').innerHTML=`<strong>子块 ${k}</strong>：第 ${a0}–${a1} 个动作，${t0}–${t1} 秒。专家读入${pre}、中间动作 A<sup>σc</sup> 的第 ${k} 段，以及主干缓存的 KV，输出速度 v，一步得到 Ã<sub>${k}</sub> = A<sup>σc</sup><sub>${k}</sub> − 0.2·v 并执行。训练时，专家还要预测这 0.2 秒之后的真实力窗口 f<sup>post</sup>，部署时不做。主干在这 8 次调用之间不重算。`;
+  }
+  $('#tacK').addEventListener('input',()=>{stopPlay();renderTac();});
+  function stopPlay(){ if(playing){clearInterval(playing);playing=null;$('#tacPlay').textContent='播放';} }
+  $('#tacPlay').addEventListener('click',()=>{
+    if(playing){stopPlay();return;}
+    $('#tacPlay').textContent='暂停';
+    playing=setInterval(()=>{const r=$('#tacK');let v=+r.value+1;if(v>8)v=1;r.value=v;renderTac();}, reduce?1600:1100);
+  });
+  renderTac();
+
+  /* ===== charts ===== */
+  function hbar(host,cfg){
+    const tip=document.createElement('div'); tip.className='tip'; host.appendChild(tip);
+    let svgHolder=document.createElement('div'); host.appendChild(svgHolder);
+    function draw(){
+      const W=Math.floor(host.clientWidth); if(!W) return;
+      const narrow=W<560, labW=narrow?(cfg.labN||118):(cfg.lab||170), padR=46, top=28, barH=16, gap=2, rowGap=12;
+      const ns=cfg.series.length, gH=ns*barH+(ns-1)*gap;
+      let y=top; const pos=[];
+      cfg.rows.forEach(r=>{ if(r.group){ pos.push({g:r.group,y:y+12}); y+=22; } pos.push({r,y}); y+=gH+rowGap; });
+      const H=y+2, x0=labW, x1=W-padR, sx=v=>x0+(x1-x0)*v/100;
+      let s=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(cfg.aria)}">`;
+      [0,25,50,75,100].forEach(t=>{const x=sx(t); s+=`<line class="gl" x1="${x}" x2="${x}" y1="${top-8}" y2="${H-4}"/><text class="tk" x="${x}" y="${top-14}" text-anchor="middle">${t}%</text>`;});
+      s+=`<line class="base" x1="${x0}" x2="${x0}" y1="${top-8}" y2="${H-4}"/>`;
+      let idx=0; const tips=[];
+      pos.forEach(p=>{
+        if(p.g){ s+=`<text class="grp" x="0" y="${p.y}">${esc(p.g)}</text>`; return; }
+        const r=p.r;
+        s+=`<text class="rl${r.strong?' strong':''}" x="${labW-10}" y="${p.y+gH/2+4.5}" text-anchor="end">${esc(r.label)}</text>`;
+        r.vals.forEach((v,j)=>{
+          const by=p.y+j*(barH+gap), w=Math.max(0,sx(v.v)-x0), rad=Math.min(4,w/2);
+          if(w>0) s+=`<path class="bar ${cfg.series[j].cls}" data-i="${idx}" d="M${x0},${by} h${(w-rad).toFixed(1)} a${rad},${rad} 0 0 1 ${rad},${rad} v${barH-2*rad} a${rad},${rad} 0 0 1 ${-rad},${rad} h${(-(w-rad)).toFixed(1)} z"/>`;
+          else s+=`<rect class="bar ${cfg.series[j].cls}" data-i="${idx}" x="${x0}" y="${by}" width="2" height="${barH}"/>`;
+          s+=`<text class="vl" x="${x0+w+6}" y="${by+barH/2+4.2}">${esc(v.t)}</text>`;
+          s+=`<rect class="hit" data-i="${idx}" x="${x0}" y="${by-1}" width="${Math.max(w+40,60)}" height="${barH+2}" tabindex="0" aria-label="${esc(r.label+' · '+cfg.series[j].name+'：'+v.t)}"/>`;
+          tips.push({x:x0+w,y:by,val:v.t,name:cfg.series[j].name,row:r.label}); idx++;
+        });
+      });
+      s+='</svg>'; svgHolder.innerHTML=s;
+      const svg=svgHolder.firstChild;
+      const show=(el)=>{const i=+el.dataset.i,t=tips[i];$$('.bar',svg).forEach(b=>b.classList.toggle('on',+b.dataset.i===i));tip.innerHTML=`<b>${esc(t.val)}</b>　${esc(t.name)}<br><span style="opacity:.75">${esc(t.row)}</span>`;tip.style.left=Math.min(Math.max(t.x,90),W-90)+'px';tip.style.top=(t.y-2)+'px';tip.classList.add('show');};
+      const hide=()=>{tip.classList.remove('show');$$('.bar',svg).forEach(b=>b.classList.remove('on'));};
+      $$('.hit',svg).forEach(h=>{h.addEventListener('pointerenter',()=>show(h));h.addEventListener('pointerleave',hide);h.addEventListener('focus',()=>show(h));h.addEventListener('blur',hide);});
+    }
+    let raf=0; const redraw=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(draw);};
+    if('ResizeObserver' in window) new ResizeObserver(redraw).observe(host); else window.addEventListener('resize',redraw);
+    draw();
+  }
+  const P=(v,t)=>({v,t:t||v+'%'});
+  hbar($('#ch-main'),{aria:'表 2 主结果：Pretrain-SFT 与 Motus2 在五个任务上的成功率',
+    series:[{name:'Pretrain-SFT',cls:'s-base'},{name:'Motus2 (Midtrain-SFT)',cls:'s-policy'}],
+    rows:[{label:'Place Ball',vals:[P(60),P(100)]},{label:'Multi-Finger',vals:[P(35),P(70)]},{label:'Attach Eraser',vals:[P(90),P(100)]},{label:'Screw Bulb',vals:[P(55),P(90)]},{label:'Put Phone',vals:[P(15),P(60)]},{label:'平均 Avg. SR',strong:true,vals:[P(51),P(84)]}]});
+  hbar($('#ch-mem'),{aria:'表 4 长时程上下文：混合记忆与全局自回归',lab:150,labN:112,
+    series:[{name:'Hybrid memory',cls:'s-base'},{name:'Global autoregression',cls:'s-sim'}],
+    rows:[{group:'仿真 · 每格 25 次',label:'Find Square',vals:[P(64),P(84)]},{label:'Press Button',vals:[P(40),P(72)]},{label:'平均',strong:true,vals:[P(52),P(78)]},
+          {group:'真机 · 每格 20 次',label:'Find Square',vals:[P(30),P(65)]},{label:'Press Button',vals:[P(20),P(50)]},{label:'平均',strong:true,vals:[P(25,'25.0%'),P(57.5,'57.5%')]}]});
+  hbar($('#ch-tac'),{aria:'表 5 触觉消融',lab:170,labN:128,
+    series:[{name:'w/o Tactile',cls:'s-base'},{name:'w/ Tactile',cls:'s-tac'}],
+    rows:[{label:'Pull Out Paper Cup',vals:[P(65),P(75)]},{label:'Tear Paper',vals:[P(55),P(70)]},{label:'平均 Avg. SR',strong:true,vals:[P(60,'60.0%'),P(72.5,'72.5%')]}]});
+})();
+</script>
+</body>
+</html>

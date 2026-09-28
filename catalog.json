@@ -1,0 +1,62 @@
+{
+  "site_url": "https://gongshukai.github.io/VisualizedAcademicPapers/",
+  "topics": [
+    {
+      "id": "force-tactile",
+      "title": "力与触觉",
+      "path": ["生成模型", "机器人", "力与触觉"],
+      "summary": "力和触觉怎样进入机器人基础模型：从 VLA 的输入条件，到世界模型里的快速修正通道和要预测的未来观测。",
+      "page": "topics/force-tactile/"
+    }
+  ],
+  "papers": [
+    {
+      "slug": "forcevla",
+      "title": "ForceVLA",
+      "full_title": "ForceVLA: Enhancing VLA Models with a Force-aware MoE for Contact-rich Manipulation",
+      "arxiv": "2505.22159",
+      "version": "v3",
+      "date": "2025-05",
+      "org": "复旦、上交等",
+      "topics": ["force-tactile"],
+      "summary": "π0 加力感知 MoE：6 维力/力矩在 VLM 之后融合，5 个真机接触任务平均成功率 60.5%，不接力的 π0 为 37.3%。",
+      "added": "2026-09-28"
+    },
+    {
+      "slug": "tactile-vla",
+      "title": "Tactile-VLA",
+      "full_title": "Tactile-VLA: Unlocking Vision-Language-Action Model's Physical Knowledge for Tactile Generalization",
+      "arxiv": "2507.09160",
+      "version": "v1",
+      "date": "2025-07",
+      "org": "清华、电子科大、上交",
+      "topics": ["force-tactile"],
+      "summary": "触觉 token 进 VLM 前缀，动作里带目标力，交给位置-力混合控制器；主打「轻一点」「用力」这类力度词的零样本泛化。",
+      "added": "2026-09-28"
+    },
+    {
+      "slug": "motus2",
+      "title": "Motus2",
+      "full_title": "Motus2: A Self-Evolving General World Model for Dexterous Manipulation",
+      "arxiv": "2608.30237",
+      "version": "v2",
+      "date": "2026-08",
+      "org": "清华朱军组、生数 GensPI",
+      "topics": ["force-tactile"],
+      "summary": "一套权重分别当策略、模拟器、评估器的自进化世界模型；触觉是一个旁路专家，在动作块内每 0.2 s 修正一次动作。",
+      "added": "2026-09-28"
+    },
+    {
+      "slug": "me-dex",
+      "title": "ME-Dex 1.0",
+      "full_title": "ME-Dex 1.0: Bringing Heterogeneous Tactile Sensing into World Action Modeling",
+      "arxiv": "2609.21449",
+      "version": "v2",
+      "date": "2026-09",
+      "org": "理想汽车基础模型团队",
+      "topics": ["force-tactile"],
+      "summary": "视频、触觉、动作三专家联合去噪的世界动作模型，触觉作为要预测的未来观测；夹爪和灵巧手的触觉统一到规范手。",
+      "added": "2026-09-28"
+    }
+  ]
+}

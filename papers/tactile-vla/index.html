@@ -1,0 +1,1158 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"PingFang SC","Noto Sans SC",sans-serif;background:#fafaf9}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>Tactile-VLA 精读</title>
+<meta name="description" content="Tactile-VLA（arXiv 2507.09160）中文精读：触觉怎样进入 π0、目标力怎样变成动作、三类零样本泛化的证据有多强。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anybody:wdth,wght@50..150,100..900&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@300..900&display=swap">
+<style>
+:root{
+  --bg:#F4F4F6; --surface:#FFFFFF; --surface-2:#ECEBF0;
+  --ink:#19181F; --ink-2:#45424F; --muted:#6C6878;
+  --line:#DEDBE4; --line-2:#C7C3CF;
+  --press:#B0145C; --press-wash:#F8E1EB; --press-wash-2:#F0C4D7;
+  --s-base:#1BAF7A; --s-fast:#2A78D6; --s-ours:#B0145C; --s-cot:#EDA100;
+  --board:#2E4A3D; --board-frame:#B7BBC2; --chalk:#EDEDE4; --eraser:#2F55C8;
+  --plate:#FFFFFF; --plate-filter:none;
+  --shadow:0 1px 2px rgba(25,24,31,.06), 0 6px 24px rgba(25,24,31,.05);
+  --f-display:"Anybody","Noto Sans SC",-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --f-body:"Noto Sans SC",-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --measure:44rem; --wide:68rem;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#121116; --surface:#1C1B21; --surface-2:#25232B;
+    --ink:#EEECF2; --ink-2:#C9C5D2; --muted:#9A96A6;
+    --line:#2F2D36; --line-2:#433F4B;
+    --press:#E4609A; --press-wash:#3A1A2A; --press-wash-2:#5A2340;
+    --s-base:#199E70; --s-fast:#3987E5; --s-ours:#D8467F; --s-cot:#C98500;
+    --board:#27402F; --board-frame:#6E727A; --chalk:#E6E6DC; --eraser:#4F74E0;
+    --plate:#F2F2F2; --plate-filter:brightness(.93);
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 24px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#121116; --surface:#1C1B21; --surface-2:#25232B;
+  --ink:#EEECF2; --ink-2:#C9C5D2; --muted:#9A96A6;
+  --line:#2F2D36; --line-2:#433F4B;
+  --press:#E4609A; --press-wash:#3A1A2A; --press-wash-2:#5A2340;
+  --s-base:#199E70; --s-fast:#3987E5; --s-ours:#D8467F; --s-cot:#C98500;
+  --board:#27402F; --board-frame:#6E727A; --chalk:#E6E6DC; --eraser:#4F74E0;
+  --plate:#F2F2F2; --plate-filter:brightness(.93);
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 24px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.85;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.wrap{padding-inline:16px}
+.col{max-width:var(--measure);margin-inline:auto}
+.wide{max-width:var(--wide);margin-inline:auto}
+a{color:var(--press);text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--press);outline-offset:2px;border-radius:3px}
+p{margin:0}
+.flow>*+*{margin-top:1em}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.25}
+h2{font-family:var(--f-display);font-weight:800;font-stretch:108%;font-size:clamp(1.6rem,1.15rem + 1.7vw,2.3rem);letter-spacing:-.005em}
+h3{font-family:var(--f-display);font-weight:700;font-stretch:104%;font-size:1.18rem;margin-top:2.2em}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--press);margin-bottom:.5em;display:block}
+.mono{font-family:var(--f-mono);font-size:.92em}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+small,.small{font-size:13.5px;line-height:1.7}
+strong{font-weight:700}
+em.en{font-style:normal;font-family:var(--f-mono);font-size:.9em;color:var(--ink-2)}
+.tag{display:inline-block;font-family:var(--f-mono);font-size:11px;line-height:1;padding:3px 6px 3px;border-radius:3px;border:1px solid var(--line-2);color:var(--muted);vertical-align:2px;letter-spacing:.04em;white-space:nowrap}
+.tag.jd{border-style:dashed;color:var(--press);border-color:var(--press)}
+.q{font-family:var(--f-mono);font-size:.9em;color:var(--ink-2);background:var(--surface-2);padding:1px 5px;border-radius:3px}
+
+/* nav */
+.topnav{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.topnav .inner{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-block:8px;max-width:var(--wide);margin-inline:auto;align-items:center}
+.topnav .inner::-webkit-scrollbar{display:none}
+.topnav .brand{font-family:var(--f-display);font-weight:850;font-stretch:120%;font-size:15px;color:var(--ink);text-decoration:none;margin-right:10px;white-space:nowrap}
+.topnav a.l{font-size:13.5px;color:var(--ink-2);text-decoration:none;padding:4px 10px;border-radius:999px;white-space:nowrap}
+.topnav a.l:hover{background:var(--surface-2);color:var(--ink)}
+
+/* hero */
+.hero{padding-block:56px 40px}
+.hero .meta{font-family:var(--f-mono);font-size:12.5px;color:var(--muted);letter-spacing:.03em}
+.wordmark{font-family:"Anybody",sans-serif;font-weight:880;font-stretch:128%;font-size:clamp(3rem,1.4rem + 7.4vw,6.6rem);line-height:.95;letter-spacing:-.02em;margin-top:.25em;color:var(--ink)}
+.wordmark .dash{color:var(--press)}
+.ptitle{font-family:"Anybody",var(--f-body);font-stretch:92%;font-weight:420;font-size:clamp(1.02rem,.9rem + .5vw,1.28rem);color:var(--ink-2);margin-top:.8em;max-width:40rem;line-height:1.45}
+.authors{font-size:13.5px;color:var(--muted);margin-top:.9em;line-height:1.7}
+.thesis{font-size:clamp(1.05rem,.98rem + .35vw,1.2rem);line-height:1.8;margin-top:1.4em;max-width:42rem}
+.thesis b{font-weight:700;background:linear-gradient(transparent 62%,var(--press-wash-2) 62%)}
+
+.fscale{margin-top:36px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px 18px 16px;box-shadow:var(--shadow)}
+.fscale .hd{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline}
+.fscale .hd b{font-family:var(--f-display);font-weight:700;font-stretch:105%;font-size:15px}
+.frow{display:grid;grid-template-columns:8.5rem 1fr;gap:10px 14px;align-items:center;margin-top:16px}
+.frow .who{font-size:13px;color:var(--ink-2);display:flex;align-items:center;gap:7px;line-height:1.3}
+.frow .who i{width:10px;height:10px;border-radius:50%;flex:none}
+.words{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.w{display:flex;flex-direction:column;gap:4px;min-width:0}
+.w .t{font-family:"Anybody",sans-serif;font-stretch:100%;font-size:clamp(1.05rem,.7rem + 1.4vw,1.7rem);line-height:1.05;white-space:nowrap}
+.w .t.learned{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:5px;text-decoration-color:var(--line-2)}
+.w .b{height:4px;border-radius:0 2px 2px 0;background:var(--line)}
+.w .b>span{display:block;height:100%;border-radius:0 2px 2px 0}
+.w .v{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.fscale .cap{font-size:13px;color:var(--muted);margin-top:14px;line-height:1.7;margin-inline:0;max-width:none}
+@media (max-width:640px){
+  .frow{grid-template-columns:1fr}
+  .words{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px}
+}
+
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:18px}
+.facts div{background:var(--surface);padding:12px 14px}
+.facts dt{font-family:var(--f-mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.facts dd{margin:4px 0 0;font-size:14px;line-height:1.55}
+@media (max-width:760px){.facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* sections */
+section{padding-block:56px 8px}
+section>.col>h2{margin-bottom:.7em}
+.lede{font-size:1.06rem;color:var(--ink-2)}
+.tldr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:22px}
+.tldr>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.tldr h4{margin:0 0 6px;font-family:var(--f-display);font-weight:700;font-size:15px;font-stretch:105%}
+.tldr p{font-size:14.5px;line-height:1.75;color:var(--ink-2)}
+@media (max-width:640px){.tldr{grid-template-columns:1fr}}
+
+ul.clean{margin:0;padding-left:1.2em}
+ul.clean li+li{margin-top:.45em}
+ol.steps{margin:0;padding-left:1.4em}
+ol.steps li+li{margin-top:.5em}
+
+/* figures */
+figure{margin:0}
+.fig{margin-block:28px}
+.plate{background:var(--plate);border:1px solid var(--line);border-radius:8px;padding:10px;display:block}
+.plate img{display:block;width:100%;height:auto;filter:var(--plate-filter);border-radius:3px}
+figcaption{font-size:13.5px;line-height:1.75;color:var(--ink-2);margin-top:10px;max-width:var(--measure)}
+.wide figcaption{margin-inline:0}
+figcaption b{font-family:var(--f-mono);font-weight:600;font-size:12px;letter-spacing:.04em;color:var(--ink);margin-right:6px}
+figcaption .look{color:var(--press);font-weight:600}
+.side{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,19rem);gap:28px;align-items:start}
+@media (max-width:760px){.side{grid-template-columns:1fr}}
+.side .fig{margin-block:4px}
+
+/* equation */
+.eq{font-family:var(--f-mono);font-size:14.5px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;white-space:nowrap;line-height:1.9;margin-block:18px}
+.eq .lbl{color:var(--muted);float:right;margin-left:18px}
+.eq sub{font-size:.75em}
+.eq .brace{display:inline-flex;flex-direction:column;vertical-align:middle;border-left:1.5px solid var(--ink-2);padding-left:10px;margin-left:6px;line-height:1.7}
+
+/* architecture explorer */
+.arch{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow);margin-top:22px}
+.arch-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.arch-grid .arrow{text-align:center;color:var(--line-2);font-size:14px;line-height:1;padding:1px 0}
+.blk{appearance:none;border:1.5px solid var(--line-2);background:var(--surface);color:var(--ink);border-radius:8px;padding:9px 6px;font:inherit;font-size:13px;line-height:1.35;cursor:pointer;text-align:center;min-height:52px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;transition:border-color .15s,background .15s}
+.blk small{font-family:var(--f-mono);font-size:10.5px;color:var(--muted);line-height:1.3}
+.blk:hover{border-color:var(--press)}
+.blk[aria-pressed="true"]{border-color:var(--press);background:var(--press-wash)}
+.blk.in{background:var(--surface-2);border-color:var(--line)}
+.blk.in[aria-pressed="true"]{background:var(--press-wash);border-color:var(--press)}
+.blk.vlm{grid-column:span 3;min-height:62px;font-weight:700}
+.blk.cot{grid-column:span 3;border-style:dashed}
+.blk.tac{border-color:var(--press)}
+.span3{grid-column:span 3}
+.arch-detail{margin-top:14px;border-top:1px solid var(--line);padding-top:14px;min-height:12rem}
+.arch-detail h4{margin:0;font-family:var(--f-display);font-weight:700;font-size:16px;font-stretch:104%}
+.arch-detail .src{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);margin-top:2px}
+.arch-detail ul{margin:10px 0 0;padding-left:1.2em;font-size:14.5px;line-height:1.75}
+.arch-detail ul li+li{margin-top:.3em}
+.arch-detail .note{margin-top:10px;font-size:14px;color:var(--ink-2);background:var(--surface-2);border-radius:6px;padding:8px 12px}
+@media (max-width:520px){.blk{font-size:12px;padding:8px 4px}.blk small{font-size:9.5px}}
+
+/* diff list */
+.diff{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px}
+.diff>div{border-top:2px solid var(--press);padding-top:10px}
+.diff h4{margin:0;font-size:14.5px;font-weight:700}
+.diff p{font-size:14px;color:var(--ink-2);line-height:1.7;margin-top:4px}
+@media (max-width:640px){.diff{grid-template-columns:1fr}}
+
+/* sim */
+.sim{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:var(--shadow);margin-top:22px}
+.sim-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.sim-head b{font-family:var(--f-display);font-weight:700;font-size:16px;font-stretch:104%}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.btn{appearance:none;font:inherit;font-size:13px;border:1px solid var(--line-2);background:var(--surface);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer;line-height:1.4}
+.btn:hover{border-color:var(--press)}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.sim-body{display:grid;grid-template-columns:minmax(0,17rem) minmax(0,1fr);gap:22px;margin-top:16px}
+@media (max-width:760px){.sim-body{grid-template-columns:1fr}}
+.ctl{display:flex;flex-direction:column;gap:14px}
+.ctl label{display:flex;justify-content:space-between;font-size:13.5px;color:var(--ink-2);gap:8px}
+.ctl label .num{color:var(--ink);font-weight:500}
+.ctl input[type=range]{width:100%;accent-color:var(--press);margin:4px 0 0}
+.seg{display:flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden;margin-top:6px}
+.seg button{flex:1;appearance:none;border:0;background:var(--surface);color:var(--ink-2);font:inherit;font-size:12.5px;padding:6px 4px;cursor:pointer;line-height:1.3}
+.seg button+button{border-left:1px solid var(--line-2)}
+.seg button[aria-pressed="true"]{background:var(--press-wash);color:var(--ink);font-weight:600}
+.ctl .grp-t{font-size:13.5px;color:var(--ink-2)}
+.plots{display:flex;flex-direction:column;gap:10px;min-width:0}
+.plot-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink-2)}
+.plot-legend span{display:inline-flex;align-items:center;gap:6px}
+.plot-legend i{display:inline-block;width:16px;height:2px;border-radius:1px}
+.plot-legend i.band{height:10px;width:14px;background:var(--press-wash-2)}
+.plots svg{width:100%;height:auto;display:block;overflow:visible}
+.plots svg text{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.ax{stroke:var(--line);stroke-width:1;shape-rendering:crispEdges}
+.ax0{stroke:var(--line-2);stroke-width:1}
+.band{fill:var(--press-wash-2);opacity:.75}
+.ln{fill:none;stroke-linejoin:round;stroke-linecap:round}
+.ln-f{stroke:var(--s-ours);stroke-width:2}
+.ln-t{stroke:var(--press);stroke-width:1}
+.ln-ref{stroke:var(--muted);stroke-width:1}
+.ln-p{stroke:var(--ink-2);stroke-width:1.25}
+.ln-x{stroke:var(--s-fast);stroke-width:2}
+.readout{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-top:14px}
+.readout div{background:var(--surface);padding:8px 10px}
+.readout dt{font-size:11.5px;color:var(--muted)}
+.readout dd{margin:2px 0 0;font-family:var(--f-mono);font-size:15px;font-weight:500}
+@media (max-width:560px){.readout{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.sim-msg{margin-top:12px;font-size:14.5px;line-height:1.75;border-left:2px solid var(--press);padding:2px 0 2px 12px}
+.sim-foot{margin-top:12px;font-size:12.5px;color:var(--muted);line-height:1.7}
+
+/* channels */
+.channels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}
+.channels>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.channels .k{font-family:var(--f-mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.channels h4{margin:4px 0 0;font-size:15px}
+.channels p{font-size:14px;color:var(--ink-2);margin-top:4px;line-height:1.7}
+@media (max-width:560px){.channels{grid-template-columns:1fr}}
+
+/* CoT stepper */
+.cot{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:var(--shadow);margin-top:22px}
+.cot-body{display:grid;grid-template-columns:minmax(0,19rem) minmax(0,1fr);gap:22px;margin-top:14px;align-items:start}
+@media (max-width:720px){.cot-body{grid-template-columns:1fr}}
+.cot svg{width:100%;height:auto;display:block}
+.stepnav{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.stepnav .dot{appearance:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--line-2);background:var(--surface);color:var(--ink-2);font-family:var(--f-mono);font-size:12.5px;cursor:pointer}
+.stepnav .dot[aria-current="step"]{background:var(--press);border-color:var(--press);color:#fff}
+.stepnav .sp{flex:1}
+.cot-text h4{margin:0;font-size:16px;font-family:var(--f-display);font-weight:700;font-stretch:104%}
+.cot-text p{font-size:14.5px;line-height:1.8;margin-top:6px;color:var(--ink-2)}
+.qa{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.qa div{font-family:var(--f-mono);font-size:13px;line-height:1.6;padding:7px 10px;border-radius:6px}
+.qa .qq{background:var(--surface-2);color:var(--muted)}
+.qa .aa{background:var(--press-wash);color:var(--ink)}
+.gauge{margin-top:14px}
+.gauge .tr{position:relative;height:10px;background:var(--surface-2);border-radius:5px}
+.gauge .fill{position:absolute;left:0;top:0;bottom:0;background:var(--s-ours);border-radius:5px;transition:width .35s}
+.gauge .mk{position:absolute;top:-4px;bottom:-4px;width:1.5px;background:var(--ink-2)}
+.gauge .ml{position:relative;height:34px;font-size:11px;font-family:var(--f-mono);color:var(--muted)}
+.gauge .ml span{position:absolute;transform:translateX(-50%);top:4px;white-space:nowrap;text-align:center;line-height:1.35}
+.gauge .ml span.l0{transform:none}
+.gauge .ml span.r0{transform:translateX(-100%)}
+
+/* charts */
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 16px 12px;margin-top:18px}
+.chart-t{font-size:14.5px;font-weight:700;line-height:1.5}
+.chart-t .src{font-family:var(--f-mono);font-weight:500;font-size:11.5px;color:var(--muted);margin-left:6px}
+.chart-sub{font-size:13px;color:var(--muted);margin-top:2px;line-height:1.6}
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:10px;font-size:12.5px;color:var(--ink-2)}
+.legend .lg{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px}
+.s-base{background:var(--s-base)} .s-fast{background:var(--s-fast)} .s-ours{background:var(--s-ours)} .s-cot{background:var(--s-cot)}
+.bgroups{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:12px 26px;margin-top:12px}
+.bgt{font-size:13px;font-weight:600;margin-bottom:4px}
+.brow{display:grid;grid-template-columns:7.6rem minmax(0,1fr) 2.6rem;gap:8px;align-items:center;height:22px}
+.bl{font-size:12.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track{position:relative;height:100%;background-image:linear-gradient(to right,var(--line) 1px,transparent 1px);background-size:25% 100%;background-repeat:repeat-x;border-right:1px solid var(--line)}
+.track .bar{position:absolute;left:0;top:50%;height:12px;transform:translateY(-50%);border-radius:0 3px 3px 0}
+.bv{font-family:var(--f-mono);font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums;text-align:right}
+.baxis{display:grid;grid-template-columns:7.6rem minmax(0,1fr) 2.6rem;gap:8px;margin-top:2px}
+.baxis .ticks{position:relative;height:16px;font-family:var(--f-mono);font-size:10.5px;color:var(--muted)}
+.baxis .ticks span{position:absolute;transform:translateX(-50%);top:0;white-space:nowrap}
+.baxis .ticks span:first-child{transform:none}
+.baxis .ticks span:last-child{transform:translateX(-100%)}
+
+.strip{margin-top:12px}
+.srow{display:grid;grid-template-columns:5.2rem minmax(0,1fr) 3.4rem;gap:10px;align-items:center;height:30px}
+.srow .word{font-family:"Anybody",sans-serif;font-size:15px;white-space:nowrap}
+.srow .word small{font-family:var(--f-body);font-size:10.5px;color:var(--muted);margin-left:2px}
+.srow .strk{position:relative;height:100%}
+.srow .strk .tk{position:absolute;top:0;bottom:0;width:1px;background:var(--line)}
+.srow .strk .dt{position:absolute;top:50%;width:11px;height:11px;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 2px var(--surface)}
+.srow .ov{font-family:var(--f-mono);font-size:12.5px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+.sgh{display:grid;grid-template-columns:minmax(0,1fr) 3.4rem;gap:10px;font-size:11.5px;color:var(--muted);margin-top:8px;border-top:1px solid var(--line);padding-top:6px}
+.sgh .ovh{text-align:right;font-family:var(--f-mono);font-size:10.5px}
+.saxis{display:grid;grid-template-columns:5.2rem minmax(0,1fr) 3.4rem;gap:10px}
+.saxis .ticks{position:relative;height:18px;font-family:var(--f-mono);font-size:10.5px;color:var(--muted)}
+.saxis .ticks span{position:absolute;transform:translateX(-50%);top:2px;white-space:nowrap}
+.twin{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:26px}
+@media (max-width:760px){.twin{grid-template-columns:1fr}}
+
+.mgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 24px;margin-top:12px}
+@media (max-width:820px){.mgrid{grid-template-columns:1fr}}
+.mcat h5{margin:0;font-size:13.5px;font-weight:700}
+.mcat .exp{font-size:12px;color:var(--muted)}
+.mobj{margin-top:10px}
+.mobj .on{font-size:12.5px;display:flex;align-items:center;gap:6px}
+.mobj .on .tag{font-size:10px;padding:2px 5px}
+.mbar{display:grid;grid-template-columns:minmax(0,1fr) 2.2rem;gap:6px;align-items:center;height:12px;margin-top:2px}
+.mbar .mt{position:relative;height:100%;background-image:linear-gradient(to right,var(--line) 1px,transparent 1px);background-size:50% 100%;border-right:1px solid var(--line)}
+.mbar .mt span{position:absolute;left:0;top:2px;bottom:2px;border-radius:0 2px 2px 0}
+.mbar .mv{font-family:var(--f-mono);font-size:10.5px;color:var(--ink-2);text-align:right;font-variant-numeric:tabular-nums}
+.derived{font-size:13px;color:var(--ink-2);margin-top:14px;border-top:1px solid var(--line);padding-top:10px;line-height:1.8}
+
+details.tv{margin-top:10px}
+details.tv summary{font-size:12.5px;color:var(--muted);cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px}
+details.tv summary::before{content:"+";font-family:var(--f-mono);width:14px;text-align:center}
+details.tv[open] summary::before{content:"−"}
+.tablewrap{overflow-x:auto;margin-top:8px}
+table.dt{border-collapse:collapse;font-size:13px;min-width:100%}
+table.dt th,table.dt td{border-bottom:1px solid var(--line);padding:6px 10px;text-align:right;white-space:nowrap}
+table.dt th:first-child,table.dt td:first-child{text-align:left}
+table.dt th{font-weight:600;color:var(--ink-2);font-size:12px}
+table.dt td{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+table.dt td:first-child{font-family:var(--f-body)}
+
+table.setup{border-collapse:collapse;width:100%;font-size:14px;line-height:1.6}
+table.setup th,table.setup td{border-bottom:1px solid var(--line);padding:10px 10px;text-align:left;vertical-align:top}
+table.setup th{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+table.setup td:first-child{font-weight:700;white-space:nowrap}
+.tw{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-top:18px}
+.tw table{min-width:640px}
+
+/* evidence */
+.ev{display:flex;flex-direction:column;gap:0;margin-top:18px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.ev>div{display:grid;grid-template-columns:4.2rem minmax(0,1fr);gap:14px;padding:14px 16px}
+.ev>div+div{border-top:1px solid var(--line)}
+.taxel{display:grid;grid-template-columns:repeat(3,12px);gap:4px;align-content:start;padding-top:5px}
+.taxel i{width:12px;height:12px;border-radius:50%;background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line-2)}
+.taxel i.on{background:var(--press);box-shadow:none}
+.taxel b{grid-column:1/-1;font-family:var(--f-mono);font-size:10.5px;color:var(--muted);font-weight:500;margin-top:2px;line-height:1.3}
+.ev h4{margin:0;font-size:15px}
+.ev p{font-size:14px;color:var(--ink-2);margin-top:4px;line-height:1.75}
+
+details.faq{border-bottom:1px solid var(--line);padding-block:12px}
+details.faq summary{cursor:pointer;font-weight:600;font-size:15px;list-style:none;display:flex;gap:10px}
+details.faq summary::before{content:"Q";font-family:var(--f-mono);color:var(--press);font-weight:600}
+details.faq[open] summary{color:var(--ink)}
+details.faq>div{font-size:14.5px;color:var(--ink-2);margin-top:8px;padding-left:1.4em;line-height:1.8}
+details.faq>div>*+*{margin-top:.6em}
+
+.issues{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px}
+.issues>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.issues h4{margin:0 0 6px;font-size:14.5px;font-family:var(--f-display);font-weight:700;font-stretch:104%}
+.issues ul{margin:0;padding-left:1.15em;font-size:14px;color:var(--ink-2);line-height:1.75}
+.issues li+li{margin-top:.4em}
+@media (max-width:700px){.issues{grid-template-columns:1fr}}
+
+/* four papers */
+.spectrum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin-top:20px;position:relative}
+.spectrum::before{content:"";position:absolute;left:8px;right:8px;top:9px;height:2px;background:linear-gradient(to right,var(--press-wash-2),var(--press))}
+.spectrum>div{position:relative;padding:26px 10px 0 0}
+.spectrum>div::before{content:"";position:absolute;left:2px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--surface);border:2px solid var(--press)}
+.spectrum>div.me::before{background:var(--press)}
+.spectrum .k{font-family:var(--f-mono);font-size:11px;color:var(--muted);letter-spacing:.04em}
+.spectrum h4{margin:2px 0 0;font-family:var(--f-display);font-weight:800;font-size:15px;font-stretch:108%}
+.spectrum p{font-size:13px;color:var(--ink-2);line-height:1.65;margin-top:4px}
+@media (max-width:760px){
+  .spectrum{grid-template-columns:1fr;gap:14px}
+  .spectrum::before{left:8px;right:auto;top:8px;bottom:8px;width:2px;height:auto;background:linear-gradient(to bottom,var(--press-wash-2),var(--press))}
+  .spectrum>div{padding:0 0 0 30px}
+  .spectrum>div::before{top:4px}
+}
+table.cmp{border-collapse:collapse;width:100%;font-size:13.5px;line-height:1.6}
+table.cmp th,table.cmp td{border-bottom:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}
+table.cmp th{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+table.cmp td:first-child{font-weight:700;white-space:nowrap}
+table.cmp tr.me td{background:var(--press-wash)}
+.tw.cmpw table{min-width:860px}
+
+.gloss{margin-top:18px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.gloss summary{cursor:pointer;padding:12px 16px;font-weight:600;list-style:none;display:flex;justify-content:space-between}
+.gloss summary::after{content:"展开";font-size:12.5px;color:var(--muted);font-weight:400}
+.gloss[open] summary::after{content:"收起"}
+.gloss dl{margin:0;padding:0 16px 12px;display:grid;grid-template-columns:minmax(0,11rem) minmax(0,1fr);gap:0}
+.gloss dt,.gloss dd{border-top:1px solid var(--line);padding:9px 0;margin:0;font-size:14px;line-height:1.7}
+.gloss dt{font-weight:700;padding-right:14px}
+.gloss dd{color:var(--ink-2)}
+@media (max-width:560px){.gloss dl{grid-template-columns:1fr}.gloss dd{border-top:0;padding-top:0}}
+
+footer{padding-block:48px 64px;font-size:13px;color:var(--muted);line-height:1.8}
+footer .col{border-top:1px solid var(--line);padding-top:16px}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/force-tactile/">力与触觉</a></span><span class="vapnav-links"><a href="../../papers/forcevla/">ForceVLA</a><a href="../../papers/tactile-vla/" aria-current="page">Tactile-VLA</a><a href="../../papers/motus2/">Motus2</a><a href="../../papers/me-dex/">ME-Dex 1.0</a></span></div></div>
+<!-- /vap:nav -->
+<nav class="topnav wrap" aria-label="页面目录">
+  <div class="inner">
+    <a class="brand" href="#top">Tactile-VLA</a>
+    <a class="l" href="#tldr">速览</a>
+    <a class="l" href="#problem">问题</a>
+    <a class="l" href="#method">方法</a>
+    <a class="l" href="#controller">控制器</a>
+    <a class="l" href="#cot">推理</a>
+    <a class="l" href="#setup">实验设置</a>
+    <a class="l" href="#results">结果</a>
+    <a class="l" href="#insight">读懂它</a>
+    <a class="l" href="#limits">疑点</a>
+    <a class="l" href="#four">四篇对照</a>
+    <a class="l" href="#glossary">术语</a>
+  </div>
+</nav>
+
+<header class="hero wrap" id="top">
+  <div class="wide">
+    <p class="meta">arXiv 2507.09160 · v1 · 2025-07-12 · cs.RO</p>
+    <h1 class="wordmark">Tactile<span class="dash">-</span>VLA</h1>
+    <p class="ptitle">Unlocking Vision-Language-Action Model's Physical Knowledge for Tactile Generalization</p>
+    <p class="authors">Jialei Huang*, Shuo Wang*, Fanqi Lin, Yihang Hu, Chuan Wen, Yang Gao（*共同一作）<br>清华大学 · 电子科技大学 · 上海交通大学</p>
+    <p class="thesis">这篇在 π0 上接入指尖触觉，把<b>目标力</b>直接写进动作输出，再交给位置主导的混合控制器执行。作者的核心主张是：VLM 里本来就懂「轻 / 重、易碎 / 结实」这类物理语义，用几百条带触觉的示范把它接到真实的牛顿数上，模型遇到没训过的副词、没见过的物体、没见过的黑板，也能把力往对的方向调。</p>
+
+    <figure class="fscale" aria-label="同一组副词下两个模型的实测插拔力">
+      <div class="hd"><b>同一组副词，两个模型用了多大的力</b><span class="small muted">字重按实测力设置，1 N ≈ 267 级字重</span></div>
+      <div class="frow">
+        <div class="who"><i style="background:var(--s-ours)"></i>Tactile-VLA</div>
+        <div class="words">
+          <div class="w"><span class="t learned" style="font-weight:236">softly</span><span class="b"><span style="width:17%;background:var(--s-ours)"></span></span><span class="v">0.51 N</span></div>
+          <div class="w"><span class="t" style="font-weight:300">gently</span><span class="b"><span style="width:25%;background:var(--s-ours)"></span></span><span class="v">0.75 N</span></div>
+          <div class="w"><span class="t" style="font-weight:628">firmly</span><span class="b"><span style="width:66%;background:var(--s-ours)"></span></span><span class="v">1.98 N</span></div>
+          <div class="w"><span class="t" style="font-weight:745">rigidly</span><span class="b"><span style="width:80.7%;background:var(--s-ours)"></span></span><span class="v">2.42 N</span></div>
+          <div class="w"><span class="t learned" style="font-weight:785">hard</span><span class="b"><span style="width:85.7%;background:var(--s-ours)"></span></span><span class="v">2.57 N</span></div>
+          <div class="w"><span class="t" style="font-weight:884">harder</span><span class="b"><span style="width:98%;background:var(--s-ours)"></span></span><span class="v">2.94 N</span></div>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="who"><i style="background:var(--s-base)"></i>π0（基线）</div>
+        <div class="words">
+          <div class="w"><span class="t learned" style="font-weight:743">softly</span><span class="b"><span style="width:80.3%;background:var(--s-base)"></span></span><span class="v">2.41 N</span></div>
+          <div class="w"><span class="t" style="font-weight:727">gently</span><span class="b"><span style="width:78.3%;background:var(--s-base)"></span></span><span class="v">2.35 N</span></div>
+          <div class="w"><span class="t" style="font-weight:825">firmly</span><span class="b"><span style="width:90.7%;background:var(--s-base)"></span></span><span class="v">2.72 N</span></div>
+          <div class="w"><span class="t" style="font-weight:775">rigidly</span><span class="b"><span style="width:84.3%;background:var(--s-base)"></span></span><span class="v">2.53 N</span></div>
+          <div class="w"><span class="t learned" style="font-weight:815">hard</span><span class="b"><span style="width:89.3%;background:var(--s-base)"></span></span><span class="v">2.68 N</span></div>
+          <div class="w"><span class="t" style="font-weight:711">harder</span><span class="b"><span style="width:76.3%;background:var(--s-base)"></span></span><span class="v">2.29 N</span></div>
+        </div>
+      </div>
+      <figcaption class="cap">数据：原文 Table 2，USB 插拔任务。带下划线的 softly 和 hard 在训练指令里出现过，另外四个词没训过。条长按 0–3 N 画。Tactile-VLA 的力随词义从轻到重排开，π0 在六个词上都落在 2.29–2.72 N 之间。每个数是多少次试验的均值，论文没写。</figcaption>
+    </figure>
+
+    <dl class="facts">
+      <div><dt>骨干</dt><dd>Gemma 2.6B（π0 初始化）+ 300M 动作专家</dd></div>
+      <div><dt>触觉</dt><dd>双指尖传感器，法向力 + 剪切力，100 Hz 采集</dd></div>
+      <div><dt>数据</dt><dd>UMI 手持夹爪采集，每个任务 100–300 条示范</dd></div>
+      <div><dt>评测</dt><dd>3 类真机任务，对比 π0-base、π0-fast</dd></div>
+    </dl>
+  </div>
+</header>
+
+<main>
+<section id="tldr" class="wrap">
+  <div class="col">
+    <span class="eyebrow">五分钟版</span>
+    <h2>先把整篇论文压成四段</h2>
+  </div>
+  <div class="wide">
+    <div class="tldr">
+      <div><h4>做了什么</h4><p>给 π0 接上指尖触觉，让指令里的「轻一点 / 用力」变成具体的施力大小；再加一个 CoT 变体，失败时根据触觉读数自己找原因、改指令。</p></div>
+      <div><h4>怎么做到</h4><p>触觉历史经 MLP 压成 1 个 token，和图像、语言 token 一起进 VLM 前缀。动作专家同时输出目标位置和目标力。底层控制器把「力误差」折算成位置偏移去执行。</p></div>
+      <div><h4>结果</h4><p>插拔成功率 USB 35%、充电器 90%（π0-base 为 5%、40%）。四个没训过的副词，力按词义排开。6 个没见过的物体抓取成功率 80–100%。没见过的黑板上，CoT 版成功率 80%，两个基线都是 0。</p></div>
+      <div><h4>读的时候要打的折扣</h4><p>除抓取实验外都没写试验次数，力的均值没有方差。没有消融能把「VLM 先验」和「多了力通道和控制器」分开。只有 3 类任务、一种夹爪。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="problem" class="wrap">
+  <div class="col flow">
+    <span class="eyebrow">论文 §1 · 引言</span>
+    <h2>VLA 知道「拿苹果」，不知道「轻轻地拿」</h2>
+    <p>现有 VLA 依靠预训练的视觉语言骨干，在语义理解和任务规划上泛化很好。但接触密集的任务（插拔、抓易碎物、擦板）要控制的是<strong>力</strong>，而视觉和语言只给出高层语义。触觉能提供局部、随时间变化的接触信息，但作者指出，已有工作大多把触觉当作补充的感知输入，没有让它直接参与动作生成。</p>
+    <p>论文想推进的是 VLA 的「怎么做」：同样是 <span class="q">pick up the apple</span>，模型要能区分 <span class="q">pick up the apple softly</span>。作者把这个目标拆成三种能力，恰好对应第 3 节的三个实验：</p>
+    <ul class="clean">
+      <li><strong>触觉相关的指令跟随</strong>：理解 softly、hard 这类力度副词，并迁移到只学过动作的新任务上（RQ1，§3.2）。</li>
+      <li><strong>触觉相关的常识</strong>：不给力度指令，看到物体就知道该用大力、中等力还是小力（RQ2，§3.3）。</li>
+      <li><strong>基于触觉的自适应推理</strong>：失败后根据触觉反馈用链式推理找原因，改变施力（RQ3，§3.4）。</li>
+    </ul>
+  </div>
+  <figure class="fig wide">
+    <div class="plate"><img src="fig/fig1-capabilities.jpg" width="1800" height="1148" alt="原文 Figure 1：三列分别展示触觉相关的指令跟随、触觉常识、自适应触觉推理，每列上下两张实拍图对比。"></div>
+    <figcaption><b>原文 Figure 1</b>三列对应三种能力。(a) 上图是训练里学过的「轻插 USB」，下图是在只学过动作的充电器任务上执行「用力拔」。(b) 夹重铁球用大力，夹火龙果用小力。(c) 换到黑板后默认力擦不掉，推理后加大向下的压力。<span class="look">看哪里：</span>图中箭头的长短表示施力大小。注意 (b) 把火龙果标成 Unseen Object，但 Table 3 和 Figure 5 都把火龙果列为训练内物体，见「疑点」一节。</figcaption>
+  </figure>
+</section>
+
+<section id="method" class="wrap">
+  <div class="col flow">
+    <span class="eyebrow">论文 §2.1 · 策略结构与训练</span>
+    <h2>相对 π0，只改了三处</h2>
+    <p>Tactile-VLA 的骨架就是 π0：预训练 VLM 处理前缀，一个动作专家用流匹配生成动作。作者的改动集中在三个地方，外加一个推理变体。</p>
+  </div>
+  <div class="wide">
+    <div class="diff">
+      <div><h4>① 触觉进前缀</h4><p>最近 H 步触觉读数拼接后经 MLP 压成 1 个 token，与 H 帧图像 token、语言 token 拼成前缀，前缀内部做非因果注意力。</p></div>
+      <div><h4>② 力进动作空间</h4><p>动作专家输出的 a<sub>t</sub> 同时包含目标位置 P<sub>target</sub> 和目标接触力 F<sub>target</sub>，两者都由示范监督，用 CFM 损失一起训练。</p></div>
+      <div><h4>③ 底层混合控制器</h4><p>位置主导：力误差超过阈值 τ 时，按增益 K 折算成位置修正，再由 PID 跟踪。外部合力和夹持力分两个通道控制。</p></div>
+    </div>
+  </div>
+  <div class="col flow" style="margin-top:28px">
+    <p>下面是按 Figure 2 重画的结构图。点击任意模块，可以看到论文对它的原文描述和我们的注解。数据流从上往下读。</p>
+  </div>
+  <div class="wide">
+    <div class="arch" id="arch">
+      <div class="arch-grid" role="group" aria-label="Tactile-VLA 结构模块">
+        <button class="blk in" data-k="img" aria-pressed="false">图像<small>最近 H 帧</small></button>
+        <button class="blk in" data-k="lang" aria-pressed="false">指令<small>含力度副词</small></button>
+        <button class="blk in tac" data-k="tac" aria-pressed="true">触觉信号<small>最近 H 步</small></button>
+        <button class="blk in" data-k="prop" aria-pressed="false">本体状态<small>proprio</small></button>
+        <div class="arrow">↓</div><div class="arrow">↓</div><div class="arrow">↓</div><div class="arrow">↓</div>
+        <button class="blk" data-k="img" aria-pressed="false">ViT<small>预训练</small></button>
+        <button class="blk" data-k="lang" aria-pressed="false">Tokenizer<small>E_lang</small></button>
+        <button class="blk tac" data-k="tac" aria-pressed="true">MLP 编码器<small>→ 1 个 token</small></button>
+        <button class="blk" data-k="prop" aria-pressed="false">编码器<small>接动作专家</small></button>
+        <div class="arrow">↓</div><div class="arrow">↓</div><div class="arrow">↓</div><div class="arrow">↓</div>
+        <button class="blk vlm" data-k="vlm" aria-pressed="false">预训练 VLM · Gemma 2.6B<small>前缀 S_t，非因果注意力</small></button>
+        <button class="blk" data-k="expert" aria-pressed="false">动作专家<small>300M · 输出 P、F</small></button>
+        <div class="arrow span3"></div><div class="arrow">↓</div>
+        <button class="blk cot" data-k="cot" aria-pressed="false">Tactile-VLA-CoT（虚线框）<small>VLM 自己的解码器生成推理文本</small></button>
+        <button class="blk" data-k="ctrl" aria-pressed="false">混合控制器<small>K·ΔF，阈值 τ</small></button>
+      </div>
+      <div class="arch-detail" id="arch-detail" aria-live="polite"></div>
+    </div>
+  </div>
+  <figure class="fig wide">
+    <div class="plate"><img src="fig/fig2-architecture.jpg" width="1800" height="712" alt="原文 Figure 2：Tactile-VLA 架构图。图像、指令、触觉信号、本体状态分别编码，前三者进入 Gemma 2.6B，动作专家 300M 输出给混合控制器。"></div>
+    <figcaption><b>原文 Figure 2</b>从下往上读：四路输入各自编码，图像、指令、触觉三路进入 Gemma 2.6B，本体状态接动作专家（300M），动作专家的输出交给右侧的混合控制器。虚线框是 CoT 变体。<span class="look">看哪里：</span>触觉信号画成一个数值矩阵，论文没说明矩阵每一维的含义。图中每路编码器上方都画了三个小方块，按正文，触觉这一路只输出 1 个融合 token。</figcaption>
+  </figure>
+  <div class="col flow">
+    <h3>前缀里到底放了什么</h3>
+    <div class="eq" role="math" aria-label="S_t 等于 H 帧图像编码、语言编码和 H 步触觉编码的拼接"><span class="lbl">(1)</span>S<sub>t</sub> = [ E′<sub>vis</sub>(I<sub>t−H+1</sub>), …, E′<sub>vis</sub>(I<sub>t</sub>), E<sub>lang</sub>(L<sub>t</sub>), E′<sub>ψ</sub>([T<sub>t−H+1</sub>, …, T<sub>t</sub>]) ]</div>
+    <ul class="clean">
+      <li><strong>图像</strong>：预训练 ViT 编码最近 H 帧，每帧一组 token，论文说做法「similar to π0」。</li>
+      <li><strong>语言</strong>：普通 tokenizer。力度信息全靠这一路进来。</li>
+      <li><strong>触觉</strong>：最近 H 步读数先拼接，再经 MLP（E′<sub>ψ</sub>）压成<strong>单个</strong>融合 token。触觉采集是 100 Hz，训练前下采样到和 20 Hz 图像帧对齐。</li>
+      <li>整个前缀内部是<strong>非因果注意力</strong>，图像、语言、触觉 token 可以互相看。作者强调这种 token 级早融合是 CoT 变体能对触觉做推理的前提。</li>
+    </ul>
+    <h3>怎么训练</h3>
+    <p>「共享组件」用 π0 的预训练参数初始化。新增模块，包括触觉编码器和<strong>修改过的动作专家</strong>，都是随机初始化。然后整个模型端到端微调，用条件流匹配（CFM）损失，损失同时覆盖动作序列的运动维度和力维度。作者认为正是这个训练让模型去调用 VLM 里潜在的物理知识，把 gently 这样的语言差别映射到 0.5 N 这样的力。</p>
+    <p class="small muted"><span class="tag jd">解读</span> 动作专家随机初始化这一点容易被忽略。所以说「继承 π0」，继承的主要是 ViT 和 VLM，动作生成部分是从这几百条示范重新学的。论文没给 H、动作块长度、训练步数，也没给 F<sub>target</sub> 的维数和坐标系。</p>
+  </div>
+</section>
+
+<section id="controller" class="wrap">
+  <div class="col flow">
+    <span class="eyebrow">论文 §2.2 · 混合位置-力控制器</span>
+    <h2>模型说「用 6 N」，机器人怎么照做</h2>
+    <p>动作专家给出目标位置和目标力之后，还需要一个底层控制器平衡这两个目标。作者的策略是<strong>位置主导</strong>：多数操作由精确的运动主导，只有接触阶段才需要力控（引 Raibert &amp; Craig 1981），所以最终下发的仍然是位置指令。力目标用受阻抗控制启发的<strong>间接力控</strong>实现，折算成对位置指令的修正。</p>
+    <p>和经典阻抗控制追求被动柔顺不同，这里要主动跟踪目标力。控制器计算力误差 ΔF = F<sub>target</sub> − F<sub>measured</sub>，只有误差超过阈值 τ 才修正位置，作者说这样是为了运动更平顺：</p>
+    <div class="eq" role="math" aria-label="P_hybrid 等于 P_target 加上：若力误差大于阈值 tau 则为 K 乘力误差，否则为零"><span class="lbl">(2)</span>P<sub>hybrid</sub> = P<sub>target</sub> + <span class="brace"><span>K · ΔF　　若 ‖ΔF‖ &gt; τ</span><span>0　　　　 若 ‖ΔF‖ ≤ τ</span></span></div>
+    <p>K 是增益矩阵。之后由 PID 控制器驱动关节去跟踪不断更新的 P<sub>hybrid</sub>。</p>
+  </div>
+  <div class="wide">
+    <div class="channels">
+      <div><span class="k">通道 1</span><h4>夹爪的笛卡尔位置 → 外部合力</h4><p>控制夹爪对物体施加的合力，比如插拔时往下压、擦板时往板上压。</p></div>
+      <div><span class="k">通道 2</span><h4>夹爪开度 → 夹持力</h4><p>并行地控制夹爪把物体夹多紧，决定抓鸡蛋和抓铁块的区别。</p></div>
+    </div>
+  </div>
+  <div class="col flow" style="margin-top:26px">
+    <p>式 (2) 看着简单，但阈值和比例修正放在一起有一些不直观的后果。下面的小模拟按式 (2) 字面实现了一维按压：夹爪往一块有弹性的表面上压，看测到的力怎样追目标力。先点几个预设，再自己拖参数。</p>
+  </div>
+  <div class="wide">
+    <div class="sim" id="sim">
+      <div class="sim-head"><b>一维按压模拟</b><span class="tag jd">解读 · 示意，不是论文代码</span></div>
+      <div class="presets" role="group" aria-label="预设">
+        <button class="btn" data-p="train">训练时的表面</button>
+        <button class="btn" data-p="soft">换到更软的表面</button>
+        <button class="btn" data-p="gain">加大增益 K</button>
+        <button class="btn" data-p="chat">阈值太宽：来回切换</button>
+        <button class="btn" data-p="acc">对照：累加式修正</button>
+      </div>
+      <div class="sim-body">
+        <div class="ctl">
+          <div><label for="sim-ft"><span>目标力 F<sub>target</sub></span><span class="num" id="v-ft"></span></label><input type="range" id="sim-ft" min="0" max="10" step="0.1"></div>
+          <div><label for="sim-pt"><span>目标位置 P<sub>target</sub>（压入深度）</span><span class="num" id="v-pt"></span></label><input type="range" id="sim-pt" min="0" max="3" step="0.1"></div>
+          <div><label for="sim-gain"><span>增益 K</span><span class="num" id="v-gain"></span></label><input type="range" id="sim-gain" min="0" max="2" step="0.05"></div>
+          <div><label for="sim-tau"><span>阈值 τ</span><span class="num" id="v-tau"></span></label><input type="range" id="sim-tau" min="0" max="3" step="0.1"></div>
+          <div><span class="grp-t">表面刚度</span><div class="seg" role="group" aria-label="表面刚度" id="sim-k"><button data-v="4" id="k4">硬 4 N/mm</button><button data-v="2" id="k2">中 2 N/mm</button><button data-v="1" id="k1">软 1 N/mm</button></div></div>
+          <div><span class="grp-t">修正方式</span><div class="seg" role="group" aria-label="修正方式" id="sim-mode"><button data-v="literal" id="m-lit">式 (2) 字面</button><button data-v="accum" id="m-acc">累加（对照）</button></div></div>
+        </div>
+        <div class="plots">
+          <div class="plot-legend"><span><i style="background:var(--s-ours)"></i>测到的力</span><span><i style="background:var(--press)"></i>目标力</span><span><i class="band"></i>目标 ± τ（死区）</span><span><i style="background:var(--muted)"></i>不修正时的力 k·P<sub>target</sub></span></div>
+          <svg id="plot-f" viewBox="0 0 400 168" role="img" aria-label="力随时间变化"></svg>
+          <div class="plot-legend"><span><i style="background:var(--ink-2)"></i>下发的位置指令 P<sub>hybrid</sub></span><span><i style="background:var(--s-fast)"></i>夹爪实际位置</span><span><i style="background:var(--muted)"></i>P<sub>target</sub></span></div>
+          <svg id="plot-p" viewBox="0 0 400 138" role="img" aria-label="位置随时间变化"></svg>
+        </div>
+      </div>
+      <dl class="readout">
+        <div><dt>稳定后的力（最后 1 s 均值）</dt><dd id="r-f"></dd></div>
+        <div><dt>离目标还差</dt><dd id="r-e"></dd></div>
+        <div><dt>修正开启比例（最后 2 s）</dt><dd id="r-on"></dd></div>
+        <div><dt>开关切换次数（最后 2 s）</dt><dd id="r-sw"></dd></div>
+      </dl>
+      <p class="sim-msg" id="sim-msg"></p>
+      <p class="sim-foot">模型设定（我们的简化）：接触是线性弹簧 F = k·max(0, x)，x 是压入深度（mm）；PID 跟踪简化成一阶滞后；力传感器有 0.05 N 噪声；控制频率按触觉的 100 Hz 算。论文没有给 K、τ 的数值，这里的参数全部是虚构的，只用来看式 (2) 的行为。</p>
+    </div>
+  </div>
+  <div class="col flow" style="margin-top:22px">
+    <p><span class="tag jd">解读</span> 从模拟里能读出三件事。第一，P<sub>target</sub> 本身来自示范，在训练时的表面上它产生的力就接近目标，修正项不起作用；换了刚度不同的表面，修正项才开始干活。第二，式 (2) 是纯比例修正，修正量要靠误差本身维持，所以力会停在离目标还有一段距离的地方，K 越大偏差越小。第三，阈值和比例修正叠加时，如果 τ 相对偏差太宽，修正会在死区边界反复开关。论文说设 τ 是为了平顺，实际系统可能有滤波或其他处理，论文没写。另外，策略每个动作块都会重新输出 P<sub>target</sub>，这个外层闭环也可能吸收一部分偏差。</p>
+  </div>
+</section>
+
+<section id="cot" class="wrap">
+  <div class="col flow">
+    <span class="eyebrow">论文 §2.3 · Tactile-VLA-CoT</span>
+    <h2>失败以后，让模型自己说出「力不够」</h2>
+    <p>CoT 变体用 VLM 自己的预训练解码器生成一段显式的「内心独白」，分析失败原因并给出纠正动作。训练用一小批针对性的示范：每条样本记录一次具体的失败，把多模态传感数据和一段分析失败原因的语言标注配在一起。作者说这样做有两个目的，一是保住 VLM 的通用推理能力、减少微调带来的灾难性遗忘，二是把推理扩展到触觉模态，比如从传感信号推断「擦板时向下压力不够」「剪切力显示工具在打滑」。</p>
+    <p>运行时，CoT <strong>按固定间隔触发</strong>，间隔多长论文没给。提示词先让模型判断任务是否完成；如果判定失败，再让模型结合传感反馈分析原因。输出会逐项分析各个力分量，然后写出一条新的纠正指令，用来指导下一次尝试。</p>
+    <p>在擦板任务里，训练数据是白板上的 100 条成功示范和 100 条失败示范。失败样本配的监督文本类似 <span class="q">"The force was too light. A stronger force is needed. Now trying with 5N."</span> 下面按论文 §3.4 和 Figure 3 把黑板上的一次零样本执行拆成五步。</p>
+  </div>
+  <div class="wide">
+    <div class="cot" id="cotbox">
+      <div class="stepnav" role="group" aria-label="推理步骤">
+        <button class="dot" data-i="0" aria-label="第 1 步">1</button>
+        <button class="dot" data-i="1" aria-label="第 2 步">2</button>
+        <button class="dot" data-i="2" aria-label="第 3 步">3</button>
+        <button class="dot" data-i="3" aria-label="第 4 步">4</button>
+        <button class="dot" data-i="4" aria-label="第 5 步">5</button>
+        <span class="sp"></span>
+        <button class="btn" id="cot-prev">上一步</button>
+        <button class="btn" id="cot-next">下一步</button>
+      </div>
+      <div class="cot-body">
+        <div>
+          <svg viewBox="0 0 320 200" role="img" aria-label="黑板示意图" id="cot-board">
+            <rect x="4" y="4" width="312" height="176" rx="6" style="fill:var(--board-frame)"></rect>
+            <rect x="14" y="14" width="292" height="156" rx="2" style="fill:var(--board)"></rect>
+            <text id="chalk" x="118" y="104" text-anchor="middle" style="fill:var(--chalk);font-family:'Anybody',sans-serif;font-weight:300;font-size:44px;font-stretch:90%;letter-spacing:1px">TacVLA</text>
+            <g id="eraser"><rect x="0" y="0" width="54" height="30" rx="4" style="fill:var(--eraser)"></rect><rect x="0" y="24" width="54" height="6" rx="2" style="fill:var(--chalk);opacity:.5"></rect></g>
+            <g id="farrow"><line id="fa-line" x1="0" y1="0" x2="0" y2="0" style="stroke:var(--press);stroke-width:3"></line><path id="fa-head" d="" style="fill:var(--press)"></path></g>
+            <text id="fa-lbl" x="0" y="0" style="fill:var(--ink);font-family:var(--f-mono);font-size:12px"></text>
+          </svg>
+          <div class="gauge">
+            <div class="tr"><div class="fill" id="g-fill"></div><div class="mk" style="left:43.75%"></div><div class="mk" style="left:62.5%"></div><div class="mk" style="left:83.75%"></div></div>
+            <div class="ml"><span class="l0" style="left:0">0 N</span><span style="left:43.75%">3.5<br>默认</span><span style="left:62.5%">5<br>白板数据</span><span style="left:83.75%">6.7<br>纠正后</span><span class="r0" style="left:100%">8 N</span></div>
+          </div>
+        </div>
+        <div class="cot-text" id="cot-text" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+  <div class="side wide" style="margin-top:22px">
+    <div class="flow">
+      <p><span class="tag jd">解读</span> 这里的「推理」是 VLM 解码器在语言层面生成的，它把失败归因写成文字，再用一条新的指令驱动下一次尝试。它不预测未来的触觉或画面，也没有价值模型给动作打分。它能在黑板上起作用，一个合理的解释是：白板训练数据里已经有「力太轻 → 加力 → 成功」这个模式，黑板上复用的是同一个模式，只是需要加得更多。论文没有对照「不看触觉的 CoT」或「失败就加力的固定规则」，所以说不清触觉读数在归因里具体起了多大作用。</p>
+      <p>还有一处前后不一：Figure 3 的回答是 <span class="q">"Shear force should be larger, while normal force is sufficient."</span>，而正文举的例子是 <span class="q">"normal force is too low"</span>、新指令 <span class="q">"apply more downward force"</span>，Figure 1(c) 也写的是增加向下压力。</p>
+    </div>
+    <figure class="fig">
+      <div class="plate"><img src="fig/fig3-cot.jpg" width="782" height="892" alt="原文 Figure 3：黑板照片，下方是 Human: Clean the blackboard 与两轮问答。"></div>
+      <figcaption><b>原文 Figure 3</b>CoT 在擦板任务上的工作过程：先问板擦干净没有，再问下一步怎么做。<span class="look">看哪里：</span>橙色字标出了模型提到的力分量。</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="setup" class="wrap">
+  <div class="col flow">
+    <span class="eyebrow">论文 §2.4、§3.1 · 数据与实验设置</span>
+    <h2>用手持夹爪采「带着手感」的示范</h2>
+  </div>
+  <div class="side wide">
+    <div class="flow">
+      <p>作者认为常规遥操作不适合采这类数据：操作者没有力反馈，采出来的策略天然不依赖触觉。所以他们在 UMI（Universal Manipulation Interface，一种便携的手持示教夹爪）的基础上，给夹爪装了两块高分辨率触觉传感器，能测法向力和剪切力。操作者手持夹爪示教，直接感受到接触，示范就是「按手感」做出来的。</p>
+      <p>时间同步：每次采集前对齐各路数据的时间戳；采集时触觉 100 Hz、视觉 20 Hz，之后把触觉下采样到与图像帧对齐。得到的数据集作者叫 VLA-T。</p>
+      <p class="small muted">论文没有写传感器型号、部署时用的机械臂型号，也没说明从触觉读数到以牛顿为单位的 F<sub>target</sub> 标签是怎么标定的。</p>
+    </div>
+    <figure class="fig">
+      <div class="plate"><img src="fig/fig4-umi-tactile.jpg" width="1800" height="1530" alt="原文 Figure 4：3D 打印的 UMI 夹爪，指尖装有触觉传感器，顶部装 GoPro 相机。"></div>
+      <figcaption><b>原文 Figure 4</b>数据采集装置：3D 打印夹爪，指尖装触觉传感器（左侧带凸点阵列的模块），顶部 GoPro 相机。</figcaption>
+    </figure>
+  </div>
+  <div class="col flow" style="margin-top:12px">
+    <h3>三类任务与数据量</h3>
+    <p>对比方法：π0-base（通用 VLA 流匹配模型）、π0-fast（π0-base 的变体）、Tactile-VLA、Tactile-VLA-CoT（只在擦板任务上评测）。论文对基线的描述是「没有我们的触觉融合结构」，没写基线用哪批数据微调、指令里是否带了同样的力度副词。</p>
+  </div>
+  <div class="wide">
+    <div class="tw">
+      <table class="setup">
+        <thead><tr><th>任务</th><th>训练示范</th><th>训练指令</th><th>测什么</th><th>每个条件的试验次数</th></tr></thead>
+        <tbody>
+          <tr><td>USB 插拔（Task A）</td><td>soft、hard 各 100 条</td><td>带力度副词，例如 <span class="q">pull out and insert the USB softly into the left socket</span></td><td>成功率（Table 1）；训过的词和四个新副词下的施力（Table 2）</td><td>未写</td></tr>
+          <tr><td>充电器插拔（Task B）</td><td>100 条</td><td>只有动作，不含 softly / hard</td><td>成功率（Table 1）；零样本 softly / hard 下的施力（Table 2）</td><td>未写</td></tr>
+          <tr><td>桌面抓取</td><td>每个物体 50 条，6 个训练物体</td><td>论文没写指令形式</td><td>6 个训练内（ID）和 6 个没见过（OOD）物体的成功率（Table 3）与施力（Figure 6）</td><td>成功率每物体 10 次；施力 5 次均值</td></tr>
+          <tr><td>擦板</td><td>白板上 100 条成功 + 100 条失败</td><td><span class="q">Wipe the board.</span></td><td>白板（ID）与黑板（OOD）成功率（Table 4）</td><td>未写</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <figure class="fig wide">
+    <div class="plate"><img src="fig/fig5-tasks-objects.jpg" width="1800" height="595" alt="原文 Figure 5：(a) 充电器插拔任务实拍；(b) 六个训练物体，按硬且重、硬且轻、易碎且轻三类着色。"></div>
+    <figcaption><b>原文 Figure 5</b>(a) 充电器插拔任务。(b) 抓取任务的 6 个训练物体，按物理属性分三类：红色是硬且重（电池、铁块），绿色是硬且轻（充电器、木块），蓝色是易碎且轻（火龙果、甜瓜）。图里 Pitaya 拼成了 Piyata。</figcaption>
+  </figure>
+</section>
+
+<section id="results" class="wrap">
+  <div class="col flow">
+    <span class="eyebrow">论文 §3.2–3.4 · 结果</span>
+    <h2>三个实验，逐个看数字</h2>
+    <p>下面的图表数字全部取自论文 tex 源码中的表格。每张图下面可以展开原表。</p>
+
+    <h3 id="rq1">RQ1 · 力度副词能不能迁移到新任务</h3>
+    <p>实验设计：两个运动学上相似的任务。USB 任务的示范带 softly / hard 指令；充电器任务只学动作，训练时从没出现过力度词。测试时，在两个任务上都下达带副词的指令，看成功率和实际插入力。</p>
+  </div>
+  <div class="wide">
+    <div class="twin">
+      <div class="chart" id="ch-t2"></div>
+      <div class="chart" id="ch-t1"></div>
+    </div>
+  </div>
+  <div class="col flow" style="margin-top:18px">
+    <p><strong>论文的解读</strong>：在 USB 任务上，Tactile-VLA 对 softly 用 0.51 N、hard 用 2.57 N；没训过的 gently（0.75 N）和 firmly（1.98 N）落在中间；harder 用了 2.94 N，比训练过的 hard 还大，作者称之为「外推」。在只学过动作的充电器任务上，hard 用 9.13 N、softly 用 4.68 N。两个基线的施力和副词没有相关性。成功率方面，作者把 Tactile-VLA 的优势归因于触觉的深度融合，使插入的接触阶段控制更精确，减少了对不准和用力过猛导致的失败。</p>
+    <p><span class="tag jd">解读</span> 有三点值得注意。一是迁移到充电器的是<strong>相对关系</strong>，不是绝对力：充电器上 softly 的 4.68 N 比 USB 上 hard 的 2.57 N 还大，hard / softly 的比值从 USB 上的约 5.0 倍压缩到约 1.95 倍。二是 rigidly（2.42 N）和 hard（2.57 N）很接近，harder 比 hard 多 0.37 N，这些都是单个均值，没有方差和次数，无法判断差异是否显著。三是两个基线不输出力、没有力控制器，只能通过位置间接改变力，它们「分不开副词」一部分是结构决定的。另外，Tactile-VLA 在 USB 任务上的成功率本身只有 35%。</p>
+
+    <h3 id="rq2">RQ2 · 没见过的物体，知不知道该用多大力</h3>
+    <p>实验设计：三类物体，期望的抓取力分别是大（硬且重）、中（硬且轻）、小（易碎且轻）。训练时每类 2 个物体，每个 50 条示范；测试时加入每类 2 个新物体。成功的定义是一次抓起、没有可见变形。抓取时不给力度指令，看模型自己选的力。</p>
+  </div>
+  <div class="wide">
+    <div class="chart" id="ch-t3"></div>
+  </div>
+  <figure class="fig wide">
+    <div class="plate"><img src="fig/fig6-grasp-force.jpg" width="1800" height="715" alt="原文 Figure 6：三栏柱状图，分别是硬且重、硬且轻、易碎且轻三类物体的抓取力，深色为训练内物体，浅色为没见过的物体。"></div>
+    <figcaption><b>原文 Figure 6</b>Tactile-VLA 抓取各物体时实际施加的力（N），每根柱是 5 次的均值，误差棒是标准差。三栏分别对应「应该用大 / 中 / 小力」的物体，深色是训练内物体，浅色是没见过的物体。<span class="look">看哪里：</span>按图目测，硬且重一栏约 3–6 N，硬且轻约 2–2.7 N，易碎且轻约 0.7–1.2 N；新物体的力和同栏训练物体在同一量级。这张图只画了 Tactile-VLA，没有基线的力。</figcaption>
+  </figure>
+  <div class="col flow">
+    <p><strong>论文的解读</strong>：Tactile-VLA 在 ID 和 OOD 物体上都明显高于基线，易碎物体上尤其明显；Figure 6 显示它对没见过的物体也选对了大、中、小力。作者认为这是 VLM 知识迁移到触觉模态的有力证据。</p>
+    <p><span class="tag jd">解读</span> 基线在易碎物体上几乎全是 0（blueberry、paper box 都是 0%），而 Tactile-VLA 是 90–100%。这个差距很大一部分可能来自「有没有夹持力通道」：基线只能控制夹爪开度，没有力闭环，捏碎软物体几乎是必然的。要证明「VLM 常识」在起作用，更有说服力的对照应该是同样有力通道、但 VLM 没有预训练或被替换的版本。另外，Table 3 的表注写着「training primarily focused on medium-stiffness items」，和正文「每类都训练」的描述对不上。</p>
+
+    <h3 id="rq3">RQ3 · 从白板学的推理，能不能用到黑板上</h3>
+    <p>实验设计：训练只用白板（马克笔），测试换成黑板（粉笔，需要更大的力才擦得掉）。指令只有 <span class="q">Wipe the board.</span></p>
+  </div>
+  <div class="wide">
+    <div class="twin">
+      <div class="chart" id="ch-t4"></div>
+      <div class="chart">
+        <div class="chart-t">黑板上一次成功执行的施力<span class="src">§3.4 正文</span></div>
+        <div class="chart-sub">默认力擦不掉，CoT 推理后加力</div>
+        <div class="strip" style="margin-top:18px">
+          <div class="srow"><span class="word" style="font-size:13px">默认</span><span class="strk"><span class="tk" style="left:0%"></span><span class="tk" style="left:25%"></span><span class="tk" style="left:50%"></span><span class="tk" style="left:75%"></span><span class="tk" style="left:100%"></span><span class="dt" style="left:43.75%;background:var(--s-ours);opacity:.45"></span></span><span class="ov">3.5 N</span></div>
+          <div class="srow"><span class="word" style="font-size:13px">白板数据</span><span class="strk"><span class="tk" style="left:0%"></span><span class="tk" style="left:25%"></span><span class="tk" style="left:50%"></span><span class="tk" style="left:75%"></span><span class="tk" style="left:100%"></span><span class="dt" style="left:62.5%;background:var(--muted)"></span></span><span class="ov">5 N</span></div>
+          <div class="srow"><span class="word" style="font-size:13px">纠正后</span><span class="strk"><span class="tk" style="left:0%"></span><span class="tk" style="left:25%"></span><span class="tk" style="left:50%"></span><span class="tk" style="left:75%"></span><span class="tk" style="left:100%"></span><span class="dt" style="left:83.75%;background:var(--s-ours)"></span></span><span class="ov">6.7 N</span></div>
+          <div class="saxis"><span></span><span class="ticks"><span style="left:0;transform:none">0</span><span style="left:25%">2</span><span style="left:50%">4</span><span style="left:75%">6</span><span style="left:100%;transform:translateX(-100%)">8 N</span></span><span></span></div>
+        </div>
+        <p class="chart-sub" style="margin-top:10px">6.7 N 比白板训练数据里的 5 N 高 34%。论文只给了这一组数值，没说是单次执行还是多次平均。</p>
+      </div>
+    </div>
+  </div>
+  <figure class="fig wide">
+    <div class="plate"><img src="fig/fig7-wiping.jpg" width="1800" height="514" alt="原文 Figure 7：(a) 擦白板上的 Tactile-VLA 字样；(b) 黑板上初次擦拭后粉笔字仍在；(c) 加力后黑板擦干净。"></div>
+    <figcaption><b>原文 Figure 7</b>(a) 训练：擦白板上的马克笔字。(b) 零样本换到黑板，初始策略力太小，粉笔字还在。(c) 根据失败的物理反馈推理后加大力，擦干净。</figcaption>
+  </figure>
+  <div class="col flow">
+    <p><strong>论文的解读</strong>：白板上 Tactile-VLA 成功率高，明显超过基线。黑板上差别更明显：Tactile-VLA-CoT 靠推理加力成功，基线完全失败。作者说基线能复现擦的动作，但无法理解触觉上的失败，也没法加力，只会重复同样无效的低力动作。</p>
+    <p><span class="tag jd">解读</span> 不带 CoT 的 Tactile-VLA 在黑板上也有 15%，说明单靠触觉闭环和控制器已经能偶尔擦掉；CoT 把它提到 80%。白板上 CoT 版（75%）反而比普通版（80%）略低，差 5 个百分点，在次数未知的情况下看不出是否有意义。</p>
+  </div>
+</section>
+
+<section id="insight" class="wrap">
+  <div class="col flow">
+    <span class="eyebrow">读懂它</span>
+    <h2>「VLM 先验里已经有物理交互语义」，证据有多强</h2>
+    <p>这是全文的核心主张，摘要、引言和结论都在重复它。下面把支撑它的证据逐条过一遍。左侧三个点代表我们判断这条证据对<strong>这条主张</strong>的支持力度，三个点全亮是强。<span class="tag jd">解读</span></p>
+  </div>
+  <div class="col">
+    <div class="ev">
+      <div><div class="taxel" aria-label="支持力度 2/3"><i class="on"></i><i class="on"></i><i></i><b>2 / 3</b></div><div><h4>没训过的副词，力按词义排开（Table 2，USB）</h4><p>gently、firmly、rigidly、harder 都没出现在训练指令里，施力顺序和词义一致。这是最直接支持「语言先验」的一条：词义的远近来自预训练的语言表示。不足之处是每个词只有一个均值，没有方差和试验次数。</p></div></div>
+      <div><div class="taxel" aria-label="支持力度 2/3"><i class="on"></i><i class="on"></i><i></i><b>2 / 3</b></div><div><h4>softly / hard 迁移到充电器（Table 2）</h4><p>充电器任务的训练里没有力度词，零样本下 hard 的力约是 softly 的两倍。说明「副词 → 力」的映射在一定程度上和任务解耦了。但迁移的是方向，绝对值和比例都变了。</p></div></div>
+      <div><div class="taxel" aria-label="支持力度 1/3"><i class="on"></i><i></i><i></i><b>1 / 3</b></div><div><h4>没见过的物体选对了力（Table 3、Figure 6）</h4><p>结果本身很强，但对「VLM 常识」的支持偏弱：部分新物体和训练物体在外观、材质上相近（例如钢球和铁块），视觉相似度也能解释一部分；成功率的差距又和基线缺少夹持力通道混在一起。</p></div></div>
+      <div><div class="taxel" aria-label="支持力度 2/3"><i class="on"></i><i class="on"></i><i></i><b>2 / 3</b></div><div><h4>黑板上靠 CoT 加力（Table 4）</h4><p>支持的其实是另一条主张：用触觉反馈做语言推理有用（15% → 80%）。但训练数据里已有「力太轻 → 加力」的文本模式，黑板复用的是同一模式。</p></div></div>
+      <div><div class="taxel" aria-label="支持力度 0/3"><i></i><i></i><i></i><b>0 / 3</b></div><div><h4>能直接隔离「VLM 先验」的消融</h4><p>没有。Tactile-VLA 和基线同时差了三样东西：触觉输入、动作里的力、混合控制器。没有「去掉 VLM 预训练」「冻结 VLM」「只加力通道不加触觉输入」这类对照，所以三类泛化各自有多少来自 VLM 先验，论文没能分开。</p></div></div>
+    </div>
+  </div>
+  <div class="col flow">
+    <h3>容易看错的地方</h3>
+    <ul class="clean">
+      <li><strong>「零样本」零的是什么。</strong>充电器任务有 100 条动作示范，零的只是力度词；OOD 物体属于训练过的三个类别；黑板任务的动作和推理模式都在白板上练过。它们都不是「从没见过的任务」。</li>
+      <li><strong>力不是直接下发的。</strong>模型输出的是目标力，控制器把力误差折算成位置偏移，最终仍是位置控制。</li>
+      <li><strong>动作专家是重新训练的。</strong>论文明确说修改后的动作专家随机初始化，不沿用 π0 的动作专家权重。</li>
+      <li><strong>两处次数不一样。</strong>Table 3 的成功率是每物体 10 次，Figure 6 的力是 5 次均值。Table 1、2、4 没写次数。</li>
+      <li><strong>Table 1 的 π0-base 在 Table 2 里写作 π0。</strong>从上下文看是同一个基线。</li>
+    </ul>
+    <h3>常见问题</h3>
+    <div>
+      <details class="faq"><summary>触觉进的是 VLM 前缀，还是动作专家？</summary><div><p>按式 (1) 和 Figure 2，触觉经 MLP 变成 1 个 token，放进 VLM 前缀，与图像、语言 token 一起做非因果注意力。本体状态则经编码器接到动作专家。作者强调早融合是为了让 VLM 能对触觉做推理（CoT 变体需要）。</p></div></details>
+      <details class="faq"><summary>模型输出的「力」怎样变成机器人的动作？</summary><div><p>动作专家输出 P<sub>target</sub> 和 F<sub>target</sub>。控制器测量实际接触力，力误差超过阈值 τ 时，在 P<sub>target</sub> 上叠加 K·ΔF 的位置修正，然后由 PID 驱动关节跟踪。外部合力用夹爪的笛卡尔位置控制，夹持力用夹爪开度控制。可以回到上面的模拟看式 (2) 的具体行为。</p></div></details>
+      <details class="faq"><summary>F<sub>target</sub> 的标签从哪来？</summary><div><p>论文说目标位置和目标力都来自专家示范，示范用装了触觉传感器的 UMI 手持夹爪采集。从触觉读数到以牛顿为单位的力标签如何换算，论文没写。</p></div></details>
+      <details class="faq"><summary>一共用了多少示范？</summary><div><p>USB 200 条（soft、hard 各 100），充电器 100 条，抓取 6 × 50 = 300 条，擦板 200 条（100 成功 + 100 失败），合计 800 条。论文没说是一个模型联合训练所有任务，还是每个任务单独训练。</p></div></details>
+      <details class="faq"><summary>基线 π0 能不能控制力？</summary><div><p>它们没有触觉输入，动作里也没有力，只能通过位置间接影响接触力。论文对基线的描述只有「没有我们的触觉融合结构」，没说它们用什么数据微调、指令是否一样。</p></div></details>
+      <details class="faq"><summary>CoT 什么时候触发？会不会拖慢控制？</summary><div><p>论文说按固定间隔触发，让模型定期检查进展，间隔长度没给。推理耗时、是否会暂停执行，论文也没有讨论。</p></div></details>
+    </div>
+  </div>
+</section>
+
+<section id="limits" class="wrap">
+  <div class="col flow">
+    <span class="eyebrow">局限与疑点</span>
+    <h2>论文没说的，和我们读出来的</h2>
+    <p><strong>论文自己承认的</strong>：没有。全文没有局限性章节，结论只重申了主张。相关工作一节把自己和同期工作区分开：FuSe 靠辅助损失微调，ForceVLA 靠模态专属路由，而本文的主要贡献是证明 VLM 的隐空间已经有物理交互语义。</p>
+    <p><strong>我们读出来的</strong>，按类型分成四组。<span class="tag jd">解读</span></p>
+  </div>
+  <div class="wide">
+    <div class="issues">
+      <div><h4>统计</h4><ul>
+        <li>Table 1、2、4 没写每个条件试验多少次。成功率都是 5 的倍数，可能是 20 次左右，这只是推测。</li>
+        <li>Table 2 的力只有均值，没有方差。harder 比 hard 大、rigidly 和 hard 的差别都无法判断是否显著。</li>
+        <li>黑板上 3.5 N → 6.7 N 只给了一组数值，没说是单次执行还是多次平均。</li>
+      </ul></div>
+      <div><h4>归因</h4><ul>
+        <li>没有消融把触觉输入、力动作、混合控制器、VLM 预训练四者的贡献分开。</li>
+        <li>基线结构上不输出力，Table 2 和 Table 3 的对比有一部分是结构差异，不全是「语义理解」差异。</li>
+        <li>CoT 缺少「不看触觉的推理」和「失败就加力的固定规则」这类对照。</li>
+      </ul></div>
+      <div><h4>范围</h4><ul>
+        <li>只有 3 类任务、一种平行夹爪、桌面场景。</li>
+        <li>OOD 物体仍属训练过的三个类别；「零样本」的范围比字面窄。</li>
+        <li>USB 任务成功率只有 35%，绝对水平不高，论文没分析失败原因。</li>
+      </ul></div>
+      <div><h4>文内不一致</h4><ul>
+        <li>Figure 1(b) 把火龙果标为没见过的物体、铁球标为已知物体；Table 3 和 Figure 5 里火龙果是训练内物体，钢球（Steel Ball）是 OOD。</li>
+        <li>§2.3 描述 CoT 微调数据时举的例子是「wiping a blackboard with slippage」，而 §3.1 和 §3.4 都说训练中从没出现过黑板。</li>
+        <li>Figure 3 说「剪切力要更大，法向力够了」，正文和 Figure 1(c) 说要加大向下的压力。</li>
+        <li>Table 3 表注说训练主要针对中等刚度物体，正文说每类都训练了。</li>
+        <li>黑板指令正文是 <span class="q">Wipe the board.</span>，Figure 3 是 <span class="q">Clean the blackboard.</span></li>
+      </ul></div>
+    </div>
+    <div class="tw" style="margin-top:14px">
+      <table class="setup">
+        <thead><tr><th>复现需要但论文没给的</th><th>论文里的说法</th></tr></thead>
+        <tbody>
+          <tr><td>历史长度 H</td><td>只有符号，没有数值</td></tr>
+          <tr><td>增益 K、阈值 τ</td><td>K 是增益矩阵，τ 是预设阈值，都没给数值</td></tr>
+          <tr><td>F<sub>target</sub> 的维数与坐标系</td><td>只说分外部合力和夹持力两个通道</td></tr>
+          <tr><td>动作块长度、训练步数、学习率</td><td>没有</td></tr>
+          <tr><td>CoT 触发间隔、提示词全文</td><td>「fixed intervals」，提示词只描述了结构</td></tr>
+          <tr><td>机械臂与触觉传感器型号</td><td>传感器只说「dual high-resolution tactile sensors」，能测法向和剪切力</td></tr>
+          <tr><td>代码与数据</td><td>论文没有提到是否发布</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="four" class="wrap">
+  <div class="col flow">
+    <span class="eyebrow">放到四篇里看</span>
+    <h2>力和触觉怎样进入机器人基础模型</h2>
+    <p>这一批读四篇：ForceVLA、Tactile-VLA、ME-Dex 1.0、Motus2。按「力 / 触觉在模型里扮演什么角色」排，大致是一条由浅到深的线。这个排法是我们的归纳。<span class="tag jd">解读</span></p>
+  </div>
+  <div class="wide">
+    <div class="spectrum">
+      <div><span class="k">触觉是输入条件</span><h4>ForceVLA</h4><p>6 轴力 / 力矩作为一等模态，在动作解码阶段用力感知 MoE 与视觉语言嵌入融合。</p></div>
+      <div class="me"><span class="k">触觉是输入，力是输出</span><h4>Tactile-VLA</h4><p>触觉 token 早融合进 VLM 前缀；动作里带目标力，由混合控制器执行；语言直接调节力。</p></div>
+      <div><span class="k">触觉是要预测的观测</span><h4>ME-Dex 1.0</h4><p>未来触觉和视频、动作一起用 flow matching 联合去噪生成，触觉与视频同为「世界状态的观测」。</p></div>
+      <div><span class="k">触觉进入世界模型闭环</span><h4>Motus2</h4><p>一套权重给出策略、模拟器、评估器三个接口，组成闭环；触觉反馈用于接触感知的控制。</p></div>
+    </div>
+    <div class="tw cmpw" style="margin-top:22px">
+      <table class="cmp">
+        <thead><tr><th>论文</th><th>模型形态</th><th>力 / 触觉信号</th><th>怎样进入模型</th><th>数据与评测</th></tr></thead>
+        <tbody>
+          <tr><td>ForceVLA<br><span class="small muted">2505.22159 · 复旦 / 上交</span></td><td>基于 π0 的 VLA</td><td>6 轴力 / 力矩</td><td>FVLMoE：在动作解码阶段按上下文路由到模态专属专家，融合 VL 嵌入与实时力反馈</td><td>自采 ForceVLA-Data，5 个接触密集任务；平均成功率比 π0 基线高 23.2%</td></tr>
+          <tr class="me"><td>Tactile-VLA<br><span class="small muted">2507.09160 · 清华等</span></td><td>基于 π0 的 VLA（Gemma 2.6B + 300M 动作专家）</td><td>双指尖触觉，法向 + 剪切，100 Hz</td><td>H 步历史经 MLP 成 1 个 token 进 VLM 前缀；动作输出带目标力；混合位置-力控制器执行；CoT 变体用触觉做语言推理</td><td>UMI 手持采集，3 类真机任务共 800 条示范；主打语言、常识、推理三类零样本泛化</td></tr>
+          <tr><td>ME-Dex 1.0<br><span class="small muted">2609.21449 · 理想汽车</span></td><td>世界动作触觉模型，MoT 三专家（Video / Tactile / Action），均用 flow matching</td><td>多来源异构触觉，经 Canonical Hand Model 与 Unified Tactile Autoencoder 统一</td><td>专家间共享注意力，触觉作为未来观测与视频、动作联合去噪</td><td>Agentic Tactile Data Engine 在仿真轨迹回放中补录力传感器数据；RoboTwin、DexJoCo、ManiFeel 仿真与真机</td></tr>
+          <tr><td>Motus2<br><span class="small muted">2608.30237 · 清华朱军组 / GensPI</span></td><td>自进化通用世界模型：策略、动作条件模拟器、价值评估器共享权重</td><td>触觉反馈（作为扩展加入）</td><td>策略提出候选动作块，模拟器预测视觉后果，评估器打分，形成决策与学习闭环</td><td>单目第一视角 → 双目第一视角 → 机器人域适配；仿生双臂双灵巧手平台</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="small muted" style="margin-top:8px">其他三篇的信息只取自各自摘要级别的概括，细节以各篇页面为准。</p>
+  </div>
+  <div class="col flow" style="margin-top:22px">
+    <h3>和另外三篇的异同 <span class="tag jd">解读</span></h3>
+    <p><strong>和 ForceVLA</strong>：两篇几乎同期，都从 π0 出发、都做真机接触密集任务。区别在融合位置和论点。ForceVLA 在动作解码阶段用 MoE 融合力信号，VLM 部分不需要「看到」力；Tactile-VLA 把触觉早融合进 VLM 前缀，代价是改动了 VLM 的输入，好处是 VLM 可以对触觉做语言推理，CoT 变体正依赖这一点。论点上，ForceVLA 的主要结果是成功率提升，Tactile-VLA 主打语言到力的语义泛化。Tactile-VLA 在相关工作里把 ForceVLA 归为「modality-specific routing」一类。</p>
+    <p><strong>和 ME-Dex 1.0</strong>：ME-Dex 的摘要批评「只把触觉特征当条件输入、不联合预测未来触觉」的做法，Tactile-VLA 正属于这一类：它读当前触觉、输出目标力，但不预测未来触觉或画面。另外 ME-Dex 要处理多种手、多种传感器布局，并用仿真回放补数据；Tactile-VLA 只有一种夹爪、一种传感器，数据全部来自真实手持采集。</p>
+    <p><strong>和 Motus2</strong>：两篇都用到了失败数据，用法完全不同。Tactile-VLA-CoT 把失败翻译成语言（为什么失败、下次怎么改），在真机上定时自检；Motus2 按其摘要，用失败和次优交互去学动力学和价值，在学到的模拟器里提出、预测、评估候选动作。前者的「自我纠正」停留在语言层面、一次一条指令，后者是有预测和打分的闭环。</p>
+    <p><strong>一句话定位</strong>：在这条线上，Tactile-VLA 的特色是把「语言怎样落到力上」作为主问题，并给出了最简单直接的一套答案：触觉当 token、力当动作、控制器兜底。它的实验规模和对照都偏少，更适合当作一个有启发性的概念验证来读。</p>
+  </div>
+</section>
+
+<section id="glossary" class="wrap">
+  <div class="col">
+    <span class="eyebrow">术语表</span>
+    <h2>读这篇会遇到的词</h2>
+    <details class="gloss" open>
+      <summary>共 13 条</summary>
+      <dl>
+        <dt>VLA</dt><dd>Vision-Language-Action，用预训练视觉语言模型作骨干、直接输出机器人动作的策略模型。</dd>
+        <dt>π0 / π0-base</dt><dd>Physical Intelligence 的通用 VLA，VLM 骨干加一个用流匹配生成连续动作的动作专家。本文的初始化来源和主要基线。</dd>
+        <dt>π0-fast</dt><dd>论文只说是 π0-base 的变体。参考文献里引了 FAST 动作 tokenization（Pertsch et al., 2025）。</dd>
+        <dt>动作专家（action expert）</dt><dd>π0 结构里专门生成动作的那部分 Transformer，读取 VLM 前缀的表示。本文的版本为 300M，输出位置和力，随机初始化。</dd>
+        <dt>前缀（prefix）</dt><dd>送进 VLM 的输入序列，本文是 H 帧图像 token、语言 token、1 个触觉 token 的拼接，内部用非因果注意力。</dd>
+        <dt>CFM</dt><dd>Conditional Flow Matching，条件流匹配，π0 用来训练连续动作生成的目标。本文让损失同时覆盖运动维度和力维度。</dd>
+        <dt>法向力 / 剪切力</dt><dd>垂直于接触面的压力 / 平行于接触面的切向力。擦板时向下压是法向力，板擦在板面上的摩擦拖拽与剪切力有关。</dd>
+        <dt>阻抗控制</dt><dd>Hogan 1985 提出的控制思路：让机器人在接触时表现得像一个可调的弹簧阻尼系统。本文借它的思路，把力误差转成位置修正。</dd>
+        <dt>混合位置 / 力控制</dt><dd>Raibert &amp; Craig 1981：不同方向分别控制位置或力。本文是「位置主导，力误差修正位置」的一种简化实现。</dd>
+        <dt>死区阈值 τ</dt><dd>力误差不超过 τ 时不做修正，用来减少小误差引起的抖动。</dd>
+        <dt>UMI</dt><dd>Universal Manipulation Interface，手持的示教夹爪，带相机，用人手直接采集示范。本文在它上面加了触觉传感器。</dd>
+        <dt>CoT</dt><dd>Chain-of-Thought，让模型先生成推理文本再给结论。本文用它做失败归因，并生成新的纠正指令。</dd>
+        <dt>ID / OOD</dt><dd>In-Domain / Out-of-Domain。本文里 OOD 物体指训练没见过、但属于三个已知类别的物体；OOD 场景指黑板。</dd>
+      </dl>
+    </details>
+  </div>
+</section>
+</main>
+
+<footer class="wrap">
+  <div class="col">
+    <p>论文：Jialei Huang, Shuo Wang, Fanqi Lin, Yihang Hu, Chuan Wen, Yang Gao. <em>Tactile-VLA: Unlocking Vision-Language-Action Model's Physical Knowledge for Tactile Generalization.</em> arXiv:2507.09160v1, 2025。<a href="https://arxiv.org/abs/2507.09160">arxiv.org/abs/2507.09160</a></p>
+    <p>本页的原文图来自 arXiv 源码包里的图文件，表格数字取自源码 experiment.tex。标「解读」的内容是本页作者的判断，不是论文的主张。</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  /* ---------- architecture explorer ---------- */
+  var ARCH = {
+    img:{t:'图像 → ViT',s:'§2.1、式 (1)',l:['用预训练的 ViT（E′vis）编码最近 H 帧图像，每帧一组 token。论文说做法与 π0 类似。','采集时视觉是 20 Hz。H 的取值论文没给。'],n:'H 帧乘以每帧的 token 数会让前缀明显变长，论文没讨论这带来的计算开销。'},
+    lang:{t:'指令 → Tokenizer',s:'§2.1、§3.2',l:['普通语言 tokenizer（E_lang）。','USB 任务的指令带力度副词，例如 "pull out and insert the USB softly into the left socket"；充电器任务的训练指令不带力度词。','CoT 变体中，模型生成的纠正指令（例如 "wipe the board again, but apply more downward force"）也作为下一轮的指令。'],n:'力度语义全部经由这一路进入模型，这是「语言先验」发挥作用的入口。'},
+    tac:{t:'触觉信号 → MLP 编码器',s:'§2.1、§2.4、式 (1)',l:['两块指尖触觉传感器，能测法向力和剪切力。','采集频率 100 Hz，训练前下采样，与 20 Hz 的图像帧对齐。','最近 H 步触觉读数先拼接，再用一个简单的 MLP（E′ψ）压成单个融合 token，放进 VLM 前缀。','触觉编码器随机初始化。'],n:'解读：整段触觉历史只占 1 个 token，信息通道很窄，论文没做 token 数量的消融。Figure 2 把触觉画成一个数值矩阵，没说明各维含义。'},
+    prop:{t:'本体状态 → 编码器',s:'Figure 2',l:['Figure 2 画了本体状态经编码器接到动作专家。','正文没有展开本体状态的内容和编码方式。'],n:'解读：这和 π0 的做法一致，状态走动作专家，不进 VLM 前缀。'},
+    vlm:{t:'预训练 VLM（Gemma 2.6B）',s:'§2.1、Figure 2',l:['用 π0 的预训练参数初始化（论文称 shared components）。','处理前缀 S_t = [H 帧图像 token, 语言 token, 1 个触觉 token]；前缀内部是非因果注意力，三种 token 可以互相看。','作者说这种 token 级早融合对 CoT 变体的推理至关重要。'],n:'作者把泛化归功于 VLM 先验，但没有替换、冻结或不预训练 VLM 的对照实验。'},
+    expert:{t:'触觉感知动作专家（300M）',s:'§2.1',l:['读取前缀表示，输出增广动作 a_t：目标位置 P_target 和目标接触力 F_target。','两者的监督都来自专家示范。「把力直接放进动作空间」是模型能控制交互强度的关键。','修改后的动作专家随机初始化，不沿用 π0 的动作专家权重。','训练目标是条件流匹配（CFM），损失同时覆盖动作序列的运动维度和力维度。'],n:'解读：F_target 的维数和坐标系论文没写。从控制器部分看，它至少包含外部合力和夹持力两类。'},
+    cot:{t:'Tactile-VLA-CoT（虚线框）',s:'§2.3、§3.4',l:['用 VLM 自己的预训练解码器生成显式的推理文本。','用一小批「失败 + 语言归因」数据微调；擦板任务是白板上 100 条成功和 100 条失败示范，失败样本配有纠正性文本。','按固定间隔触发：先判断任务是否完成，失败则结合传感反馈分析各力分量，再写出新的纠正指令。'],n:'只在擦板任务上评测。黑板上成功率 80%，不带 CoT 的版本 15%。'},
+    ctrl:{t:'混合位置-力控制器',s:'§2.2、式 (2)',l:['位置主导，最终下发的仍是位置指令。','力误差 ΔF = F_target − F_measured 超过阈值 τ 时，P_hybrid = P_target + K·ΔF；否则 P_hybrid = P_target。','PID 控制器驱动关节跟踪 P_hybrid。','两个独立通道：夹爪笛卡尔位置只管对物体的外部合力；夹爪开度并行地管夹持力。'],n:'下一节有按式 (2) 实现的可拖动模拟。'}
+  };
+  var det = document.getElementById('arch-detail');
+  var blks = document.querySelectorAll('#arch .blk');
+  function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+  function showArch(k){
+    var d = ARCH[k]; if(!d) return;
+    blks.forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.k===k ? 'true':'false'); });
+    det.innerHTML = '<h4>'+esc(d.t)+'</h4><div class="src">论文依据：'+esc(d.s)+'</div><ul>'+d.l.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul><div class="note">'+esc(d.n)+'</div>';
+  }
+  blks.forEach(function(b){ b.addEventListener('click', function(){ showArch(b.dataset.k); }); });
+  showArch('tac');
+
+  /* ---------- controller simulation ---------- */
+  var P = {Ft:6, Pt:1.5, K:0.4, tau:0.5, k:2, mode:'literal'};
+  var PRESETS = {
+    train:{Ft:6,Pt:1.5,K:0.4,tau:0.5,k:4,mode:'literal'},
+    soft:{Ft:6,Pt:1.5,K:0.4,tau:0.5,k:2,mode:'literal'},
+    gain:{Ft:6,Pt:1.5,K:1.5,tau:0.5,k:2,mode:'literal'},
+    chat:{Ft:6,Pt:1.5,K:0.4,tau:2,k:2,mode:'literal'},
+    acc:{Ft:6,Pt:1.5,K:0.4,tau:0.5,k:2,mode:'accum'}
+  };
+  var $ = function(id){return document.getElementById(id);};
+  var inFt=$('sim-ft'), inPt=$('sim-pt'), inK=$('sim-gain'), inTau=$('sim-tau');
+  function rng(seed){var s=seed>>>0;return function(){s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+  function gauss(r){var u=0;while(u===0)u=r();var v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+  function run(p){
+    var N=400, alpha=0.15, rate=0.05, sigma=0.05, r=rng(7), x=-0.8, c=0, Fm=0;
+    var F=[],Pc=[],X=[],ON=[];
+    for(var i=0;i<N;i++){
+      var dF=p.Ft-Fm, on=Math.abs(dF)>p.tau, corr;
+      if(p.mode==='literal'){corr=on?p.K*dF:0;} else {if(on)c+=rate*p.K*dF; corr=c;}
+      var pc=p.Pt+corr; x+=alpha*(pc-x);
+      var ft=p.k*Math.max(0,x); Fm=Math.max(0,ft+(ft>0?sigma*gauss(r):0));
+      F.push(Fm); Pc.push(pc); X.push(x); ON.push(on);
+    }
+    return {F:F,P:Pc,X:X,ON:ON};
+  }
+  function path(arr,xf,yf){var s='';for(var i=0;i<arr.length;i++){s+=(i?'L':'M')+xf(i).toFixed(1)+' '+yf(arr[i]).toFixed(1);}return s;}
+  function draw(res,p){
+    var N=res.F.length, L=34, R=392;
+    var xf=function(i){return L+(R-L)*i/(N-1);};
+    // force panel
+    var T=8, B=146;
+    var fmax=Math.max(10,p.Ft+p.tau+1,Math.max.apply(null,res.F)); fmax=Math.ceil(fmax/2)*2;
+    var yf=function(v){return B-(B-T)*v/fmax;};
+    var g='';
+    for(var v=0;v<=fmax;v+=2){g+='<line class="ax" x1="'+L+'" x2="'+R+'" y1="'+yf(v).toFixed(1)+'" y2="'+yf(v).toFixed(1)+'"></line><text x="'+(L-6)+'" y="'+(yf(v)+3.5).toFixed(1)+'" text-anchor="end">'+v+'</text>';}
+    for(var t=0;t<=4;t++){var xx=L+(R-L)*t/4;g+='<text x="'+xx.toFixed(1)+'" y="'+(B+15)+'" text-anchor="'+(t===0?'start':t===4?'end':'middle')+'">'+t+(t===4?' s':'')+'</text>';}
+    g+='<text x="'+L+'" y="'+(T-1)+'" dx="2">N</text>';
+    var bt=yf(Math.min(fmax,p.Ft+p.tau)), bb=yf(Math.max(0,p.Ft-p.tau));
+    g+='<rect class="band" x="'+L+'" width="'+(R-L)+'" y="'+bt.toFixed(1)+'" height="'+Math.max(0,bb-bt).toFixed(1)+'"></rect>';
+    var f0=Math.min(fmax,p.k*p.Pt);
+    g+='<line class="ln ln-ref" x1="'+L+'" x2="'+R+'" y1="'+yf(f0).toFixed(1)+'" y2="'+yf(f0).toFixed(1)+'"></line>';
+    g+='<line class="ln ln-t" x1="'+L+'" x2="'+R+'" y1="'+yf(p.Ft).toFixed(1)+'" y2="'+yf(p.Ft).toFixed(1)+'"></line>';
+    g+='<path class="ln ln-f" d="'+path(res.F,xf,yf)+'"></path>';
+    $('plot-f').innerHTML=g;
+    // position panel
+    var T2=8, B2=116;
+    var pmax=Math.max(3,Math.max.apply(null,res.P),Math.max.apply(null,res.X)); pmax=Math.ceil(pmax+0.2);
+    var pmin=-1;
+    var yp=function(v){return B2-(B2-T2)*(v-pmin)/(pmax-pmin);};
+    var h='';
+    for(var q=pmin;q<=pmax;q+=1){h+='<line class="'+(q===0?'ax0':'ax')+'" x1="'+L+'" x2="'+R+'" y1="'+yp(q).toFixed(1)+'" y2="'+yp(q).toFixed(1)+'"></line><text x="'+(L-6)+'" y="'+(yp(q)+3.5).toFixed(1)+'" text-anchor="end">'+q+'</text>';}
+    for(var t2=0;t2<=4;t2++){var x2=L+(R-L)*t2/4;h+='<text x="'+x2.toFixed(1)+'" y="'+(B2+15)+'" text-anchor="'+(t2===0?'start':t2===4?'end':'middle')+'">'+t2+(t2===4?' s':'')+'</text>';}
+    h+='<text x="'+L+'" y="'+(T2-1)+'" dx="2">mm</text><text x="'+(R-2)+'" y="'+(yp(0)-4).toFixed(1)+'" text-anchor="end">表面</text>';
+    h+='<line class="ln ln-ref" x1="'+L+'" x2="'+R+'" y1="'+yp(p.Pt).toFixed(1)+'" y2="'+yp(p.Pt).toFixed(1)+'"></line>';
+    h+='<path class="ln ln-p" d="'+path(res.P,xf,yp)+'"></path>';
+    h+='<path class="ln ln-x" d="'+path(res.X,xf,yp)+'"></path>';
+    $('plot-p').innerHTML=h;
+  }
+  function fmt(v,d){return v.toFixed(d===undefined?2:d);}
+  function update(){
+    $('v-ft').textContent=fmt(P.Ft,1)+' N'; $('v-pt').textContent=fmt(P.Pt,1)+' mm';
+    $('v-gain').textContent=fmt(P.K,2)+' mm/N'; $('v-tau').textContent=fmt(P.tau,1)+' N';
+    inFt.value=P.Ft; inPt.value=P.Pt; inK.value=P.K; inTau.value=P.tau;
+    document.querySelectorAll('#sim-k button').forEach(function(b){b.setAttribute('aria-pressed',(+b.dataset.v===P.k)?'true':'false');});
+    document.querySelectorAll('#sim-mode button').forEach(function(b){b.setAttribute('aria-pressed',(b.dataset.v===P.mode)?'true':'false');});
+    var res=run(P); draw(res,P);
+    var last=res.F.slice(-100), m=last.reduce(function(a,b){return a+b;},0)/last.length;
+    var on=res.ON.slice(-200), sw=0, onc=0;
+    for(var i=0;i<on.length;i++){ if(on[i])onc++; if(i>0&&on[i]!==on[i-1])sw++; }
+    $('r-f').textContent=fmt(m)+' N'; $('r-e').textContent=fmt(P.Ft-m)+' N';
+    $('r-on').textContent=Math.round(onc/on.length*100)+'%'; $('r-sw').textContent=String(sw);
+    var F0=P.k*P.Pt, msg;
+    if(Math.abs(P.Ft-F0)<=P.tau){
+      msg='P_target 本身产生的力约 '+fmt(F0,1)+' N，已经落在目标 ± τ 以内，修正项始终为 0。这时控制器就是纯位置控制，和训练时示范里的情形一样。';
+    } else if(P.K===0){
+      msg='K = 0 就是纯位置控制：力完全由 P_target 和表面刚度决定，停在 '+fmt(F0,1)+' N，与目标差 '+fmt(P.Ft-F0,1)+' N。';
+    } else if(P.mode==='literal'){
+      var Fs=P.k*(P.Pt+P.K*P.Ft)/(1+P.k*P.K);
+      if(Math.abs(P.Ft-Fs)>P.tau){
+        msg='修正一直开着。式 (2) 是比例修正，修正量要靠误差本身维持，所以力停在 F* = k(P_target + K·F_target)/(1 + k·K) ≈ '+fmt(Fs,2)+' N，离目标还差 '+fmt(P.Ft-Fs,2)+' N。加大 K 可以缩小这段偏差。';
+      } else {
+        msg='修正打开后误差进入死区，修正被关掉，力回落到约 '+fmt(F0,1)+' N 又跑出死区，修正再打开。按式 (2) 字面实现，指令会在死区边界来回切换，看下图 P_hybrid 的锯齿。力大致停在死区边缘 F_target − τ 附近。';
+      }
+    } else {
+      msg='累加式修正会把修正量保留下来，力被推到离目标不超过 τ 的位置后停住，没有比例式的稳态偏差，也不会在边界反复开关。这是我们加的对照，不是论文的公式。';
+    }
+    $('sim-msg').textContent=msg;
+  }
+  function setPreset(name){
+    var q=PRESETS[name]; for(var k in q) P[k]=q[k];
+    document.querySelectorAll('.presets .btn').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.p===name?'true':'false');});
+    update();
+  }
+  function clearPreset(){document.querySelectorAll('.presets .btn').forEach(function(b){b.setAttribute('aria-pressed','false');});}
+  document.querySelectorAll('.presets .btn').forEach(function(b){b.addEventListener('click',function(){setPreset(b.dataset.p);});});
+  inFt.addEventListener('input',function(){P.Ft=+inFt.value;clearPreset();update();});
+  inPt.addEventListener('input',function(){P.Pt=+inPt.value;clearPreset();update();});
+  inK.addEventListener('input',function(){P.K=+inK.value;clearPreset();update();});
+  inTau.addEventListener('input',function(){P.tau=+inTau.value;clearPreset();update();});
+  document.querySelectorAll('#sim-k button').forEach(function(b){b.addEventListener('click',function(){P.k=+b.dataset.v;clearPreset();update();});});
+  document.querySelectorAll('#sim-mode button').forEach(function(b){b.addEventListener('click',function(){P.mode=b.dataset.v;clearPreset();update();});});
+  setPreset('soft');
+
+  /* ---------- CoT stepper ---------- */
+  var STEPS = [
+    {t:'接到指令',p:'人只给了一句 "Wipe the board."（§3.4 正文；Figure 3 里写的是 "Clean the blackboard."）。黑板从没在训练里出现过，训练数据全是白板上的马克笔。',qa:[],f:0,chalk:1,ex:236},
+    {t:'用默认力擦一遍',p:'模型先用默认力 3.5 N 擦。粉笔比马克笔难擦，这个力不够，板上还留着字。基线 π0 在黑板上就停在这一步，反复用同样的低力擦，成功率 0%。',qa:[],f:3.5,chalk:0.8,ex:150},
+    {t:'定时触发 CoT：先判断有没有完成',p:'CoT 按固定间隔触发，不是等失败了才触发。提示词第一步先让模型判断任务是否完成。以下问答是 Figure 3 的原文。',qa:[['Q','Has the board been cleaned up?'],['A','Nope. There still remains some markings.']],f:3.5,chalk:0.8,ex:150},
+    {t:'分析原因，写出新指令',p:'判定失败后，再让模型结合触觉反馈分析原因，逐项分析各个力分量，然后写一条新的纠正指令。Figure 3 的回答如下。正文举的例子则是先分析 "grasping force is sufficient, but normal force is too low"，再生成 "wipe the board again, but apply more downward force."',qa:[['Q','What should I do next?'],['A','Shear force should be larger, while normal force is sufficient.']],f:3.5,chalk:0.8,ex:150},
+    {t:'按新指令重擦',p:'模型把施力提到 6.7 N，比白板训练数据里的 5 N 高 34%，粉笔擦掉了。Table 4：黑板上 Tactile-VLA-CoT 成功率 80%，不带 CoT 的 Tactile-VLA 15%，两个 π0 基线都是 0%。',qa:[],f:6.7,chalk:0.06,ex:60}
+  ];
+  var ci=0;
+  function arrowHead(x,y){return 'M'+(x-7)+' '+(y-10)+' L'+(x+7)+' '+(y-10)+' L'+x+' '+y+' Z';}
+  function renderCot(){
+    var s=STEPS[ci];
+    document.querySelectorAll('#cotbox .dot').forEach(function(d){ if(+d.dataset.i===ci) d.setAttribute('aria-current','step'); else d.removeAttribute('aria-current'); });
+    $('cot-prev').disabled = ci===0; $('cot-next').disabled = ci===STEPS.length-1;
+    $('chalk').style.opacity=s.chalk;
+    var ex=s.ex, ey=88;
+    $('eraser').setAttribute('transform','translate('+ex+','+ey+')');
+    var ax=ex+27, top=ey-8;
+    if(s.f>0){
+      var len=10+s.f*9;
+      $('fa-line').setAttribute('x1',ax); $('fa-line').setAttribute('x2',ax);
+      $('fa-line').setAttribute('y1',top-len); $('fa-line').setAttribute('y2',top-8);
+      $('fa-head').setAttribute('d',arrowHead(ax,top));
+      $('fa-lbl').setAttribute('x',ax+10); $('fa-lbl').setAttribute('y',top-len+10); $('fa-lbl').textContent=s.f+' N';
+      $('farrow').style.display=''; $('fa-lbl').style.display='';
+    } else { $('farrow').style.display='none'; $('fa-lbl').style.display='none'; }
+    $('fa-lbl').style.fill='var(--chalk)';
+    $('g-fill').style.width=(s.f/8*100)+'%';
+    var qa=s.qa.length? '<div class="qa">'+s.qa.map(function(x){return '<div class="'+(x[0]==='Q'?'qq':'aa')+'">'+x[0]+': '+esc(x[1])+'</div>';}).join('')+'</div>' : '';
+    $('cot-text').innerHTML='<h4>第 '+(ci+1)+' 步 · '+esc(s.t)+'</h4><p>'+esc(s.p)+'</p>'+qa;
+  }
+  document.querySelectorAll('#cotbox .dot').forEach(function(d){d.addEventListener('click',function(){ci=+d.dataset.i;renderCot();});});
+  $('cot-prev').addEventListener('click',function(){if(ci>0){ci--;renderCot();}});
+  $('cot-next').addEventListener('click',function(){if(ci<STEPS.length-1){ci++;renderCot();}});
+  renderCot();
+
+  /* ---------- charts (numbers from experiment.tex) ---------- */
+  var M = {base:{n:'π0-base',c:'s-base'},fast:{n:'π0-fast',c:'s-fast'},ours:{n:'Tactile-VLA',c:'s-ours'},cot:{n:'Tactile-VLA-CoT',c:'s-cot'}};
+  function legend(keys){return '<div class="legend">'+keys.map(function(k){return '<span class="lg"><i class="sw '+M[k].c+'"></i>'+M[k].n+'</span>';}).join('')+'</div>';}
+  function table(head,rows){return '<details class="tv"><summary>查看原表数字</summary><div class="tablewrap"><table class="dt"><thead><tr>'+head.map(function(h){return '<th>'+h+'</th>';}).join('')+'</tr></thead><tbody>'+rows.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+c+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div></details>';}
+  function bars(groups,keys){
+    var h='<div class="bgroups">';
+    groups.forEach(function(g){
+      h+='<div><div class="bgt">'+g.t+'</div>';
+      keys.forEach(function(k){var v=g.v[k];h+='<div class="brow" title="'+M[k].n+' · '+g.t+'：'+v+'%"><span class="bl">'+M[k].n+'</span><span class="track"><span class="bar '+M[k].c+'" style="width:'+v+'%"></span></span><span class="bv">'+v+'</span></div>';});
+      h+='<div class="baxis"><span></span><span class="ticks"><span style="left:0">0</span><span style="left:50%">50</span><span style="left:100%">100%</span></span><span></span></div></div>';
+    });
+    return h+'</div>';
+  }
+  // Table 1
+  var T1=[{t:'USB 插拔',v:{base:5,fast:0,ours:35}},{t:'充电器插拔',v:{base:40,fast:25,ours:90}}];
+  $('ch-t1').innerHTML='<div class="chart-t">插拔成功率<span class="src">Table 1</span></div><div class="chart-sub">单位 %，试验次数论文未写</div>'+legend(['base','fast','ours'])+bars(T1,['base','fast','ours'])+
+    table(['模型','USB (%)','Charger (%)'],[['π0-base',5,40],['π0-fast',0,25],['Tactile-VLA',35,90]]);
+  // Table 2
+  var T2u=[{w:'softly',g:'L',v:{base:2.41,fast:2.61,ours:0.51}},{w:'hard',g:'L',v:{base:2.68,fast:2.33,ours:2.57}},{w:'gently',g:'G',v:{base:2.35,fast:2.79,ours:0.75}},{w:'firmly',g:'G',v:{base:2.72,fast:2.45,ours:1.98}},{w:'rigidly',g:'G',v:{base:2.53,fast:2.26,ours:2.42}},{w:'harder',g:'G',v:{base:2.29,fast:2.58,ours:2.94}}];
+  var T2c=[{w:'softly',v:{base:6.61,fast:7.37,ours:4.68}},{w:'hard',v:{base:5.69,fast:6.42,ours:9.13}}];
+  function strip(rows,max,ticks){
+    var h='';
+    rows.forEach(function(r){
+      h+='<div class="srow"><span class="word">'+r.w+'</span><span class="strk">';
+      ticks.forEach(function(t){h+='<span class="tk" style="left:'+(t/max*100)+'%"></span>';});
+      ['base','fast','ours'].forEach(function(k){h+='<span class="dt '+M[k].c+'" style="left:'+(r.v[k]/max*100)+'%" title="'+M[k].n+' · '+r.w+'：'+r.v[k]+' N"></span>';});
+      h+='</span><span class="ov">'+r.v.ours.toFixed(2)+'</span></div>';
+    });
+    h+='<div class="saxis"><span></span><span class="ticks">'+ticks.map(function(t,i){var last=i===ticks.length-1;var tr=i===0?'transform:none':(t===max?'transform:translateX(-100%)':'');return '<span style="left:'+(t/max*100)+'%;'+tr+'">'+t+(last?' N':'')+'</span>';}).join('')+'</span><span></span></div>';
+    return h;
+  }
+  var h2='<div class="chart-t">不同副词下的实测插入力<span class="src">Table 2</span></div><div class="chart-sub">单位 N。右列是 Tactile-VLA 的数值，基线数值见图中点位和原表</div>'+legend(['base','fast','ours']);
+  h2+='<div class="strip"><div class="sgh"><span>USB 任务 · 训练指令里出现过的词</span><span class="ovh">Tactile</span></div>'+strip(T2u.filter(function(r){return r.g==='L';}),3.5,[0,1,2,3]);
+  h2+='<div class="sgh"><span>USB 任务 · 没训过的新副词</span><span class="ovh">Tactile</span></div>'+strip(T2u.filter(function(r){return r.g==='G';}),3.5,[0,1,2,3]);
+  h2+='<div class="sgh"><span>充电器任务 · 零样本（注意横轴换成 0–10 N）</span><span class="ovh">Tactile</span></div>'+strip(T2c,10,[0,2,4,6,8,10])+'</div>';
+  h2+=table(['模型','softly','hard','gently','firmly','rigidly','harder','充电器 softly','充电器 hard'],[['π0',2.41,2.68,2.35,2.72,2.53,2.29,6.61,5.69],['π0-fast',2.61,2.33,2.79,2.45,2.26,2.58,7.37,6.42],['Tactile-VLA',0.51,2.57,0.75,1.98,2.42,2.94,4.68,9.13]]);
+  $('ch-t2').innerHTML=h2;
+  // Table 3
+  var T3=[
+    {cat:'硬且重',exp:'期望：大力',objs:[['Iron cube','ID',100,70,100],['Battery','ID',80,60,90],['Nail','OOD',30,10,100],['Steel Ball','OOD',60,70,90]]},
+    {cat:'硬且轻',exp:'期望：中等力',objs:[['Wood block','ID',60,70,90],['Charger','ID',70,50,100],['Plastic','OOD',40,30,80],['Toy','OOD',30,40,90]]},
+    {cat:'易碎且轻',exp:'期望：小力',objs:[['Pitaya','ID',50,40,90],['Melon','ID',0,10,80],['BlueBerry','OOD',0,0,100],['PaperBox','OOD',0,0,90]]}
+  ];
+  var h3='<div class="chart-t">抓取成功率（一次抓起且无可见变形）<span class="src">Table 3</span></div><div class="chart-sub">单位 %，每个物体 10 次。每个物体三根条依次是 π0-base、π0-fast、Tactile-VLA</div>'+legend(['base','fast','ours'])+'<div class="mgrid">';
+  var keys=['base','fast','ours'], sum={ID:{base:0,fast:0,ours:0,n:0},OOD:{base:0,fast:0,ours:0,n:0}};
+  T3.forEach(function(c){
+    h3+='<div class="mcat"><h5>'+c.cat+'</h5><div class="exp">'+c.exp+'</div>';
+    c.objs.forEach(function(o){
+      h3+='<div class="mobj"><div class="on">'+o[0]+' <span class="tag">'+o[1]+'</span></div>';
+      keys.forEach(function(k,j){var v=o[2+j]; sum[o[1]][k]+=v; h3+='<div class="mbar" title="'+M[k].n+' · '+o[0]+'：'+v+'%"><span class="mt"><span class="'+M[k].c+'" style="width:'+v+'%"></span></span><span class="mv">'+v+'</span></div>';});
+      sum[o[1]].n++;
+      h3+='</div>';
+    });
+    h3+='</div>';
+  });
+  h3+='</div>';
+  function avg(s,k){return (s[k]/s.n).toFixed(1);}
+  h3+='<p class="derived"><span class="tag jd">我们按表算的</span> 平均成功率（论文没报）：训练内物体 π0-base '+avg(sum.ID,'base')+'%，π0-fast '+avg(sum.ID,'fast')+'%，Tactile-VLA '+avg(sum.ID,'ours')+'%；没见过的物体 π0-base '+avg(sum.OOD,'base')+'%，π0-fast '+avg(sum.OOD,'fast')+'%，Tactile-VLA '+avg(sum.OOD,'ours')+'%。基线换到新物体后降到原来的一半或更低，Tactile-VLA 基本不变。</p>';
+  var rows3=[['π0-base'],['π0-fast'],['Tactile-VLA']], head3=['模型'];
+  T3.forEach(function(c){c.objs.forEach(function(o){head3.push(o[0]+'<br><span class="muted" style="font-weight:400">'+c.cat+' · '+o[1]+'</span>'); rows3[0].push(o[2]); rows3[1].push(o[3]); rows3[2].push(o[4]);});});
+  h3+=table(head3,rows3);
+  $('ch-t3').innerHTML=h3;
+  // Table 4
+  var T4=[{t:'白板（训练内）',v:{base:40,fast:45,ours:80,cot:75}},{t:'黑板（零样本）',v:{base:0,fast:0,ours:15,cot:80}}];
+  $('ch-t4').innerHTML='<div class="chart-t">擦板成功率<span class="src">Table 4</span></div><div class="chart-sub">单位 %，试验次数论文未写</div>'+legend(['base','fast','ours','cot'])+bars(T4,['base','fast','ours','cot'])+
+    table(['模型','白板 In Domain','黑板 Out of Domain'],[['π0-base',40,0],['π0-fast',45,0],['Tactile-VLA',80,15],['Tactile-VLA-CoT',75,80]]);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>力与触觉 · 四篇精读</title>
+<meta name="description" content="ForceVLA、Tactile-VLA、Motus2、ME-Dex 1.0 四篇论文的中文精读索引与横向对照。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#EEF1F0; --surface:#F9FBFA; --ink:#182120; --ink-2:#44504E; --muted:#6B7775;
+  --rule:#D3DAD8; --rule-2:#BCC6C3; --accent:#1F6B63; --accent-soft:#D6E7E4; --warn:#9A5B12;
+  --f-disp:"Schibsted Grotesk","Noto Sans SC",system-ui,sans-serif;
+  --f-body:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#111716; --surface:#172020; --ink:#E4EBE9; --ink-2:#B3BFBC; --muted:#85928F;
+    --rule:#283331; --rule-2:#364341; --accent:#71BDB2; --accent-soft:#1D3431; --warn:#E0A55A;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#111716; --surface:#172020; --ink:#E4EBE9; --ink-2:#B3BFBC; --muted:#85928F;
+  --rule:#283331; --rule-2:#364341; --accent:#71BDB2; --accent-soft:#1D3431; --warn:#E0A55A;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:var(--accent);text-underline-offset:3px}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:16px}
+@media (min-width:720px){.wrap{padding-inline:32px}}
+
+/* header */
+header.top{padding-block:56px 36px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1.4 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font:700 clamp(34px,5.4vw,56px)/1.12 var(--f-disp);letter-spacing:-.01em;margin:12px 0 18px;text-wrap:balance}
+.lede{max-width:44em;color:var(--ink-2);margin:0;font-size:17px}
+
+/* progression strip */
+section{padding-block:44px}
+section+section{border-top:1px solid var(--rule)}
+h2{font:700 24px/1.3 var(--f-disp);margin:0 0 6px;text-wrap:balance}
+.sub{color:var(--muted);margin:0 0 24px;font-size:14.5px}
+.tag-interp{display:inline-block;font:500 11px/1.6 var(--f-mono);letter-spacing:.06em;color:var(--warn);border:1px solid currentColor;border-radius:3px;padding:0 6px;margin-left:8px;vertical-align:2px}
+.strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));position:relative}
+.strip::before{content:"";position:absolute;left:0;right:14px;top:9px;height:2px;background:linear-gradient(90deg,var(--rule-2),var(--accent))}
+.strip::after{content:"";position:absolute;right:0;top:4px;border-left:14px solid var(--accent);border-top:6px solid transparent;border-bottom:6px solid transparent}
+.step{position:relative;padding:32px 18px 0 0}
+.step::before{content:"";position:absolute;left:0;top:4px;width:12px;height:12px;border-radius:50%;background:var(--bg);border:2px solid var(--accent)}
+.step .d{font:500 12px/1.4 var(--f-mono);color:var(--muted)}
+.step .n{font:700 18px/1.3 var(--f-disp);margin:6px 0 2px}
+.step .n a{color:var(--ink);text-decoration:none}
+.step .n a:hover{color:var(--accent);text-decoration:underline}
+.step .route{font:500 11.5px/1.5 var(--f-mono);color:var(--muted);letter-spacing:.03em}
+.step .role{font-weight:700;color:var(--accent);margin:10px 0 4px;font-size:15px}
+.step p{margin:0;color:var(--ink-2);font-size:14.5px;line-height:1.7}
+@media (max-width:760px){
+  .strip{grid-template-columns:1fr;padding-left:26px}
+  .strip::before{left:5px;right:auto;top:6px;bottom:14px;width:2px;height:auto;background:linear-gradient(180deg,var(--rule-2),var(--accent))}
+  .strip::after{left:-1px;right:auto;top:auto;bottom:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:14px solid var(--accent);border-bottom:0}
+  .step{padding:0 0 28px}
+  .step::before{left:-26px;top:5px}
+}
+
+/* entries */
+.entries{display:grid;gap:0}
+.entry{display:grid;grid-template-columns:200px minmax(0,1fr);gap:8px 32px;padding-block:30px;border-top:1px solid var(--rule)}
+.entry:first-child{border-top:0;padding-top:4px}
+.meta{font:400 13px/1.7 var(--f-mono);color:var(--muted)}
+.meta b{display:block;font:500 13px/1.5 var(--f-mono);color:var(--ink-2);margin-bottom:4px}
+.meta a{color:var(--muted)}
+.entry h3{font:700 26px/1.2 var(--f-disp);margin:0}
+.entry h3 a{color:var(--ink);text-decoration:none}
+.entry h3 a:hover{color:var(--accent)}
+.orig{margin:4px 0 16px;color:var(--muted);font-size:14px;line-height:1.55}
+dl.facts{display:grid;grid-template-columns:3.2em minmax(0,1fr);gap:8px 14px;margin:0}
+dl.facts dt{font:500 13px/1.85 var(--f-body);color:var(--muted);letter-spacing:.04em}
+dl.facts dd{margin:0;color:var(--ink-2);max-width:46em}
+dl.facts dd.doubt{color:var(--ink)}
+.num{font-family:var(--f-mono);font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.go{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font:600 15px/1 var(--f-body);color:var(--accent);text-decoration:none;border:1px solid var(--accent);border-radius:4px;padding:10px 14px}
+.go:hover{background:var(--accent-soft)}
+@media (max-width:760px){
+  .entry{grid-template-columns:1fr}
+  .meta b{display:inline;margin-right:10px}
+}
+
+/* table */
+.tbl{overflow-x:auto;border:1px solid var(--rule);border-radius:4px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:860px;font-size:14px;line-height:1.65}
+th,td{text-align:left;vertical-align:top;padding:12px 14px;border-bottom:1px solid var(--rule)}
+tr:last-child th,tr:last-child td{border-bottom:0}
+thead th{font:700 15px/1.3 var(--f-disp);color:var(--ink);background:var(--bg);position:sticky;top:0}
+thead th a{color:inherit;text-decoration:none}
+thead th a:hover{color:var(--accent);text-decoration:underline}
+tbody th{font:500 13px/1.65 var(--f-body);color:var(--muted);white-space:nowrap;width:8.5em}
+td{color:var(--ink-2)}
+td.yes{color:var(--ink)}
+td .k{display:inline-block;font:500 11.5px/1.6 var(--f-mono);border-radius:3px;padding:0 6px;margin-right:6px;background:var(--accent-soft);color:var(--accent)}
+
+footer{padding-block:28px 56px;border-top:1px solid var(--rule);color:var(--muted);font-size:13.5px;line-height:1.75}
+footer p{margin:0 0 8px;max-width:60em}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/force-tactile/" aria-current="page">力与触觉</a></span><span class="vapnav-links"><a href="../../papers/forcevla/">ForceVLA</a><a href="../../papers/tactile-vla/">Tactile-VLA</a><a href="../../papers/motus2/">Motus2</a><a href="../../papers/me-dex/">ME-Dex 1.0</a></span></div></div>
+<!-- /vap:nav -->
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">Force &amp; Tactile · 4 papers</div>
+  <h1>力与触觉 · 四篇精读</h1>
+  <p class="lede">四篇论文都在回答同一个问题：力和触觉怎样进入机器人基础模型。按时间排开，力/触觉在模型里的角色一路加重，从 VLA 的输入条件，到要输出的目标力，再到世界模型里的快速修正通道和要预测的未来观测。每篇有一个单独的精读页，下面是索引和横向对照。</p>
+</header>
+
+<section id="line" aria-labelledby="h-line">
+  <h2 id="h-line">力/触觉在模型里的角色<span class="tag-interp">解读</span></h2>
+  <p class="sub">按 arXiv 首版时间排序。归类是我们读完四篇后的归纳，不是论文自己的说法。</p>
+  <div class="strip">
+    <div class="step">
+      <div class="d">2025-05 · 2505.22159</div>
+      <div class="n"><a href="../../papers/forcevla/">ForceVLA</a></div>
+      <div class="route">VLA 路线 · 基于 π0</div>
+      <div class="role">力是输入条件</div>
+      <p>6 维末端力/力矩在 VLM 之后融合，只影响动作生成；VLM 本身看不到力。</p>
+    </div>
+    <div class="step">
+      <div class="d">2025-07 · 2507.09160</div>
+      <div class="n"><a href="../../papers/tactile-vla/">Tactile-VLA</a></div>
+      <div class="route">VLA 路线 · 基于 π0</div>
+      <div class="role">触觉是输入，力也是输出</div>
+      <p>触觉进 VLM 前缀；动作里带目标力，交给位置-力混合控制器执行。</p>
+    </div>
+    <div class="step">
+      <div class="d">2026-08 · 2608.30237</div>
+      <div class="n"><a href="../../papers/motus2/">Motus2</a></div>
+      <div class="route">世界模型路线 · 一套权重三接口</div>
+      <div class="role">触觉是快速修正通道</div>
+      <p>旁路触觉专家在动作块内每 0.2 s 用最新触觉修正动作；未来力只在训练时预测。</p>
+    </div>
+    <div class="step">
+      <div class="d">2026-09 · 2609.21449</div>
+      <div class="n"><a href="../../papers/me-dex/">ME-Dex 1.0</a></div>
+      <div class="route">世界模型路线 · 三专家 MoT</div>
+      <div class="role">触觉是要预测的观测</div>
+      <p>未来触觉和视频、动作一起联合去噪，推理时也生成。</p>
+    </div>
+  </div>
+</section>
+
+<section id="papers" aria-labelledby="h-papers">
+  <h2 id="h-papers">四篇</h2>
+  <p class="sub">每篇给出做法、主要结果和最大的疑点。数字取自各论文 arXiv 源码里的 tex 表格。</p>
+  <div class="entries">
+
+    <article class="entry">
+      <div class="meta"><b>2025-05</b><a href="https://arxiv.org/abs/2505.22159" target="_blank" rel="noopener">arXiv 2505.22159</a><br>复旦、上交等</div>
+      <div>
+        <h3><a href="../../papers/forcevla/">ForceVLA</a></h3>
+        <p class="orig">Enhancing VLA Models with a Force-aware MoE for Contact-rich Manipulation</p>
+        <dl class="facts">
+          <dt>做法</dt><dd>π0 本身不改。6 维末端力/力矩投影成 1 个 token，在 VLM 之后和视觉语言 token 一起经过一层注意力和一个 4 专家 MoE（FVLMoE），结果加到动作 token 上。</dd>
+          <dt>结果</dt><dd>5 个真机接触任务平均成功率 <span class="num">60.5%</span>，不接力的 π0 为 <span class="num">37.3%</span>。融合位置消融里，VLM 之前用 MoE 融合是 <span class="num">0%</span>，VLM 之后用 FVLMoE 是 <span class="num">80%</span>。</dd>
+          <dt>疑点</dt><dd class="doubt">没有单独去掉 MoE 的消融，收益分不清来自路由还是新增的注意力层。部分成功率和所述试验次数对不上，比如写的是 20 次试验，图里却有 83%。</dd>
+        </dl>
+        <a class="go" href="../../papers/forcevla/">读 ForceVLA 精读 →</a>
+      </div>
+    </article>
+
+    <article class="entry">
+      <div class="meta"><b>2025-07</b><a href="https://arxiv.org/abs/2507.09160" target="_blank" rel="noopener">arXiv 2507.09160</a><br>清华、电子科大、上交</div>
+      <div>
+        <h3><a href="../../papers/tactile-vla/">Tactile-VLA</a></h3>
+        <p class="orig">Unlocking Vision-Language-Action Model's Physical Knowledge for Tactile Generalization</p>
+        <dl class="facts">
+          <dt>做法</dt><dd>最近 H 步触觉经 MLP 压成 1 个 token 放进 VLM 前缀。动作同时输出目标位置和目标力，由位置-力混合控制器执行。CoT 变体用触觉做语言推理，失败时写出新的纠正指令。</dd>
+          <dt>结果</dt><dd>插 USB <span class="num">35%</span>、插充电器 <span class="num">90%</span>（π0-base 为 <span class="num">5%</span> / <span class="num">40%</span>）。没训过的力度词也能对应出不同施力。训练中没见过的黑板上擦除，CoT 版 <span class="num">80%</span>，不带 CoT 的 <span class="num">15%</span>。</dd>
+          <dt>疑点</dt><dd class="doubt">基线本身不输出力，所以分不清成功来自「VLM 先验里的物理语义」，还是来自「多了力通道和控制器」。多张表没写试验次数，文中至少 4 处前后不一致。</dd>
+        </dl>
+        <a class="go" href="../../papers/tactile-vla/">读 Tactile-VLA 精读 →</a>
+      </div>
+    </article>
+
+    <article class="entry">
+      <div class="meta"><b>2026-08</b><a href="https://arxiv.org/abs/2608.30237" target="_blank" rel="noopener">arXiv 2608.30237</a><br>清华朱军组、生数 GensPI</div>
+      <div>
+        <h3><a href="../../papers/motus2/">Motus2</a></h3>
+        <p class="orig">A Self-Evolving General World Model for Dexterous Manipulation</p>
+        <dl class="facts">
+          <dt>做法</dt><dd>一个从 Wan2.2-5B 初始化的视频-动作 DiT，靠掩码和 loss 开关分别充当策略、模拟器、评估器，组成「提议 → 想象 → 打分」的闭环。触觉是一个 30 层、宽 128 的旁路专家：主干只去噪到 σ=0.2，每个 0.2 s 子块执行前由触觉专家用最新触觉完成最后一段。</dd>
+          <dt>结果</dt><dd>主结果宏平均 <span class="num">84%</span>（π0.5 为 <span class="num">0%</span>）。规划和 MBRL 合用 <span class="num">65.0%</span> → <span class="num">75.0%</span>。加触觉专家后，两个真机任务 <span class="num">60.0%</span> → <span class="num">72.5%</span>。</dd>
+          <dt>疑点</dt><dd class="doubt">实验里的「自进化」只跑了一轮。每格只有 20 次试验，1 次成功就是 5 个百分点。触觉只在 2 个任务上评测。</dd>
+        </dl>
+        <a class="go" href="../../papers/motus2/">读 Motus2 精读 →</a>
+      </div>
+    </article>
+
+    <article class="entry">
+      <div class="meta"><b>2026-09</b><a href="https://arxiv.org/abs/2609.21449" target="_blank" rel="noopener">arXiv 2609.21449</a><br>理想汽车基础模型团队</div>
+      <div>
+        <h3><a href="../../papers/me-dex/">ME-Dex 1.0</a></h3>
+        <p class="orig">Bringing Heterogeneous Tactile Sensing into World Action Modeling</p>
+        <dl class="facts">
+          <dt>做法</dt><dd>视频、触觉、动作三专家 MoT，全部用 flow matching，在中间层共享注意力（H-Bridge），未来触觉和视频、动作联合去噪。Canonical Hand Model 和 Unified Tactile AE 把夹爪和灵巧手的触觉统一到同一空间；仿真里的触觉由数据引擎在轨迹回放时补录。</dd>
+          <dt>结果</dt><dd>RoboTwin <span class="num">91.56</span> / <span class="num">91.92</span>（Clean / Random），比 Fast-WAM 高 <span class="num">2.34</span> / <span class="num">2.70</span> 个点；DexJoCo 平均 <span class="num">65.3</span>，ManiFeel <span class="num">70.0</span>，都领先所比基线。</dd>
+          <dt>疑点</dt><dd class="doubt">推理时把触觉置零，RoboTwin 仍有 <span class="num">91.70</span> / <span class="num">91.74</span>，几乎不变，论文自己也承认。所有实验单种子，真机只有定性展示。</dd>
+        </dl>
+        <a class="go" href="../../papers/me-dex/">读 ME-Dex 1.0 精读 →</a>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<section id="compare" aria-labelledby="h-compare">
+  <h2 id="h-compare">横向对照</h2>
+  <p class="sub">表格可左右滑动。细节以各篇精读页为准。</p>
+  <div class="tbl">
+    <table>
+      <thead>
+        <tr><th scope="col"></th><th scope="col"><a href="../../papers/forcevla/">ForceVLA</a></th><th scope="col"><a href="../../papers/tactile-vla/">Tactile-VLA</a></th><th scope="col"><a href="../../papers/motus2/">Motus2</a></th><th scope="col"><a href="../../papers/me-dex/">ME-Dex 1.0</a></th></tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">骨干</th>
+          <td>π0（VLA）</td>
+          <td>π0（Gemma 2.6B + 300M 动作专家；动作专家随机初始化）</td>
+          <td>视频-动作因果 DiT，Wan2.2-5B 初始化，一套权重三接口</td>
+          <td>WAM：Wan2.2-5B 结构的视频专家 + 动作专家（均从 Motus 初始化）+ 触觉专家</td></tr>
+        <tr><th scope="row">力/触觉信号</th>
+          <td>6 维末端力/力矩，每次只读一帧</td>
+          <td>UMI 夹爪双指尖触觉（法向 + 剪切），取最近 H 步</td>
+          <td>灵巧手力信号：Wuji Hand 2 为 1086 维；Sharpa Wave 为 60 维力/力矩 + 指腹形变图</td>
+          <td>多源异构触觉阵列（夹爪与灵巧手），统一到规范手</td></tr>
+        <tr><th scope="row">接入位置</th>
+          <td>VLM 之后、动作专家之前（FVLMoE）</td>
+          <td>VLM 输入前缀（1 个 token）</td>
+          <td>旁路触觉专家读主干 KV，只做每块去噪的最后一段（σ 0.2 → 0）</td>
+          <td>独立触觉专家，中间层与视频、动作共享注意力</td></tr>
+        <tr><th scope="row">预测未来力/触觉</th>
+          <td>否</td>
+          <td>否（输出的是目标力）</td>
+          <td class="yes"><span class="k">训练时</span>预测子块之后的力窗口，只作辅助目标，部署不用</td>
+          <td class="yes"><span class="k">是</span>推理时也和视频、动作联合生成</td></tr>
+        <tr><th scope="row">触觉起作用的频率</th>
+          <td>每生成一个动作块读一次</td>
+          <td>混合控制器按力误差调整执行</td>
+          <td>块内每 0.2 s 一次（48 步动作块切成 8 个子块）</td>
+          <td>动作块之间（新观测 + 重新规划）</td></tr>
+        <tr><th scope="row">数据</th>
+          <td>自采 ForceVLA-Data，5 个接触任务</td>
+          <td>带触觉的 UMI 手持采集，3 类任务共 800 条</td>
+          <td>人类第一视角数据（单目 → 双目）预训练 → 机器人域；触觉只在后训练出现</td>
+          <td>仿真回放补录（RoboTwin、DexJoCo）+ ManiFeel + 真机</td></tr>
+        <tr><th scope="row">评测</th>
+          <td>真机 5 任务 + 5 种泛化设置</td>
+          <td>真机：力度指令、按物体常识调力、自适应推理</td>
+          <td>仿生双臂双灵巧手真机，每格 20 次</td>
+          <td>RoboTwin、DexJoCo、ManiFeel 仿真 + 真机定性</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <p>图全部来自各论文 arXiv 源码里的原图，数字按源码里的 tex 表格核对。各页中标「解读」的内容是我们的判断，和论文的主张分开写。</p>
+  <p>四个精读页是并行写的。每页「放到四篇里看」一节里对另外三篇的描述主要依据摘要，没有逐篇读原文；细节以对应论文自己的精读页和这里的对照表为准。</p>
+</footer>
+
+</div>
+</body>
+</html>

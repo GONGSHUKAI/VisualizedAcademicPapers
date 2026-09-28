@@ -1,0 +1,1592 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"PingFang SC","Noto Sans SC",sans-serif;background:#fafaf9}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>ME-Dex 1.0 精读</title>
+<meta name="description" content="理想汽车 ME-Dex 1.0 论文中文精读：三专家世界动作触觉模型的架构、异构触觉的统一表示、实验结果与疑点。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#EDF2F0; --surface:#FAFCFB; --surface-2:#E1E9E6; --ink:#13201C; --ink-2:#33443E; --muted:#5E6E68; --line:#CCD7D3;
+  --tac:#0B8472; --tac-soft:#D2EBE5; --on-tac:#0D1A16;
+  --vid:#A06E05; --vid-soft:#F3E5C4;
+  --act:#3657B8; --act-soft:#DCE3F6;
+  --hot:#D4502A; --mid:#E2B42F;
+  --warn:#AE3A22; --warn-soft:#F6DED5;
+  --s-clean:#2A6CB0; --s-rand:#CF7417; --s-base:#8A9893;
+  --plate:#FFFFFF;
+  --focus:#0B8472;
+  --f-display:"Archivo","Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0C1311; --surface:#131C19; --surface-2:#1C2824; --ink:#E1EAE6; --ink-2:#B9C7C2; --muted:#8B9B95; --line:#2B3934;
+    --tac:#35BFA8; --tac-soft:#123530; --on-tac:#04201B;
+    --vid:#E0AD48; --vid-soft:#382C12;
+    --act:#8CA4F2; --act-soft:#1C2645;
+    --hot:#F07C55; --mid:#E6BE45;
+    --warn:#EE8C70; --warn-soft:#3A1F18;
+    --s-clean:#4F8FD6; --s-rand:#CC7A28; --s-base:#6F7F79;
+    --plate:#F1F4F3; --focus:#35BFA8;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0C1311; --surface:#131C19; --surface-2:#1C2824; --ink:#E1EAE6; --ink-2:#B9C7C2; --muted:#8B9B95; --line:#2B3934;
+  --tac:#35BFA8; --tac-soft:#123530; --on-tac:#04201B;
+  --vid:#E0AD48; --vid-soft:#382C12;
+  --act:#8CA4F2; --act-soft:#1C2645;
+  --hot:#F07C55; --mid:#E6BE45;
+  --warn:#EE8C70; --warn-soft:#3A1F18;
+  --s-clean:#4F8FD6; --s-rand:#CC7A28; --s-base:#6F7F79;
+  --plate:#F1F4F3; --focus:#35BFA8;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:var(--tac);text-underline-offset:3px;text-decoration-thickness:1px}
+a:hover{text-decoration-thickness:2px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+strong{font-weight:700}
+em{font-style:normal;background:linear-gradient(transparent 62%, var(--tac-soft) 62%)}
+code,.mono{font-family:var(--f-mono);font-size:.9em}
+sub,sup{font-size:.72em;line-height:0}
+
+.page{max-width:1200px;margin:0 auto;padding-inline:24px}
+@media (max-width:560px){.page{padding-inline:16px}}
+
+/* ---------- hero ---------- */
+.hero{padding-block:48px 28px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:40px;align-items:center}
+@media (max-width:900px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:28px}}
+.kicker{font:500 12px/1.4 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--tac);margin:0 0 14px}
+.title{font-family:var(--f-display);font-stretch:125%;font-weight:800;font-size:clamp(3.1rem,1.6rem + 6vw,6.2rem);line-height:.92;letter-spacing:-.02em;margin:0}
+.title .ver{color:var(--tac)}
+.entitle{font-family:var(--f-display);font-stretch:100%;font-weight:500;font-size:clamp(1.02rem,.9rem + .5vw,1.28rem);line-height:1.4;color:var(--ink-2);margin:14px 0 0;text-wrap:balance}
+.thesis{font-size:clamp(1.1rem,1rem + .45vw,1.32rem);line-height:1.7;margin:22px 0 0;max-width:34em;text-wrap:pretty}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin:22px 0 0;padding:0;list-style:none;font:13px/1.6 var(--f-mono);color:var(--muted)}
+.meta b{color:var(--ink-2);font-weight:500}
+.field{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+.field canvas{display:block;width:100%;aspect-ratio:16/10;max-width:100%}
+.field figcaption{font:12px/1.6 var(--f-mono);color:var(--muted);margin-top:10px;display:flex;flex-wrap:wrap;gap:4px 14px}
+.field .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+
+.tldr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:36px}
+@media (max-width:760px){.tldr{grid-template-columns:minmax(0,1fr)}}
+.tldr > div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px}
+.tldr h3{font:500 12px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.tldr p{margin:0;font-size:15px;line-height:1.75}
+.tldr .flag h3{color:var(--warn)}
+
+/* ---------- layout ---------- */
+.layout{display:grid;grid-template-columns:190px minmax(0,1fr);gap:56px;padding-block:24px 80px}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr);gap:0}}
+.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 20px);align-self:start;font-size:14px;line-height:1.5}
+.toc p{font:500 11px/1.4 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.toc li a{display:block;padding:5px 0 5px 14px;margin-left:-1px;border-left:2px solid transparent;color:var(--muted);text-decoration:none}
+.toc li a:hover{color:var(--ink)}
+.toc li a.on{color:var(--ink);border-left-color:var(--tac);font-weight:500}
+@media (max-width:1000px){
+  .toc{position:static;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .toc p{display:none}
+  .toc ol{display:flex;gap:6px;border:0;white-space:nowrap;padding-bottom:6px}
+  .toc li a{border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin:0;background:var(--surface)}
+  .toc li a.on{border-color:var(--tac)}
+}
+main{min-width:0}
+section{padding-top:56px;scroll-margin-top:12px}
+section:first-child{padding-top:8px}
+.eyebrow{font:500 12px/1.4 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--tac);margin:0 0 8px}
+h2{font-family:var(--f-display);font-stretch:112%;font-weight:760;font-size:clamp(1.55rem,1.2rem + 1.4vw,2.2rem);line-height:1.2;letter-spacing:-.01em;margin:0 0 18px;text-wrap:balance}
+h3{font-family:var(--f-display);font-stretch:105%;font-weight:700;font-size:1.18rem;line-height:1.35;margin:36px 0 10px;text-wrap:balance}
+p{margin:0 0 14px}
+.prose{max-width:44em}
+.prose li{margin-bottom:6px}
+.lead{font-size:1.06rem;color:var(--ink-2)}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+
+/* tags */
+.tag{display:inline-block;font:500 11px/1 var(--f-mono);letter-spacing:.06em;padding:4px 6px 3px;border-radius:4px;vertical-align:2px;margin-right:6px;white-space:nowrap}
+.tag.read{border:1px dashed var(--ink-2);color:var(--ink-2)}
+.tag.doubt{background:var(--warn-soft);color:var(--warn)}
+.tag.paper{background:var(--tac-soft);color:var(--tac)}
+
+/* callouts */
+.note{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:14px 18px;margin:18px 0;max-width:46em}
+.note > :last-child{margin-bottom:0}
+.note.doubt{border-color:color-mix(in oklab,var(--warn) 35%,var(--line));background:color-mix(in oklab,var(--warn-soft) 55%,var(--surface))}
+.note h4{font:500 12px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;margin:0 0 6px;color:var(--muted)}
+.note.doubt h4{color:var(--warn)}
+
+/* equations */
+.eq{font-family:"Times New Roman",Georgia,"Noto Serif SC",serif;font-size:1.12rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:14px 0;overflow-x:auto;white-space:nowrap;display:flex;justify-content:space-between;gap:24px;max-width:46em}
+.eq i{font-style:italic}
+.eq .no{font:12px var(--f-mono);color:var(--muted);align-self:center}
+
+/* figures */
+figure.plate{margin:22px 0}
+figure.plate .zoom{display:block;width:100%;padding:10px;background:var(--plate);border:1px solid var(--line);border-radius:8px;cursor:zoom-in}
+figure.plate img{display:block;width:100%;height:auto}
+figure.plate figcaption{font-size:14px;line-height:1.7;color:var(--ink-2);margin-top:10px;max-width:52em}
+figure.plate figcaption b{font:500 12px var(--f-mono);letter-spacing:.04em;color:var(--muted);margin-right:8px}
+dialog#lb{border:0;padding:0;background:transparent;max-width:min(96vw,1800px);width:96vw}
+dialog#lb::backdrop{background:rgba(6,12,10,.82)}
+dialog#lb .box{background:var(--plate);border-radius:8px;padding:10px;max-height:90vh;overflow:auto}
+dialog#lb img{display:block;width:100%;height:auto}
+dialog#lb .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#E6EEEB;font-size:14px;padding:8px 2px 0}
+dialog#lb button{font:500 13px var(--f-mono);background:#E6EEEB;color:#10201B;border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
+
+/* gap list */
+.gaps{display:grid;gap:10px;margin:18px 0;max-width:52em}
+.gap{display:grid;grid-template-columns:88px minmax(0,1fr) minmax(0,1fr);gap:16px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;font-size:15px;line-height:1.7}
+.gap .k{font-family:var(--f-display);font-stretch:112%;font-weight:700;font-size:15px}
+.gap .ans{color:var(--ink-2);border-left:1px solid var(--line);padding-left:16px}
+.gap .ans b{color:var(--tac);font-weight:500}
+@media (max-width:640px){.gap{grid-template-columns:minmax(0,1fr);gap:6px}.gap .ans{border-left:0;padding-left:0;border-top:1px dashed var(--line);padding-top:6px}}
+
+/* spec table */
+.tblwrap{overflow-x:auto;margin:16px 0;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;font-size:14px;line-height:1.6;min-width:100%}
+table.t th,table.t td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.t thead th{font:500 12px/1.4 var(--f-mono);letter-spacing:.05em;color:var(--muted);border-bottom:1.5px solid var(--ink-2);white-space:nowrap}
+table.t tbody th{font-weight:500;white-space:nowrap;color:var(--ink-2)}
+table.t td.num,table.t th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.m-v{color:var(--vid)} .m-a{color:var(--act)} .m-t{color:var(--tac)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:0}
+.dot.v{background:var(--vid)} .dot.a{background:var(--act)} .dot.t{background:var(--tac)}
+
+/* ---------- interactive shells ---------- */
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;margin:22px 0}
+.lab-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;margin-bottom:14px}
+.lab-head h4{font-family:var(--f-display);font-stretch:108%;font-weight:700;font-size:1.02rem;margin:0}
+.lab-head p{margin:0;font-size:13px;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--bg)}
+.seg button{font:500 13px/1 var(--f-body);border:0;background:transparent;color:var(--muted);padding:8px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.btn{font:500 13px/1 var(--f-body);border:1px solid var(--ink-2);background:transparent;color:var(--ink);padding:8px 12px;border-radius:7px;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+
+/* MoT explorer */
+.mot-wrap{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:22px}
+@media (max-width:880px){.mot-wrap{grid-template-columns:minmax(0,1fr)}}
+.mot{display:grid;grid-template-columns:78px repeat(3,minmax(0,1fr));gap:6px;font-size:13px;line-height:1.35}
+.mot .rl{font:500 11px/1.3 var(--f-mono);color:var(--muted);display:flex;align-items:center;letter-spacing:.02em}
+.mot .rl.band{cursor:pointer;color:var(--ink-2);border:1px solid transparent;border-radius:6px;padding:0 4px;background:transparent;text-align:left;font:500 11px/1.3 var(--f-mono)}
+.mot .rl.band[aria-pressed="true"]{border-color:var(--ink-2)}
+.mc{font:500 12.5px/1.35 var(--f-body);text-align:center;border-radius:6px;padding:8px 6px;cursor:pointer;border:1px solid var(--line);background:var(--bg);color:var(--ink);min-height:38px}
+.mc small{display:block;font:11px/1.3 var(--f-mono);color:var(--muted);margin-top:2px}
+.mc.v{border-color:color-mix(in oklab,var(--vid) 55%,var(--line));background:color-mix(in oklab,var(--vid-soft) 70%,var(--surface))}
+.mc.a{border-color:color-mix(in oklab,var(--act) 55%,var(--line));background:color-mix(in oklab,var(--act-soft) 70%,var(--surface))}
+.mc.t{border-color:color-mix(in oklab,var(--tac) 55%,var(--line));background:color-mix(in oklab,var(--tac-soft) 70%,var(--surface))}
+.mc.head{font-family:var(--f-display);font-stretch:108%;font-weight:700;cursor:pointer}
+.mc[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:1px}
+.mc.io{background:transparent;border-style:dashed}
+.jbar{grid-column:2 / 5;text-align:center;font:600 12.5px/1.3 var(--f-body);border-radius:6px;padding:7px 8px;border:1px solid var(--ink-2);background:var(--surface-2);cursor:pointer;color:var(--ink)}
+.jbar[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:1px}
+.mot[data-mode="hbridge"] .jbar.opt,.mot[data-mode="hbridge"] .opt-sp{display:none}
+.mot .wbar{display:block;height:4px;border-radius:2px;margin:5px auto 0;background:currentColor;opacity:.55}
+.side{display:flex;flex-direction:column;gap:14px;min-width:0}
+.detail{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:14px 16px;font-size:14px;line-height:1.75;min-height:170px}
+.detail h5{font-family:var(--f-display);font-stretch:108%;font-weight:700;font-size:15px;margin:0 0 6px}
+.detail p{margin:0 0 8px}
+.detail p:last-child{margin:0}
+.mask{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.mask .cap{font:500 11.5px/1.5 var(--f-mono);color:var(--muted);margin:0 0 8px}
+.mgrid{display:grid;grid-template-columns:34px repeat(6,minmax(0,1fr));gap:3px;font:500 11px/1 var(--f-mono);max-width:320px}
+.mgrid span{display:flex;align-items:center;justify-content:center;height:24px;border-radius:3px}
+.mgrid .hd{color:var(--muted)}
+.mgrid .cell{background:transparent;border:1px dashed var(--line)}
+.mgrid .cell.on{border:0}
+.mgrid .cell.on.v{background:color-mix(in oklab,var(--vid) 60%,var(--surface))}
+.mgrid .cell.on.a{background:color-mix(in oklab,var(--act) 60%,var(--surface))}
+.mgrid .cell.on.t{background:color-mix(in oklab,var(--tac) 60%,var(--surface))}
+.mgrid .cell.on.x{background:color-mix(in oklab,var(--ink-2) 55%,var(--surface))}
+.mask .foot{font-size:12.5px;line-height:1.6;color:var(--muted);margin:8px 0 0}
+
+/* noise lab */
+.nl-rows{display:grid;gap:12px;margin:10px 0 12px}
+.nl-row{display:grid;grid-template-columns:118px minmax(0,1fr) 72px;gap:12px;align-items:center;font-size:14px}
+.nl-row .nm{font-weight:500}
+.nl-track{position:relative;height:18px;border-radius:5px;overflow:hidden;background:repeating-linear-gradient(135deg,var(--surface-2) 0 4px,color-mix(in oklab,var(--muted) 35%,var(--surface-2)) 4px 6px);border:1px solid var(--line)}
+.nl-fill{position:absolute;inset:0 auto 0 0;width:50%;transition:width .35s ease}
+.nl-row.v .nl-fill{background:var(--vid)} .nl-row.t .nl-fill{background:var(--tac)} .nl-row.a .nl-fill{background:var(--act)}
+.nl-val{font:500 13px var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+.nl-scale{display:grid;grid-template-columns:118px minmax(0,1fr) 72px;gap:12px;font:11px var(--f-mono);color:var(--muted)}
+.nl-scale span:nth-child(2){display:flex;justify-content:space-between}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
+.chip{font:12.5px/1 var(--f-body);border:1px solid var(--line);border-radius:999px;padding:6px 10px;background:var(--bg);color:var(--ink-2)}
+.chip b{font-weight:500;color:var(--ink)}
+.nl-ctrl{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin:6px 0 10px}
+.nl-ctrl input[type=range]{width:min(360px,100%);accent-color:var(--tac)}
+.nl-say{font-size:14px;line-height:1.75;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:0}
+@media (max-width:560px){.nl-row,.nl-scale{grid-template-columns:84px minmax(0,1fr) 56px;gap:8px}}
+
+/* hand lab */
+.hand-wrap{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:820px){.hand-wrap{grid-template-columns:minmax(0,1fr)}}
+.hand-svg{width:100%;height:auto;display:block;max-width:100%}
+.hand-svg .rg{stroke-width:1.4;cursor:pointer;transition:fill .2s}
+.hand-svg .rg.mask{fill:url(#hatch);stroke:var(--line);cursor:help}
+.hand-svg .rg.obs{fill:var(--tac-soft);stroke:var(--tac)}
+.hand-svg .rg.hot{fill:var(--hot);stroke:var(--hot)}
+.hand-svg .rg.frame{fill:var(--surface);stroke:var(--tac);stroke-dasharray:3 2;cursor:default}
+.hand-svg .lbl{font:500 12px var(--f-body);fill:var(--muted)}
+.legend-row{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink-2);margin-top:8px}
+.legend-row i{display:inline-block;width:14px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px;border:1.4px solid}
+.lg-mask{background:repeating-linear-gradient(45deg,var(--surface-2) 0 3px,var(--line) 3px 5px);border-color:var(--line)!important}
+.lg-obs{background:var(--tac-soft);border-color:var(--tac)!important}
+.lg-hot{background:var(--hot);border-color:var(--hot)!important}
+.hand-info{font-size:14px;line-height:1.75}
+.hand-info .count{font:500 13px var(--f-mono);color:var(--ink-2);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin:10px 0}
+.hand-info .msg{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-height:64px}
+
+/* pipeline (AE) */
+.pipe{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0}
+@media (max-width:760px){.pipe{grid-template-columns:minmax(0,1fr)}}
+.pipe .col{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.pipe h4{font:500 12px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.pipe ol{margin:0;padding:0;list-style:none;counter-reset:s}
+.pipe li{counter-increment:s;position:relative;padding:0 0 12px 30px;font-size:14px;line-height:1.7}
+.pipe li:last-child{padding-bottom:0}
+.pipe li::before{content:counter(s);position:absolute;left:0;top:1px;width:20px;height:20px;border-radius:50%;border:1px solid var(--tac);color:var(--tac);font:500 11px/19px var(--f-mono);text-align:center}
+.pipe li:not(:last-child)::after{content:"";position:absolute;left:10px;top:23px;bottom:3px;border-left:1px dashed var(--line)}
+.pipe li b{font-weight:500}
+.pipe li .en{font:11.5px var(--f-mono);color:var(--muted)}
+.pipe .out{margin-top:10px;font:500 13px var(--f-mono);color:var(--tac)}
+.losses{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0 16px}
+@media (max-width:640px){.losses{grid-template-columns:minmax(0,1fr)}}
+.losses div{border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14px;line-height:1.65;background:var(--surface)}
+.losses b{font:500 13px var(--f-mono);display:block;margin-bottom:2px}
+
+/* data engine flow */
+.flow{display:grid;grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr) 28px minmax(0,1fr);gap:8px;align-items:stretch;margin:18px 0}
+.flow .box{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:14px;line-height:1.65}
+.flow .box b{display:block;font-weight:500;margin-bottom:2px}
+.flow .arr{display:flex;align-items:center;justify-content:center;color:var(--muted);font:16px var(--f-mono)}
+.flow .full{grid-column:1 / -1}
+.flow .out{border-color:var(--tac);background:color-mix(in oklab,var(--tac-soft) 55%,var(--surface))}
+@media (max-width:760px){.flow{grid-template-columns:minmax(0,1fr)}.flow .arr{transform:rotate(90deg);height:20px}}
+
+/* platform cards */
+.plats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+@media (max-width:760px){.plats{grid-template-columns:minmax(0,1fr)}}
+.plat{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.plat h4{font-family:var(--f-display);font-stretch:110%;font-weight:700;font-size:1.05rem;margin:0 0 8px;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.plat h4 span{font:12px var(--f-mono);color:var(--muted);font-weight:400}
+.plat dl{display:grid;grid-template-columns:62px minmax(0,1fr);gap:4px 10px;margin:0;font-size:13.5px;line-height:1.65}
+.plat dt{color:var(--muted)}
+.plat dd{margin:0}
+
+/* charts */
+.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 16px 10px;margin:18px 0}
+.chartbox h4{font-family:var(--f-display);font-stretch:108%;font-weight:700;font-size:1rem;margin:0 0 2px}
+.chartbox .sub{font-size:13px;color:var(--muted);margin:0 0 10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--ink-2);margin:0 0 6px}
+.legend .k{display:inline-block;width:11px;height:11px;margin-right:6px;vertical-align:-1px}
+.k-clean{background:var(--s-clean);border-radius:50%}
+.k-rand{background:var(--s-rand);border-radius:2px}
+.k-base{background:var(--s-base);border-radius:2px}
+.k-ours{background:var(--tac);border-radius:2px}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+svg.chart{display:block;width:100%;height:auto;min-width:620px}
+svg.chart text{font-family:var(--f-body)}
+svg.chart .grid{stroke:var(--line);stroke-width:1}
+svg.chart .base{stroke:var(--ink-2);stroke-width:1}
+svg.chart .tick{font:11px var(--f-mono);fill:var(--muted)}
+svg.chart .group{font:500 11px var(--f-mono);fill:var(--muted);letter-spacing:.06em}
+svg.chart .rlabel{font-size:13.5px;fill:var(--ink)}
+svg.chart .rlabel.strong{font-weight:700}
+svg.chart .rsub{font-size:11px;fill:var(--muted)}
+svg.chart .rval{font:12px var(--f-mono);fill:var(--ink-2)}
+svg.chart .rval.strong{font-weight:500;fill:var(--ink)}
+svg.chart .conn{stroke:var(--muted);stroke-width:1.5;opacity:.6}
+svg.chart .m-clean{fill:var(--s-clean);stroke:var(--surface);stroke-width:2}
+svg.chart .m-rand{fill:var(--s-rand);stroke:var(--surface);stroke-width:2}
+svg.chart .hl-band{fill:var(--tac-soft);opacity:.6}
+svg.chart .b-clean{fill:var(--s-clean)} svg.chart .b-rand{fill:var(--s-rand)}
+svg.chart .b-base{fill:var(--s-base)} svg.chart .b-ours{fill:var(--tac)}
+svg.chart .axis-note{font:11px var(--f-mono);fill:var(--muted)}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);font:12.5px/1.55 var(--f-body);padding:8px 10px;border-radius:6px;max-width:280px;box-shadow:0 6px 20px -8px rgba(0,0,0,.4)}
+.tip span{opacity:.75}
+
+/* increments table */
+table.inc td.bar{width:34%;min-width:120px}
+.ib{position:relative;height:12px;background:transparent}
+.ib i{position:absolute;top:0;height:12px;border-radius:0 3px 3px 0}
+.ib i.neg{border-radius:3px 0 0 3px}
+.ib::before{content:"";position:absolute;left:12%;top:-3px;bottom:-3px;border-left:1px solid var(--ink-2)}
+
+/* heatmap */
+table.heat{border-collapse:separate;border-spacing:3px;font-size:13px;min-width:640px;width:100%}
+table.heat th{font:500 11.5px/1.3 var(--f-mono);color:var(--muted);text-align:center;padding:6px 4px;white-space:nowrap}
+table.heat th.task{text-align:left;font:500 13px/1.3 var(--f-body);color:var(--ink);white-space:nowrap;padding-right:10px}
+table.heat th.task small{display:block;font:11px var(--f-mono);color:var(--muted)}
+table.heat td{text-align:center;font:500 12.5px var(--f-mono);font-variant-numeric:tabular-nums;border-radius:4px;padding:8px 4px;color:var(--ink)}
+table.heat td.hi{color:var(--on-tac)}
+table.heat td.best{box-shadow:inset 0 0 0 2px var(--ink)}
+table.heat col.ours{background:transparent}
+table.heat th.ours-h{color:var(--tac)}
+table.heat tr.sep th,table.heat tr.sep td{border-top:0}
+table.heat tr.avg th.task{font-weight:700}
+
+/* insight cards */
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+@media (max-width:760px){.cards{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px}
+.card h4{font-family:var(--f-display);font-stretch:106%;font-weight:700;font-size:1.02rem;line-height:1.4;margin:0 0 8px}
+.card p{font-size:14.5px;line-height:1.75;margin:0 0 8px}
+.card p:last-child{margin:0}
+.card .num{font-family:var(--f-mono);font-size:13px;color:var(--ink-2)}
+details.faq{background:var(--surface);border:1px solid var(--line);border-radius:8px;margin:10px 0;max-width:50em}
+details.faq summary{cursor:pointer;padding:12px 16px;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::after{content:"+";font:500 16px var(--f-mono);color:var(--muted)}
+details.faq[open] summary::after{content:"−"}
+details.faq .a{padding:0 16px 14px;font-size:15px;line-height:1.8}
+details.faq .a p:last-child{margin:0}
+
+/* limits */
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0;align-items:start}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.two > div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px}
+.two h4{font:500 12px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;margin:0 0 10px;color:var(--muted)}
+.two ul{margin:0;padding-left:18px;font-size:14.5px;line-height:1.75}
+.two li{margin-bottom:8px}
+
+/* timeline */
+.tl{list-style:none;margin:18px 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;position:relative}
+.tl::before{content:"";position:absolute;left:0;right:0;top:9px;border-top:1px solid var(--line)}
+.tl li{position:relative;padding:26px 14px 0 0;font-size:13.5px;line-height:1.6}
+.tl li::before{content:"";position:absolute;left:0;top:3px;width:12px;height:12px;border-radius:50%;background:var(--bg);border:2px solid var(--muted)}
+.tl li.me::before{background:var(--tac);border-color:var(--tac)}
+.tl .d{font:500 12px var(--f-mono);color:var(--muted)}
+.tl .n{font-family:var(--f-display);font-stretch:108%;font-weight:700;font-size:1rem;display:block;margin:2px 0 4px}
+@media (max-width:760px){.tl{grid-template-columns:minmax(0,1fr)}.tl::before{left:5px;right:auto;top:0;bottom:0;border-top:0;border-left:1px solid var(--line)}.tl li{padding:0 0 16px 26px}.tl li::before{top:5px}}
+table.cmp{min-width:820px}
+table.cmp td{font-size:13.5px}
+table.cmp th.me,table.cmp td.me{background:color-mix(in oklab,var(--tac-soft) 45%,transparent)}
+svg.timing{display:block;width:100%;height:auto;min-width:640px}
+svg.timing text{font-family:var(--f-body);font-size:12.5px;fill:var(--ink)}
+svg.timing .lab{font-family:var(--f-display);font-weight:700;font-size:14px}
+svg.timing .sm{font-size:11.5px;fill:var(--muted)}
+svg.timing .b-j{fill:color-mix(in oklab,var(--tac-soft) 70%,var(--surface));stroke:var(--tac)}
+svg.timing .b-e{fill:var(--surface-2);stroke:var(--line)}
+svg.timing .b-s{fill:var(--surface-2);stroke:var(--ink-2)}
+svg.timing .tk{fill:var(--hot)}
+svg.timing .ax{stroke:var(--line)}
+
+/* glossary */
+details.gl{background:var(--surface);border:1px solid var(--line);border-radius:8px;max-width:52em}
+details.gl summary{cursor:pointer;padding:14px 18px;font-weight:500}
+details.gl dl{margin:0;padding:0 18px 16px;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:8px 18px;font-size:14px;line-height:1.7}
+details.gl dt{font-family:var(--f-mono);font-size:13px;color:var(--ink)}
+details.gl dd{margin:0;color:var(--ink-2)}
+@media (max-width:560px){details.gl dl{grid-template-columns:minmax(0,1fr);gap:2px}details.gl dd{margin-bottom:10px}}
+footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/force-tactile/">力与触觉</a></span><span class="vapnav-links"><a href="../../papers/forcevla/">ForceVLA</a><a href="../../papers/tactile-vla/">Tactile-VLA</a><a href="../../papers/motus2/">Motus2</a><a href="../../papers/me-dex/" aria-current="page">ME-Dex 1.0</a></span></div></div>
+<!-- /vap:nav -->
+<header class="hero page">
+  <div class="hero-grid">
+    <div>
+      <p class="kicker">论文精读 · 机器人基础模型 · 触觉</p>
+      <h1 class="title">ME-Dex <span class="ver">1.0</span></h1>
+      <p class="entitle">Bringing Heterogeneous Tactile Sensing into World Action Modeling</p>
+      <p class="thesis">把触觉当作和视频一样需要<strong>预测的未来观测</strong>，而不只是喂给模型的条件。视频、触觉、动作各有一个专家，在世界动作模型里一起从噪声去噪，动作专家在中间层读取“未来画面”和“未来接触”的表示。</p>
+      <ul class="meta">
+        <li><b>理想汽车</b> Foundation Model 团队</li>
+        <li><b>arXiv</b> 2609.21449v2 [cs.CV]</li>
+        <li><b>v2</b> 2026-09-21</li>
+        <li><a href="https://arxiv.org/abs/2609.21449" target="_blank" rel="noopener">arXiv</a> · <a href="https://machembodied.com/ME-Dex/ME-Dex1.0.html" target="_blank" rel="noopener">项目页</a> · <a href="https://github.com/MachEmbodied/ME-Dex-1.0" target="_blank" rel="noopener">代码</a></li>
+      </ul>
+    </div>
+    <figure class="field">
+      <canvas id="field" role="img" aria-label="触觉阵列示意：两个接触点在传感面上滑动，颜色表示法向力，短线表示切向合力"></canvas>
+      <figcaption>
+        <span>示意，不是论文数据</span>
+        <span><i class="sw" style="background:var(--tac)"></i>法向力小 → <i class="sw" style="background:var(--hot)"></i>大</span>
+        <span>短线 = 切向合力</span>
+        <span>低于死区的读数不着色</span>
+      </figcaption>
+    </figure>
+  </div>
+
+  <div class="tldr" aria-label="一分钟版">
+    <div><h3>做了什么</h3><p>在视频+动作的世界动作模型（WAM）里加第三路<b>触觉专家</b>，训练时同时预测未来视频、未来触觉潜变量和动作块，三路用 flow matching 联合去噪，只在中间层（H-Bridge）共享注意力。</p></div>
+    <div><h3>怎么统一异构触觉</h3><p><b>Canonical Hand Model</b> 把夹爪和灵巧手的传感面对齐到一只“规范手”的指区和掌区；<b>Unified Tactile Autoencoder</b> 把各种力场压成顺序固定的区域 token。</p></div>
+    <div><h3>结果</h3><p>RoboTwin 50 任务 91.56 / 91.92（Clean / Random），比 Fast-WAM 高约 2.3–2.7 点；DexJoCo 平均 65.3（DECO.p 57.8）；ManiFeel 平均 70.0（官方 Diffusion Policy 55.0）。</p></div>
+    <div class="flag"><h3>最该留意的</h3><p>RoboTwin 上推理时把当前触觉<b>置零</b>，成功率几乎不变（91.70 / 91.74）。触觉的作用主要在训练期的预测监督，增益只有 1–3 点且是单种子；DexJoCo 和 ManiFeel 没有去掉触觉的消融；真机只有定性展示。</p></div>
+  </div>
+</header>
+
+<div class="page layout">
+  <nav class="toc" aria-label="目录">
+    <p>目录</p>
+    <ol>
+      <li><a href="#problem">问题</a></li>
+      <li><a href="#overview">全局</a></li>
+      <li><a href="#rep">统一触觉表示</a></li>
+      <li><a href="#watm">三专家与 H-Bridge</a></li>
+      <li><a href="#train">联合训练与推理</a></li>
+      <li><a href="#engine">数据引擎</a></li>
+      <li><a href="#setup">实验设置</a></li>
+      <li><a href="#results">结果</a></li>
+      <li><a href="#insight">读懂它</a></li>
+      <li><a href="#limits">局限与疑点</a></li>
+      <li><a href="#four">四篇对照</a></li>
+      <li><a href="#glossary">术语表</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <!-- ================= 问题 ================= -->
+    <section id="problem">
+      <p class="eyebrow">问题</p>
+      <h2>触觉只当条件输入，缺了什么</h2>
+      <div class="prose">
+        <p>把触觉接进机器人策略，最常见的做法是把<strong>当前</strong>触觉编码后当条件：在 VLA 里拼进前缀 token，在 WAM 里挂到动作专家旁边（下图 a、b 的虚线 “condition”）。这样做简单，但模型从来不需要回答一个问题：<em>接下来接触会怎么变</em>。</p>
+        <p>论文的核心主张是：触觉和视频一样，都是对“不断演化的世界状态”的观测，所以应该和视频一起作为<strong>未来观测</strong>来预测。WAM 已经表明，让模型预测未来画面有助于动作生成；ME-Dex 把同样的逻辑推到触觉上，让模型预测未来接触的演化，动作专家再通过共享注意力读到这部分表示。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig1-teaser.jpg" aria-label="放大原文图 1"><img src="fig/fig1-teaser.jpg" width="1800" height="886" alt="原文图 1：VLA、WAM 与统一世界动作触觉模型三种范式" loading="lazy"></button>
+        <figcaption><b>原文 Figure 1</b>三种范式。(a) VLA：VLM + 动作专家，有的设计把当前触觉编码后作为条件。(b) WAM：联合预测未来视频和动作，触觉仍然只是条件（虚线）。(c) ME-Dex：MoT 里多了一个触觉专家，未来视频、未来动作、未来触觉三者一起输出。看 (b) 到 (c) 的变化：触觉从一条虚线条件，变成了和视频并列、有自己输出的一路。</figcaption>
+      </figure>
+      <div class="prose"><p>要把这件事做成，作者列了三个缺口，每个缺口对应一个组件：</p></div>
+      <div class="gaps">
+        <div class="gap"><span class="k">数据缺口</span><span>RoboTwin、DexJoCo 没有原生触觉；HATO、ManiFeel 的触觉数据规模有限、格式各异；采集同步的触觉+动作数据成本高。</span><span class="ans"><b>Agentic Tactile Data Engine</b>：在仿真里回放轨迹，用力传感器直接记录触觉。</span></div>
+        <div class="gap"><span class="k">表示缺口</span><span>不同传感器、不同本体（夹爪 / 灵巧手）的触觉布局各不相同，没有共享表示就没法放在一起训练。</span><span class="ans"><b>Canonical Hand Model + Unified Tactile AE</b>：统一空间参照，统一潜空间。</span></div>
+        <div class="gap"><span class="k">模型缺口</span><span>怎样在一个预测架构里同时学未来视频、未来触觉和动作，并让动作生成用得上未来触觉的表示。</span><span class="ans"><b>三专家 MoT + H-Bridge</b>：三路 flow matching 联合去噪，中间层共享注意力。</span></div>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>这套论证和“WAM 为什么比 VLA 好”是同一条</h4>
+        <p>核心是更密的未来监督能塑造更好的表示。要检验它，得看两件事：去掉“预测未来触觉”会掉多少分；推理时触觉输入到底被用了多少。结果部分会看到，在 RoboTwin 上这两个答案都偏小。另外，朴素地把触觉当条件并不是白给的：π0.5+Tac 在 RoboTwin Random 上比 π0.5 低 3.08 点，在 DexJoCo 平均低 6.5 点（36.7 → 30.2）。</p>
+      </div>
+    </section>
+
+    <!-- ================= 全局 ================= -->
+    <section id="overview">
+      <p class="eyebrow">方法 · 全局</p>
+      <h2>一张图看全局</h2>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig2-arch.jpg" aria-label="放大原文图 2"><img src="fig/fig2-arch.jpg" width="1800" height="1268" alt="原文图 2：ME-Dex 整体架构，左为三专家世界动作触觉模型，右为统一触觉表示" loading="lazy"></button>
+        <figcaption><b>原文 Figure 2</b>左：三列依次是视频、动作、触觉专家。下方 ×N 和上方 ×N 是各自独立的浅层 / 深层块，中间 ×L 的虚线框是 H-Bridge 共享层：各专家先各自算 QKV，再做一次多模态联合自注意力，然后各走各的 FFN；视频专家多一个对 T5 指令的 cross-attention。底部实心小方块是干净 token（条件），斜线方块是噪声 token（生成目标）。右：Canonical Hand Model（异构传感面映射到规范手）和 Unified Tactile Encoder（Surface CNN → Surface Swin Attention → Region Learned Pooling → Masked Region Attention → 规范区域 token）。触觉图例：颜色是法向力，箭头是切向合力。点图可放大。</figcaption>
+      </figure>
+      <div class="prose">
+        <p><strong>形式化（论文 §3.2）。</strong>在时刻 <i>t</i>，模型拿到任务指令 ℓ、当前图像 <b>I</b><sub>t</sub>（作为视频首帧）、本体状态 <b>s</b><sub>t</sub> 和当前触觉 <b>T</b><sub>t</sub>，编码后组成条件：</p>
+      </div>
+      <div class="eq"><span><i>C</i><sub>t</sub> = ( ℓ, <b>s</b><sub>t</sub>, <b>z</b><sub>t</sub><sup>vis</sup>, <b>z</b><sub>t</sub><sup>tac</sup> )</span><span class="no">(1)</span></div>
+      <div class="prose">
+        <p>要生成的是同一物理时间窗里的三样东西：动作块 <b>A</b><sup>+</sup> = (<b>a</b><sub>t</sub>, …, <b>a</b><sub>t+k−1</sub>)、未来视频潜变量 <b>Z</b><sup>vis,+</sup>、未来触觉潜变量 <b>Z</b><sup>tac,+</sup>。模型学的是它们的联合分布，策略是这个联合分布对动作的边缘：</p>
+      </div>
+      <div class="eq"><span><i>π</i><sub>θ</sub>(<b>A</b><sup>+</sup> | <i>C</i><sub>t</sub>) = ∫ <i>p</i><sub>θ</sub>(<b>A</b><sup>+</sup>, <b>Z</b><sup>vis,+</sup>, <b>Z</b><sup>tac,+</sup> | <i>C</i><sub>t</sub>) d<b>Z</b><sup>vis,+</sup> d<b>Z</b><sup>tac,+</sup></span><span class="no">(3)(4)</span></div>
+      <div class="prose">
+        <p>实现上不做积分：三样东西一起采样，只保留动作。未来视频和未来触觉的真值只在训练时作为目标出现，推理时拿不到。</p>
+        <p>让动作真正“依赖”未来观测的是式 (5)：在 H-Bridge 层 <i>j</i> ∈ 𝓑，动作侧的更新同时读取视频和触觉的隐状态。</p>
+      </div>
+      <div class="eq"><span><b>H</b><sub>j+1</sub><sup>act</sup> = 𝓕<sub>j</sub><sup>act</sup>( <b>H</b><sub>j</sub><sup>act</sup>, <b>H</b><sub>j</sub><sup>vis</sup>, <b>H</b><sub>j</sub><sup>tac</sup> ),&nbsp;&nbsp; <i>j</i> ∈ 𝓑</span><span class="no">(5)</span></div>
+    </section>
+
+    <!-- ================= 统一触觉表示 ================= -->
+    <section id="rep">
+      <p class="eyebrow">方法 · 统一触觉表示</p>
+      <h2>先对齐到一只“规范手”，再压成区域 token</h2>
+      <h3>触觉输入长什么样</h3>
+      <div class="prose">
+        <p>每个传感面 <i>r</i> 给出一个力场 <b>F</b><sub>t</sub><sup>(r)</sup> ∈ ℝ<sup>3×H×W</sup>：一个法向分量加两个切向分量，定义在 H×W 网格上。布局掩码标出哪些网格点是有效传感位置（包括当下没有接触的位置）。预处理依次是平滑死区、逐通道 asinh 压缩、归一化、裁剪，最后法向落在 [0, 1]，切向落在 [−1, 1]。页首的动画就是这种数据的样子。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig3-sources.jpg" aria-label="放大原文图 3"><img src="fig/fig3-sources.jpg" width="1800" height="343" alt="原文图 3：五个触觉来源" loading="lazy"></button>
+        <figcaption><b>原文 Figure 3</b>五个触觉来源，从左到右：RoboTwin（双臂夹爪，仿真）、DexJoCo（灵巧手，仿真）、ManiFeel（夹爪，仿真，原生三维触觉力）、Xynova Flex2 灵巧手（真机）、带触觉的 LeRobot SO-101 夹爪（真机）。传感面的形状、分辨率、覆盖范围各不相同，这就是要统一表示的原因。</figcaption>
+      </figure>
+
+      <h3>Canonical Hand Model</h3>
+      <div class="prose">
+        <p>以人手为模板，为左右手各定义手指区和手掌区，把夹爪和灵巧手看成这个模板的“形态变体”。区域分配只提供共同的空间参照，不要求各末端执行器的表面几何一致。</p>
+        <ul>
+          <li><strong>灵巧手</strong>：每个传感面分到它所在的手指或手掌区。</li>
+          <li><strong>RoboTwin 夹爪</strong>：两个传感面分别映射到拇指区和食指区，每个面再切成 4 个互不重叠、有顺序的 patch。</li>
+          <li>不同来源只覆盖模板的不同子集。<strong>区域掩码</strong>把“这个本体根本没有这块传感器”和“有传感器但此刻没接触”区分开，论文特意强调要保住这个区别。</li>
+        </ul>
+      </div>
+
+      <div class="lab" id="hand-lab">
+        <div class="lab-head">
+          <h4>动手看：两种本体落到同一只规范手上</h4>
+          <div class="seg" role="group" aria-label="选择本体">
+            <button type="button" id="hp-gripper" aria-pressed="true">RoboTwin 双臂夹爪</button>
+            <button type="button" id="hp-dex" aria-pressed="false">灵巧手</button>
+          </div>
+        </div>
+        <div class="hand-wrap">
+          <div>
+            <svg class="hand-svg" id="hand-svg" viewBox="0 0 420 292" role="img" aria-label="规范手模板，左右两只手，指区与掌区"></svg>
+            <div class="legend-row">
+              <span><i class="lg-mask"></i>不存在（被掩码）</span>
+              <span><i class="lg-obs"></i>有传感器，没接触</span>
+              <span><i class="lg-hot"></i>有接触</span>
+            </div>
+          </div>
+          <div class="hand-info">
+            <p id="hand-desc"></p>
+            <div class="count" id="hand-count"></div>
+            <div class="msg" id="hand-msg">点击有传感器的区域（或 patch）切换“接触 / 无接触”；点击斜线区域看掩码的含义。</div>
+          </div>
+        </div>
+      </div>
+
+      <h3>Unified Tactile Autoencoder</h3>
+      <div class="prose">
+        <p>区域分配解决了空间对应，但各来源的力场在分辨率、表面几何、覆盖范围上仍然不同。要让一个触觉预测器通吃，需要一个紧凑、空间组织一致、又保留局部力模式和接触变化的潜空间。这就是 AE 的任务，它在触觉这一路扮演视频 VAE 的角色。</p>
+      </div>
+      <div class="pipe">
+        <div class="col">
+          <h4>编码器 · 确定性，传感面间共享参数，逐帧</h4>
+          <ol>
+            <li><b>残差卷积网络</b>提取局部力特征 <span class="en">Surface CNN</span></li>
+            <li><b>窗口 + 移位窗口注意力</b>，在每个传感面内部 <span class="en">Surface Swin Attention</span></li>
+            <li><b>带掩码的可学习池化</b>，只在有效传感位置上汇聚。夹爪面在 4 个 patch 内分别池化，灵巧手面整面池化 <span class="en">Region Learned Pooling</span></li>
+            <li>token 放进规范槽位，加上<b>区域嵌入和池化类型嵌入</b>；2 层带掩码 Transformer 在同一帧的有效区域之间交换信息。未观测区域保持掩码、输出为 0 <span class="en">Masked Region Attention</span></li>
+          </ol>
+          <div class="out">→ z<sub>t</sub><sup>tac</sup> ∈ ℝ<sup>N×d</sup>，N 个区域 token</div>
+        </div>
+        <div class="col">
+          <h4>解码器 · 从区域 token 还原力场</h4>
+          <ol>
+            <li>收集属于每个传感面的 token，用<b>局部网格位置作 query</b> 做 cross-attention</li>
+            <li><b>残差 MLP + 卷积细化</b>，恢复传感面特征</li>
+            <li><b>力头</b>预测法向和切向分量，<b>接触头</b>预测接触概率</li>
+            <li>重建力场 = 力预测 × 接触概率 × 有效位置掩码（后两者沿力通道广播）</li>
+          </ol>
+          <div class="out">→ F̂ ∈ ℝ<sup>3×H×W</sup>，每个传感面一张</div>
+        </div>
+      </div>
+      <div class="eq"><span>𝓛<sub>AE</sub> = 𝓛<sub>force</sub> + 𝓛<sub>contact</sub> + 𝓛<sub>change</sub> + λ<sub>lat</sub> 𝓛<sub>latent</sub></span><span class="no">(6)</span></div>
+      <div class="losses">
+        <div><b>𝓛_force</b>Smooth L1。接触位置监督门控之前的力预测，背景位置监督门控之后的重建。</div>
+        <div><b>𝓛_contact</b>平衡二元交叉熵，软标签来自死区处理之前的力幅值。</div>
+        <div><b>𝓛_change</b>相邻帧的力差要对得上，接触开始和松开的位置权重更大。</div>
+        <div><b>𝓛_latent</b>让“有效但没接触”区域的池化特征靠近同一布局下全零输入得到的特征，给“没接触”一个一致的潜空间参照。</div>
+      </div>
+      <div class="prose">
+        <p>AE 在多源触觉上单独预训练，之后<strong>冻结</strong>，给联合模型提供三样东西：当前触觉条件、未来触觉目标、把预测潜变量还原成力场的解码器。冻结是为了防止在各基准上训练策略时触觉表示漂移。</p>
+        <p><strong>重建效果（原文 Table 5）。</strong>在 RoboTwin、DexJoCo、ManiFeel 的触觉上联合训练，每个来源按 8:2 切分训练 / 测试轨迹。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>平台</th><th class="num">接触 F1 ↑</th><th class="num">接触力 MAE ↓</th><th class="num">变化 F1 ↑</th><th class="num">变化量 MAE ↓</th></tr></thead>
+          <tbody>
+            <tr><th>RoboTwin</th><td class="num">96.56</td><td class="num">0.01797</td><td class="num">89.73</td><td class="num">0.01849</td></tr>
+            <tr><th>DexJoCo</th><td class="num">90.05</td><td class="num">0.02807</td><td class="num">68.73</td><td class="num">0.04293</td></tr>
+            <tr><th>ManiFeel</th><td class="num">99.69</td><td class="num">0.05478</td><td class="num">66.96</td><td class="num">0.06899</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose small muted">
+        <p>前两列在均匀采样的时间窗上算：接触检测 F1、接触节点处的力 MAE。后两列在“高变化”时间窗上算：接触开始 / 松开位置的转变 F1、相邻帧力差的 MAE。MAE 在各来源自己的归一化空间里算，<strong>不能跨平台比较</strong>。</p>
+      </div>
+      <div class="note"><h4><span class="tag read">解读</span>重建里最难的正好是接触转变</h4><p>接触检测在三个平台都在 90% 以上，但转变 F1 在 DexJoCo 只有 68.73、ManiFeel 66.96，明显低于 RoboTwin 的 89.73。接触的开始和松开是接触任务里最关键的瞬间，也是这个表示最弱的地方。这张表衡量的是 AE 能否复现这些信号，不衡量信号本身是否接近真实触觉。</p></div>
+    </section>
+
+    <!-- ================= 三专家 ================= -->
+    <section id="watm">
+      <p class="eyebrow">方法 · World Action Tactile Model</p>
+      <h2>三个专家，只在中间层交换信息</h2>
+      <div class="prose">
+        <p>三个专家各是一个独立的 Transformer，都用 flow matching 训练。深度相同（都是 30 层），宽度不同。相同的深度让它们可以在对应层上交互，各自的宽度和表示保持独立。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th></th><th><span class="dot v"></span>视频专家</th><th><span class="dot a"></span>动作专家</th><th><span class="dot t"></span>触觉专家</th></tr></thead>
+          <tbody>
+            <tr><th>结构</th><td>沿用 Wan2.2-5B</td><td>Transformer</td><td>潜空间里的 DiT</td></tr>
+            <tr><th>层数 / 宽度</th><td class="mono">30 / 3072</td><td class="mono">30 / 1024</td><td class="mono">30 / 512</td></tr>
+            <tr><th>初始化</th><td>Motus 权重（在多样机器人数据上预训练）</td><td>Motus 权重</td><td>随机初始化</td></tr>
+            <tr><th>干净条件</th><td>编码后的首帧</td><td>本体状态 <b>s</b><sub>t</sub></td><td>编码后的当前触觉帧</td></tr>
+            <tr><th>生成目标</th><td>未来视频潜变量</td><td>动作块（k 步）</td><td>未来触觉潜变量 ∈ ℝ<sup>T×N×d</sup></td></tr>
+            <tr><th>其他</th><td>对 T5 指令做 cross-attention（图 2）</td><td>输出是唯一用于控制的量</td><td>冻结 AE 逐帧编码得到目标</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="lab" id="mot-lab">
+        <div class="lab-head">
+          <h4>点开架构：每一格是什么，哪些层能互相看见</h4>
+          <div class="seg" role="group" aria-label="切换完整模型或消融">
+            <button type="button" id="mm-hb" aria-pressed="true">完整模型 · H-Bridge</button>
+            <button type="button" id="mm-fj" aria-pressed="false">消融 · 每层都联合</button>
+          </div>
+        </div>
+        <div class="mot-wrap">
+          <div class="mot" id="mot" data-mode="hbridge">
+            <span class="rl">输出</span>
+            <button type="button" class="mc v io" data-k="vid-out">未来视频<small>可视化用</small></button>
+            <button type="button" class="mc a io" data-k="act-out">动作块 A⁺<small>送去执行</small></button>
+            <button type="button" class="mc t io" data-k="tac-out">未来触觉<small>可视化用</small></button>
+
+            <span class="rl">解码器</span>
+            <button type="button" class="mc v" data-k="vid-dec">Video Decoder</button>
+            <button type="button" class="mc a" data-k="act-dec">Action Decoder</button>
+            <button type="button" class="mc t" data-k="tac-dec">Tactile Decoder</button>
+
+            <button type="button" class="rl band" data-band="deep" aria-pressed="false">深层<br>×N</button>
+            <button type="button" class="mc v" data-k="blk" data-band="deep">Video Block</button>
+            <button type="button" class="mc a" data-k="blk" data-band="deep">Action Block</button>
+            <button type="button" class="mc t" data-k="blk" data-band="deep">Tactile Block</button>
+            <span class="rl opt-sp"></span>
+            <button type="button" class="jbar opt" data-band="deep">联合自注意力（消融设置下每层都有）</button>
+
+            <button type="button" class="rl band" data-band="bridge" aria-pressed="true">中层<br>H-Bridge<br>×L</button>
+            <button type="button" class="mc v head" data-k="vid-exp" data-band="bridge">Video Expert<small>QKV · Cross-Attn &amp; FFN</small><span class="wbar m-v" style="width:100%"></span></button>
+            <button type="button" class="mc a head" data-k="act-exp" data-band="bridge">Action Expert<small>QKV · FFN</small><span class="wbar m-a" style="width:33.3%"></span></button>
+            <button type="button" class="mc t head" data-k="tac-exp" data-band="bridge">Tactile Expert<small>QKV · FFN</small><span class="wbar m-t" style="width:16.7%"></span></button>
+            <span class="rl"></span>
+            <button type="button" class="jbar" data-band="bridge" aria-pressed="true">多模态联合自注意力：视频 + 动作 + 触觉全部 token</button>
+
+            <button type="button" class="rl band" data-band="shallow" aria-pressed="false">浅层<br>×N</button>
+            <button type="button" class="mc v" data-k="blk" data-band="shallow">Video Block</button>
+            <button type="button" class="mc a" data-k="blk" data-band="shallow">Action Block</button>
+            <button type="button" class="mc t" data-k="blk" data-band="shallow">Tactile Block</button>
+            <span class="rl opt-sp"></span>
+            <button type="button" class="jbar opt" data-band="shallow">联合自注意力（消融设置下每层都有）</button>
+
+            <span class="rl">编码器</span>
+            <button type="button" class="mc v" data-k="vid-enc">Video Encoder</button>
+            <button type="button" class="mc a" data-k="act-enc">Action Encoder</button>
+            <button type="button" class="mc t" data-k="tac-enc">Tactile Encoder</button>
+
+            <span class="rl">输入</span>
+            <button type="button" class="mc v io" data-k="vid-in">首帧 + 噪声<small>V₀ · V⁺</small></button>
+            <button type="button" class="mc a io" data-k="act-in">状态 + 噪声<small>s · A⁺</small></button>
+            <button type="button" class="mc t io" data-k="tac-in">当前触觉 + 噪声<small>T₀ · T⁺</small></button>
+          </div>
+          <div class="side">
+            <div class="detail" id="mot-detail" aria-live="polite"></div>
+            <div class="mask">
+              <p class="cap" id="mask-cap">注意力可见性</p>
+              <div class="mgrid" id="mgrid" aria-hidden="true"></div>
+              <p class="foot">行 = query，列 = key。V₀ 首帧、V⁺ 未来视频、s 本体状态、A⁺ 动作块、T₀ 当前触觉、T⁺ 未来触觉。论文只说在 H-Bridge 层“对视频、触觉、动作 token 做联合注意力”，没有写更细的掩码（例如时间因果）。这里只画模态之间是否可见，模态内部画成全可见。<span class="tag read">解读</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="prose">
+        <p><strong>H-Bridge 共享注意力。</strong>借鉴 H-Bridge（CVPR 2026）：跨模态交互只放在中间一组层 𝓑。在这些层里，各专家把特征投影到兼容的注意力维度，在视频、触觉、动作全部 token 上做联合自注意力，再映射回各自的宽度；浅层和深层各算各的。论文给的理由有三条：信息交换集中在网络中段；输入端和输出端保留模态专属的处理；需要跨模态注意力的层更少。</p>
+        <p>表 1 里的 VA、Tac Cond.、Full Joint 三个变体用的是“每一层都联合注意力”；只在中间层联合之后（完整模型），Clean +2.20、Random +1.32。这是整个消融链里 Clean 上最大的一步。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">未披露</span>论文没给的架构细节</h4>
+        <p>𝓑 具体是哪几层（图 2 只标了 ×N / ×L / ×N；按每个专家 30 层推算应有 2N + L = 30 <span class="tag read">解读</span>）；动作块长度 k；未来触觉帧数 T；区域 token 数 N 和宽度 d；注意力有没有时间因果掩码；去噪步数；推理延迟和控制频率；训练算力。</p>
+      </div>
+    </section>
+
+    <!-- ================= 联合训练与推理 ================= -->
+    <section id="train">
+      <p class="eyebrow">方法 · 联合训练与推理</p>
+      <h2>一套 flow matching，三个噪声水平</h2>
+      <div class="eq"><span><b>x</b><sub>σ<sub>m</sub></sub><sup>m</sup> = (1 − σ<sub>m</sub>) <b>x</b><sub>0</sub><sup>m</sup> + σ<sub>m</sub> <b>ε</b><sup>m</sup>,&nbsp;&nbsp;&nbsp; <b>u</b><sup>m</sup> = <b>ε</b><sup>m</sup> − <b>x</b><sub>0</sub><sup>m</sup>,&nbsp;&nbsp; m ∈ {vis, tac, act}</span><span class="no">(9)</span></div>
+      <div class="eq"><span>𝓛<sub>joint</sub> = λ<sub>vis</sub> 𝓛<sub>FM</sub><sup>vis</sup> + λ<sub>tac</sub> 𝓛<sub>FM</sub><sup>tac</sup> + λ<sub>act</sub> 𝓛<sub>FM</sub><sup>act</sup></span><span class="no">(11)</span></div>
+      <div class="prose">
+        <p><strong>训练。</strong>三个干净目标分别是 <b>Z</b><sup>vis,+</sup>、<b>Z</b><sup>tac,+</sup>、<b>A</b><sup>+</sup>。每个模态<strong>独立</strong>采样噪声水平 σ<sub>m</sub> ∈ [0, 1] 和高斯噪声；首帧、本体状态、当前触觉帧始终保持干净，作为条件。专家在 H-Bridge 层交换特征，同时预测各自的速度。视频和动作用 MSE；触觉用加权平方误差，强调真值触觉潜变量里<strong>发生变化</strong>的部分。</p>
+        <p><strong>推理。</strong>未来视频潜变量、未来触觉潜变量、动作三路都从高斯噪声出发，在固定的观测条件 <i>C</i><sub>t</sub> 下，用预测的速度一起从噪声水平 1 走到 0；每一步 H-Bridge 都在交换三路正在演化的表示。最后取出动作块去执行。视频和触觉潜变量可以用冻结的解码器还原成画面和力场，但不参与控制。</p>
+      </div>
+
+      <div class="lab" id="nl-lab">
+        <div class="lab-head">
+          <h4>噪声水平怎么在三路之间安排</h4>
+          <div class="seg" role="group" aria-label="训练或推理">
+            <button type="button" id="nl-train" aria-pressed="true">训练</button>
+            <button type="button" id="nl-infer" aria-pressed="false">推理</button>
+          </div>
+        </div>
+        <div class="chips" aria-label="始终干净的条件">
+          <span class="chip"><b>始终干净</b></span>
+          <span class="chip">指令 ℓ（T5）</span>
+          <span class="chip">首帧 I<sub>t</sub></span>
+          <span class="chip">本体状态 s<sub>t</sub></span>
+          <span class="chip">当前触觉 T<sub>t</sub></span>
+        </div>
+        <div class="nl-rows">
+          <div class="nl-row v"><span class="nm">未来视频 V⁺</span><div class="nl-track"><div class="nl-fill" id="nf-vis"></div></div><span class="nl-val" id="nv-vis">σ = 0.00</span></div>
+          <div class="nl-row t"><span class="nm">未来触觉 T⁺</span><div class="nl-track"><div class="nl-fill" id="nf-tac"></div></div><span class="nl-val" id="nv-tac">σ = 0.00</span></div>
+          <div class="nl-row a"><span class="nm">动作块 A⁺</span><div class="nl-track"><div class="nl-fill" id="nf-act"></div></div><span class="nl-val" id="nv-act">σ = 0.00</span></div>
+          <div class="nl-scale"><span></span><span><span>色条 = 信号占比</span><span>斜纹 = 噪声占比</span></span><span></span></div>
+        </div>
+        <div class="nl-ctrl" id="nl-ctrl-train">
+          <button type="button" class="btn" id="nl-resample">重新采样一组 σ</button>
+          <span class="small muted">每个训练样本，三路各抽各的噪声水平</span>
+        </div>
+        <div class="nl-ctrl" id="nl-ctrl-infer" hidden>
+          <label for="nl-step" class="small">去噪进度</label>
+          <input type="range" id="nl-step" min="0" max="10" step="1" value="0">
+          <button type="button" class="btn" id="nl-play">播放</button>
+        </div>
+        <p class="nl-say" id="nl-say" aria-live="polite"></p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>独立噪声水平的意义</h4>
+        <p>训练时每个模态独立采样 σ，和 UWM（论文引用 [8]）这类统一视频-动作扩散模型同类：同一个网络见过各种“谁干净、谁嘈杂”的组合。理论上这能支持“给定动作预测未来触觉”之类的条件查询，但 ME-Dex 只用了三路同步去噪这一种推理方式，其他查询没有评测。</p>
+      </div>
+    </section>
+
+    <!-- ================= 数据引擎 ================= -->
+    <section id="engine">
+      <p class="eyebrow">方法 · 数据</p>
+      <h2>Agentic Tactile Data Engine</h2>
+      <div class="prose"><p>用途是在仿真中回放和生成动作，给原本没有触觉的数据集补上触觉。论文对它的描述只有一段，流程如下：</p></div>
+      <div class="flow">
+        <div class="box"><b>已有示范</b>RoboTwin、DexJoCo 的视觉 + 动作，没有触觉</div>
+        <div class="arr" aria-hidden="true">→</div>
+        <div class="box"><b>仿真中回放动作</b>让仿真里的力传感器在回放过程中直接记录触觉</div>
+        <div class="arr" aria-hidden="true">→</div>
+        <div class="box"><b>补齐触觉的轨迹</b>触觉与原有视觉、动作对齐</div>
+        <div class="box"><b>生成新轨迹</b>生成并执行新的动作轨迹</div>
+        <div class="arr" aria-hidden="true">→</div>
+        <div class="box"><b>同样记录</b>得到额外的触觉数据</div>
+        <div class="arr" aria-hidden="true">→</div>
+        <div class="box"><b>额外配对数据</b>视觉 + 触觉 + 动作</div>
+        <div class="box full out"><b>输出</b>在共享时间窗上配对的触觉、视觉、动作：既提供当前观测条件，也提供对齐的未来目标，直接用于联合训练。补录后的训练集：RoboTwin 50 任务 27,500 条 Clean + Random 轨迹；DexJoCo 1,100 条示范。</div>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>“Agentic” 指什么没有说清</h4>
+        <p>没有说明 agent 具体负责什么（生成轨迹？筛选？调度？）、新轨迹怎样生成、失败轨迹怎样处理、生成了多少条；也没有说明仿真里力传感器的模型，以及切向力是怎样得到的。</p>
+      </div>
+    </section>
+
+    <!-- ================= 实验设置 ================= -->
+    <section id="setup">
+      <p class="eyebrow">实验设置</p>
+      <h2>在哪里测，跟谁比</h2>
+      <div class="plats">
+        <div class="plat">
+          <h4>RoboTwin <span>双臂夹爪 · 仿真</span></h4>
+          <dl>
+            <dt>触觉</dt><dd>数据引擎在仿真回放中补录（夹爪两个传感面）</dd>
+            <dt>训练</dt><dd>50 任务多任务，27,500 条 Clean + Random 轨迹；另设只用 2,500 条 Clean 轨迹的泛化实验</dd>
+            <dt>评测</dt><dd>Clean 与 Random（域随机化）两种配置；评测次数未写</dd>
+            <dt>基线</dt><dd>π0.5、Fast-WAM、Motus，以及 π0.5+Tac、Fast-WAM+Tac；Clean-only 实验的基线取自 RoboTwin 排行榜</dd>
+          </dl>
+        </div>
+        <div class="plat">
+          <h4>DexJoCo <span>灵巧手 · 仿真</span></h4>
+          <dl>
+            <dt>触觉</dt><dd>同样由数据引擎在仿真中补录</dd>
+            <dt>训练</dt><dd>官方多任务设置，1,100 条示范，6 个单臂 + 5 个双臂任务</dd>
+            <dt>评测</dt><dd>rand-obj 配置；评测次数未写</dd>
+            <dt>基线</dt><dd>DP-T（引自 DexJoCo 论文）、π0.5（按官方配置自训）、π0.5+Tac、DECO（官方榜单数字）、DECO.p（DECO 官方的力-触觉方案，用其发布的 checkpoint，在作者补录触觉的 DexJoCo 数据上）</dd>
+          </dl>
+        </div>
+        <div class="plat">
+          <h4>ManiFeel <span>夹爪 · 仿真</span></h4>
+          <dl>
+            <dt>触觉</dt><dd>基准自带三维触觉力观测</dd>
+            <dt>训练</dt><dd>4 个插接 / 装配任务，每任务 50 条示范，每任务单独训练一个策略</dd>
+            <dt>评测</dt><dd>每任务 50 个评测回合</dd>
+            <dt>基线</dt><dd>ManiFeel 官方策略：Diffusion Policy，以视觉和三维触觉力场为条件</dd>
+          </dl>
+        </div>
+        <div class="plat">
+          <h4>真机 <span>两套平台</span></h4>
+          <dl>
+            <dt>平台</dt><dd>单臂 LeRobot SO-101，夹爪内集成 Paxini PX6AX 触觉传感器；双臂 XR5-10-FS 机械臂 + Xynova Flex2 灵巧手</dd>
+            <dt>任务</dt><dd>插头换插座（SO-101）；叠罐子（Flex2）</dd>
+            <dt>评测</dt><dd>只做定性评估，没有成功率；真机训练数据量未写</dd>
+          </dl>
+        </div>
+      </div>
+      <div class="prose">
+        <p><strong>共同设定。</strong>本文训练的策略每个实验只用一个训练种子。主指标是闭环任务成功率，按各基准官方判据。统一触觉 AE 在多源触觉上单独预训练，训练策略时冻结。</p>
+        <p><strong>基线里的 “+Tac” 怎么加。</strong>都用同一个预训练的统一触觉 AE 编码触觉。π0.5+Tac：触觉 token 和图像、语言 token 拼成前缀，条件化动作专家。Fast-WAM+Tac 和 ME-Dex (Tac Cond.)：触觉 token 拼到 T5 语言 token 后面。其余结构和训练设置与对应基线一致。</p>
+      </div>
+    </section>
+
+    <!-- ================= 结果 ================= -->
+    <section id="results">
+      <p class="eyebrow">结果</p>
+      <h2>三个仿真基准，外加真机定性</h2>
+
+      <h3>RoboTwin · Clean + Random 混合训练</h3>
+      <div class="chartbox">
+        <h4>50 任务平均成功率（%）</h4>
+        <p class="sub">原文 Table 1。点的位置表示数值，横轴从 50 开始。悬停看具体数字。</p>
+        <div class="legend"><span><i class="k k-clean"></i>Clean 评测</span><span><i class="k k-rand"></i>Random 评测</span></div>
+        <div class="scroll"><div id="c-t1"></div></div>
+      </div>
+      <div class="prose">
+        <p>完整模型 91.56 / 91.92，比 Fast-WAM 高 2.34 / 2.70 点，比 Fast-WAM+Tac 高 1.34 / 1.70 点。外部基线加触觉的效果不一致：Random 下 Fast-WAM 加触觉 +1.00，π0.5 加触觉 −3.08。</p>
+      </div>
+
+      <h3>消融：增益一步步从哪来</h3>
+      <div class="tblwrap">
+        <table class="t inc">
+          <thead><tr><th>ME-Dex 变体（原文 Table 1）</th><th class="num">Clean</th><th>Δ Clean</th><th class="num">Random</th><th>Δ Random</th></tr></thead>
+          <tbody id="inc-body"></tbody>
+        </table>
+      </div>
+      <div class="prose small muted"><p>色条长度 = 相对上一行的变化量，满格约 3 个百分点，竖线是 0。所有数字都来自单种子。</p></div>
+
+      <h3>只用 Clean 训练，泛化到 Random</h3>
+      <div class="chartbox">
+        <h4>2,500 条 Clean 示范训练后的成功率（%）</h4>
+        <p class="sub">原文 Table 2。ME-Dex 两种评测下触觉都置零；基线数字取自 RoboTwin 排行榜，不是同条件复现。</p>
+        <div class="legend"><span><i class="k k-clean" style="border-radius:2px"></i>Clean → Clean</span><span><i class="k k-rand"></i>Clean → Random</span></div>
+        <div class="scroll"><div id="c-t2"></div></div>
+      </div>
+      <div class="prose">
+        <p>ME-Dex 89.6 / 68.1，平均 78.9，比列出的最强基线 OLA-Sem 高 7.6 点；Clean 比最强的 4D-WAM 高 8.1 点；Random 和 GigaBrain-0.7 的 67.9 接近。Fast-WAM 在 Random 上只有 1.9，说明这个设定考的主要是对视觉域变化的泛化。</p>
+      </div>
+
+      <h3>DexJoCo · 灵巧手 11 任务</h3>
+      <div class="chartbox">
+        <h4>rand-obj 配置下的成功率（%）</h4>
+        <p class="sub">原文 Table 3。颜色越深数值越高，黑框是每行最高。/B 为双臂任务。DP-T、π0.5、DECO 不用触觉；π0.5+Tac、DECO.p、ME-Dex 用触觉。</p>
+        <div class="scroll"><table class="heat" id="heat"></table></div>
+      </div>
+      <div class="prose">
+        <p>ME-Dex 平均 65.3，高于 DECO.p 57.8 和 DECO 56.4，在 7 个任务上第一。双臂平均 48.8，DECO 和 DECO.p 都是 39.6；Assembly（28.0，其余方法 ≤ 6.0）和 Microwave（88.0）领先明显。优势并不均匀：Click Mouse、Water Plant 输给 DECO，Fold Glasses 输给 DECO.p，Photograph 只有 48.0，而 DECO 是 76.0。</p>
+      </div>
+
+      <h3>ManiFeel · 插接与装配</h3>
+      <div class="chartbox">
+        <h4>单任务训练，每任务 50 回合（%）</h4>
+        <p class="sub">原文 Table 4。</p>
+        <div class="legend"><span><i class="k k-base"></i>ManiFeel 官方策略（Diffusion Policy）</span><span><i class="k k-ours"></i>ME-Dex 1.0</span></div>
+        <div class="scroll"><div id="c-t4"></div></div>
+      </div>
+      <div class="prose">
+        <p>平均 70.0 对 55.0，+15.0 点。最大提升在 Power Plug Insertion（58 → 88），Peg 和 USB 各 +18；Gear Assembly 反而从 66 降到 60。</p>
+      </div>
+
+      <h3>定性结果</h3>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig4-dexjoco.jpg" aria-label="放大原文图 4"><img src="fig/fig4-dexjoco.jpg" width="1800" height="789" alt="原文图 4：DexJoCo 上 π0.5、DECO 与 ME-Dex 的 rollout 对比" loading="lazy"></button>
+        <figcaption><b>原文 Figure 4</b>DexJoCo。左 Assembly（左手拿托盘，右手拿销子插进孔），右 Unlock iPad（拿住 iPad 输入密码 123）。三行依次是 π0.5、DECO、ME-Dex，时间从左往右。两个任务都要一只手稳住物体、另一只手做精细接触，前两者失败，ME-Dex 成功。注意这是挑选的单次 rollout。</figcaption>
+      </figure>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig5-robotwin.jpg" aria-label="放大原文图 5"><img src="fig/fig5-robotwin.jpg" width="1800" height="997" alt="原文图 5：RoboTwin 上四种方法的 rollout 对比" loading="lazy"></button>
+        <figcaption><b>原文 Figure 5</b>RoboTwin。左“用黑头扫描枪扫描茶盒”，右“拉开抽屉，放进肥皂”。四行依次是 π0.5、Fast-WAM、Fast-WAM+Tac、ME-Dex，红圈标出关键交互位置。π0.5 和 Fast-WAM 两个都失败，Fast-WAM+Tac 完成了抽屉但扫描失败，ME-Dex 两个都完成。</figcaption>
+      </figure>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig6-sim-tactile.jpg" aria-label="放大原文图 6"><img src="fig/fig6-sim-tactile.jpg" width="1800" height="798" alt="原文图 6：仿真 rollout 与触觉可视化" loading="lazy"></button>
+        <figcaption><b>原文 Figure 6</b>仿真 rollout 和触觉读数。左 DexJoCo 双手装配：最右一列是两只手的触觉点，分布在各指的指面上。右 RoboTwin 放面包：最右一列是夹爪传感面上的力分布。每行一个时刻，从上往下推进，可以看到接触位置和力模式随动作变化。</figcaption>
+      </figure>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig7-real.jpg" aria-label="放大原文图 7"><img src="fig/fig7-real.jpg" width="1800" height="993" alt="原文图 7：真机 rollout 与触觉可视化" loading="lazy"></button>
+        <figcaption><b>原文 Figure 7</b>真机。左 LeRobot SO-101（夹爪内置 Paxini PX6AX），把插头从一个插座移到另一个；右 Xynova Flex2 灵巧手，把右边的黄罐子叠到另一个罐子上。每行给出头部相机、腕部相机和触觉读数。论文只给了这组定性展示，没有真机成功率。</figcaption>
+      </figure>
+    </section>
+
+    <!-- ================= 读懂它 ================= -->
+    <section id="insight">
+      <p class="eyebrow">读懂它</p>
+      <h2>这些数字真正说明了什么</h2>
+      <div class="cards">
+        <div class="card">
+          <h4>1. 触觉主要在训练时起作用，不在推理时</h4>
+          <p>RoboTwin 上把当前触觉输入置零：91.70 / 91.74，完整模型是 91.56 / 91.92。论文自己的措辞是“对当前触觉输入的敏感度有限”。Clean-only 实验更是全程触觉置零评测。</p>
+          <p class="num">所以要问的不是“触觉反馈有没有用”，而是“把未来触觉当预测目标，能不能让表示更好”。</p>
+        </div>
+        <div class="card">
+          <h4>2. “预测未来触觉”这一步本身只贡献约 0.3–1 点</h4>
+          <p>Full Joint 对比 Tac Cond.：Clean +0.32，Random +1.06。Clean 上最大的一步来自 H-Bridge（+2.20），Random 上最大的一步来自加当前触觉条件（+2.64）。</p>
+          <p class="num">单种子，评测次数未写；差距在这个量级时，结论需要多种子确认。</p>
+        </div>
+        <div class="card">
+          <h4>3. 绝对水平主要来自 WAM 骨干</h4>
+          <p>完全不用触觉的 ME-Dex (VA) 已有 88.74 / 86.90，和 Motus 88.66 / 87.02、Fast-WAM 89.22 在同一档；π0.5 只有 52.76 / 60.74。视频和动作专家都从 Motus 预训练权重初始化。</p>
+          <p class="num">VA 之上的全部改动（触觉条件、触觉预测、H-Bridge）合计 +2.82 / +5.02 点。</p>
+        </div>
+        <div class="card">
+          <h4>4. 朴素地把触觉当条件，可能反而有害</h4>
+          <p>π0.5+Tac 在 RoboTwin Random 上 −3.08，在 DexJoCo 平均从 36.7 降到 30.2（Hammer Nail 40 → 10、Pick Bucket 82 → 46）。Fast-WAM 加触觉则 +1.00。</p>
+          <p class="num">同一个 AE 编码的触觉，接在不同骨干上效果相反。这是本文“别只当条件”论点里最直接的反面证据。</p>
+        </div>
+      </div>
+
+      <h3>容易误解的地方</h3>
+      <div class="prose">
+        <ul>
+          <li><strong>“真机评测证明性能提升”。</strong>摘要写“together with real robot evaluations, demonstrate improved manipulation performance”，但正文的真机部分是定性评估，只有图 7 的 rollout，没有成功率，也没有和任何基线对比。</li>
+          <li><strong>“触觉让 ME-Dex 在 DexJoCo 和 ManiFeel 上领先”。</strong>这两个基准上没有 ME-Dex 不用触觉的变体，领先可能来自 5B 级 WAM 骨干和 Motus 预训练，无法归因到触觉。ManiFeel 的基线是一个 Diffusion Policy，两者规模差距很大。</li>
+          <li><strong>“Clean-only 实验超过排行榜第一”。</strong>基线数字来自 RoboTwin 排行榜，训练协议未必一致；而且 ME-Dex 用了 Motus 预训练。</li>
+          <li><strong>“表 5 证明仿真触觉可信”。</strong>表 5 只是 AE 的重建精度，衡量的是 AE 能否复现仿真信号，不是仿真信号像不像真实传感器。</li>
+          <li><strong>“推理时只输出动作”。</strong>推理时三路一起去噪，每个动作块都要把未来视频也生成一遍（视频专家是 Wan2.2-5B 结构）；只是最后只拿动作去执行。</li>
+        </ul>
+      </div>
+
+      <h3>FAQ</h3>
+      <details class="faq">
+        <summary>预测未来触觉到底带来了什么？</summary>
+        <div class="a">
+          <p>论文唯一直接的证据是 RoboTwin 表 1 的 Full Joint 对 Tac Cond.：Clean +0.32、Random +1.06（单种子）。在此基础上换成 H-Bridge 再加 +2.20 / +1.32，但这一步改的是注意力结构，不是触觉。</p>
+          <p>DexJoCo 和 ManiFeel 上没有“去掉触觉预测”的消融。论文也没有报告未来触觉预测本身准不准：表 5 是 AE 的重建，不是模型对未来的预测。</p>
+          <p><span class="tag read">解读</span>论文的机制解释是“未来触觉监督塑造了与动作专家交换的表示”（式 5），这是合理的假设，但文中没有表示层面的分析来支撑。</p>
+        </div>
+      </details>
+      <details class="faq">
+        <summary>仿真里回放记录的力信号可信吗？</summary>
+        <div class="a">
+          <p>论文只说触觉是“在仿真回放时由力传感器直接记录”，没有给传感器模型、噪声设置，也没有和真实传感器做对比。表 5 衡量的是 AE 能否重建这些信号，不衡量信号本身是否真实。</p>
+          <p>RoboTwin 和 DexJoCo 的全部触觉数据都来自这个途径，而真机只有定性展示。所以“仿真触觉学到的东西能不能迁移到真实触觉”，目前没有证据。</p>
+        </div>
+      </details>
+      <details class="faq">
+        <summary>推理时把触觉置零都不掉点，那触觉还有用吗？</summary>
+        <div class="a">
+          <p>在 RoboTwin 上，当前触觉输入的作用可以忽略，论文自己也承认。若说触觉有用，作用在训练阶段：把未来触觉当预测目标。置零变体仍然保留训练时的触觉监督，推理时也仍在预测未来触觉。</p>
+          <p><span class="tag read">解读</span>RoboTwin 以夹爪抓放为主，接触状态多半能从画面推断出来。要检验触觉反馈的价值，需要真正依赖触觉的测试，比如遮挡、透明或易滑物体、有力度要求的指令，论文没有做。论文在局限里也写了：目前触觉只通过动作块之间的观测更新和重规划起作用。</p>
+        </div>
+      </details>
+      <details class="faq">
+        <summary>为什么要 Canonical Hand，而不是每种传感器一个编码器？</summary>
+        <div class="a">
+          <p>为了让一个 AE 和一个触觉专家通吃所有来源，各来源的 token 要有一致的空间含义和顺序。模板让“食指上的压力”在夹爪和灵巧手上落到同一个槽位；区域掩码区分“没有这块传感器”和“有但没接触”。</p>
+          <p><span class="tag read">解读</span>论文里只有 AE 是跨来源共享训练的，策略在每个基准上各自训练。所以“跨本体共享触觉表示能带来迁移”这一点还没有实验检验，比如在 RoboTwin 触觉上预训练对 DexJoCo 有没有帮助。</p>
+        </div>
+      </details>
+      <details class="faq">
+        <summary>推理成本多大？</summary>
+        <div class="a">
+          <p>论文没有报告延迟、去噪步数或控制频率。</p>
+          <p><span class="tag read">解读</span>每个动作块都要把 Wan2.2-5B 结构的视频专家连同另外两路一起去噪，代价不低。论文引用的 Fast-WAM 研究的正是“推理时不生成视频还行不行”；ME-Dex 没有测试省掉视频的推理变体。</p>
+        </div>
+      </details>
+    </section>
+
+    <!-- ================= 局限 ================= -->
+    <section id="limits">
+      <p class="eyebrow">局限与疑点</p>
+      <h2>作者承认的，和我们读出来的</h2>
+      <div class="two">
+        <div>
+          <h4><span class="tag paper">论文</span>第 5 节自述</h4>
+          <ul>
+            <li>统一触觉编码器的预训练受限于数据规模和传感器多样性。计划扩展到更多传感布局和接触模式，并系统评估对未见配置的泛化。</li>
+            <li>目前策略主要通过观测更新和动作块之间的重规划来使用触觉反馈。计划探索触觉驱动的局部高频反馈控制，在执行中调整联合预测出的动作。</li>
+          </ul>
+        </div>
+        <div>
+          <h4><span class="tag read">解读</span>我们的疑点</h4>
+          <ul>
+            <li><b>仿真触觉的真实度</b>：RoboTwin / DexJoCo 的触觉全部来自仿真回放，没有与真实传感器的对比，也没有 sim-to-real 实验。</li>
+            <li><b>真机规模</b>：只有两个定性任务，没有成功率、试验次数和训练数据量。</li>
+            <li><b>统计强度</b>：单种子；RoboTwin 和 DexJoCo 的评测次数未写；RoboTwin 上的关键差距只有 0.3–2.7 点。</li>
+            <li><b>基线公平性</b>：表 1 里自训的 π0.5 在 Clean 上只有 52.76，而表 2 排行榜上只用 Clean 数据训练的 π0.5 是 70.7，自训基线可能欠调；表 2 与排行榜的训练协议未必一致；DECO 数字来自官方发布；ManiFeel 对比的是规模小得多的 Diffusion Policy。</li>
+            <li><b>归因缺口</b>：DexJoCo 和 ManiFeel 没有去掉触觉的消融；也没有“有 Motus 预训练、没触觉”的对照。</li>
+            <li><b>一个小异常</b>：Fast-WAM 与 Fast-WAM+Tac 的 Clean、Random 数字完全相同（89.22 / 89.22、90.22 / 90.22），论文没有解释。</li>
+            <li><b>细节缺失</b>：k、T、N、d、H-Bridge 层位置、λ 系数、去噪步数、算力、推理延迟都没给；数据引擎只有一段描述。</li>
+            <li><b>未评测未来触觉预测的质量</b>：模型声称在预测未来接触，但没有任何指标衡量这些预测对不对。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 四篇对照 ================= -->
+    <section id="four">
+      <p class="eyebrow">放到四篇里看</p>
+      <h2>力 / 触觉进入机器人基础模型的四个位置</h2>
+      <div class="prose"><p>这一批四篇按时间排开，力 / 触觉在模型里的位置一路后移：从动作解码前的条件，到输出力目标再交给力控，再到被世界模型当作要预测的对象。</p></div>
+      <ol class="tl">
+        <li><span class="d">2025-05 · 2505.22159</span><span class="n">ForceVLA</span>6 轴力 / 力矩当一等模态，force-aware MoE 在动作解码阶段融合。</li>
+        <li><span class="d">2025-07 · 2507.09160</span><span class="n">Tactile-VLA</span>触觉 token 进 VLA 前缀，混合位置-力控制器执行学到的力目标。</li>
+        <li><span class="d">2026-08 · 2608.30237</span><span class="n">Motus2</span>世界模型 + 轻量触觉专家：块内高频精修动作，训练时预测未来力。</li>
+        <li class="me"><span class="d">2026-09 · 2609.21449</span><span class="n">ME-Dex 1.0</span>触觉与视频并列为未来观测，三专家联合生成；跨本体统一表示。</li>
+      </ol>
+      <div class="tblwrap">
+        <table class="t cmp">
+          <thead><tr><th></th><th>ForceVLA</th><th>Tactile-VLA</th><th class="me">ME-Dex 1.0</th><th>Motus2</th></tr></thead>
+          <tbody>
+            <tr><th>骨干</th><td>π0 类 VLA</td><td>VLA，共享部分用 π0 参数初始化</td><td class="me">WAM：Wan2.2-5B 视频专家 + 动作专家（Motus 初始化）+ 触觉专家</td><td>通用世界模型，共享权重给出 policy / simulator / evaluator 三个接口</td></tr>
+            <tr><th>力 / 触觉的形态</th><td>6 轴力 / 力矩向量</td><td>UMI 夹爪上的双高分辨率触觉传感器（法向 + 剪切）</td><td class="me">多源分布式触觉阵列，每面 3×H×W 力场；夹爪 + 灵巧手</td><td>灵巧手力信号（90 Hz），Sharpa Wave 另有形变图像</td></tr>
+            <tr><th>进入模型的方式</th><td>力投影成 token，与视觉-语言嵌入经稀疏 MoE 融合，指导 flow 动作专家</td><td>MLP 把触觉历史编码成一个 token，放进 Transformer 输入前缀</td><td class="me">当前触觉作干净条件，未来触觉作生成目标；H-Bridge 中层共享注意力</td><td>轻量触觉专家读取主干缓存的中间动作块和 KV，用最新触觉窗口精修</td></tr>
+            <tr><th>预测未来力 / 触觉</th><td>否</td><td>输出的是力目标，交给控制器</td><td class="me">是，推理时也联合生成</td><td>是，但只作训练期辅助目标</td></tr>
+            <tr><th>触觉影响执行的频率</th><td>每次生成动作时作为条件</td><td>混合位置-力控制器按力误差 ΔF 调整执行</td><td class="me">动作块之间（观测更新 + 重规划）</td><td>块内每 0.2 s 一次</td></tr>
+            <tr><th>数据来源</th><td>自采 ForceVLA-Data：5 个接触密集任务，视觉、本体、力 / 力矩同步</td><td>基于 UMI 的手持采集，触觉 100 Hz、视觉 20 Hz，下采样对齐</td><td class="me">仿真回放补录（RoboTwin / DexJoCo）+ ManiFeel 原生触觉 + 真机；Canonical Hand 统一夹爪与灵巧手</td><td>第一视角人类数据（单目 → 双目）→ 机器人域；触觉专家用目标任务后训练数据，两种灵巧手共用一个结构</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>ME-Dex 和 Motus2：同一条世界模型路线，触觉放在两个不同的位置</h3>
+      <div class="prose">
+        <p>两者渊源很近：ME-Dex 的视频和动作专家从 Motus（第一代）的权重初始化，Motus2 是同一清华团队的下一代，ME-Dex 的相关工作一节也专门提到了 Motus2。但两者给触觉的角色几乎相反：</p>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <h4>ME-Dex 1.0 · 触觉是“重”的观测模态</h4>
+          <p>30 层、宽 512 的完整触觉专家，未来触觉以 N 个空间区域 token × T 帧的形式和视频一起联合去噪，推理时也生成。触觉只在动作块之间通过新观测起作用，高频反馈留作未来工作。</p>
+          <p class="num">证据：仿真上 VA → 完整模型 +2.8 / +5.0 点（含 H-Bridge）；真机无数字。</p>
+        </div>
+        <div class="card">
+          <h4>Motus2 · 触觉是“轻”的快速修正通道</h4>
+          <p>30 层、宽 128 的轻量触觉专家。主干把 48 步动作块只去噪到 σ<sub>c</sub> = 0.2，然后切成 8 个 6 步子块（30 Hz 下各 0.2 s），每个子块执行前用最新触觉窗口完成 σ<sub>c</sub> → 0。未来力预测只在训练时用；精修动作的 token 看不到加噪的未来力 token。</p>
+          <p class="num">证据：真机两任务（各 20 次）60.0% → 72.5%。</p>
+        </div>
+      </div>
+      <div class="chartbox">
+        <h4>触觉在一个动作块里被读几次</h4>
+        <p class="sub">示意，横轴不按真实时间比例。ME-Dex 的块长和控制频率论文未给出；Motus2 的数字来自其附录 E。</p>
+        <div class="scroll">
+          <svg class="timing" viewBox="0 0 760 224" role="img" aria-label="ME-Dex 每个动作块读一次触觉，Motus2 每个动作块读八次触觉">
+            <text x="0" y="52" class="lab">ME-Dex 1.0</text>
+            <text x="0" y="68" class="sm">每块读一次</text>
+            <polygon class="tk" points="130,20 136,26 130,32 124,26"/>
+            <text x="142" y="30" class="sm">读当前触觉（作为条件）</text>
+            <rect x="124" y="38" width="196" height="36" rx="5" class="b-j"/>
+            <text x="222" y="61" text-anchor="middle">三路联合去噪 V + T + A</text>
+            <rect x="326" y="38" width="410" height="36" rx="5" class="b-e"/>
+            <text x="531" y="61" text-anchor="middle">执行整个动作块（k 步，论文未给）→ 下一块</text>
+
+            <line x1="0" y1="100" x2="760" y2="100" class="ax"/>
+
+            <text x="0" y="152" class="lab">Motus2</text>
+            <text x="0" y="168" class="sm">每块读八次</text>
+            <rect x="124" y="138" width="150" height="36" rx="5" class="b-s"/>
+            <text x="199" y="161" text-anchor="middle">主干去噪到 σc = 0.2</text>
+            <g id="motus-sub"></g>
+            <text x="280" y="122" class="sm">每个子块执行前：最新触觉窗口 → 触觉专家完成 σc → 0</text>
+            <text x="280" y="196" class="sm">48 个动作 @ 30 Hz ≈ 1.6 s，分 8 个子块；力信号 90 Hz；未来力预测只在训练时用</text>
+          </svg>
+        </div>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>两条路线可以互补</h4>
+        <p>ME-Dex 的局限一节写的“触觉驱动的局部高频反馈控制”，正是 Motus2 已经实现的做法；反过来，Motus2 局限一节说触觉手套数据难以跨本体迁移，而跨本体统一表示正是 ME-Dex 的 Canonical Hand + 统一 AE 想解决的。ME-Dex 在 RoboTwin 上“推理时置零触觉不掉点”的结果也说明：只在块间读触觉，反馈价值很难体现；要让触觉在执行中起作用，块内的快速修正通道可能是必要的。</p>
+      </div>
+    </section>
+
+    <!-- ================= 术语表 ================= -->
+    <section id="glossary">
+      <p class="eyebrow">术语表</p>
+      <h2>术语与缩写</h2>
+      <details class="gl">
+        <summary>展开术语表（16 条）</summary>
+        <dl>
+          <dt>WAM</dt><dd>World Action Model，世界动作模型：联合预测未来视频和动作，把视频模型学到的动力学带进动作生成。</dd>
+          <dt>World Action Tactile Model</dt><dd>本文的叫法：在 WAM 上再联合预测未来触觉。</dd>
+          <dt>MoT</dt><dd>Mixture-of-Transformers：每个模态一套独立 Transformer 参数，在部分层上通过注意力交互。不同于按 token 路由的 MoE。</dd>
+          <dt>H-Bridge</dt><dd>只在中间一组层做跨模态联合注意力、浅层和深层保持独立的结构，来自 H-Bridge（CVPR 2026）。</dd>
+          <dt>Flow matching</dt><dd>本文用线性插值 x<sub>σ</sub> = (1−σ)x<sub>0</sub> + σε，回归速度 u = ε − x<sub>0</sub>；推理时从 σ = 1 积分到 0。</dd>
+          <dt>Canonical Hand Model</dt><dd>以人手为模板的“规范手”，左右手各有手指区和手掌区；各种夹爪、灵巧手的传感面都映射到这里。</dd>
+          <dt>区域 token</dt><dd>统一触觉 AE 的输出单位：每个规范槽位一个 token，共 N 个，宽度 d。</dd>
+          <dt>布局掩码 / 区域掩码</dt><dd>前者标出传感面上哪些网格点有效；后者标出规范手上哪些区域在这个本体上存在。</dd>
+          <dt>死区 / asinh 压缩</dt><dd>预处理：小于阈值的读数平滑压到零；asinh 压缩大力值的动态范围。</dd>
+          <dt>Clean / Random</dt><dd>RoboTwin 的两种环境配置：无域随机化，和开启场景、杂物、光照等域随机化。</dd>
+          <dt>rand-obj</dt><dd>DexJoCo 的一种评测配置，从名字看是物体随机化，论文没有解释。</dd>
+          <dt>+Tac</dt><dd>本文给基线加的触觉条件版本，用同一个统一触觉 AE 编码触觉。</dd>
+          <dt>DECO / DECO.p</dt><dd>解耦多模态扩散 Transformer；DECO.p 是加了即插即用触觉适配器的版本。</dd>
+          <dt>Fast-WAM</dt><dd>研究“推理时不生成未来视频”的 WAM。</dd>
+          <dt>Motus</dt><dd>清华团队的统一潜动作世界模型（MoT 结构），ME-Dex 的视频和动作专家从它初始化。</dd>
+          <dt>Paxini PX6AX / Xynova Flex2</dt><dd>真机用的夹爪触觉传感器 / 带触觉的灵巧手。</dd>
+        </dl>
+      </details>
+    </section>
+  </main>
+</div>
+
+<footer class="page">
+  <p>数字取自 arXiv 源码（2609.21449v2）的 tex 表格，图片为源码原图。标 <span class="tag read">解读</span> 的是本页的判断，不是论文的主张。</p>
+</footer>
+
+<div class="tip" id="tip" hidden></div>
+<dialog id="lb" aria-label="放大查看">
+  <div class="box"><img id="lb-img" alt=""></div>
+  <div class="bar"><span id="lb-cap"></span><button type="button" id="lb-close">关闭</button></div>
+</dialog>
+
+<script>
+(function(){
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, text){ const e = document.createElementNS(NS, tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+  function cssv(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- tooltip ---------- */
+  const tip = $('#tip');
+  function placeTip(x, y){ const r = tip.getBoundingClientRect(); let l = x + 14, t = y + 14; if (l + r.width > innerWidth - 8) l = x - r.width - 14; if (t + r.height > innerHeight - 8) t = y - r.height - 14; tip.style.left = Math.max(8, l) + 'px'; tip.style.top = Math.max(8, t) + 'px'; }
+  function tipTarget(e){ return e.target && e.target.closest ? e.target.closest('[data-tip]') : null; }
+  document.addEventListener('pointerover', e => { const t = tipTarget(e); if (!t) return; tip.innerHTML = t.getAttribute('data-tip'); tip.hidden = false; placeTip(e.clientX, e.clientY); });
+  document.addEventListener('pointermove', e => { if (tip.hidden) return; if (!tipTarget(e)) { tip.hidden = true; return; } placeTip(e.clientX, e.clientY); });
+  document.addEventListener('pointerout', e => { const t = tipTarget(e); if (t && !t.contains(e.relatedTarget)) tip.hidden = true; });
+  document.addEventListener('focusin', e => { const t = tipTarget(e); if (!t) return; tip.innerHTML = t.getAttribute('data-tip'); tip.hidden = false; const r = t.getBoundingClientRect(); placeTip(r.right, r.top); });
+  document.addEventListener('focusout', () => { tip.hidden = true; });
+
+  /* ---------- lightbox ---------- */
+  const lb = $('#lb');
+  $$('figure.plate .zoom').forEach(b => b.addEventListener('click', () => {
+    $('#lb-img').src = b.dataset.src;
+    const cap = b.parentElement.querySelector('figcaption b');
+    $('#lb-cap').textContent = cap ? cap.textContent : '';
+    if (lb.showModal) lb.showModal(); else lb.setAttribute('open', '');
+  }));
+  $('#lb-close').addEventListener('click', () => lb.close());
+  lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+
+  /* ---------- TOC highlight ---------- */
+  const links = $$('.toc a');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(ents => {
+      ents.forEach(en => { if (en.isIntersecting) { links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id)); } });
+    }, { rootMargin: '-35% 0px -60% 0px' });
+    $$('main section').forEach(s => io.observe(s));
+  }
+
+  /* ---------- hero tactile field ---------- */
+  (function(){
+    const cv = $('#field'); if (!cv) return;
+    const ctx = cv.getContext('2d');
+    let W = 0, H = 0, raf = 0, visible = true, t0 = performance.now();
+    function hex(c){ c = c.replace('#',''); if (c.length === 3) c = c.split('').map(x => x + x).join(''); const n = parseInt(c, 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+    function mix(a, b, u){ return a.map((v, i) => Math.round(v + (b[i] - v) * u)); }
+    function size(){ const r = cv.getBoundingClientRect(); const d = Math.min(2, devicePixelRatio || 1); W = r.width; H = r.height; cv.width = Math.round(W * d); cv.height = Math.round(H * d); ctx.setTransform(d, 0, 0, d, 0, 0); }
+    function blob(t, ph){ return { x: .5 + .23 * Math.sin(.37 * t + ph), y: .5 + .2 * Math.sin(.53 * t + .7 + ph * 1.3), vx: .23 * .37 * Math.cos(.37 * t + ph), vy: .2 * .53 * Math.cos(.53 * t + .7 + ph * 1.3) }; }
+    function draw(t){
+      if (!W) size();
+      const lo = hex(cssv('--tac')), mi = hex(cssv('--mid')), hi = hex(cssv('--hot'));
+      const empty = cssv('--surface-2'), ink = cssv('--ink');
+      ctx.clearRect(0, 0, W, H);
+      const cols = 22, rows = 13, cell = Math.min(W / cols, H / rows), ox = (W - cell * cols) / 2, oy = (H - cell * rows) / 2;
+      const b1 = blob(t, 0), b2 = blob(t, 2.2);
+      const press = .45 + .55 * (.5 + .5 * Math.sin(.8 * t));
+      const aspect = cols / rows;
+      for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+        const x = (i + .5) / cols, y = (j + .5) / rows;
+        let f = 0, tx = 0, ty = 0;
+        [[b1, 1], [b2, .75]].forEach(([b, w]) => {
+          const dx = (x - b.x) * aspect * .62, dy = y - b.y, d2 = dx * dx + dy * dy;
+          const g = w * press * Math.exp(-d2 / (2 * .085 * .085));
+          f += g; tx += g * (b.vx * 9 + dx * 1.6); ty += g * (b.vy * 9 + dy * 1.6);
+        });
+        f = Math.min(1, f);
+        const px = ox + i * cell, py = oy + j * cell, s = cell - 2.5;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(px + 1.25, py + 1.25, s, s, 2.5); else ctx.rect(px + 1.25, py + 1.25, s, s);
+        if (f < .08) { ctx.fillStyle = empty; ctx.fill(); continue; }
+        const u = (f - .08) / .92;
+        const c = u < .5 ? mix(lo, mi, u / .5) : mix(mi, hi, (u - .5) / .5);
+        ctx.fillStyle = 'rgb(' + c.join(',') + ')'; ctx.fill();
+        const m = Math.hypot(tx, ty);
+        if (m > .02) {
+          const L = Math.min(cell * .46, m * cell * 1.1);
+          const cx = px + cell / 2, cy = py + cell / 2;
+          ctx.strokeStyle = ink; ctx.globalAlpha = .7; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + tx / m * L, cy + ty / m * L); ctx.stroke(); ctx.globalAlpha = 1;
+        }
+      }
+    }
+    function loop(now){ draw((now - t0) / 1000 + 2); raf = visible ? requestAnimationFrame(loop) : 0; }
+    size();
+    if (reduce) { draw(3.2); }
+    else {
+      raf = requestAnimationFrame(loop);
+      if ('IntersectionObserver' in window) new IntersectionObserver(e => { visible = e[0].isIntersecting; if (visible && !raf) raf = requestAnimationFrame(loop); }).observe(cv);
+    }
+    addEventListener('resize', () => { size(); if (reduce) draw(3.2); });
+    const mq = matchMedia('(prefers-color-scheme: dark)'); if (mq.addEventListener) mq.addEventListener('change', () => { if (reduce) draw(3.2); });
+  })();
+
+  /* ---------- hand explorer ---------- */
+  (function(){
+    const svg = $('#hand-svg'); if (!svg) return;
+    const G = {
+      thumb: { x: 26, y: 124, w: 26, h: 80, rot: -20, cx: 40, cy: 204 },
+      index: { x: 52, y: 40, w: 22, h: 100 },
+      middle:{ x: 78, y: 24, w: 22, h: 116 },
+      ring:  { x: 104, y: 34, w: 22, h: 106 },
+      little:{ x: 130, y: 60, w: 20, h: 80 },
+      palm:  { x: 48, y: 132, w: 104, h: 110 }
+    };
+    const NAMES = { thumb: '拇指', index: '食指', middle: '中指', ring: '无名指', little: '小指', palm: '手掌' };
+    const FING = ['thumb', 'index', 'middle', 'ring', 'little', 'palm'];
+    const defs = el('defs');
+    const pat = el('pattern', { id: 'hatch', width: 6, height: 6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' });
+    pat.append(el('rect', { width: 6, height: 6, style: 'fill:var(--surface-2)' }));
+    pat.append(el('line', { x1: 0, y1: 0, x2: 0, y2: 6, style: 'stroke:var(--line);stroke-width:2.2' }));
+    defs.append(pat); svg.append(defs);
+    let preset = 'gripper';
+    let state = {};
+    function reset(){
+      state = {};
+      ['L', 'R'].forEach(h => FING.forEach(f => {
+        if (preset === 'gripper') {
+          if (f === 'thumb' || f === 'index') { for (let i = 0; i < 4; i++) state[h + '-' + f + '-' + i] = (i === 1 || i === 2) ? 'hot' : 'obs'; }
+          else state[h + '-' + f] = 'mask';
+        } else {
+          const hotSet = h === 'R' ? ['thumb', 'index', 'middle', 'palm'] : ['palm'];
+          state[h + '-' + f] = hotSet.indexOf(f) >= 0 ? 'hot' : 'obs';
+        }
+      }));
+    }
+    function shape(g, key, cls, box, extra){
+      const r = el('rect', Object.assign({ x: box.x, y: box.y, width: box.w, height: box.h, rx: Math.min(11, box.w / 2), class: 'rg ' + cls, 'data-key': key, tabindex: 0, role: 'button' }, extra || {}));
+      g.append(r); return r;
+    }
+    function render(){
+      $$('g.hand', svg).forEach(n => n.remove());
+      [['L', 'translate(198,8) scale(-1,1)'], ['R', 'translate(222,8)']].forEach(([h, tf]) => {
+        const g = el('g', { class: 'hand', transform: tf });
+        FING.forEach(f => {
+          const b = G[f];
+          const fg = el('g', b.rot ? { transform: 'rotate(' + b.rot + ' ' + b.cx + ' ' + b.cy + ')' } : {});
+          const label = (h === 'L' ? '左手' : '右手') + NAMES[f];
+          if (preset === 'gripper' && (f === 'thumb' || f === 'index')) {
+            shape(fg, '', 'frame', b, { tabindex: -1, role: 'presentation', 'aria-label': label });
+            const ph = (b.h - 8) / 4;
+            for (let i = 0; i < 4; i++) {
+              const k = h + '-' + f + '-' + i;
+              shape(fg, k, state[k], { x: b.x + 4, y: b.y + 4 + i * ph, w: b.w - 8, h: ph - 3 }, { rx: 3, 'aria-label': label + ' patch ' + (i + 1) });
+            }
+          } else {
+            const k = h + '-' + f;
+            shape(fg, k, state[k], b, { 'aria-label': label });
+          }
+          g.append(fg);
+        });
+        svg.append(g);
+      });
+      if (!$('text.lbl', svg)) {
+        svg.append(el('text', { x: 118, y: 284, class: 'lbl', 'text-anchor': 'middle' }, '左手'));
+        svg.append(el('text', { x: 302, y: 284, class: 'lbl', 'text-anchor': 'middle' }, '右手'));
+      }
+      info();
+    }
+    function info(){
+      const vals = Object.values(state);
+      const hot = vals.filter(v => v === 'hot').length, obs = vals.filter(v => v === 'obs').length, mask = vals.filter(v => v === 'mask').length;
+      if (preset === 'gripper') {
+        $('#hand-desc').innerHTML = '每只夹爪有两个传感面，分别映射到规范手的<b>拇指区</b>和<b>食指区</b>；每个面切成 4 个有序 patch，在各自 patch 内池化，<b>每面 4 个 token</b>。两只夹爪共 4 个面、16 个 token。中指、无名指、小指和手掌在这个本体上不存在，被区域掩码盖住。';
+        $('#hand-count').textContent = '有效 token ' + (hot + obs) + '（接触 ' + hot + '） · 被掩码的区域 ' + mask + ' 个';
+      } else {
+        $('#hand-desc').innerHTML = '灵巧手的每个传感面分配到它所在的手指或手掌区，<b>整面池化成 1 个 token</b>。这里把左右手 12 个区都画成有传感器只是示意，实际覆盖哪些区取决于具体的手和传感布局，论文没有逐一列出。';
+        $('#hand-count').textContent = '有效 token ' + (hot + obs) + '（接触 ' + hot + '） · 被掩码的区域 ' + mask + ' 个';
+      }
+    }
+    function act(t){
+      const k = t.getAttribute('data-key'); if (!k) return;
+      const s = state[k];
+      if (s === 'mask') {
+        $('#hand-msg').innerHTML = '<b>这块区域在当前本体上没有传感器。</b>它被区域掩码盖住，编码器输出为 0，也不参与区域间注意力。这和“有传感器但没接触”是两回事：后者会被正常编码，而且 𝓛_latent 会把它的特征拉向同一布局下全零输入的特征。';
+        return;
+      }
+      state[k] = s === 'hot' ? 'obs' : 'hot';
+      t.setAttribute('class', 'rg ' + state[k]);
+      $('#hand-msg').innerHTML = state[k] === 'hot'
+        ? '<b>接触。</b>这个 token 携带法向力和切向力的局部模式。按下和松开的瞬间正是 𝓛_change 加权最重的地方。'
+        : '<b>有传感器，没接触。</b>这个 token 照常输出，模型知道“这里测过了，没东西”。';
+      info();
+    }
+    svg.addEventListener('click', e => { const t = e.target.closest('.rg'); if (t) act(t); });
+    svg.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { const t = e.target.closest('.rg'); if (t) { e.preventDefault(); act(t); } } });
+    function setPreset(p){ preset = p; $('#hp-gripper').setAttribute('aria-pressed', p === 'gripper'); $('#hp-dex').setAttribute('aria-pressed', p === 'dex'); reset(); render(); $('#hand-msg').textContent = '点击有传感器的区域（或 patch）切换“接触 / 无接触”；点击斜线区域看掩码的含义。'; }
+    $('#hp-gripper').addEventListener('click', () => setPreset('gripper'));
+    $('#hp-dex').addEventListener('click', () => setPreset('dex'));
+    reset(); render();
+  })();
+
+  /* ---------- MoT explorer ---------- */
+  (function(){
+    const mot = $('#mot'); if (!mot) return;
+    const D = {
+      'vid-in': ['视频流的输入', '<p>训练时：编码后的<b>首帧</b>（干净条件，就是当前图像 I<sub>t</sub>）+ <b>加噪的未来视频潜变量</b>。推理时未来部分从纯高斯噪声开始。</p><p>指令文本经 T5 编码，通过视频专家块里的 cross-attention 进入（图 2 中 Video Expert 标注 “Cross Attn &amp; FFN”）。</p>'],
+      'act-in': ['动作流的输入', '<p><b>本体状态 s<sub>t</sub></b>（干净条件）+ <b>加噪的真值动作块</b> A<sup>+</sup> = (a<sub>t</sub>, …, a<sub>t+k−1</sub>)。</p><p>动作块长度 k 论文没有给出。</p>'],
+      'tac-in': ['触觉流的输入', '<p>冻结的统一触觉 AE 编码的<b>当前触觉帧</b>（干净条件，N 个区域 token）+ <b>加噪的未来触觉潜变量</b> Z<sup>tac,+</sup> ∈ ℝ<sup>T×N×d</sup>，由 AE 对未来 T 帧逐帧编码得到。</p><p>T、N、d 论文没有给出。</p>'],
+      'vid-enc': ['Video Encoder', '<p>把首帧和未来视频编码到潜空间（论文记作 E<sub>vis</sub>）。视频专家沿用 Wan2.2-5B 的结构。</p>'],
+      'act-enc': ['Action Encoder', '<p>把本体状态和动作映射成 token。这是图 2 里的模块名，具体结构论文没写。</p>'],
+      'tac-enc': ['Tactile Encoder', '<p>触觉潜变量来自冻结的 Unified Tactile AE，逐帧编码；图中的 Tactile Encoder 把它接入触觉专家，接口细节论文没写。</p>'],
+      'vid-exp': ['Video Expert · 30 层 · 宽 3072', '<p>沿用 Wan2.2-5B，从 Motus 权重初始化（Motus 在多样的机器人数据上预训练过）。在 H-Bridge 层里，它的 QKV 投影到共享注意力维度，和另外两路一起做联合自注意力，再映射回 3072 宽，走自己的 cross-attention（对 T5 指令）和 FFN。</p><p>色条表示隐藏宽度的相对大小：3072 : 1024 : 512。</p>'],
+      'act-exp': ['Action Expert · 30 层 · 宽 1024', '<p>从 Motus 权重初始化。式 (5) 说的就是这里：在 H-Bridge 层，动作隐状态的更新同时读取视频和触觉的隐状态，这是动作“看见”未来画面和未来接触的唯一通道。</p>'],
+      'tac-exp': ['Tactile Expert · 30 层 · 宽 512', '<p><b>随机初始化</b>，是三个专家里最窄的。本质是一个在潜空间里给触觉序列去噪的 DiT，以当前触觉帧为条件，并与视频、动作专家耦合。</p><p>它把触觉当成和视频结构类似的时序观测：T 帧，每帧是双手可用触觉信号的 N 个区域 token。</p>'],
+      'blk': null,
+      'vid-dec': ['Video Decoder', '<p>冻结的视觉解码器，可以把预测的视频潜变量还原成画面。只用于可视化和分析，不参与控制。</p>'],
+      'act-dec': ['Action Decoder', '<p>把动作 token 映射回动作空间。输出的动作块是整个模型唯一用于控制的量。</p>'],
+      'tac-dec': ['Tactile Decoder', '<p>冻结的统一触觉 AE 解码器，把每帧预测的触觉潜变量还原成每个传感面的力场（法向 + 两个切向）。只用于可视化和分析。</p>'],
+      'vid-out': ['未来视频', '<p>推理时和动作一起生成出来，但不用于控制。论文的定位是“动作生成的参考”：它的作用在于中间表示，而不在输出本身。</p>'],
+      'act-out': ['动作块 A⁺', '<p>三路联合去噪到 σ = 0 后取出执行。执行完一个块，拿到新观测，再生成下一块。论文说触觉目前就是通过这种块间的观测更新和重规划来起作用的。</p>'],
+      'tac-out': ['未来触觉', '<p>预测的未来触觉潜变量，可用冻结的 AE 解码器还原成力场。论文没有报告这些预测的准确度。</p>']
+    };
+    const BAND = {
+      shallow: ['浅层 · 独立 ×N', '<p>三个专家各自处理自己的 token，互相看不见。论文的理由：在输入端保留模态专属的处理。</p>'],
+      bridge: ['中层 · H-Bridge ×L', '<p>各专家把特征投影到兼容的注意力维度，在<b>视频 + 动作 + 触觉的全部 token</b> 上做一次联合自注意力，再映射回各自宽度（3072 / 1024 / 512）；FFN 仍然各用各的。</p><p>动作专家就是在这里读到“未来视频”和“未来触觉”的中间表示，对应式 (5)。</p>'],
+      deep: ['深层 · 独立 ×N', '<p>再次各自独立，在输出端保留模态专属的处理。N、L 的取值论文没有给出；每个专家都是 30 层，按图 2 推算 2N + L = 30。</p>']
+    };
+    const FJ = '<p class="small muted">当前是<b>消融设置</b>（表 1 中的 VA / Tac Cond. / Full Joint）：每一层都做联合注意力。换成只在中层联合（完整模型）后，Clean +2.20、Random +1.32。</p>';
+    let mode = 'hbridge', band = 'bridge', key = null;
+    const toks = [['V₀', 'v', 'vis'], ['V⁺', 'v', 'vis'], ['s', 'a', 'act'], ['A⁺', 'a', 'act'], ['T₀', 't', 'tac'], ['T⁺', 't', 'tac']];
+    const grid = $('#mgrid');
+    function renderMask(){
+      grid.innerHTML = '';
+      const joint = mode === 'fulljoint' || band === 'bridge';
+      grid.append(Object.assign(document.createElement('span'), { className: 'hd' }));
+      toks.forEach(k => grid.append(Object.assign(document.createElement('span'), { className: 'hd', textContent: k[0] })));
+      toks.forEach(q => {
+        grid.append(Object.assign(document.createElement('span'), { className: 'hd', textContent: q[0] }));
+        toks.forEach(k => {
+          const on = joint || q[2] === k[2];
+          const c = document.createElement('span');
+          c.className = 'cell' + (on ? ' on ' + (q[2] === k[2] ? q[1] : 'x') : '');
+          grid.append(c);
+        });
+      });
+      const nm = { shallow: '浅层', bridge: '中层 H-Bridge', deep: '深层' }[band];
+      $('#mask-cap').textContent = '注意力可见性 · ' + nm + (mode === 'fulljoint' ? '（消融：每层联合）' : '') + (joint ? ' · 跨模态可见' : ' · 只看本模态');
+    }
+    function renderDetail(){
+      let h = '';
+      if (key && D[key]) h = '<h5>' + D[key][0] + '</h5>' + D[key][1];
+      else {
+        const b = BAND[band];
+        if (mode === 'fulljoint' && band !== 'bridge') h = '<h5>' + b[0].replace('独立', '联合（消融）') + '</h5><p>消融设置下这一段也做联合自注意力。</p>' + FJ;
+        else h = '<h5>' + b[0] + '</h5>' + b[1] + (mode === 'fulljoint' ? FJ : '');
+      }
+      $('#mot-detail').innerHTML = h;
+    }
+    function mark(){
+      $$('[aria-pressed]', mot).forEach(n => n.setAttribute('aria-pressed', 'false'));
+      if (key && key !== 'blk') { const n = $('[data-k="' + key + '"]', mot); if (n) n.setAttribute('aria-pressed', 'true'); }
+      $$('.rl.band[data-band="' + band + '"]', mot).forEach(n => n.setAttribute('aria-pressed', 'true'));
+      $$('.jbar[data-band="' + band + '"]', mot).forEach(n => n.setAttribute('aria-pressed', 'true'));
+    }
+    mot.addEventListener('click', e => {
+      const t = e.target.closest('button'); if (!t) return;
+      const b = t.getAttribute('data-band'); const k = t.getAttribute('data-k');
+      if (b) band = b;
+      key = (k && k !== 'blk') ? k : null;
+      if (t.classList.contains('band') || t.classList.contains('jbar')) key = null;
+      mark(); renderDetail(); renderMask();
+    });
+    function setMode(m){ mode = m; mot.setAttribute('data-mode', m === 'fulljoint' ? 'fulljoint' : 'hbridge'); $('#mm-hb').setAttribute('aria-pressed', m === 'hbridge'); $('#mm-fj').setAttribute('aria-pressed', m === 'fulljoint'); key = null; mark(); renderDetail(); renderMask(); }
+    $('#mm-hb').addEventListener('click', () => setMode('hbridge'));
+    $('#mm-fj').addEventListener('click', () => setMode('fulljoint'));
+    mark(); renderDetail(); renderMask();
+  })();
+
+  /* ---------- noise lab ---------- */
+  (function(){
+    let mode = 'train', sig = { vis: .72, tac: .15, act: .46 }, timer = 0;
+    const word = s => s < .25 ? '几乎干净' : s > .75 ? '很嘈杂' : '中等噪声';
+    const NM = { vis: '未来视频', tac: '未来触觉', act: '动作块' };
+    function paint(s){ ['vis', 'tac', 'act'].forEach(m => { $('#nf-' + m).style.width = ((1 - s[m]) * 100).toFixed(1) + '%'; $('#nv-' + m).textContent = 'σ = ' + s[m].toFixed(2); }); }
+    function render(){
+      if (mode === 'train') {
+        paint(sig);
+        $('#nl-say').innerHTML = '这个训练样本里：' + ['vis', 'tac', 'act'].map(m => NM[m] + '<b>' + word(sig[m]) + '</b>').join('，') + '。模型要在这种组合下，同时回归三路各自的速度 u = ε − x<sub>0</sub>。视频和动作用 MSE，触觉用强调变化部分的加权平方误差；三项按 λ 加权求和。因为三路噪声互不相关，模型见过“某一路几乎干净、另一路很嘈杂”的各种组合。';
+      } else {
+        const st = +$('#nl-step').value, s = 1 - st / 10, o = { vis: s, tac: s, act: s };
+        paint(o);
+        let txt;
+        if (st === 0) txt = '<b>起点 σ = 1。</b>三路都是纯高斯噪声，只有条件 C<sub>t</sub>（指令、首帧、状态、当前触觉）是干净的。';
+        else if (st < 10) txt = '<b>第 ' + st + ' 步。</b>三路在同一次前向里一起更新：H-Bridge 层交换三路当前的中间表示，各自按预测的速度往 σ = 0 走一步。步数只是示意，论文没有给去噪步数。';
+        else txt = '<b>终点 σ = 0。</b>取出动作块去执行。视频和触觉潜变量可以用冻结解码器还原成画面和力场，只用于可视化，不参与控制。';
+        $('#nl-say').innerHTML = txt;
+      }
+    }
+    function setMode(m){
+      mode = m; $('#nl-train').setAttribute('aria-pressed', m === 'train'); $('#nl-infer').setAttribute('aria-pressed', m === 'infer');
+      $('#nl-ctrl-train').hidden = m !== 'train'; $('#nl-ctrl-infer').hidden = m !== 'infer';
+      if (timer) { clearInterval(timer); timer = 0; $('#nl-play').textContent = '播放'; }
+      render();
+    }
+    $('#nl-train').addEventListener('click', () => setMode('train'));
+    $('#nl-infer').addEventListener('click', () => setMode('infer'));
+    $('#nl-resample').addEventListener('click', () => { sig = { vis: Math.random(), tac: Math.random(), act: Math.random() }; render(); });
+    $('#nl-step').addEventListener('input', render);
+    $('#nl-play').addEventListener('click', () => {
+      if (timer) { clearInterval(timer); timer = 0; $('#nl-play').textContent = '播放'; return; }
+      const r = $('#nl-step'); if (+r.value >= 10) r.value = 0; render();
+      if (reduce) { r.value = 10; render(); return; }
+      $('#nl-play').textContent = '暂停';
+      timer = setInterval(() => { r.value = Math.min(10, +r.value + 1); render(); if (+r.value >= 10) { clearInterval(timer); timer = 0; $('#nl-play').textContent = '播放'; } }, 520);
+    });
+    render();
+  })();
+
+  /* ---------- charts ---------- */
+  function barPath(x0, y, w, h, r){ if (w <= 0) return ''; r = Math.min(r, h / 2, w); return 'M' + x0 + ',' + y + ' H' + (x0 + w - r) + ' A' + r + ',' + r + ' 0 0 1 ' + (x0 + w) + ',' + (y + r) + ' V' + (y + h - r) + ' A' + r + ',' + r + ' 0 0 1 ' + (x0 + w - r) + ',' + (y + h) + ' H' + x0 + ' Z'; }
+
+  // Table 1 dot plot
+  (function(){
+    const host = $('#c-t1'); if (!host) return;
+    const rows = [
+      { g: '基线' },
+      { n: 'π0.5', c: 52.76, r: 60.74, cfg: '无触觉' },
+      { n: 'Fast-WAM', c: 89.22, r: 89.22, cfg: '无触觉' },
+      { n: 'Motus', c: 88.66, r: 87.02, cfg: '无触觉' },
+      { n: 'π0.5+Tac', c: 52.60, r: 57.66, cfg: '当前触觉作条件' },
+      { n: 'Fast-WAM+Tac', c: 90.22, r: 90.22, cfg: '当前触觉作条件' },
+      { g: 'ME-Dex 1.0 及变体' },
+      { n: 'VA', c: 88.74, r: 86.90, cfg: '无触觉 · 每层联合注意力' },
+      { n: 'Tac Cond.', c: 89.04, r: 89.54, cfg: '+ 当前触觉条件 · 每层联合' },
+      { n: 'Full Joint', c: 89.36, r: 90.60, cfg: '+ 预测未来触觉 · 每层联合' },
+      { n: 'ME-Dex 1.0', c: 91.56, r: 91.92, cfg: '+ H-Bridge（完整模型）', hl: true },
+      { n: 'Zero Tac Input', c: 91.70, r: 91.74, cfg: '完整模型，评测时触觉置零' }
+    ];
+    const W = 760, L = 214, R = 642, v0 = 50, v1 = 95, rowH = 38, gH = 28, top = 26;
+    const X = v => L + (v - v0) / (v1 - v0) * (R - L);
+    let y = top; const items = rows.map(r => { const it = Object.assign({ y }, r); y += r.g ? gH : rowH; return it; });
+    const H = y + 28;
+    const svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, class: 'chart', role: 'img', 'aria-label': 'RoboTwin 表 1 各方法 Clean 与 Random 成功率点图' });
+    [50, 60, 70, 80, 90].forEach(v => { svg.append(el('line', { x1: X(v), x2: X(v), y1: top - 6, y2: H - 24, class: 'grid' })); svg.append(el('text', { x: X(v), y: H - 8, class: 'tick', 'text-anchor': 'middle' }, v)); });
+    svg.append(el('text', { x: W - 2, y: top - 10, class: 'axis-note', 'text-anchor': 'end' }, 'Clean · Random'));
+    items.forEach(it => {
+      if (it.g) { svg.append(el('text', { x: 0, y: it.y + 19, class: 'group' }, it.g)); return; }
+      const cy = it.y + rowH / 2;
+      if (it.hl) svg.append(el('rect', { x: 0, y: it.y + 1, width: W, height: rowH - 2, rx: 6, class: 'hl-band' }));
+      svg.append(el('text', { x: 6, y: cy - 2, class: 'rlabel' + (it.hl ? ' strong' : '') }, it.n));
+      svg.append(el('text', { x: 6, y: cy + 13, class: 'rsub' }, it.cfg));
+      const g = el('g', { tabindex: 0, 'data-tip': '<b>' + it.n + '</b><br>Clean ' + it.c.toFixed(2) + ' · Random ' + it.r.toFixed(2) + '<br><span>' + it.cfg + '</span>' });
+      g.append(el('rect', { x: L - 8, y: it.y, width: W - L + 8, height: rowH, style: 'fill:#000;fill-opacity:0' }));
+      g.append(el('line', { x1: X(Math.min(it.c, it.r)), x2: X(Math.max(it.c, it.r)), y1: cy, y2: cy, class: 'conn' }));
+      g.append(el('rect', { x: X(it.r) - 6, y: cy - 6, width: 12, height: 12, rx: 2, class: 'm-rand' }));
+      g.append(el('circle', { cx: X(it.c), cy: cy, r: 5.2, class: 'm-clean' }));
+      svg.append(g);
+      svg.append(el('text', { x: W - 2, y: cy + 4, class: 'rval' + (it.hl ? ' strong' : ''), 'text-anchor': 'end' }, it.c.toFixed(2) + ' · ' + it.r.toFixed(2)));
+    });
+    host.append(svg);
+  })();
+
+  // increments table
+  (function(){
+    const body = $('#inc-body'); if (!body) return;
+    const rows = [
+      ['VA（无触觉，每层联合）', 88.74, 86.90],
+      ['+ 当前触觉条件（Tac Cond.）', 89.04, 89.54],
+      ['+ 预测未来触觉（Full Joint）', 89.36, 90.60],
+      ['+ H-Bridge（完整模型）', 91.56, 91.92],
+      ['完整模型，评测时触觉置零', 91.70, 91.74]
+    ];
+    const scale = 3, zero = 12; // % position of zero line
+    function bar(d, cls){
+      if (d == null) return '<td class="bar"></td>';
+      const w = Math.min(88, Math.abs(d) / scale * 88);
+      const pos = d >= 0 ? 'left:' + zero + '%;width:' + w + '%' : 'left:' + (zero - Math.min(zero, w)) + '%;width:' + Math.min(zero, w) + '%';
+      const sign = d >= 0 ? '+' : '−';
+      return '<td class="bar"><div class="ib" data-tip="' + sign + Math.abs(d).toFixed(2) + ' 个百分点" tabindex="0"><i class="' + (d < 0 ? 'neg' : '') + '" style="' + pos + ';background:var(' + cls + ')"></i></div><span class="mono small">' + sign + Math.abs(d).toFixed(2) + '</span></td>';
+    }
+    body.innerHTML = rows.map((r, i) => {
+      const dc = i ? +(r[1] - rows[i - 1][1]).toFixed(2) : null, dr = i ? +(r[2] - rows[i - 1][2]).toFixed(2) : null;
+      return '<tr' + (i === 3 ? ' style="font-weight:700"' : '') + '><th>' + r[0] + '</th><td class="num">' + r[1].toFixed(2) + '</td>' + bar(dc, '--s-clean') + '<td class="num">' + r[2].toFixed(2) + '</td>' + bar(dr, '--s-rand') + '</tr>';
+    }).join('');
+  })();
+
+  // grouped horizontal bars
+  function grouped(host, rows, series, opts){
+    opts = opts || {};
+    const W = 760, L = opts.L || 170, R = 700, bh = 13, gap = 3, rg = 18, top = 8;
+    const X = v => L + v / 100 * (R - L);
+    const n = series.length, rowH = n * bh + (n - 1) * gap;
+    const H = top + rows.length * (rowH + rg) + 22;
+    const svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, class: 'chart', role: 'img', 'aria-label': opts.aria || '' });
+    [0, 25, 50, 75, 100].forEach(v => { svg.append(el('line', { x1: X(v), x2: X(v), y1: top - 4, y2: H - 20, class: v ? 'grid' : 'base' })); svg.append(el('text', { x: X(v), y: H - 6, class: 'tick', 'text-anchor': 'middle' }, v)); });
+    rows.forEach((r, i) => {
+      const y0 = top + i * (rowH + rg);
+      if (r.hl) svg.append(el('rect', { x: 0, y: y0 - 5, width: W, height: rowH + 10, rx: 6, class: 'hl-band' }));
+      svg.append(el('text', { x: 6, y: y0 + rowH / 2 + (r.note ? -1 : 5), class: 'rlabel' + (r.hl ? ' strong' : '') }, r.n));
+      if (r.note) svg.append(el('text', { x: 6, y: y0 + rowH / 2 + 14, class: 'rsub' }, r.note));
+      const g = el('g', { tabindex: 0, 'data-tip': '<b>' + r.n + '</b><br>' + series.map((s, j) => s.name + ' ' + r.v[j].toFixed(1)).join('<br>') + (r.note ? '<br><span>' + r.note + '</span>' : '') });
+      g.append(el('rect', { x: L, y: y0 - 4, width: R - L + 50, height: rowH + 8, style: 'fill:#000;fill-opacity:0' }));
+      series.forEach((s, j) => {
+        const y = y0 + j * (bh + gap), v = r.v[j];
+        g.append(el('path', { d: barPath(X(0), y, Math.max(1.5, X(v) - X(0)), bh, 4), class: s.cls }));
+        g.append(el('text', { x: X(v) + 6, y: y + bh - 2.5, class: 'rval' + (r.hl ? ' strong' : '') }, v.toFixed(1)));
+      });
+      svg.append(g);
+    });
+    host.append(svg);
+  }
+  grouped($('#c-t2'), [
+    { n: 'Fast-WAM', v: [77.8, 1.9], note: '平均 39.9' },
+    { n: 'Xiaomi Robotics-0', v: [62.9, 18.2], note: '平均 40.5' },
+    { n: 'π0.5', v: [70.7, 46.0], note: '平均 58.4' },
+    { n: '4D-WAM', v: [81.5, 41.8], note: '平均 61.6' },
+    { n: 'GigaBrain-0.7', v: [66.8, 67.9], note: '平均 67.3' },
+    { n: 'OLA-Sem', v: [75.1, 67.6], note: '平均 71.3' },
+    { n: 'ME-Dex 1.0', v: [89.6, 68.1], note: '平均 78.9 · 触觉置零', hl: true }
+  ], [{ name: 'Clean → Clean', cls: 'b-clean' }, { name: 'Clean → Random', cls: 'b-rand' }], { aria: 'RoboTwin 表 2 只用 Clean 训练的成功率' });
+  grouped($('#c-t4'), [
+    { n: 'Peg Insertion', v: [40.0, 58.0] },
+    { n: 'USB Insertion', v: [56.0, 74.0] },
+    { n: 'Power Plug Insertion', v: [58.0, 88.0] },
+    { n: 'Gear Assembly', v: [66.0, 60.0] },
+    { n: '平均', v: [55.0, 70.0], hl: true }
+  ], [{ name: 'ManiFeel 官方策略', cls: 'b-base' }, { name: 'ME-Dex 1.0', cls: 'b-ours' }], { L: 180, aria: 'ManiFeel 表 4 成功率' });
+
+  // DexJoCo heatmap
+  (function(){
+    const t = $('#heat'); if (!t) return;
+    const cols = ['DP-T', 'π0.5', 'π0.5+Tac', 'DECO', 'DECO.p', 'ME-Dex 1.0'];
+    const rows = [
+      ['Hammer Nail', '锤钉子', [58.7, 40.0, 10.0, 68.0, 76.0, 86.0]],
+      ['Click Mouse', '点鼠标', [38.7, 76.0, 80.0, 90.0, 80.0, 76.0]],
+      ['Pick Bucket', '提桶', [55.3, 82.0, 46.0, 80.0, 84.0, 92.0]],
+      ['Pinch Tongs', '捏夹子', [6.0, 16.0, 0.0, 46.0, 60.0, 92.0]],
+      ['Fold Glasses', '折眼镜', [11.3, 24.0, 40.0, 50.0, 62.0, 56.0]],
+      ['Water Plant', '浇花', [60.0, 66.0, 82.0, 88.0, 76.0, 72.0]],
+      null,
+      ['Unlock iPad/B', '解锁 iPad', [0.0, 8.0, 0.0, 40.0, 32.0, 48.0]],
+      ['Hanoi/B', '汉诺塔', [8.0, 14.0, 2.0, 18.0, 24.0, 32.0]],
+      ['Assembly/B', '装配', [1.3, 4.0, 6.0, 0.0, 6.0, 28.0]],
+      ['Microwave/B', '微波炉', [42.7, 70.0, 44.0, 64.0, 68.0, 88.0]],
+      ['Photograph/B', '拍照', [28.0, 4.0, 22.0, 76.0, 68.0, 48.0]],
+      null,
+      ['Bimanual avg.', '双臂平均', [16.0, 20.0, 14.8, 39.6, 39.6, 48.8], 1],
+      ['Avg.', '总平均', [33.2, 36.7, 30.2, 56.4, 57.8, 65.3], 1]
+    ];
+    let h = '<thead><tr><th></th>' + cols.map((c, i) => '<th' + (i === 5 ? ' class="ours-h"' : '') + '>' + c + '</th>').join('') + '</tr></thead><tbody>';
+    rows.forEach(r => {
+      if (!r) { h += '<tr class="sep"><td colspan="7" style="padding:2px"></td></tr>'; return; }
+      const mx = Math.max.apply(null, r[2]);
+      h += '<tr' + (r[3] ? ' class="avg"' : '') + '><th class="task">' + r[0] + '<small>' + r[1] + '</small></th>' + r[2].map((v, i) => {
+        const p = Math.round(8 + v * .8);
+        const best = v === mx;
+        return '<td class="' + (p > 60 ? 'hi' : '') + (best ? ' best' : '') + '" style="background:color-mix(in oklab, var(--tac) ' + p + '%, var(--surface))' + (i === 5 ? ';font-weight:700' : '') + '" data-tip="<b>' + r[0] + '</b><br>' + cols[i] + '：' + v.toFixed(1) + (best ? '（本行最高）' : '') + '" tabindex="0">' + v.toFixed(1) + '</td>';
+      }).join('') + '</tr>';
+    });
+    t.innerHTML = h + '</tbody>';
+  })();
+
+  // Motus2 sub-chunks in timing diagram
+  (function(){
+    const g = $('#motus-sub'); if (!g) return;
+    const x0 = 280, x1 = 736, n = 8, gp = 4, w = (x1 - x0 - (n - 1) * gp) / n;
+    for (let i = 0; i < n; i++) {
+      const x = x0 + i * (w + gp);
+      g.append(el('rect', { x: x, y: 138, width: w, height: 36, rx: 4, class: 'b-e' }));
+      g.append(el('text', { x: x + w / 2, y: 161, 'text-anchor': 'middle', class: 'sm' }, '0.2 s'));
+      g.append(el('polygon', { points: (x + 6) + ',127 ' + (x + 11) + ',132 ' + (x + 6) + ',137 ' + (x + 1) + ',132', class: 'tk' }));
+    }
+  })();
+})();
+</script>
+</body>
+</html>

@@ -1,1 +1,72 @@
-# VisualizedAcademicPapers
+# Visualized Academic Papers
+
+论文精读网页合集。每篇论文一个网页：拆开方法，按原表比例重画结果，把论文的主张和我们的判断分开写。同一专题的论文另有一页横向对照。
+
+在线浏览：https://gongshukai.github.io/VisualizedAcademicPapers/
+
+## 已收录
+
+下面的列表由 `tools/build.py` 根据 `catalog.json` 生成，不要手改。
+
+<!-- catalog:start -->
+### 力与触觉（生成模型 / 机器人 / 力与触觉）
+
+[专题对照页](https://gongshukai.github.io/VisualizedAcademicPapers/topics/force-tactile/)
+
+- [ForceVLA](https://gongshukai.github.io/VisualizedAcademicPapers/papers/forcevla/) · 2025-05 · arXiv [2505.22159](https://arxiv.org/abs/2505.22159) — π0 加力感知 MoE：6 维力/力矩在 VLM 之后融合，5 个真机接触任务平均成功率 60.5%，不接力的 π0 为 37.3%。
+- [Tactile-VLA](https://gongshukai.github.io/VisualizedAcademicPapers/papers/tactile-vla/) · 2025-07 · arXiv [2507.09160](https://arxiv.org/abs/2507.09160) — 触觉 token 进 VLM 前缀，动作里带目标力，交给位置-力混合控制器；主打「轻一点」「用力」这类力度词的零样本泛化。
+- [Motus2](https://gongshukai.github.io/VisualizedAcademicPapers/papers/motus2/) · 2026-08 · arXiv [2608.30237](https://arxiv.org/abs/2608.30237) — 一套权重分别当策略、模拟器、评估器的自进化世界模型；触觉是一个旁路专家，在动作块内每 0.2 s 修正一次动作。
+- [ME-Dex 1.0](https://gongshukai.github.io/VisualizedAcademicPapers/papers/me-dex/) · 2026-09 · arXiv [2609.21449](https://arxiv.org/abs/2609.21449) — 视频、触觉、动作三专家联合去噪的世界动作模型，触觉作为要预测的未来观测；夹爪和灵巧手的触觉统一到规范手。
+<!-- catalog:end -->
+
+## 目录结构
+
+```
+index.html                  首页，由 tools/build.py 生成
+catalog.json                唯一的清单：专题和论文的元数据
+papers/<slug>/index.html    一篇论文的精读页，图放在同目录的 fig/
+topics/<id>/index.html      专题对照页，手写
+tools/build.py              生成首页和 README 列表，刷新各页导航条，检查断链
+tools/home.template.html    首页模板
+docs/page-spec.md           精读页怎么做：取材、结构、设计要求
+```
+
+`papers/` 下按论文平铺，不按专题分目录。这样一篇论文的网址不会因为调整专题而变化，一篇论文也可以同时属于多个专题。
+
+## 新增一篇论文
+
+1. 按 [docs/page-spec.md](docs/page-spec.md) 做页面，保存为 `papers/<slug>/index.html`，图放进 `papers/<slug>/fig/`。页面可以是完整的 HTML 文档，也可以是 claude.ai artifact 的正文片段（没有 `<!doctype>`），构建时会自动补成完整文档。
+2. 在 `catalog.json` 的 `papers` 里加一条：
+
+   | 字段 | 含义 |
+   |---|---|
+   | `slug` | 目录名，小写短横线，例如 `tactile-vla` |
+   | `title` | 短名，用在导航和列表里 |
+   | `full_title` | 论文完整标题 |
+   | `arxiv` / `version` | arXiv 编号和精读时依据的版本 |
+   | `date` | arXiv 首版年月，`YYYY-MM`，专题内按它排序 |
+   | `org` | 机构 |
+   | `topics` | 所属专题 id 列表，第一个决定导航条里列出哪组论文 |
+   | `summary` | 一句话：做了什么、关键数字 |
+   | `added` | 收录日期 |
+
+   如果是新专题，在 `topics` 里加一条（`id`、`title`、`path`、`summary`、`page`），并写好 `topics/<id>/index.html`。
+3. 运行构建：
+
+   ```sh
+   python3 tools/build.py
+   ```
+
+   它会更新首页和上面的列表，给新页面加上导航条，并报告断掉的图片或链接。有问题时退出码为 1。
+4. 本地预览：
+
+   ```sh
+   python3 -m http.server 8000
+   ```
+
+   打开 http://localhost:8000/ 。
+5. 提交并推送，GitHub Pages 会在一两分钟内更新。
+
+## GitHub Pages
+
+仓库设置里 Settings → Pages → Build and deployment 选 **Deploy from a branch**，分支选 `main`，目录选 `/ (root)`。根目录的 `.nojekyll` 让 Pages 原样发布所有文件。

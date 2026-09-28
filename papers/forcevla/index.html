@@ -1,0 +1,1244 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"PingFang SC","Noto Sans SC",sans-serif;background:#fafaf9}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>ForceVLA 精读</title>
+<meta name="description" content="ForceVLA（arXiv 2505.22159）中文精读：力感知 MoE 如何把 6 维外力接入 π0，以及实验结果和疑点。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#ECEFF1; --paper:#F8FAFB; --panel:#E2E7EA; --plate:#F5F7F8;
+  --ink:#111920; --ink2:#43505B; --ink3:#66727D; --rule:#C3CCD2; --rule2:#D5DCE0;
+  --amber:#DC9A12; --amber-soft:#F5E0A8; --amber-ink:#875300; --copper:#A5451B;
+  --fx:#CC342B; --fy:#2A8A4B; --fz:#2860C8;
+  --g-fast:#C2CAD0; --g-base:#8995A0; --hatch:#1E2932;
+  --good:#2A8A4B; --warn:#A5451B;
+  --grid:rgba(17,25,32,.09);
+  --shadow:0 1px 0 rgba(17,25,32,.05),0 10px 28px -16px rgba(17,25,32,.28);
+  --font-d:"Barlow Condensed","Noto Sans SC","PingFang SC",system-ui,sans-serif;
+  --font-b:"IBM Plex Sans","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --font-m:"IBM Plex Mono","Noto Sans SC",ui-monospace,Menlo,monospace;
+  --col:760px; --wide:1100px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0D1216; --paper:#131A1F; --panel:#1A232A; --plate:#E9EDEF;
+    --ink:#E3E9ED; --ink2:#A8B4BD; --ink3:#7F8C96; --rule:#2C3740; --rule2:#222C33;
+    --amber:#F0B436; --amber-soft:#4A3A12; --amber-ink:#F4C35A; --copper:#EC8C5B;
+    --fx:#FF6D61; --fy:#5CCB80; --fz:#72A3FF;
+    --g-fast:#3E4A54; --g-base:#6F7D88; --hatch:#E6EDF1;
+    --good:#5CCB80; --warn:#EC8C5B;
+    --grid:rgba(227,233,237,.09);
+    --shadow:0 1px 0 rgba(0,0,0,.3),0 12px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0D1216; --paper:#131A1F; --panel:#1A232A; --plate:#E9EDEF;
+  --ink:#E3E9ED; --ink2:#A8B4BD; --ink3:#7F8C96; --rule:#2C3740; --rule2:#222C33;
+  --amber:#F0B436; --amber-soft:#4A3A12; --amber-ink:#F4C35A; --copper:#EC8C5B;
+  --fx:#FF6D61; --fy:#5CCB80; --fz:#72A3FF;
+  --g-fast:#3E4A54; --g-base:#6F7D88; --hatch:#E6EDF1;
+  --good:#5CCB80; --warn:#EC8C5B;
+  --grid:rgba(227,233,237,.09);
+  --shadow:0 1px 0 rgba(0,0,0,.3),0 12px 30px -16px rgba(0,0,0,.8);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-b);font-size:16px;line-height:1.78;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.wrap{padding-inline:clamp(16px,4vw,40px);padding-block:0 96px}
+.col{max-width:var(--col);margin-inline:auto}
+.wide{max-width:var(--wide);margin-inline:auto}
+a{color:var(--copper);text-underline-offset:3px;text-decoration-thickness:1px}
+a:hover{text-decoration-thickness:2px}
+:focus-visible{outline:2px solid var(--fz);outline-offset:2px;border-radius:2px}
+p{margin:0}
+h1,h2,h3,h4{margin:0;text-wrap:balance}
+sub,sup{font-size:.72em;line-height:0}
+.m{font-family:var(--font-m);font-size:.9em;letter-spacing:0}
+.nw{white-space:nowrap}
+
+/* type scale: 13 / 15 / 16 / 19 / 24 / 34 / 64-104 */
+.eyebrow{font-family:var(--font-m);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+.prose{display:grid;gap:14px}
+.prose p,.prose li{color:var(--ink)}
+.prose ul,.prose ol{margin:0;padding-left:1.3em;display:grid;gap:6px}
+.lead{font-size:19px;line-height:1.7;color:var(--ink)}
+.muted{color:var(--ink2)}
+.small{font-size:14px;line-height:1.65}
+
+/* tags */
+.tag{display:inline-block;font-family:var(--font-m);font-size:11.5px;line-height:1;padding:4px 6px 3px;border:1px solid currentColor;border-radius:2px;letter-spacing:.04em;vertical-align:2px;margin-right:6px;white-space:nowrap}
+.tag-i{color:var(--copper)}
+.tag-p{color:var(--ink2)}
+.tag-s{color:var(--fz)}
+.interp{border-top:1px dashed var(--copper);border-bottom:1px dashed var(--copper);padding-block:12px;display:grid;gap:8px}
+
+/* header / hero */
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-block:18px;border-bottom:1px solid var(--rule);font-family:var(--font-m);font-size:12.5px;color:var(--ink3);letter-spacing:.04em}
+.topbar a{color:var(--ink2);text-decoration:none}
+.topbar a:hover{color:var(--ink)}
+.hero{padding-block:44px 28px;display:grid;gap:22px}
+.hero h1{font-family:var(--font-d);font-weight:700;font-size:clamp(64px,13vw,120px);line-height:.86;letter-spacing:-.01em;text-transform:uppercase}
+.hero h1 .force{color:var(--amber)}
+.h1-sub{font-family:var(--font-d);font-weight:500;font-size:clamp(20px,2.6vw,26px);line-height:1.2;color:var(--ink2);letter-spacing:.01em;max-width:34ch}
+.thesis{font-size:clamp(18px,2vw,21px);line-height:1.7;max-width:44ch;font-weight:500}
+.byline{font-size:14px;color:var(--ink2);line-height:1.6;max-width:80ch}
+.hero-grid{display:grid;gap:28px;grid-template-columns:1fr}
+@media (min-width:980px){.hero-grid{grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);align-items:end}}
+
+/* the scope (force readout) */
+.scope{background:var(--paper);border:1px solid var(--rule);box-shadow:var(--shadow);border-radius:4px;overflow:hidden}
+.scope-head{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--rule2);font-family:var(--font-m);font-size:12px;color:var(--ink3);letter-spacing:.04em}
+.chans{display:flex;flex-wrap:wrap;gap:6px}
+.chan{font:500 12px/1 var(--font-m);padding:5px 7px 4px;border:1px solid var(--rule);background:transparent;color:var(--ink2);border-radius:2px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.chan i{width:14px;height:0;border-top:2px solid var(--c)}
+.chan.mom i{border-top-style:dashed}
+.chan[aria-pressed="false"]{opacity:.42}
+.chan[aria-pressed="false"] i{border-top-color:var(--ink3)}
+.scope canvas{display:block;width:100%;height:270px}
+@media (max-width:560px){.scope canvas{height:230px}}
+.scope-foot{display:flex;gap:10px;justify-content:space-between;align-items:center;padding:8px 12px 10px;border-top:1px solid var(--rule2);font-size:13px;color:var(--ink2);line-height:1.55}
+.btn{font:500 13px/1 var(--font-b);padding:8px 12px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);border-radius:3px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--ink3)}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.kpi{padding:16px 16px 16px 0;display:grid;gap:4px;align-content:start}
+.kpi + .kpi{padding-left:16px;border-left:1px solid var(--rule2)}
+@media (max-width:700px){.kpi + .kpi{border-left:0;padding-left:0;border-top:1px solid var(--rule2)}}
+.kpi b{font-family:var(--font-d);font-weight:600;font-size:36px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.kpi b em{font-style:normal;color:var(--amber-ink)}
+.kpi span{font-size:14px;color:var(--ink2);line-height:1.55}
+
+.toc{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px;padding-block:14px;border-bottom:1px solid var(--rule)}
+.toc a{color:var(--ink2);text-decoration:none;font-family:var(--font-m);font-size:13px}
+.toc a:hover{color:var(--ink)}
+
+/* rail */
+.rail{display:none}
+@media (min-width:1300px){
+  .rail{display:grid;gap:2px;position:fixed;top:calc(env(safe-area-inset-top,0px) + 120px);left:max(16px,calc((100vw - var(--col))/2 - 250px));width:170px;font-family:var(--font-m);font-size:12.5px;z-index:5}
+  .rail a{display:grid;grid-template-columns:28px 1fr;color:var(--ink3);text-decoration:none;padding:5px 0 5px 10px;border-left:2px solid var(--rule2)}
+  .rail a:hover{color:var(--ink)}
+  .rail a.on{color:var(--ink);border-left-color:var(--amber)}
+}
+
+/* sections */
+section.sec{padding-block:64px 8px;scroll-margin-top:20px}
+.sec-h{display:grid;gap:6px;margin-bottom:22px}
+.sec-h .eyebrow{color:var(--copper)}
+.sec-h h2{font-family:var(--font-d);font-weight:700;font-size:clamp(30px,4.4vw,40px);line-height:1.08;letter-spacing:.005em}
+h3.sub{font-family:var(--font-d);font-weight:600;font-size:24px;line-height:1.25;margin-top:38px;margin-bottom:12px;letter-spacing:.01em}
+h3.sub .eyebrow{display:block;margin-bottom:2px;font-size:11.5px}
+.stack{display:grid;gap:18px}
+
+/* figures */
+figure{margin:0}
+.fig{display:grid;gap:10px;margin-block:22px}
+.fig .plate{background:var(--plate);border:1px solid var(--rule);border-radius:3px;padding:10px;cursor:zoom-in;display:block;width:100%;text-align:left}
+.fig .plate img{display:block;width:100%;height:auto}
+.fig figcaption{font-size:14px;line-height:1.65;color:var(--ink2);display:grid;gap:4px}
+.fig figcaption b{color:var(--ink);font-weight:600}
+.fig figcaption .look::before{content:"看哪里 · ";font-family:var(--font-m);font-size:12px;color:var(--copper);letter-spacing:.04em}
+.fig-narrow{max-width:520px}
+.fig-row{display:grid;gap:18px;grid-template-columns:1fr}
+@media (min-width:860px){.fig-row.two{grid-template-columns:1fr 1fr}.fig-row.three{grid-template-columns:repeat(3,1fr)}}
+
+/* tables */
+.tbl-wrap{overflow-x:auto;margin-block:16px;border-top:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{padding:9px 10px;text-align:left;vertical-align:top;border-bottom:1px solid var(--rule2)}
+thead th{font-family:var(--font-m);font-size:12px;letter-spacing:.04em;color:var(--ink2);font-weight:500;border-bottom:1px solid var(--rule)}
+tbody tr:last-child td,tbody tr:last-child th{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--font-m);font-size:13.5px}
+.tbl-cap{font-family:var(--font-m);font-size:12.5px;color:var(--ink3);letter-spacing:.03em;margin-top:22px}
+.ours td,.ours th{background:color-mix(in srgb,var(--amber) 12%,transparent)}
+.best{font-weight:600}
+.second{text-decoration:underline;text-underline-offset:3px}
+
+/* heat table */
+.heat tbody th{white-space:nowrap}
+.heat td.num{position:relative;min-width:86px}
+.heat td.num .bar{position:absolute;left:6px;right:6px;bottom:5px;height:4px;background:var(--rule2);border-radius:1px}
+.heat td.num .bar i{display:block;height:100%;width:calc(var(--v) * 1%);background:var(--g-base);border-radius:1px}
+.heat tr.ours td.num .bar i{background:var(--amber)}
+
+/* charts */
+.chart{background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:14px 14px 8px;margin-block:18px;box-shadow:var(--shadow)}
+.chart-head{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;margin-bottom:8px}
+.chart-title{font-family:var(--font-m);font-size:12.5px;letter-spacing:.04em;color:var(--ink2)}
+.legend{display:flex;flex-wrap:wrap;gap:6px}
+.lg{font:500 12.5px/1 var(--font-b);display:inline-flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid var(--rule);border-radius:2px;background:transparent;color:var(--ink);cursor:pointer}
+.lg[aria-pressed="false"]{opacity:.4}
+.lg svg{width:14px;height:12px;flex:none}
+.chart-scroll{overflow-x:auto}
+.chart-scroll svg{display:block;width:100%;min-width:680px;height:auto}
+.chart-foot{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--rule2);margin-top:6px;font-size:13px;color:var(--ink2)}
+.chk{display:inline-flex;gap:8px;align-items:center;cursor:pointer}
+.chk input{accent-color:var(--amber);width:16px;height:16px}
+svg text{font-family:var(--font-m)}
+.ax{fill:var(--ink3);font-size:11px}
+.axl{fill:var(--ink2);font-size:12px}
+.vl{fill:var(--ink);font-size:10.5px}
+.vl.o{fill:var(--amber-ink);font-weight:500}
+.gl{stroke:var(--grid);stroke-width:1}
+.zl{stroke:var(--ink3);stroke-width:1}
+.wh{stroke:var(--ink);stroke-width:1.2}
+
+/* flow explorer */
+.flow-box{background:var(--paper);border:1px solid var(--rule);border-radius:4px;box-shadow:var(--shadow);margin-block:20px}
+.flow-ctl{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--rule2)}
+.flow-ctl .steps{display:flex;gap:6px;flex-wrap:wrap}
+.stepdot{font:500 12.5px/1 var(--font-m);width:30px;height:30px;border:1px solid var(--rule);background:transparent;color:var(--ink2);border-radius:50%;cursor:pointer}
+.stepdot[aria-current="step"]{background:var(--amber);border-color:var(--amber);color:#1b1200}
+.flow{display:grid;gap:10px;padding:14px;grid-template-columns:1fr}
+@media (min-width:900px){.flow{grid-template-columns:1fr 1fr 1.35fr 1.2fr .9fr;gap:12px}}
+.stage{display:grid;gap:6px;align-content:start;padding:10px;border:1px solid var(--rule2);border-radius:3px;background:color-mix(in srgb,var(--panel) 45%,transparent);position:relative}
+.stage.new{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 9%,transparent)}
+.stage h4{font-family:var(--font-m);font-size:11.5px;font-weight:500;letter-spacing:.06em;color:var(--ink3);text-transform:uppercase;margin-bottom:2px}
+.stage.new h4{color:var(--amber-ink)}
+@media (min-width:900px){.stage + .stage::before{content:"";position:absolute;left:-12px;top:22px;width:12px;border-top:1.5px solid var(--ink3)}}
+@media (max-width:899px){.stage + .stage::before{content:"";position:absolute;top:-10px;left:22px;height:10px;border-left:1.5px solid var(--ink3)}}
+.node{display:grid;gap:1px;text-align:left;font:500 13.5px/1.35 var(--font-b);color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:3px;padding:7px 9px;cursor:pointer;transition:opacity .2s,border-color .2s,background .2s}
+.node small{font:400 11.5px/1.35 var(--font-m);color:var(--ink3)}
+.node.force{border-left:3px solid var(--fx)}
+.node:hover{border-color:var(--ink3)}
+.flow.stepping .node{opacity:.35}
+.flow.stepping .node.on{opacity:1;border-color:var(--amber);background:color-mix(in srgb,var(--amber) 14%,var(--paper))}
+.node.sel{outline:2px solid var(--fz);outline-offset:1px}
+.info{padding:14px 16px 16px;border-top:1px solid var(--rule2);display:grid;gap:8px;min-height:150px}
+.info h5{font-family:var(--font-d);font-weight:600;font-size:21px;line-height:1.2;margin:0}
+.info .shape{font-family:var(--font-m);font-size:13px;color:var(--fz);background:color-mix(in srgb,var(--fz) 8%,transparent);padding:6px 8px;border-radius:2px;overflow-x:auto;white-space:nowrap}
+.info .src{font-family:var(--font-m);font-size:12px;color:var(--ink3)}
+.info p{font-size:15px;line-height:1.7}
+
+/* ablation explorer */
+.abl{background:var(--paper);border:1px solid var(--rule);border-radius:4px;box-shadow:var(--shadow);margin-block:18px}
+.seg{display:flex;flex-wrap:wrap;gap:6px;padding:12px 14px;border-bottom:1px solid var(--rule2)}
+.seg button{font:500 13px/1.2 var(--font-b);padding:8px 10px;border:1px solid var(--rule);background:transparent;color:var(--ink);border-radius:3px;cursor:pointer}
+.seg button[aria-checked="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.abl-body{display:grid;gap:18px;padding:16px 14px;grid-template-columns:1fr}
+@media (min-width:860px){.abl-body{grid-template-columns:1.25fr 1fr}}
+.pipe{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.pipe .ch{font:500 13px/1.2 var(--font-b);padding:7px 9px;border:1px solid var(--rule);border-radius:3px;background:var(--panel)}
+.pipe .ch.f{background:color-mix(in srgb,var(--fx) 14%,var(--paper));border-color:var(--fx)}
+.pipe .ch.moe{background:color-mix(in srgb,var(--amber) 22%,var(--paper));border-color:var(--amber)}
+.pipe .ar{color:var(--ink3);font-family:var(--font-m)}
+.abl-text{font-size:15px;line-height:1.7;margin-top:12px}
+.hbars{display:grid;gap:8px}
+.hb{display:grid;grid-template-columns:150px 1fr 44px;gap:10px;align-items:center;font-size:13.5px}
+.hb .t{height:14px;background:var(--rule2);border-radius:1px;position:relative}
+.hb .t i{position:absolute;left:0;top:0;bottom:0;width:calc(var(--v)*1%);background:var(--g-base);border-radius:1px}
+.hb.sel .t i{background:var(--amber)}
+.hb.sel{font-weight:600}
+.hb .v{font-family:var(--font-m);font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
+@media (max-width:480px){.hb{grid-template-columns:118px 1fr 40px}}
+
+/* cucumber mini */
+.minis{display:grid;gap:14px;grid-template-columns:1fr;margin-block:16px}
+@media (min-width:700px){.minis{grid-template-columns:1fr 1fr}}
+.mini{background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:12px 14px}
+.mini h4{font-family:var(--font-m);font-size:12.5px;font-weight:500;color:var(--ink2);letter-spacing:.03em;margin-bottom:10px}
+.mini .hb{grid-template-columns:120px 1fr 48px}
+
+/* notes, callouts */
+.note-list{display:grid;gap:12px;margin:0;padding:0;list-style:none}
+.note-list li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:baseline}
+.cols2{display:grid;gap:26px;grid-template-columns:1fr}
+@media (min-width:900px){.cols2{grid-template-columns:1fr 1.5fr}}
+.cols2 h4{font-family:var(--font-d);font-weight:600;font-size:21px;margin-bottom:10px}
+.numlist{counter-reset:n;display:grid;gap:14px;margin:0;padding:0;list-style:none}
+.numlist > li{counter-increment:n;display:grid;grid-template-columns:30px 1fr;gap:6px}
+.numlist > li::before{content:counter(n,decimal-leading-zero);font-family:var(--font-m);font-size:12.5px;color:var(--copper);padding-top:4px}
+.numlist b{font-weight:600}
+
+/* FAQ / glossary */
+details{border-bottom:1px solid var(--rule2)}
+details:first-of-type{border-top:1px solid var(--rule2)}
+summary{cursor:pointer;padding:14px 0;font-weight:600;font-size:16.5px;list-style:none;display:grid;grid-template-columns:22px 1fr;gap:6px}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"+";font-family:var(--font-m);color:var(--copper);font-weight:500}
+details[open] > summary::before{content:"−"}
+details > .d-body{padding:0 0 16px 28px;display:grid;gap:10px;font-size:15.5px}
+.gloss dl{margin:0;display:grid;gap:0}
+.gloss .gi{display:grid;grid-template-columns:1fr;gap:2px;padding:10px 0;border-bottom:1px solid var(--rule2)}
+@media (min-width:700px){.gloss .gi{grid-template-columns:200px 1fr;gap:16px}}
+.gloss dt{font-family:var(--font-m);font-size:14px;font-weight:500}
+.gloss dd{margin:0;font-size:15px;color:var(--ink2)}
+
+/* timeline & map */
+.tl{display:grid;gap:0;grid-template-columns:1fr;border-top:1px solid var(--rule);margin-block:18px}
+@media (min-width:760px){.tl{grid-template-columns:repeat(4,1fr)}}
+.tl > div{padding:12px 12px 12px 0;border-bottom:1px solid var(--rule2);display:grid;gap:3px}
+@media (min-width:760px){.tl > div{border-bottom:0;border-right:1px solid var(--rule2);padding-left:12px}.tl > div:first-child{padding-left:0}.tl > div:last-child{border-right:0}}
+.tl .d{font-family:var(--font-m);font-size:12.5px;color:var(--ink3)}
+.tl .n{font-family:var(--font-d);font-weight:600;font-size:22px;line-height:1.1}
+.tl .here .n{color:var(--amber-ink)}
+.tl .s{font-size:13.5px;color:var(--ink2);line-height:1.55}
+.map-wrap{overflow-x:auto;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:10px;margin-block:18px}
+.map-wrap svg{display:block;width:100%;min-width:620px;height:auto}
+.mp-ax{fill:var(--ink2);font-size:12.5px}
+.mp-tk{fill:var(--ink3);font-size:11.5px}
+.mp-ln{stroke:var(--rule);stroke-width:1}
+.mp-dash{stroke:var(--ink3);stroke-width:1.2;stroke-dasharray:4 4;fill:none}
+.mp-pt{stroke:var(--ink);stroke-width:1.2}
+.mp-lb{fill:var(--ink);font-size:13.5px;font-weight:500;font-family:var(--font-b)}
+.mp-sm{fill:var(--ink2);font-size:11.5px;font-family:var(--font-b)}
+
+/* lightbox */
+.lb{position:fixed;inset:0;z-index:50;background:rgba(8,12,15,.88);display:grid;place-items:center;padding:calc(env(safe-area-inset-top,0px) + 16px) 16px calc(env(safe-area-inset-bottom,0px) + 16px)}
+.lb img{max-width:100%;max-height:calc(100vh - 110px);background:#fff;border-radius:2px}
+.lb p{color:#dfe6ea;font-size:14px;max-width:900px;margin-top:10px;text-align:center}
+.lb button{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);right:12px;font:500 14px/1 var(--font-b);color:#fff;background:transparent;border:1px solid rgba(255,255,255,.4);border-radius:3px;padding:9px 12px;cursor:pointer}
+
+footer.foot{margin-top:72px;padding-top:18px;border-top:1px solid var(--rule);font-size:13.5px;color:var(--ink2);display:grid;gap:6px}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/force-tactile/">力与触觉</a></span><span class="vapnav-links"><a href="../../papers/forcevla/" aria-current="page">ForceVLA</a><a href="../../papers/tactile-vla/">Tactile-VLA</a><a href="../../papers/motus2/">Motus2</a><a href="../../papers/me-dex/">ME-Dex 1.0</a></span></div></div>
+<!-- /vap:nav -->
+<nav class="rail" aria-label="章节">
+  <a href="#problem"><span>01</span>问题</a>
+  <a href="#method"><span>02</span>方法</a>
+  <a href="#setup"><span>03</span>数据与设置</a>
+  <a href="#results"><span>04</span>结果</a>
+  <a href="#understand"><span>05</span>读懂它</a>
+  <a href="#limits"><span>06</span>局限与疑点</a>
+  <a href="#four"><span>07</span>四篇对照</a>
+  <a href="#glossary"><span>08</span>术语表</a>
+</nav>
+
+<div class="wrap">
+<div class="wide">
+  <div class="topbar">
+    <span>力 / 触觉 × 机器人基础模型 · 精读 1 / 4</span>
+    <a href="https://arxiv.org/abs/2505.22159" target="_blank" rel="noopener">arXiv:2505.22159 ↗</a>
+  </div>
+
+  <header class="hero">
+    <div class="hero-grid">
+      <div style="display:grid;gap:18px">
+        <p class="eyebrow">cs.RO · v1 2025-05 · 本页依据 v3（2025-09-18）</p>
+        <h1><span class="force">Force</span>VLA</h1>
+        <p class="h1-sub">Enhancing VLA Models with a Force-aware MoE for Contact-rich Manipulation</p>
+        <p class="thesis">把末端 6 维外力当成与视觉、语言平级的输入：在 π0 的 VLM 之后加一层力感知 MoE 融合模块（FVLMoE），再把融合结果加到动作专家的 token 上。</p>
+        <p class="byline">Jiawen Yu*、Hairuo Liu*、Qiaojun Yu†、Jieji Ren、Ce Hao、Haitong Ding、Guangyu Huang、Guofan Huang、Yan Song、Panpan Cai、Wenqiang Zhang、Cewu Lu<br>复旦大学 · 上海交通大学 · 上海创智学院 · 上海 AI Lab · 新加坡国立大学 · 上海大学 · 西安交通大学 · Noematrix Intelligence</p>
+      </div>
+
+      <figure class="scope" aria-label="示意：插头插入过程中的六维外力曲线">
+        <div class="scope-head">
+          <span>WRENCH @ TCP · 世界坐标系 · 示意</span>
+          <div class="chans" id="chans"></div>
+        </div>
+        <canvas id="scope" role="img" aria-label="合成的六维外力曲线：接近、接触偏位、调整、插入、到位五个阶段"></canvas>
+        <div class="scope-foot">
+          <span>手工合成的示意曲线，不是论文数据。插头第一次顶偏时，F<sub>z</sub> 和 M<sub>y</sub> 会先形成一个平台；调整后 F<sub>z</sub> 再次升高，插到底时突然回落。这类信号在图像里几乎看不出来。</span>
+          <button class="btn" id="scopePlay" aria-pressed="true" type="button">暂停</button>
+        </div>
+      </figure>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi"><b><em>60.5%</em> vs 37.3%</b><span>5 个任务（6 列指标）的平均成功率：ForceVLA 对比不接力信号的 π0-base（图 5）</span></div>
+      <div class="kpi"><b>0% → <em>80%</em></b><span>同样接入力：在 VLM 之前用 MoE 融合是 0%，在 VLM 之后用 FVLMoE 是 80%（表 3）</span></div>
+      <div class="kpi"><b><em>90%</em> vs 30–60%</b><span>插头任务加视觉遮挡：ForceVLA 对比四个 π0 基线（表 2）</span></div>
+    </div>
+
+    <nav class="toc" aria-label="目录">
+      <a href="#problem">01 问题</a><a href="#method">02 方法</a><a href="#setup">03 数据与设置</a><a href="#results">04 结果</a><a href="#understand">05 读懂它</a><a href="#limits">06 局限与疑点</a><a href="#four">07 四篇对照</a><a href="#glossary">08 术语表</a>
+    </nav>
+  </header>
+</div>
+
+<!-- ========================= 01 PROBLEM ========================= -->
+<section class="sec" id="problem">
+  <div class="col">
+    <div class="sec-h"><span class="eyebrow">01 · 问题</span><h2>接触密集任务靠的是力，而现有 VLA 只看图和话</h2></div>
+    <div class="prose">
+      <p class="lead">OpenVLA、π0 这类 VLA 用预训练的视觉-语言模型理解场景和指令，然后输出动作。插插头、插 U 盘、擦白板、削黄瓜这类任务，成败取决于接触：有没有对准、压得够不够、是不是已经顶住了。</p>
+      <p>作者在引言里指出两个缺口：</p>
+      <ul>
+        <li><b>VLA 基本不接力信号。</b>一旦视觉被遮挡或者看不清，策略就没法判断接触状态，于是动作僵硬甚至失败。</li>
+        <li><b>不同阶段需要的力不一样。</b>抓取时要轻，插入时要受控，贴面擦拭时要保持柔顺接触。现有方法没有机制去感知这种随阶段变化的需求。</li>
+      </ul>
+      <p>论文的回答是：力应该作为“一等模态”进入 VLA，而且融合方式要能随上下文切换，于是有了 MoE 形式的融合模块。</p>
+    </div>
+  </div>
+  <div class="wide">
+    <figure class="fig">
+      <button class="plate" type="button" data-lb="fig/teaser.jpg"><img src="fig/teaser.jpg" width="1800" height="1156" alt="论文图 1：不带力输入的 VLA 与 ForceVLA 在插头任务上的对比" loading="lazy"></button>
+      <figcaption class="col" style="max-width:var(--col);margin-inline:auto;width:100%">
+        <span><b>图 1</b>　左边（a）是不带力输入的 VLA：插头第一次没对准，策略看不出来，继续往下压，最后失败。右边（b）是 ForceVLA：从力曲线里读出“插错了”，修正插入位置后成功。</span>
+        <span class="look">两条红色 f–t 曲线。左边的力升上去后一直停在平台上，说明一直在顶；右边在“Modify Insertion Position”之后回落，变成绿色的正常段。</span>
+      </figcaption>
+    </figure>
+  </div>
+  <div class="col">
+    <h3 class="sub"><span class="eyebrow">§5 开头</span>论文要回答的四个问题</h3>
+    <ol class="numlist">
+      <li><span>和“直接把力喂进去、不做专门融合”的基线相比，ForceVLA 整体有没有更好？</span></li>
+      <li><span>换物体、换环境条件、换任务条件时，能不能泛化？</span></li>
+      <li>FVLMoE 这种融合方式是不是最优的？（融合位置与方式的消融）</li>
+      <li>MoE 能否学到有意义的路由，把不同输入分给不同专家？</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ========================= 02 METHOD ========================= -->
+<section class="sec" id="method">
+  <div class="col">
+    <div class="sec-h"><span class="eyebrow">02 · 方法</span><h2>π0 不动，在 VLM 和动作专家之间插一层 FVLMoE</h2></div>
+
+    <h3 class="sub" style="margin-top:0"><span class="eyebrow">§3 Problem Formulation</span>输入输出</h3>
+    <div class="prose">
+      <p>每个时刻的观测是 <span class="m">O<sub>t</sub> = {V<sub>t</sub><sup>b</sup>, V<sub>t</sub><sup>h</sup>, s<sub>t</sub>, f<sub>t</sub>}</span>：</p>
+      <ul>
+        <li><span class="m">V<sub>t</sub><sup>b</sup></span>、<span class="m">V<sub>t</sub><sup>h</sup></span>：第三人称相机和腕部相机图像。</li>
+        <li><span class="m">s<sub>t</sub> ∈ ℝ<sup>7</sup></span>：TCP 位置 (x, y, z)、欧拉角 (α, β, γ) 和夹爪宽度。</li>
+        <li><span class="m">f<sub>t</sub> ∈ ℝ<sup>6</sup> = {f<sub>tx</sub>, f<sub>ty</sub>, f<sub>tz</sub>, m<sub>tx</sub>, m<sub>ty</sub>, m<sub>tz</sub>}</span>：作用在 TCP 上的<b>估计</b>外力和力矩（wrench），表达在世界坐标系。</li>
+      </ul>
+      <p>给定语言指令 <span class="m">L</span>，策略 <span class="m">π(A<sub>t</sub> | O<sub>t</sub>, L)</span> 输出一个动作块 <span class="m">A<sub>t</sub> = {a<sub>t</sub>, …, a<sub>t+H−1</sub>}</span>。动作是目标 TCP 位姿加夹爪宽度（§4.3）。</p>
+      <p class="small muted"><span class="tag tag-i">解读</span>公式里只有当前一帧 <span class="m">f<sub>t</sub></span>，没有力的历史窗口。论文也没有给出力的采样率、归一化方式和控制频率。</p>
+    </div>
+
+    <figure class="fig fig-narrow">
+      <button class="plate" type="button" data-lb="fig/setting.jpg"><img src="fig/setting.jpg" width="1200" height="1200" alt="论文图 2：机器人削黄瓜任务的设置，标注了各路输入" loading="lazy"></button>
+      <figcaption><span><b>图 2</b>　任务设置（以削黄瓜为例）。</span><span class="look">红色箭头是 TCP 上的外力 f<sub>t</sub>，绿色箭头指向 TCP 位姿 s<sub>t</sub>；两个红框是两路相机。</span></figcaption>
+    </figure>
+
+    <h3 class="sub"><span class="eyebrow">§4.2 · 附录表 4 · 交互</span>一步步看数据怎么流</h3>
+    <p class="muted small">点“下一步”按顺序看，或者直接点任意模块看它的形状和作用。维度都来自附录表 4；表注写明这些维度是 indicative（示意性的）。</p>
+  </div>
+
+  <div class="wide">
+    <div class="flow-box" id="flowBox">
+      <div class="flow-ctl">
+        <div class="steps" id="stepDots" role="group" aria-label="步骤"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" id="stepPrev" type="button">上一步</button>
+          <button class="btn" id="stepNext" type="button">下一步</button>
+        </div>
+      </div>
+      <div class="flow stepping" id="flow">
+        <div class="stage"><h4>输入</h4>
+          <button class="node" data-n="vb" type="button">第三人称图像 V<sup>b</sup><small>D435 · 1280×720</small></button>
+          <button class="node" data-n="vh" type="button">腕部图像 V<sup>h</sup><small>D415 · 640×480</small></button>
+          <button class="node" data-n="L" type="button">语言指令 L<small>文本 token</small></button>
+          <button class="node force" data-n="f" type="button">外力 f<sub>t</sub><small>ℝ⁶ · 单帧</small></button>
+          <button class="node" data-n="s" type="button">状态 s<sub>t</sub><small>ℝ⁷（补到 32）</small></button>
+        </div>
+        <div class="stage"><h4>π0 的 VLM</h4>
+          <button class="node" data-n="vit" type="button">SigLIP ViT<small>图像 → 视觉 token</small></button>
+          <button class="node" data-n="vlm" type="button">PaliGemma<small>→ E<sub>VL</sub>: N<sub>VL</sub>×2048</small></button>
+        </div>
+        <div class="stage new"><h4>FVLMoE · 新增</h4>
+          <button class="node force" data-n="phi" type="button">力投影 φ<sub>F</sub><small>Linear 6 → 2048</small></button>
+          <button class="node" data-n="cat" type="button">拼接 E<sub>in</sub><small>(N<sub>VL</sub>+1)×2048</small></button>
+          <button class="node" data-n="enc" type="button">Encoder 层<small>MHSA 8 头 + FFN</small></button>
+          <button class="node" data-n="router" type="button">Router<small>2048 → 4 · top-1</small></button>
+          <button class="node" data-n="experts" type="button">4 个 MLP 专家 + 残差<small>2048 → 2048</small></button>
+          <button class="node" data-n="outproj" type="button">输出投影<small>Linear 2048 → 1024</small></button>
+          <button class="node" data-n="take" type="button">取末尾 H<sub>action</sub> 个 token<small>→ G<sub>FVLMoE</sub></small></button>
+        </div>
+        <div class="stage"><h4>动作生成</h4>
+          <button class="node" data-n="suffix" type="button">动作 token S<sub>suffix</sub><small>s<sub>t</sub> + 带噪动作 + 时间 τ</small></button>
+          <button class="node" data-n="add" type="button">逐元素相加<small>G + S<sub>suffix</sub></small></button>
+          <button class="node" data-n="ae" type="button">动作专家<small>速度场 · 1024 → 32</small></button>
+          <button class="node" data-n="fm" type="button">flow matching 去噪<small>→ 动作块 A<sub>t</sub></small></button>
+        </div>
+        <div class="stage"><h4>闭环</h4>
+          <button class="node" data-n="exec" type="button">执行动作块<small>目标位姿 + 夹爪</small></button>
+          <button class="node force" data-n="next" type="button">读新的力 f<sub>t+1</sub><small>下一次推理</small></button>
+        </div>
+      </div>
+      <div class="info" id="info" aria-live="polite"></div>
+    </div>
+
+    <figure class="fig">
+      <button class="plate" type="button" data-lb="fig/arch.jpg"><img src="fig/arch.jpg" width="1800" height="801" alt="论文图 3：ForceVLA 架构总览" loading="lazy"></button>
+      <figcaption style="max-width:var(--col);margin-inline:auto;width:100%">
+        <span><b>图 3</b>　原文架构图。图像经 ViT 进入预训练 VLM 得到 VL 融合特征；力 f<sub>t</sub> 经投影层变成力 token；两者在绿色 FVLMoE 框里融合，输出 F-V-L 融合特征，送进 Action Expert 生成动作；执行后读新的力 f<sub>t+1</sub> 再来一轮。</span>
+        <span class="look">力 token（粉色）绕过了 VLM，直接进 FVLMoE。图里画了多个粉色方块，但正文和表 4 都写的是 1 个力 token。专家编号在图 3 是 1–4，附录图 9 里是 0–3。</span>
+      </figcaption>
+    </figure>
+  </div>
+
+  <div class="col">
+    <h3 class="sub"><span class="eyebrow">§4.2</span>四个关键设计，以及作者给的理由</h3>
+    <ol class="numlist">
+      <li><div><b>力在 VLM 之后进入。</b>作者说这是“经过大量实验”确定的，把 FVLMoE 比作负责整合的“更高层皮层联合区”。实证依据是表 3 的消融：在 VLM 之前注入力会破坏预训练表示。</div></li>
+      <li><div><b>整个力信号只占 1 个 token。</b>原始 6 维读数经线性层 <span class="m">φ<sub>F</sub></span> 投到 2048 维，接在 VL 序列末尾：<span class="m">E<sub>in</sub> = [E<sub>VL</sub>; E<sub>F</sub>]</span>。</div></li>
+      <li><div><b>先共享一层 encoder，再做稀疏 MoE。</b>encoder 层（自注意力 + FFN）让力 token 和所有 VL token 先互相看一遍，然后每个 token 由 router 选 1 个专家（E = 4，top-1），专家输出经残差加回。</div></li>
+      <li><div><b>用加法注入动作生成。</b>FVLMoE 输出投影到动作专家宽度 1024，取序列末尾 <span class="m">H<sub>action</sub></span> 个 token 作为 <span class="m">G<sub>FVLMoE</sub></span>，逐元素加到动作 token <span class="m">S<sub>suffix</sub></span> 上。没有用 cross-attention。</div></li>
+    </ol>
+    <div class="interp" style="margin-top:18px">
+      <p class="small"><span class="tag tag-i">解读</span>第 4 点有个细节：<span class="m">G</span> 取的是融合序列“末尾”的 <span class="m">H<sub>action</sub></span> 个 token。力 token 在最末，一定被选中；其余是序列末尾的 VL token（π0 的前缀里语言在图像之后，所以大概率是语言 token）。论文没有给 <span class="m">H<sub>action</sub></span> 的数值，也没讨论为什么按位置截取。</p>
+      <p class="small"><span class="tag tag-i">解读</span><span class="m">G</span> 只依赖 <span class="m">E<sub>VL</sub></span> 和 <span class="m">f<sub>t</sub></span>，与去噪步 τ 无关，一次推理算一遍就能在所有去噪步复用。所以力信息的更新频率等于“整块重规划”的频率。</p>
+    </div>
+
+    <h3 class="sub"><span class="eyebrow">§4.1 · 附录 B</span>训练与推理</h3>
+    <div class="prose">
+      <p><b>训练目标</b>沿用 π0 的条件 flow matching：学习从噪声到动作块的速度场。论文没有提到任何额外的力相关损失，也没有提 MoE 常用的负载均衡损失。</p>
+      <p><b>推理</b>见图 3 右侧的回路：生成动作块、执行、读取新的力 <span class="m">f<sub>t+1</sub></span>，再推理下一块。论文没说每块执行几步后重新推理。</p>
+    </div>
+    <p class="tbl-cap">附录 B · 训练配置</p>
+    <div class="tbl-wrap"><table>
+      <tbody>
+        <tr><th>硬件</th><td>8× RTX 4090（24 GB）节点，64 核 CPU，251 GB 内存</td></tr>
+        <tr><th>优化器</th><td>Adam，β₁ = 0.9，β₂ = 0.95；bf16；梯度裁剪 ‖∇‖ = 1.0</td></tr>
+        <tr><th>学习率</th><td>峰值 2.5×10⁻⁵，30,000 步内衰减到 2.5×10⁻⁶</td></tr>
+        <tr><th>多任务</th><td>2 卡数据并行，global batch 16，经梯度累积等效 2048；30,000 步约 12 小时</td></tr>
+        <tr><th>单任务</th><td>1 卡，10,000 步，约 9 小时</td></tr>
+      </tbody>
+    </table></div>
+
+    <p class="tbl-cap">附录表 4 · 关键模块维度</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>层</th><th>参数 / 维度</th></tr></thead>
+      <tbody>
+        <tr><td>Force Projection</td><td class="m">Linear; 6 (F/T) → D<sub>VLM</sub> = 2048</td></tr>
+        <tr><td>State Projection</td><td class="m">Linear; D<sub>state</sub> = 32 → D<sub>act_e</sub> = 1024</td></tr>
+        <tr><td>Action Projection</td><td class="m">Linear; D<sub>action</sub> = 32 → 1024</td></tr>
+        <tr><td>Action-Time MLP</td><td class="m">2 层 MLP; 2×1024 → 1024; Swish</td></tr>
+        <tr><td>FVLMoE 输入</td><td class="m">N<sub>VL</sub>×2048 (V-L) 拼接 1×2048 (力 token)</td></tr>
+        <tr><td>Pre-MoE Encoder</td><td class="m">Transformer encoder block; D<sub>model</sub> = 2048, N<sub>H</sub> = 8, D<sub>h</sub> = 256; MLP 扩张倍数 1</td></tr>
+        <tr><td>MoE Layer</td><td class="m">稀疏 MoE; E = 4 个 MLP 专家 (2048 → 2048); top-k = 1; Router 2048 → 4</td></tr>
+        <tr><td>Output Projection</td><td class="m">Linear; 2048 → 1024</td></tr>
+        <tr><td>Action Output Projection</td><td class="m">Linear; 1024 → D<sub>action</sub> = 32</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small muted"><span class="tag tag-i">解读</span>状态和动作写的是 32 维，而 <span class="m">s<sub>t</sub></span> 实际只有 7 维，应该是沿用 π0 把低维向量补零到 32 的惯例。论文没有说明是全参数微调还是冻结部分参数；用单张 24 GB 卡训练单任务，通常需要其中之一，这一点影响复现。</p>
+  </div>
+</section>
+
+<!-- ========================= 03 SETUP ========================= -->
+<section class="sec" id="setup">
+  <div class="col">
+    <div class="sec-h"><span class="eyebrow">03 · 数据与实验设置</span><h2>一台 Flexiv 机械臂，244 条遥操作轨迹，5 个任务</h2></div>
+    <p class="tbl-cap">§4.3 · 附录 A · 硬件与数据</p>
+    <div class="tbl-wrap"><table>
+      <tbody>
+        <tr><th>机械臂</th><td>Flexiv Rizon 7 自由度，配大寰（Dahuan）自适应夹爪</td></tr>
+        <tr><th>相机</th><td>第三人称 RealSense D435（1280×720，30 FPS）；腕部 RealSense D415（640×480，30 FPS）</td></tr>
+        <tr><th>力</th><td>TCP 上的估计外力/力矩，6 维，世界坐标系</td></tr>
+        <tr><th>采集</th><td>Quest 3 VR 遥操作，自定义映射到末端控制；5 名操作员</td></tr>
+        <tr><th>ForceVLA-Data</th><td>244 条轨迹，约 14 万个同步时间步；按时间戳同步；图像缩放到 480×640；每任务约 50 条示范；示范之间变换物体位置和朝向</td></tr>
+        <tr><th>动作</th><td>目标 TCP 位姿 + 夹爪宽度</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small muted"><span class="tag tag-i">解读</span>14 万步 ÷ 244 条 ≈ 每条 574 步，按 30 FPS 算约 19 秒。论文没有给控制频率，这个数只作量级参考。数据集和代码承诺开源，本页没有核实是否已经发布。</p>
+    <p class="small muted"><span class="tag tag-i">解读</span>Flexiv Rizon 的每个关节都带力矩传感，外力估计很可能来自这里。论文只写了“estimated”，没写估计方法。</p>
+  </div>
+
+  <div class="wide">
+    <figure class="fig">
+      <button class="plate" type="button" data-lb="fig/tasks.jpg"><img src="fig/tasks.jpg" width="1800" height="584" alt="论文图 4：五个评测任务的设置" loading="lazy"></button>
+      <figcaption style="max-width:var(--col);margin-inline:auto;width:100%"><span><b>图 4</b>　五个任务：(a) 插 U 盘，(b) 按压瓶泵，(c) 插插头，(d) 削黄瓜，(e) 擦白板。</span><span class="look">每格的灰色 “Desired Action” 标签写了该任务的动作要求；下排小图是执行过程。</span></figcaption>
+    </figure>
+  </div>
+
+  <div class="col">
+    <p class="tbl-cap">§5.1 · 任务与评测次数（† 取自 arXiv 源码里被注释掉的任务描述，正式版未收录）</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>任务</th><th>物理难点（§5.1）</th><th>成功判据</th><th class="num">评测次数</th></tr></thead>
+      <tbody>
+        <tr><td>Insert USB</td><td>精确对准 + 受力控制的插入</td><td>拿起 U 盘竖直向下插入，完全插入到位†</td><td class="num">20</td></tr>
+        <tr><td>Insert Plug</td><td>同上</td><td>插头完全插入、与插座齐平†；插头<b>一开始就放在插孔上方</b>，以避开抓取†</td><td class="num">20</td></tr>
+        <tr><td>Pump Bottle</td><td>精确的竖直按压</td><td>泵头按到底、按不动为止†</td><td class="num">20</td></tr>
+        <tr><td>Wipe Board</td><td>平滑轨迹 + 持续贴面接触</td><td>两个指标：Wipe Board-1 完成擦拭动作；Wipe Board-2 完全擦净</td><td class="num">10</td></tr>
+        <tr><td>Peel Cucumber</td><td>持续接触中施加并保持受控的力</td><td>累计削皮覆盖足够；另报平均削皮长度和最少刀数。每次试验 15 刀，每两刀之间人工转动黄瓜†</td><td class="num">15</td></tr>
+      </tbody>
+    </table></div>
+
+    <p class="tbl-cap">§5.1 · 基线（都基于 π0，用相同的示范数据）</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>名称</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>π0-base w/o F</td><td>标准 π0，不接力</td></tr>
+        <tr><td>π0-base w/ F</td><td>把力直接拼到状态输入上</td></tr>
+        <tr><td>π0-fast w/o F / w/ F</td><td>π0-FAST（离散动作 token）的对应两个版本</td></tr>
+        <tr class="ours"><td>ForceVLA</td><td>π0 + FVLMoE</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="wide">
+    <figure class="fig">
+      <button class="plate" type="button" data-lb="fig/teleop.jpg"><img src="fig/teleop.jpg" width="1800" height="740" alt="论文图 8：数据采集系统与遥操作示范" loading="lazy"></button>
+      <figcaption style="max-width:var(--col);margin-inline:auto;width:100%"><span><b>图 8</b>　数据采集系统（附录 A）。操作员戴 Quest 3 头显，用手柄遥操作机械臂；右边四帧是在采集擦白板示范。</span><span class="look">左图红框分别是腕部相机、第三人称相机和手柄。操作员拿不到力反馈，这一点会影响示范里“用力方式”的质量（见 §07 Tactile-VLA 的讨论）。</span></figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ========================= 04 RESULTS ========================= -->
+<section class="sec" id="results">
+  <div class="col">
+    <div class="sec-h"><span class="eyebrow">04 · 结果</span><h2>平均高 23.2 个百分点，但不是每一列都第一</h2></div>
+    <h3 class="sub" style="margin-top:0"><span class="eyebrow">图 5</span>主结果：5 个任务的成功率</h3>
+    <p class="muted small">点图例可以隐藏某个方法。斜线纹表示“接了力”。数值取自论文图 5 的柱顶标注（与源码中矢量图的文字一致）。</p>
+  </div>
+  <div class="wide">
+    <div class="chart" id="chartMain"></div>
+  </div>
+  <div class="col">
+    <ul class="note-list">
+      <li><span class="tag tag-p">论文</span><span>ForceVLA 平均 60.5%，π0-base w/o F 为 37.3%，差值就是摘要里的“23.2%”。π0-base 直接接力后是 40.2%。</span></li>
+      <li><span class="tag tag-p">论文</span><span>π0-fast 直接接力反而从 31.0% 掉到 14.2%。作者的解释是 FAST 的 token 空间高度紧凑，没经过大规模预训练的力 token 会打乱它；π0-base 表达能力更大，能部分利用新信号。所以后续以 π0-base 为主基线。</span></li>
+      <li><span class="tag tag-i">解读</span><span>“23.2%”是百分点，参照是<b>不接力</b>的 π0-base；对比接了力的 π0-base 是 +20.3。平均值是 6 列（擦白板的两个指标都算进去）的算术平均，逐列相加可以复算出 60.5、40.2、37.3、31.0、14.2。</span></li>
+      <li><span class="tag tag-i">解读</span><span>ForceVLA 有两列不是第一：Pump Bottle 上 π0-base w/ F 是 83，ForceVLA 是 67；Wipe Board-1 上 π0-fast w/o F 是 91，ForceVLA 是 64。作者把后者归因于 π0-fast 的动作生成机制更简单、更适合擦拭这种动作。</span></li>
+      <li><span class="tag tag-i">解读</span><span>正文 §5.2 写“standard π0-base model without force feedback (π0-base w/ F), which achieved an average of 37.3%”，括号里的标签写反了，37.3% 属于 w/o F。</span></li>
+    </ul>
+
+    <h3 class="sub"><span class="eyebrow">表 1</span>削黄瓜：削得更长，刀数更少</h3>
+    <div class="minis">
+      <div class="mini"><h4>平均每刀削皮长度（cm）· 越长越好</h4><div class="hbars" id="peelLen"></div></div>
+      <div class="mini"><h4>削到“基本干净”所需的最少刀数 · 越少越好</h4><div class="hbars" id="peelStroke"></div></div>
+    </div>
+    <p class="small muted">作者认为更长的削皮长度说明工具姿态更稳、能贴合曲面并保持接触。表 1 只比较了 π0-base 的两个版本和 ForceVLA。</p>
+
+    <h3 class="sub"><span class="eyebrow">表 2 · 图 6</span>泛化：同一任务里换物体、换高度、加遮挡、加扰动</h3>
+    <div class="prose">
+      <p>五种设置（§5.3）：</p>
+      <ul>
+        <li><b>Object Gen. 1</b>：按压瓶泵任务换瓶子。</li>
+        <li><b>Object Gen. 2</b>：插插头任务换插头类型。</li>
+        <li><b>Height Gen.</b>：改变瓶子的初始高度，统计“在力矩限制内”完成任务的比例。</li>
+        <li><b>Visual Occlusion</b>：插头和插座被部分遮挡。</li>
+        <li><b>Unstable Socket</b>：在插座下面垫杂物，让它不稳。</li>
+      </ul>
+    </div>
+  </div>
+  <div class="wide">
+    <figure class="fig">
+      <button class="plate" type="button" data-lb="fig/gen.jpg"><img src="fig/gen.jpg" width="1800" height="889" alt="论文图 6：五种泛化设置" loading="lazy"></button>
+      <figcaption style="max-width:var(--col);margin-inline:auto;width:100%"><span><b>图 6</b>　泛化设置：(a) 换瓶子，(b) 换插头，(c) 高度变化，(d) 视觉遮挡，(e) 不稳定插座。</span><span class="look">(c) 画的是瓶子放在不同高度的平台上。图注写成了“socket height”，和正文、图片都对不上，应以正文为准。</span></figcaption>
+    </figure>
+  </div>
+  <div class="col">
+    <p class="tbl-cap">表 2 · 泛化成功率（%）· 粗体 = 该列最高，下划线 = 第二（照录论文标注）</p>
+    <div class="tbl-wrap"><table class="heat" id="genTable"></table></div>
+    <ul class="note-list">
+      <li><span class="tag tag-p">论文</span><span>视觉遮挡下 ForceVLA 90%，作者认为这说明它不只依赖视觉线索。Height Gen. 中其他模型会触发力矩上限，ForceVLA 能按深度调整力度。</span></li>
+      <li><span class="tag tag-i">解读</span><span>π0-base 直接接力后，泛化平均从 38.93 <b>降</b>到 31.96。“把力当普通状态拼进去”在这里是负收益。</span></li>
+      <li><span class="tag tag-i">解读</span><span>泛化上最强的基线是 π0-fast w/o F（52.78），它在 Object Gen. 1 和 Height Gen. 上与 ForceVLA 打平。§5.3 说 ForceVLA 在 Object Gen. 1 的 80% “超过”不接力的基线，但 π0-fast w/o F 同样是 80%。Unstable Socket 上 ForceVLA（20%）不如 π0-fast w/ F（30%）。</span></li>
+    </ul>
+
+    <h3 class="sub"><span class="eyebrow">表 3 · 交互</span>消融：力从哪里进、怎么融</h3>
+    <p class="muted small">选一种接法，看力在管线里的位置和对应成功率。论文没写这张表用的是哪个任务、几次试验。</p>
+  </div>
+  <div class="wide">
+    <div class="abl" id="abl">
+      <div class="seg" role="radiogroup" aria-label="融合方式" id="ablSeg"></div>
+      <div class="abl-body">
+        <div><div class="pipe" id="ablPipe"></div><p class="abl-text" id="ablText"></p></div>
+        <div class="hbars" id="ablBars"></div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="interp">
+      <p class="small"><span class="tag tag-i">解读</span>表 3 的 45 / 60 / 80 分别和图 5 中 Insert Plug 列的 π0-base w/o F、π0-base w/ F、ForceVLA 完全一致，所以这张消融很可能是在插插头任务上、20 次试验做的。注意“linear before VLM”（55%）其实比不接力的基线（45%）还高，真正崩掉的是“MoE before VLM”（0%）。“VLM 之前不能放力”这个结论，严格说只对 MoE 那种接法成立。</p>
+    </div>
+
+    <h3 class="sub"><span class="eyebrow">附录表 5</span>多任务联合训练：一个模型学 4 个任务</h3>
+  </div>
+  <div class="wide">
+    <div class="chart" id="chartMulti"></div>
+  </div>
+  <div class="col">
+    <ul class="note-list">
+      <li><span class="tag tag-p">论文</span><span>π0-fast 两个版本全部 0%，作者认为它们在这个设置下学不会多种技能。π0-base w/o F 只有 5%，接力后 42.5%，主要靠插插头。ForceVLA 平均 67.5%，其中瓶泵和擦白板都是 80%。</span></li>
+      <li><span class="tag tag-i">解读</span><span>基线全 0% 说明它们在这个配置下可能根本没训好，真正有信息量的对比是 ForceVLA 对 π0-base w/ F。多任务版 ForceVLA 的 Insert USB 只有 10%，低于单任务的 25%。论文没给多任务评测的试验次数。</span></li>
+    </ul>
+
+    <h3 class="sub"><span class="eyebrow">附录 C · 图 9</span>路由分析：专家有没有分工？</h3>
+    <div class="prose">
+      <p><b>做法</b>：在测试数据上开环前向（不与环境交互），每个任务约 10 条 episode。每条按进度切成 100 段，算每段内 router 给出的 top-1 概率的均值，再对 episode 平均。</p>
+    </div>
+  </div>
+  <div class="wide">
+    <figure class="fig">
+      <button class="plate" type="button" data-lb="fig/router.png"><img src="fig/router.png" width="1800" height="1012" alt="论文图 9：五个任务中各专家的负载随任务进度的变化" loading="lazy"></button>
+      <figcaption style="max-width:var(--col);margin-inline:auto;width:100%"><span><b>图 9</b>　各任务中 4 个专家的平均负载随任务进度变化，横轴是完成百分比，纵轴堆叠到 1。</span><span class="look">底部蓝色是 Expert 0，几乎在每个任务都占一半左右。插插头和削黄瓜的色带随进度有起伏（作者称之为按阶段分工），擦白板相对平稳。</span></figcaption>
+    </figure>
+  </div>
+  <div class="col">
+    <ul class="note-list">
+      <li><span class="tag tag-p">论文</span><span>Expert 0 在多个任务里处理近一半 token，作者推测它是负责多模态融合或通用控制原语的“通才”；Expert 1 和 Expert 3 的激活更有选择性、与阶段相关，说明存在功能分化，同时路由频率的不对称也可能来自训练中形成的偏好。</span></li>
+      <li><span class="tag tag-i">解读</span><span>统计对象是全部 token（VL token 加 1 个力 token），不能直接读成“力 token 被路由到了哪”。这是开环统计，闭环执行时是否同样分工没有测。图上的起伏幅度不大，“按阶段分工”目前只是定性观察。</span></li>
+    </ul>
+
+    <h3 class="sub"><span class="eyebrow">图 7 · 附录 E</span>定性结果：失败后能重试</h3>
+    <p class="muted small">§5.5：插 U 盘第一次没对准时，ForceVLA 会重新调整朝向或重新抓取；基线会重复失败的动作或施加过大的力。插座不稳时，ForceVLA 保持柔顺控制、跟着插座位移调整插头，基线跟丢后失败。</p>
+  </div>
+  <div class="wide">
+    <figure class="fig">
+      <button class="plate" type="button" data-lb="fig/traj.jpg"><img src="fig/traj.jpg" width="1800" height="856" alt="论文图 7：三个任务的轨迹可视化" loading="lazy"></button>
+      <figcaption style="max-width:var(--col);margin-inline:auto;width:100%"><span><b>图 7</b>　ForceVLA 的执行过程：(a) 插 U 盘，(b) 按压瓶泵，(c) 不稳定插座下插插头。</span><span class="look">(c) 里的黄色字：“socket unstable → pushed further → try again → still sliding → different angle → feasible insertion → finish”，这就是论文说的“重试并调整姿态”。</span></figcaption>
+    </figure>
+    <div class="fig-row three">
+      <figure class="fig">
+        <button class="plate" type="button" data-lb="fig/kf_usb.jpg"><img src="fig/kf_usb.jpg" width="1800" height="1238" alt="附录图 11：插 U 盘关键帧" loading="lazy"></button>
+        <figcaption><span><b>图 11</b>　插 U 盘：每行一个方法，从左到右是时间。</span><span class="look">第 3 行和第 5 行都标成了“base-w/o F”，原图的行标签有笔误。</span></figcaption>
+      </figure>
+      <figure class="fig">
+        <button class="plate" type="button" data-lb="fig/kf_occ.jpg"><img src="fig/kf_occ.jpg" width="1800" height="1043" alt="附录图 17：遮挡条件下插插头的关键帧" loading="lazy"></button>
+        <figcaption><span><b>图 17</b>　插插头 + 遮挡 1（水果挡住插座）。</span><span class="look">几个基线在最后一帧把插头拿走或放偏；最下面一行 ForceVLA 最后把插头压进插座。</span></figcaption>
+      </figure>
+      <figure class="fig">
+        <button class="plate" type="button" data-lb="fig/kf_unstable.jpg"><img src="fig/kf_unstable.jpg" width="1800" height="1043" alt="附录图 19：不稳定插座下插插头的关键帧" loading="lazy"></button>
+        <figcaption><span><b>图 19</b>　插插头 + 不稳定插座。</span><span class="look">最下面一行 ForceVLA 的插座在被推动时发生了倾斜。表 2 里这个设置 ForceVLA 只有 20%，定性图展示的是成功样本。</span></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= 05 UNDERSTAND ========================= -->
+<section class="sec" id="understand">
+  <div class="col">
+    <div class="sec-h"><span class="eyebrow">05 · 读懂它</span><h2>这篇真正说明了什么</h2></div>
+    <h3 class="sub" style="margin-top:0">关键 insight</h3>
+    <ol class="numlist">
+      <li><div><b>融合位置比“有没有力”影响更大。</b>同样把力接进 π0，表 3 里结果从 0% 到 80% 不等。这是全文最硬的结论。</div></li>
+      <li><div><b>直接加力收益很小，甚至有害。</b>π0-base 直接接力：主结果 +2.9 点，泛化平均 −7.0 点；π0-fast 直接接力：主结果 −16.8 点。</div></li>
+      <li><div><b>视觉不可靠时力最有用。</b>遮挡设置下 90%，领先最好的基线 30 点，是所有设置里差距最大的一个。</div></li>
+      <li><div><b>它是纯模仿学习的策略。</b>力只作为条件输入，模型不预测未来的力，也不输出力指令；动作仍是目标位姿加夹爪宽度。<span class="tag tag-i" style="margin-left:6px">解读</span>“柔顺”靠的是策略根据力读数改变下一段轨迹，底层控制器是什么论文没交代。</div></li>
+    </ol>
+
+    <h3 class="sub">容易误解的地方</h3>
+    <ul class="note-list">
+      <li><span class="tag tag-s">澄清</span><span>“MoE”不是把 π0 换成 MoE 骨干，只是 VLM 和动作专家之间新加的一小段：1 个 encoder block 加 1 个 4 专家的 MoE 层。VLM 和动作专家仍是 π0 原样。</span></li>
+      <li><span class="tag tag-s">澄清</span><span>专家没有被指定为“力专家”或“视觉专家”。router 对<b>每个 token</b>（包括全部 VL token）独立选一个专家，分工是训练出来的。</span></li>
+      <li><span class="tag tag-s">澄清</span><span>这里的“力”是估计的末端 wrench，只有 6 个数、一帧，不是指尖触觉阵列。</span></li>
+      <li><span class="tag tag-s">澄清</span><span>“提升 23.2%”是百分点，参照的是不接力的 π0-base。</span></li>
+      <li><span class="tag tag-s">澄清</span><span>ForceVLA 不是每个任务、每个设置都最好：Pump Bottle、Wipe Board-1、Unstable Socket 都有基线更高。</span></li>
+    </ul>
+
+    <h3 class="sub">FAQ</h3>
+    <div>
+      <details>
+        <summary>为什么不直接把力拼成一个 token 喂给 VLM？</summary>
+        <div class="d-body">
+          <p><span class="tag tag-p">论文</span>表 3 正好测了这种做法。“linear before VLM”（力线性投影后在 VLM 之前送入）是 55%，“MoE before VLM”是 0%，都不如在 VLM 之后融合（80%）。作者的解释：改变预训练 VLM 的输入表示会扰乱它已经学好的特征分布，削弱它处理视觉和语言的能力。π0-fast 直接接力后大幅下降，作者也给了类似的解释。</p>
+          <p><span class="tag tag-i">解读</span>55% 仍高于不接力的 45%，所以 VLM 前注入并非完全不可行。这个消融只有一个任务、每种配置约 20 次，60% 与 80% 的 95% 区间是重叠的（见 §06）。同一时期的 Tactile-VLA 恰好把触觉放进了 VLM 前缀，目标是借用 VLM 的语义做推理（见 §07）。</p>
+        </div>
+      </details>
+      <details>
+        <summary>把力直接拼到 state 上不行吗？</summary>
+        <div class="d-body">
+          <p><span class="tag tag-p">论文</span>这就是基线 π0-base w/ F。主结果平均从 37.3 升到 40.2，涨得很少；表 3 里对应的“concate after VLM”是 60%，低于 FVLMoE 的 80%。作者的结论是：光有力数据不够，融合方式才是关键。</p>
+          <p><span class="tag tag-i">解读</span>泛化实验里这种接法的平均分反而比不接力低（31.96 对 38.93）。</p>
+        </div>
+      </details>
+      <details>
+        <summary>为什么用 MoE？换成普通 MLP 行不行？</summary>
+        <div class="d-body">
+          <p><span class="tag tag-p">论文</span>动机是力的需求随任务阶段变化，MoE 可以按上下文把 token 路由到不同专家；多任务和按模态处理也是 MoE 的强项（§1、§4.1）。证据是附录 C 的路由图。</p>
+          <p><span class="tag tag-i">解读</span>论文没有“保留 encoder 层、去掉 MoE（或换成单个同宽 MLP）”的消融。所以 80% 对 60% 的提升里，多少来自 MoE 路由，多少来自新加的那层 2048 维 encoder（力 token 和 VL token 通过自注意力充分交互），目前拆不开。这是方法部分最关键的缺口。</p>
+        </div>
+      </details>
+      <details>
+        <summary>力是时间序列，为什么只用一帧？</summary>
+        <div class="d-body">
+          <p><span class="tag tag-p">论文</span>公式里只有当前的 <span class="m">f<sub>t</sub> ∈ ℝ<sup>6</sup></span>，经线性层投成 1 个 token。闭环靠的是每次推理都读新的 <span class="m">f<sub>t+1</sub></span>（图 3）。</p>
+          <p><span class="tag tag-i">解读</span>单帧能表达“现在有没有顶住”，但看不出“力在变大还是变小”。而且力只在每次整块推理时更新一次，块内执行是开环的。论文没给动作块长度、执行步数和推理频率，没法估算实际反应延迟。Motus2 的触觉专家正是冲着这个问题去的（见 §07）。</p>
+        </div>
+      </details>
+      <details>
+        <summary>力是从 F/T 传感器读的吗？</summary>
+        <div class="d-body">
+          <p><span class="tag tag-p">论文</span>用的是 TCP 上的<b>估计</b>外力（estimated external wrench），表达在世界坐标系。局限部分承认估计值可能达不到高保真直接测量的精度，对触觉极敏感的场景尤其如此。</p>
+        </div>
+      </details>
+      <details>
+        <summary>路由图能证明专家学会了“按阶段分工”吗？</summary>
+        <div class="d-body">
+          <p><span class="tag tag-p">论文</span>作者认为插插头和削黄瓜表现出明显的时间分工，擦白板则一直偏好同一个专家，并把 Expert 0 看作通用专家。</p>
+          <p><span class="tag tag-i">解读</span>证据偏弱：一是统计混合了所有 token，二是开环，三是没有把路由和成败或者和力的大小关联起来。更有说服力的做法是只看力 token 的路由，并对照同一时刻的力曲线。</p>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= 06 LIMITS ========================= -->
+<section class="sec" id="limits">
+  <div class="col">
+    <div class="sec-h"><span class="eyebrow">06 · 局限与疑点</span><h2>论文承认的两条，和我们读出来的十条</h2></div>
+  </div>
+  <div class="wide">
+    <div class="cols2">
+      <div>
+        <h4>论文自己承认的（§6 Limitation）</h4>
+        <ol class="numlist">
+          <li><div>用的是<b>估计</b>外力，精度可能不如高保真直接测量；可以考虑更好的传感器或标定技术。</div></li>
+          <li><div>实验主要在自带（通常昂贵）力/力矩感知的平台上做，限制了普及；作者正在评估外接或后装力传感器的低成本平台。</div></li>
+        </ol>
+      </div>
+      <div>
+        <h4><span class="tag tag-i">解读</span>我们读出来的</h4>
+        <ol class="numlist">
+          <li><div><b>试验次数少，区间很宽。</b>20 次试验下，80% 的 95% Wilson 区间约为 58–92%，60% 约为 39–78%。表 3 里 FVLMoE（80%）和“concate after VLM”（60%）的区间是重叠的。</div></li>
+          <li><div><b>部分百分比和正文写的试验次数对不上。</b>Pump Bottle 写的是 20 次，20 次只能得到 5 的倍数，但图 5 里有 33、67、83，更像是 6 或 12 次。Wipe Board 写的是 10 次，但 91、64、45、27、9 都是 1/11 的倍数（11 或 22 次）。表 2 的 48、32（25 次？）和 66.67、77.78、88.89、44.44（9 次？）也说明各设置的次数不同，而论文没给。</div></li>
+          <li><div><b>没有能单独验证 MoE 的消融。</b>收益来自路由还是来自新加的 encoder 层，拆不开（见 FAQ）。</div></li>
+          <li><div><b>表 3 没写任务和次数。</b>数字与 Insert Plug 列吻合，只能推测。</div></li>
+          <li><div><b>平均值的口径。</b>6 列平均，擦白板算了两次；“23.2%”是相对不接力基线的百分点差。</div></li>
+          <li><div><b>实现细节缺失。</b>力的采样率和归一化、控制与推理频率、每块执行几步、H<sub>action</sub>、是否全参数微调、MoE 是否有负载均衡损失，都没写。</div></li>
+          <li><div><b>基线的训练充分性。</b>多任务下 π0-fast 两个版本全是 0%，基线可能没调好；各基线都只用约 50 条示范微调。</div></li>
+          <li><div><b>泛化范围有限。</b>都是同一任务内换物体、高度、遮挡、扰动，没有跨任务、跨机器人或跨传感器。</div></li>
+          <li><div><b>示范本身不含“力的意图”。</b>VR 遥操作的操作员感受不到力，示范里的用力方式是间接的。Tactile-VLA 正是用这个理由去自制带触觉的采集设备（见 §07）。</div></li>
+          <li><div><b>若干文字和图注笔误。</b>§5.2 把 37.3% 标成了 w/ F；图 6(c) 的图注和正文不一致；专家编号 1–4 与 0–3 混用；图 10、11 有重复的行标签；§5.3 在 Object Gen. 1 上宣称领先，实际是与 π0-fast w/o F 打平。</div></li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= 07 FOUR PAPERS ========================= -->
+<section class="sec" id="four">
+  <div class="col">
+    <div class="sec-h"><span class="eyebrow">07 · 放到四篇里看</span><h2>从“把力接进 VLA”到“把触觉当成世界状态来预测”</h2></div>
+    <p class="lead">这一批四篇是 ForceVLA、Tactile-VLA、ME-Dex 1.0、Motus2。ForceVLA 最早，要回答的问题也最基础：在已经预训练好的 VLA 上，力应该从哪里进、怎么融。</p>
+  </div>
+  <div class="wide">
+    <div class="tl">
+      <div class="here"><span class="d">2025-05 · arXiv 2505.22159</span><span class="n">ForceVLA</span><span class="s">复旦 / 上交。π0 + 力感知 MoE，6 维末端外力作为条件输入。</span></div>
+      <div><span class="d">2025-07 · arXiv 2507.09160</span><span class="n">Tactile-VLA</span><span class="s">清华高阳组。触觉进 VLA 前缀，配混合位置-力控制器和触觉推理。</span></div>
+      <div><span class="d">2026-08 · arXiv 2608.30237</span><span class="n">Motus2</span><span class="s">清华朱军组 / GensPI。自进化世界模型，轻量触觉专家做动作精修和未来力预测。</span></div>
+      <div><span class="d">2026-09 · arXiv 2609.21449</span><span class="n">ME-Dex 1.0</span><span class="s">理想汽车。视频、触觉、动作三专家 MoT，触觉作为要预测的未来观测。</span></div>
+    </div>
+
+    <div class="map-wrap" aria-label="四篇论文的相对位置示意图">
+      <svg viewBox="0 0 760 360" role="img" aria-label="横轴是力或触觉在模型中的角色，纵轴是骨干类型；ForceVLA 和 Tactile-VLA 在左下，Motus2 在右上跨两列，ME-Dex 在右上">
+        <text x="16" y="24" class="mp-tk">解读 · 定性示意，不是定量坐标</text>
+        <line x1="120" y1="60" x2="120" y2="300" class="mp-ln"/>
+        <line x1="120" y1="300" x2="744" y2="300" class="mp-ln"/>
+        <line x1="360" y1="60" x2="360" y2="300" class="mp-ln" stroke-dasharray="2 4"/>
+        <line x1="560" y1="60" x2="560" y2="300" class="mp-ln" stroke-dasharray="2 4"/>
+        <line x1="120" y1="180" x2="744" y2="180" class="mp-ln" stroke-dasharray="2 4"/>
+        <text x="240" y="322" text-anchor="middle" class="mp-tk">当前力/触觉作为输入条件</text>
+        <text x="460" y="322" text-anchor="middle" class="mp-tk">用最新触觉高频修正动作</text>
+        <text x="652" y="322" text-anchor="middle" class="mp-tk">预测未来的力/触觉</text>
+        <text x="432" y="348" text-anchor="middle" class="mp-ax">力 / 触觉在模型里的角色 →</text>
+        <text x="108" y="124" text-anchor="end" class="mp-tk">世界（动作）模型</text>
+        <text x="108" y="140" text-anchor="end" class="mp-tk">预测视频</text>
+        <text x="108" y="244" text-anchor="end" class="mp-tk">VLA 策略</text>
+        <text x="108" y="260" text-anchor="end" class="mp-tk">只出动作</text>
+
+        <circle cx="160" cy="252" r="9" style="fill:var(--amber)" class="mp-pt"/>
+        <text x="176" y="256" class="mp-lb">ForceVLA</text>
+        <text x="176" y="273" class="mp-sm">VLM 之后融合 · 6 维 wrench</text>
+        <circle cx="200" cy="206" r="7" style="fill:var(--g-base)" class="mp-pt"/>
+        <text x="214" y="210" class="mp-lb">Tactile-VLA</text>
+        <text x="214" y="227" class="mp-sm">VLM 前缀融合 · 力控</text>
+        <rect x="390" y="126" width="250" height="30" rx="15" style="fill:var(--g-fast);fill-opacity:.55" class="mp-pt"/>
+        <text x="515" y="146" text-anchor="middle" class="mp-lb">Motus2</text>
+        <text x="515" y="172" text-anchor="middle" class="mp-sm">触觉专家：子块精修 + 预测未来力窗口</text>
+        <circle cx="680" cy="92" r="8" style="fill:var(--g-base)" class="mp-pt"/>
+        <text x="666" y="97" text-anchor="end" class="mp-lb">ME-Dex</text>
+        <text x="744" y="118" text-anchor="end" class="mp-sm">触觉与视频、动作联合去噪</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="col">
+    <p class="tbl-cap">四篇对照（ForceVLA 列来自本文；其余三篇只根据各自摘要与相关章节，未做精读）</p>
+  </div>
+  <div class="wide">
+    <div class="tbl-wrap"><table>
+      <thead><tr><th></th><th>ForceVLA</th><th>Tactile-VLA</th><th>ME-Dex 1.0</th><th>Motus2</th></tr></thead>
+      <tbody>
+        <tr><th>传感信号</th><td>估计的 6 维末端 wrench，单帧</td><td>UMI 手持夹爪上的双高分辨率触觉传感器（法向 + 切向力），取 H 步历史</td><td>异构触觉（夹爪和灵巧手、多种布局），用 Canonical Hand Model 与 Unified Tactile AE 统一</td><td>灵巧手触觉，按短时间窗读取</td></tr>
+        <tr><th>进入模型的位置</th><td>VLM 之后、动作专家之前；FVLMoE 输出加到动作 token 上</td><td>Transformer 输入前缀里做 token 级融合（MLP 把触觉历史压成 1 个 token）</td><td>MoT 中单独的 Tactile Expert，中间层共享注意力</td><td>轻量 Tactile Expert：骨干先去噪到 σ<sub>c</sub>，每个子块执行前用最新触觉窗口完成 σ<sub>c</sub>→0</td></tr>
+        <tr><th>是否预测力 / 触觉</th><td>否</td><td>输出力感知的动作，由混合位置-力控制器执行</td><td>是：未来触觉与视频、动作联合去噪</td><td>是：预测每个子块之后的力窗口</td></tr>
+        <tr><th>骨干</th><td>π0（VLA）</td><td>VLA，flow matching 动作头</td><td>世界动作触觉模型（Video / Tactile / Action 三专家）</td><td>自进化通用世界模型（policy / simulator / evaluator 共享权重）</td></tr>
+        <tr><th>数据</th><td>VR 遥操作 244 条，操作员无力反馈</td><td>带触觉的 UMI 手持采集，操作员能直接感到接触</td><td>仿真轨迹回放时补录力传感器数据（RoboTwin、DexJoCo）+ 真机</td><td>单目 → 双目第一视角人类数据 → 机器人域</td></tr>
+        <tr><th>评测</th><td>真机 5 个任务 + 5 种泛化设置</td><td>真机：触觉相关的指令跟随、常识、推理</td><td>RoboTwin、DexJoCo、ManiFeel + 真机</td><td>仿生双臂双灵巧手平台</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="col">
+    <div class="prose">
+      <h3 class="sub">和 Tactile-VLA：同期，同为 VLA，接法相反</h3>
+      <p>两篇都是在 π0 式 VLA 上接力或触觉。Tactile-VLA 在相关工作里把 ForceVLA 归为“modality-specific routing”一类，并强调自己的主要贡献是证明 VLM 的隐空间里已有对物理交互的语义理解，少量示范就能激活，做到接触任务的零样本泛化（比如区分“用力插”和“轻轻插”）。</p>
+      <p>接法上，ForceVLA 刻意让力绕开 VLM；Tactile-VLA 刻意把触觉放进 VLM 的输入前缀，好让语言推理（CoT 变体）能用上触觉。<span class="tag tag-i">解读</span>这两者不矛盾：ForceVLA 自己的表 3 里，VLM 前的线性注入（55%）仍好于不接力（45%），崩掉的只是 VLM 前的 MoE。两篇的目标也不同，ForceVLA 追求成功率，Tactile-VLA 追求把语言里的力度语义落到力控上。</p>
+      <p>数据上，Tactile-VLA 指出普通遥操作的操作员没有力反馈，采到的策略自然不会依赖触觉，所以自制了带触觉的 UMI 采集设备。ForceVLA 用的正是没有力反馈的 VR 遥操作。</p>
+
+      <h3 class="sub">和 ME-Dex 1.0：触觉从“条件”变成“要预测的观测”</h3>
+      <p>ME-Dex 的图 1 把“VLA 生成动作，部分设计再把当前触觉作为条件”列为第一类做法，并指出这类方法不联合预测未来的触觉、视觉和动作。<span class="tag tag-i">解读</span>ForceVLA 正属于这一类。ME-Dex 的核心主张是触觉和视频一样是对世界状态的观测，应当作为未来观测一起建模。</p>
+      <p>名字相近的“专家”含义完全不同：ForceVLA 的专家是一层里 4 个 MLP，按 token 学出路由；ME-Dex 的专家是按模态划分的 Transformer（Video / Tactile / Action），通过共享注意力相连。</p>
+
+      <h3 class="sub">和 Motus2：补上了“力的更新频率”</h3>
+      <p>Motus2 的轻量触觉专家复用骨干的中间动作块和 KV 缓存：骨干只去噪一次到 σ<sub>c</sub>，之后每个短子块执行前，用最新的触觉窗口完成最后一段去噪；同时用 flow matching 预测子块执行后的力窗口。ME-Dex 的相关工作也提到，Motus2 的注意力结构防止动作精修 token 看到加噪的未来力 token。</p>
+      <p><span class="tag tag-i">解读</span>这正对应 ForceVLA 的一个空白：ForceVLA 的力只在每次整块推理时读一帧，块内开环。Motus2 把触觉更新拉到子块频率，而且不需要重跑整个骨干。</p>
+
+      <div class="interp" style="margin-top:8px">
+        <p><span class="tag tag-i">解读</span>一条可以串起四篇的线：2025 年的两篇（ForceVLA、Tactile-VLA）解决“怎么把力/触觉接进预训练 VLA”，力是输入；2026 年的两篇把骨干换成会预测未来的世界模型，力/触觉开始成为预测目标（Motus2 预测未来力窗口，ME-Dex 让触觉与视频联合去噪），Motus2 还把触觉反馈的频率从“每块一次”提到“每子块一次”。ForceVLA 的表 3 留下的经验（别粗暴改动预训练表示）在后两篇里依然适用：它们都给触觉单独配了专家，而不是把触觉塞进视频骨干的输入。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= 08 GLOSSARY ========================= -->
+<section class="sec gloss" id="glossary">
+  <div class="col">
+    <div class="sec-h"><span class="eyebrow">08 · 术语表</span><h2>术语表</h2></div>
+    <details>
+      <summary>展开 16 个术语</summary>
+      <div class="d-body" style="padding-left:0">
+        <dl>
+          <div class="gi"><dt>VLA</dt><dd>Vision-Language-Action。用预训练视觉-语言模型理解图像和指令，直接输出机器人动作的模型。</dd></div>
+          <div class="gi"><dt>π0 / π0-base</dt><dd>Physical Intelligence 的 VLA。PaliGemma（SigLIP 视觉编码器 + Gemma 语言模型）做 VLM，另配一个动作专家，用 flow matching 生成连续动作块。本文的基座。</dd></div>
+          <div class="gi"><dt>π0-FAST</dt><dd>用 FAST 动作 token 化把动作离散成 token、自回归生成的 π0 变体。本文基线之一。</dd></div>
+          <div class="gi"><dt>Wrench（力旋量）</dt><dd>力 (f<sub>x</sub>, f<sub>y</sub>, f<sub>z</sub>) 与力矩 (m<sub>x</sub>, m<sub>y</sub>, m<sub>z</sub>) 合成的 6 维量。本文用的是 TCP 上的估计值，表达在世界坐标系。</dd></div>
+          <div class="gi"><dt>F/T 传感器</dt><dd>六维力/力矩传感器。论文局限部分提到的“高保真直接测量”指的就是这类传感器。</dd></div>
+          <div class="gi"><dt>TCP</dt><dd>Tool Center Point，工具中心点。本文状态 s<sub>t</sub> 是 TCP 位姿加夹爪宽度，动作是目标 TCP 位姿加夹爪宽度。</dd></div>
+          <div class="gi"><dt>Contact-rich</dt><dd>接触密集的操作：插接、按压、擦拭、削切等，结果主要由接触力决定。</dd></div>
+          <div class="gi"><dt>MoE</dt><dd>Mixture-of-Experts，混合专家。一组专家子网络加一个门控网络，每个 token 只激活其中少数几个。本文 E = 4，top-1。</dd></div>
+          <div class="gi"><dt>Router / 门控</dt><dd>给每个 token 的每个专家打分的网络。本文是 Linear 2048 → 4。</dd></div>
+          <div class="gi"><dt>Top-k 路由</dt><dd>只把 token 送给得分最高的 k 个专家，输出按门控权重加权。</dd></div>
+          <div class="gi"><dt>负载均衡损失</dt><dd>MoE 训练中常用的辅助损失，防止所有 token 挤到少数专家上。本文未提及。</dd></div>
+          <div class="gi"><dt>Flow matching</dt><dd>学习从噪声分布到数据分布的速度场，推理时数值积分得到样本。π0 用它生成动作块。</dd></div>
+          <div class="gi"><dt>Action chunk</dt><dd>动作块：一次推理输出的未来 H 步动作序列。</dd></div>
+          <div class="gi"><dt>Prefix / Suffix</dt><dd>π0 的两段 token：prefix 是图像和语言 token（VLM 处理），suffix 是状态和带噪动作 token（动作专家处理）。FVLMoE 的输出加在 suffix 上。</dd></div>
+          <div class="gi"><dt>开环评估</dt><dd>在离线数据上前向模型，不与真实环境交互。本文的路由分析用的是这种方式。</dd></div>
+          <div class="gi"><dt>Wilson 区间</dt><dd>二项比例（如成功率）的置信区间，小样本下比正态近似更稳。本页用它估计 20 次试验的不确定性。</dd></div>
+        </dl>
+      </div>
+    </details>
+  </div>
+
+  <div class="col">
+    <footer class="foot">
+      <span>依据 arXiv 2505.22159v3（2025-09-18）全文与 arXiv 源码。数值取自源码中的表格和图 5 矢量图的标注；论文图片来自 arXiv 源码原图。</span>
+      <span>标注 <span class="tag tag-i">解读</span> 的内容是本页的判断，不是论文主张。首屏力曲线和 §07 位置图是本页绘制的示意。</span>
+    </footer>
+  </div>
+</section>
+</div>
+
+<div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="查看大图">
+  <button type="button" id="lbClose">关闭</button>
+  <div style="display:grid;justify-items:center"><img id="lbImg" alt=""><p id="lbCap"></p></div>
+</div>
+
+<script>
+(function(){
+  const $ = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+  /* ---------- theme tokens for canvas ---------- */
+  let TK = {};
+  function readTokens(){
+    const cs = getComputedStyle(document.documentElement);
+    ['--fx','--fy','--fz','--ink','--ink2','--ink3','--rule','--rule2','--paper','--panel','--amber','--grid'].forEach(k => TK[k] = cs.getPropertyValue(k).trim());
+  }
+  readTokens();
+  const themeListeners = [];
+  const onTheme = () => { readTokens(); themeListeners.forEach(f => f()); };
+  try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme); } catch(e){}
+  new MutationObserver(onTheme).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
+
+  /* ---------- 1. force scope (synthetic) ---------- */
+  const CH = [
+    {k:'Fx', c:'--fx', mom:false, kf:[[0,0],[2,0],[2.3,3.2],[3.2,3.6],[3.6,-1.5],[4,1],[4.4,-.5],[4.8,.2],[6,.6],[6.2,.1],[7.1,0],[8,0]]},
+    {k:'Fy', c:'--fy', mom:false, kf:[[0,0],[2,0],[2.3,-1.2],[3.2,-1.4],[3.7,.8],[4.3,-.3],[4.8,0],[6,-.5],[6.3,0],[8,0]]},
+    {k:'Fz', c:'--fz', mom:false, kf:[[0,0],[2,0],[2.3,-9],[3.2,-9.5],[3.6,-3],[4.8,-2.5],[5.8,-13],[6.05,-14.5],[6.2,-4],[6.6,-3.5],[7.1,0],[8,0]]},
+    {k:'Mx', c:'--fx', mom:true, kf:[[0,0],[2,0],[2.3,.35],[3.2,.4],[3.6,-.1],[4.8,0],[6,.1],[8,0]]},
+    {k:'My', c:'--fy', mom:true, kf:[[0,0],[2,0],[2.3,-.9],[3.2,-1],[3.6,.3],[4.1,-.15],[4.8,0],[6,-.2],[6.2,0],[8,0]]},
+    {k:'Mz', c:'--fz', mom:true, kf:[[0,0],[2,0],[2.4,.1],[3.3,.12],[4.8,0],[5.9,.25],[6.2,0],[8,0]]}
+  ];
+  const PH = [{a:0,b:2,l:'接近'},{a:2,b:3.4,l:'接触·偏位'},{a:3.4,b:4.8,l:'调整'},{a:4.8,b:6.6,l:'插入'},{a:6.6,b:8,l:'到位'}];
+  const TMAX = 8;
+  const sm = x => { x = Math.max(0, Math.min(1, x)); return x*x*(3-2*x); };
+  function interp(kf, t){
+    for (let i=0;i<kf.length-1;i++){
+      const [t0,v0]=kf[i],[t1,v1]=kf[i+1];
+      if (t>=t0 && t<=t1) return v0 + (v1-v0)*sm((t-t0)/(t1-t0));
+    }
+    return kf[kf.length-1][1];
+  }
+  function noise(t,i){ return Math.sin(t*37.1+i*11.3)*Math.sin(t*91.7+i*3.1)*.5 + Math.sin(t*13.3+i*7.7)*.3; }
+  function val(ch,i,t){
+    const contact = (t>2 && t<7.1) ? 1 : .35;
+    return interp(ch.kf,t) + noise(t,i)*(ch.mom ? .025 : .16)*contact;
+  }
+  const on = CH.map(() => true);
+  const chansEl = $('#chans');
+  CH.forEach((ch,i) => {
+    const b = document.createElement('button');
+    b.type='button'; b.className='chan'+(ch.mom?' mom':''); b.style.setProperty('--c', `var(${ch.c})`);
+    b.setAttribute('aria-pressed','true'); b.innerHTML = `<i></i>${ch.k[0]}<sub>${ch.k[1].toLowerCase()}</sub>`;
+    b.addEventListener('click', () => { on[i] = !on[i]; b.setAttribute('aria-pressed', String(on[i])); draw(); });
+    chansEl.appendChild(b);
+  });
+  const cv = $('#scope'), ctx = cv.getContext('2d');
+  let W=0,H=0,dpr=1,cursor=reduce?TMAX:0, playing=!reduce, last=0, visible=true;
+  function size(){ dpr = window.devicePixelRatio||1; const r = cv.getBoundingClientRect(); W=r.width; H=r.height; cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); ctx.setTransform(dpr,0,0,dpr,0,0); draw(); }
+  function draw(){
+    if (!W) return;
+    ctx.clearRect(0,0,W,H);
+    const L = 44, R = 10, T = 26, B = 22, gap = 14;
+    const plotH = H - T - B - gap, fH = plotH*.6, mH = plotH*.4;
+    const bands = [{y0:T, h:fH, lo:-16, hi:6, lab:'F / N', ticks:[-15,-10,-5,0,5], mom:false},{y0:T+fH+gap, h:mH, lo:-1.2, hi:.8, lab:'M / N·m', ticks:[-1,-.5,0,.5], mom:true}];
+    const x = t => L + (t/TMAX)*(W-L-R);
+    // phases
+    ctx.font = `500 11.5px "IBM Plex Mono", ui-monospace, monospace`;
+    PH.forEach((p,i) => {
+      if (i%2===1){ ctx.fillStyle = TK['--grid']; ctx.fillRect(x(p.a), T-4, x(p.b)-x(p.a), H-T-B+4); }
+      const act = cursor>=p.a && cursor<p.b+ (i===PH.length-1?1:0);
+      ctx.fillStyle = act ? TK['--ink'] : TK['--ink3'];
+      ctx.textAlign='center'; ctx.fillText(p.l, (x(p.a)+x(p.b))/2, 15);
+    });
+    bands.forEach(bd => {
+      const y = v => bd.y0 + (1-(v-bd.lo)/(bd.hi-bd.lo))*bd.h;
+      ctx.strokeStyle = TK['--grid']; ctx.lineWidth = 1;
+      ctx.fillStyle = TK['--ink3']; ctx.textAlign='right'; ctx.font = `11px "IBM Plex Mono", ui-monospace, monospace`;
+      bd.ticks.forEach(tk => { ctx.beginPath(); ctx.moveTo(L, y(tk)+.5); ctx.lineTo(W-R, y(tk)+.5); ctx.stroke(); ctx.fillText(String(tk), L-6, y(tk)+4); });
+      ctx.strokeStyle = TK['--ink3']; ctx.beginPath(); ctx.moveTo(L, Math.round(y(0))+.5); ctx.lineTo(W-R, Math.round(y(0))+.5); ctx.stroke();
+      ctx.save(); ctx.translate(12, bd.y0+bd.h/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.fillStyle=TK['--ink2']; ctx.fillText(bd.lab,0,0); ctx.restore();
+      CH.forEach((ch,i) => {
+        if (ch.mom!==bd.mom || !on[i]) return;
+        const col = TK[ch.c];
+        ctx.setLineDash(ch.mom ? [5,3] : []);
+        // faint full trace
+        ctx.globalAlpha = .22; ctx.strokeStyle = col; ctx.lineWidth = 1.2; ctx.beginPath();
+        for (let t=0;t<=TMAX;t+=.02){ const px=x(t), py=y(val(ch,i,t)); t===0?ctx.moveTo(px,py):ctx.lineTo(px,py); }
+        ctx.stroke();
+        ctx.globalAlpha = 1; ctx.lineWidth = ch.k==='Fz'||ch.k==='My' ? 2 : 1.6; ctx.beginPath();
+        for (let t=0;t<=Math.min(cursor,TMAX);t+=.02){ const px=x(t), py=y(val(ch,i,t)); t===0?ctx.moveTo(px,py):ctx.lineTo(px,py); }
+        ctx.stroke();
+      });
+      ctx.setLineDash([]);
+    });
+    // time axis
+    ctx.fillStyle = TK['--ink3']; ctx.textAlign='center'; ctx.font = `11px "IBM Plex Mono", ui-monospace, monospace`;
+    for (let s=0;s<=TMAX;s+=2) ctx.fillText(s+' s', x(s), H-6);
+    // cursor
+    if (cursor<TMAX){ ctx.strokeStyle = TK['--amber']; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(x(cursor)+.5, T-6); ctx.lineTo(x(cursor)+.5, H-B); ctx.stroke(); }
+  }
+  function loop(ts){
+    if (playing && visible){
+      if (!last) last = ts;
+      cursor += (ts-last)/1000; last = ts;
+      if (cursor > TMAX + 1.4) cursor = 0;
+      draw();
+    } else last = 0;
+    requestAnimationFrame(loop);
+  }
+  const playBtn = $('#scopePlay');
+  function setPlay(p){ playing = p; playBtn.setAttribute('aria-pressed', String(p)); playBtn.textContent = p ? '暂停' : '播放'; if (!p) draw(); }
+  playBtn.addEventListener('click', () => setPlay(!playing));
+  if (reduce) setPlay(false);
+  try { new IntersectionObserver(es => { visible = es[0].isIntersecting; }).observe(cv); } catch(e){}
+  try { new ResizeObserver(size).observe(cv); } catch(e){ window.addEventListener('resize', size); }
+  themeListeners.push(draw);
+  size(); requestAnimationFrame(loop);
+
+  /* ---------- 2. flow explorer ---------- */
+  const NODES = {
+    vb:{t:'第三人称图像 V<sub>t</sub><sup>b</sup>', s:'RealSense D435 · 1280×720 · 30 FPS → 训练时缩放到 480×640', p:'静态的第三人称视角，和 π0 一样送入 SigLIP 视觉编码器。', src:'§3 · §4.3'},
+    vh:{t:'腕部图像 V<sub>t</sub><sup>h</sup>', s:'RealSense D415 · 640×480 · 30 FPS', p:'装在手腕上的第一视角相机。插接时这一路最容易被夹爪和物体挡住。', src:'§3 · §4.3'},
+    L:{t:'语言指令 L', s:'文本 token', p:'例如图 3 中的 “Pick up the USB and plug it into the socket.”', src:'图 3'},
+    f:{t:'外力 f<sub>t</sub>', s:'f<sub>t</sub> ∈ ℝ⁶ = {f<sub>tx</sub>, f<sub>ty</sub>, f<sub>tz</sub>, m<sub>tx</sub>, m<sub>ty</sub>, m<sub>tz</sub>}', p:'作用在 TCP 上的估计外力和力矩，表达在世界坐标系。只用当前时刻一帧。论文没有给采样率和归一化方式。力<b>不进</b> VLM。', src:'§3 · §6 Limitation'},
+    s:{t:'状态 s<sub>t</sub>', s:'s<sub>t</sub> ∈ ℝ⁷ → 表 4 写 D<sub>state</sub> = 32', p:'TCP 位置 (x, y, z)、欧拉角 (α, β, γ) 和夹爪宽度。它进入动作专家这一侧，与带噪动作一起构成 suffix。基线 π0-base w/ F 就是把力直接拼在这里。', src:'§3 · 表 4 · §5.1'},
+    vit:{t:'SigLIP ViT', s:'每路图像 → 一组视觉 token', p:'π0 原有的视觉编码器，本文未改动。', src:'§4.1'},
+    vlm:{t:'PaliGemma（π0 的 VLM）', s:'E<sub>VL</sub> ∈ ℝ<sup>N<sub>VL</sub>×2048</sup>', p:'处理视觉 token 和语言 token，输出上下文嵌入 E<sub>VL</sub>。本文刻意不让力进入这里，理由是保护预训练表示（表 3）。', src:'§4.1 · §4.2'},
+    phi:{t:'力投影 φ<sub>F</sub>', s:'Linear: 6 → D<sub>VLM</sub> = 2048 → E<sub>F</sub> ∈ ℝ<sup>1×2048</sup>', p:'整个 6 维力读数只变成 <b>1 个</b> token。图 3 画了多个粉色方块，但正文和表 4 都是 1 个。', src:'§4.2 · 表 4'},
+    cat:{t:'拼接 E<sub>in</sub>', s:'E<sub>in</sub> = [E<sub>VL</sub>; E<sub>F</sub>] ∈ ℝ<sup>(N<sub>VL</sub>+1)×2048</sup>', p:'力 token 接在 VL 序列的末尾。', src:'§4.2'},
+    enc:{t:'Pre-MoE Encoder 层', s:'D<sub>model</sub> = 2048 · 8 头 × 256 维 · FFN 扩张倍数 1 → E<sub>enc</sub>', p:'一个完整的 Transformer encoder block。力 token 在这里通过自注意力和所有 VL token 交互，这是力与视觉语言真正“见面”的地方。', src:'§4.2 · 表 4'},
+    router:{t:'Router（门控网络）', s:'Linear: 2048 → E = 4 · top-k = 1', p:'对<b>每个 token</b>独立打分，只把它送给得分最高的 1 个专家。没有指定哪个专家处理哪种模态。论文没提负载均衡损失。', src:'§3 · §4.2 · 表 4'},
+    experts:{t:'4 个 MLP 专家 + 残差', s:'每个专家: MLP 2048 → 2048 · y(x) = Σ<sub>i∈TopK</sub> g<sub>i</sub>(x) E<sub>i</sub>(x)', p:'专家输出乘以门控权重，再与 MoE 层的输入做残差相加，得到 E<sub>fused</sub>。附录 C 发现 Expert 0 处理了近一半 token。', src:'§3 · §4.2 · 附录 C'},
+    outproj:{t:'输出投影', s:'Linear: 2048 → D<sub>act_e</sub> = 1024', p:'把融合特征投到动作专家的宽度。', src:'§4.2 · 表 4'},
+    take:{t:'截取末尾 H<sub>action</sub> 个 token', s:'G<sub>FVLMoE</sub> ∈ ℝ<sup>H<sub>action</sub>×D<sub>a</sub></sup>', p:'从融合序列里取最后 H<sub>action</sub> 个 token，每个对应动作块中的一步。力 token 在最末，一定被选中。论文没给 H<sub>action</sub> 的值。', src:'§4.2'},
+    suffix:{t:'动作 token S<sub>suffix</sub>', s:'S<sub>suffix</sub> ∈ ℝ<sup>H<sub>action</sub>×D<sub>a</sub></sup> · 状态投影 32→1024 · 动作投影 32→1024 · Action-Time MLP 2×1024→1024 (Swish)', p:'由当前状态 s<sub>t</sub> 和去噪步 τ 时的带噪动作 a<sub>t</sub><sup>τ</sup> 得到，就是 π0 原本送进动作专家的 token。', src:'§4.2 · 表 4'},
+    add:{t:'逐元素相加', s:'S<sub>suffix</sub> + G<sub>FVLMoE</sub>', p:'FVLMoE 影响动作生成的<b>唯一入口</b>：直接加到动作 token 上，没有用 cross-attention。<span class="tag tag-i">解读</span>G 与 τ 无关，一次推理只需算一遍。', src:'§4.2'},
+    ae:{t:'动作专家（Action Expert）', s:'输出速度场 → Action Output Projection 1024 → 32', p:'π0 原有的动作专家，预测 flow matching 的速度场。', src:'§4.1 · 表 4'},
+    fm:{t:'flow matching 迭代去噪', s:'A<sub>t</sub> = {a<sub>t</sub>, …, a<sub>t+H−1</sub>}', p:'从噪声出发迭代积分，得到动作块。每个动作是目标 TCP 位姿加夹爪宽度。训练目标就是 π0 的条件 flow matching，没有额外的力相关损失。', src:'§3 · §4.1 · §4.3'},
+    exec:{t:'执行动作块', s:'目标 TCP 位姿 + 夹爪宽度', p:'把动作发给机械臂。论文没说一块执行几步后重新推理，也没说底层用什么控制器。', src:'图 3'},
+    next:{t:'读新的力 f<sub>t+1</sub>', s:'Perceive New Force → Update', p:'下一次推理用新的力读数，形成闭环。<span class="tag tag-i">解读</span>力的更新频率等于整块重规划的频率，块内执行是开环的。', src:'图 3'}
+  };
+  const STEPS = [
+    {t:'视觉和语言走 π0 原本的 VLM', n:['vb','vh','L','vit','vlm'], p:'两路图像经 SigLIP 编码，和语言 token 一起进 PaliGemma，得到 E<sub>VL</sub>（N<sub>VL</sub>×2048）。这一段与 π0 完全相同。'},
+    {t:'力单独投影成 1 个 token', n:['f','phi'], p:'6 维 wrench 经线性层 φ<sub>F</sub> 变成 2048 维的力 token E<sub>F</sub>，绕开 VLM。'},
+    {t:'拼接，过一层 encoder', n:['cat','enc'], p:'E<sub>in</sub> = [E<sub>VL</sub>; E<sub>F</sub>]，经过一个 8 头自注意力加 FFN 的 encoder block。力 token 和所有 VL token 在这里互相注意。'},
+    {t:'逐 token 路由到 4 个专家之一', n:['router','experts'], p:'router 为每个 token 选 1 个专家（top-1），专家输出乘门控权重后残差相加。'},
+    {t:'投影到动作宽度，截取末尾 H<sub>action</sub> 个 token', n:['outproj','take'], p:'2048 → 1024，然后取序列最后 H<sub>action</sub> 个 token 作为 G<sub>FVLMoE</sub>，与动作块逐步对应。'},
+    {t:'加到动作 token 上，去噪出动作块', n:['s','suffix','add','ae','fm'], p:'状态和带噪动作构成 S<sub>suffix</sub>，加上 G 后送进动作专家预测速度场，flow matching 迭代得到动作块 A<sub>t</sub>。'},
+    {t:'执行，读新的力，再来一轮', n:['exec','next'], p:'动作块发给机械臂执行，随后读取 f<sub>t+1</sub>，开始下一次推理。'}
+  ];
+  const flow = $('#flow'), info = $('#info'), dots = $('#stepDots');
+  let step = 0, selNode = null;
+  STEPS.forEach((s,i) => { const b=document.createElement('button'); b.type='button'; b.className='stepdot'; b.textContent=i+1; b.setAttribute('aria-label',`第 ${i+1} 步：${s.t.replace(/<[^>]+>/g,'')}`); b.addEventListener('click',()=>setStep(i)); dots.appendChild(b); });
+  function setStep(i){
+    step = Math.max(0, Math.min(STEPS.length-1, i)); selNode = null;
+    flow.classList.add('stepping');
+    $$('.node', flow).forEach(n => { n.classList.toggle('on', STEPS[step].n.includes(n.dataset.n)); n.classList.remove('sel'); });
+    $$('.stepdot', dots).forEach((d,j) => { if (j===step) d.setAttribute('aria-current','step'); else d.removeAttribute('aria-current'); });
+    const s = STEPS[step];
+    info.innerHTML = `<span class="eyebrow">第 ${step+1} / ${STEPS.length} 步</span><h5>${s.t}</h5><p>${s.p}</p><p class="src">涉及：${s.n.map(k=>NODES[k].t).join(' · ')}　·　点任一模块看细节</p>`;
+    $('#stepPrev').disabled = step===0; $('#stepNext').disabled = step===STEPS.length-1;
+  }
+  function showNode(k, el){
+    selNode = k; flow.classList.remove('stepping');
+    $$('.node', flow).forEach(n => n.classList.toggle('sel', n===el));
+    const n = NODES[k];
+    info.innerHTML = `<span class="eyebrow">模块</span><h5>${n.t}</h5><div class="shape">${n.s}</div><p>${n.p}</p><p class="src">出处：${n.src}　·　按“上一步 / 下一步”回到分步模式</p>`;
+  }
+  $$('.node', flow).forEach(n => n.addEventListener('click', () => showNode(n.dataset.n, n)));
+  $('#stepPrev').addEventListener('click', () => setStep(selNode ? step : step-1));
+  $('#stepNext').addEventListener('click', () => setStep(selNode ? step : step+1));
+  setStep(0);
+
+  /* ---------- 3. grouped bar charts ---------- */
+  const SER = [
+    {k:'fw0', n:'π0-fast w/o F', fill:'var(--g-fast)', hatch:false},
+    {k:'fw1', n:'π0-fast w/ F', fill:'var(--g-fast)', hatch:true},
+    {k:'bw0', n:'π0-base w/o F', fill:'var(--g-base)', hatch:false},
+    {k:'bw1', n:'π0-base w/ F', fill:'var(--g-base)', hatch:true},
+    {k:'ours', n:'ForceVLA', fill:'var(--amber)', hatch:false}
+  ];
+  function swatch(s, id){ return `<svg viewBox="0 0 14 12" aria-hidden="true"><rect width="14" height="12" style="fill:${s.fill}"/>${s.hatch?`<rect width="14" height="12" fill="url(#h-${id})"/>`:''}</svg>`; }
+  function wilson(p,n){ const z=1.96, k=p*n; const d=1+z*z/n, c=(k/n)+z*z/(2*n), r=z*Math.sqrt((k/n)*(1-k/n)/n+z*z/(4*n*n)); return [Math.max(0,(c-r)/d*100), Math.min(100,(c+r)/d*100)]; }
+  function grouped(root, cfg){
+    const hidden = new Set(); let ci = false;
+    root.innerHTML = `<div class="chart-head"><span class="chart-title">${cfg.title}</span><div class="legend"></div></div><div class="chart-scroll"></div>${cfg.foot?`<div class="chart-foot">${cfg.foot}</div>`:''}`;
+    const lg = $('.legend', root), sc = $('.chart-scroll', root);
+    SER.forEach(s => { const b=document.createElement('button'); b.type='button'; b.className='lg'; b.setAttribute('aria-pressed','true'); b.innerHTML = swatch(s,cfg.id)+esc(s.n); b.addEventListener('click',()=>{ hidden.has(s.k)?hidden.delete(s.k):hidden.add(s.k); b.setAttribute('aria-pressed', String(!hidden.has(s.k))); render(); }); lg.appendChild(b); });
+    const cb = cfg.ci ? $('input', root) : null;
+    if (cb) cb.addEventListener('change', () => { ci = cb.checked; render(); });
+    function render(){
+      const Wd=960, Hd=cfg.h||340, m={l:44,r:8,t:24,b:40};
+      const vis = SER.filter(s=>!hidden.has(s.k));
+      const G = cfg.groups.length, gw = (Wd-m.l-m.r)/G, bw = Math.min(30, (gw*.84)/Math.max(1,vis.length));
+      const y = v => m.t + (1-v/100)*(Hd-m.t-m.b);
+      let o = `<svg viewBox="0 0 ${Wd} ${Hd}" role="img" aria-label="${esc(cfg.aria)}"><defs><pattern id="h-${cfg.id}" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)"><rect width="1.6" height="5" style="fill:var(--hatch)" opacity=".5"/></pattern></defs>`;
+      for (let v=0; v<=100; v+=20){ o += `<line x1="${m.l}" x2="${Wd-m.r}" y1="${y(v)}" y2="${y(v)}" class="${v===0?'zl':'gl'}"/><text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" class="ax">${v}</text>`; }
+      o += `<text x="12" y="${m.t+ (Hd-m.t-m.b)/2}" transform="rotate(-90 12 ${m.t+(Hd-m.t-m.b)/2})" text-anchor="middle" class="axl">成功率 %</text>`;
+      cfg.groups.forEach((g,gi) => {
+        const gx = m.l + gi*gw, x0 = gx + (gw - bw*vis.length)/2;
+        if (cfg.avgIdx===gi) o += `<line x1="${gx}" x2="${gx}" y1="${m.t-6}" y2="${Hd-m.b+4}" style="stroke:var(--rule)" stroke-dasharray="3 4"/>`;
+        vis.forEach((s,si) => {
+          const v = cfg.data[s.k][gi]; const x = x0 + si*bw; const h = Math.max(0, y(0)-y(v));
+          o += `<g><title>${esc(s.n)} · ${esc(g)}：${v}%</title><rect x="${x+1.5}" y="${y(v)}" width="${bw-3}" height="${h}" style="fill:${s.fill}"/>`;
+          if (s.hatch && h>0) o += `<rect x="${x+1.5}" y="${y(v)}" width="${bw-3}" height="${h}" fill="url(#h-${cfg.id})"/>`;
+          let top = y(v);
+          if (ci && cfg.n && cfg.n[gi]){ const [lo,hi]=wilson(v/100,cfg.n[gi]); const cx=x+bw/2; o += `<line x1="${cx}" x2="${cx}" y1="${y(lo)}" y2="${y(hi)}" class="wh"/><line x1="${cx-3}" x2="${cx+3}" y1="${y(hi)}" y2="${y(hi)}" class="wh"/><line x1="${cx-3}" x2="${cx+3}" y1="${y(lo)}" y2="${y(lo)}" class="wh"/>`; top = Math.min(top, y(hi)); }
+          const lab = Number.isInteger(v) ? String(v) : v.toFixed(1);
+          o += `<text x="${x+bw/2}" y="${top-4}" text-anchor="middle" class="vl${s.k==='ours'?' o':''}">${lab}</text></g>`;
+        });
+        o += `<text x="${gx+gw/2}" y="${Hd-m.b+18}" text-anchor="middle" class="axl">${esc(g)}</text>`;
+        if (cfg.sub && cfg.sub[gi]) o += `<text x="${gx+gw/2}" y="${Hd-m.b+33}" text-anchor="middle" class="ax">${esc(cfg.sub[gi])}</text>`;
+      });
+      o += `</svg>`; sc.innerHTML = o;
+    }
+    render();
+  }
+  grouped($('#chartMain'), {
+    id:'m', title:'图 5 · 主任务成功率（%）', aria:'图 5 主任务成功率分组柱状图',
+    groups:['Insert USB','Insert Plug','Pump Bottle','Wipe Board-1','Wipe Board-2','Peel Cucumber','Average'],
+    sub:['n = 20','n = 20','n = 20','n = 10','n = 10','n = 15','6 列平均'],
+    n:[20,20,20,10,10,15,null], avgIdx:6, h:360,
+    data:{fw0:[0,25,25,91,45,0,31.0], fw1:[0,30,25,20,10,0,14.2], bw0:[5,45,33,45,9,87,37.3], bw1:[5,60,83,0,0,93,40.2], ours:[25,80,67,64,27,100,60.5]},
+    ci:true,
+    foot:`<label class="chk" for="ciToggle"><input type="checkbox" id="ciToggle"> 显示 95% Wilson 区间</label><span><span class="tag tag-i">解读</span>n 取正文写的试验次数。Pump Bottle 和 Wipe Board 的百分比与 n 对不上（见 §06），区间只作量级参考。</span>`
+  });
+  grouped($('#chartMulti'), {
+    id:'mt', title:'附录表 5 · 多任务联合训练成功率（%）', aria:'附录表 5 多任务联合训练成功率分组柱状图',
+    groups:['Pump Bottle','Insert Plug','Insert USB','Wipe Board','Average SR'], avgIdx:4, h:300,
+    data:{fw0:[0,0,0,0,0], fw1:[0,0,0,0,0], bw0:[20,0,0,0,5], bw1:[50,100,10,10,42.5], ours:[80,100,10,80,67.5]}
+  });
+
+  /* ---------- 4. cucumber mini bars ---------- */
+  function hbars(el, rows, max, unit){
+    el.innerHTML = rows.map(r => `<div class="hb${r.o?' sel':''}"><span>${r.n}</span><span class="t"><i style="--v:${r.v/max*100}"></i></span><span class="v">${r.v}${unit||''}</span></div>`).join('');
+  }
+  hbars($('#peelLen'), [{n:'π0-base w/o F',v:10.27},{n:'π0-base w/ F',v:13.17},{n:'ForceVLA',v:14.12,o:true}], 16);
+  hbars($('#peelStroke'), [{n:'π0-base w/o F',v:14},{n:'π0-base w/ F',v:10},{n:'ForceVLA',v:7,o:true}], 16, ' 刀');
+
+  /* ---------- 5. generalization table ---------- */
+  const GEN = {
+    cols:['Object Gen. 1','Object Gen. 2','Height Gen.','Visual Occlusion','Unstable Socket','Average'],
+    rows:[
+      {n:'π0-base w/o F', v:['48.00','10.00','66.67','60.00','10.00','38.93'], mk:['2','','','2','','']},
+      {n:'π0-base w/ F',  v:['32.00','10.00','77.78','30.00','10.00','31.96'], mk:['','','2','','','']},
+      {n:'π0-fast w/o F', v:['80.00','35.00','88.89','50.00','10.00','52.78'], mk:['1','2','1','','','2']},
+      {n:'π0-fast w/ F',  v:['32.00','5.00','44.44','50.00','30.00','32.29'], mk:['','','','','1','']},
+      {n:'ForceVLA', v:['80.00','40.00','88.89','90.00','20.00','63.78'], mk:['1','1','1','1','2','1'], o:true}
+    ]
+  };
+  $('#genTable').innerHTML = `<thead><tr><th>方法</th>${GEN.cols.map(c=>`<th class="num">${c}</th>`).join('')}</tr></thead><tbody>${GEN.rows.map(r=>`<tr${r.o?' class="ours"':''}><th>${r.n}</th>${r.v.map((v,i)=>`<td class="num"><span class="${r.mk[i]==='1'?'best':r.mk[i]==='2'?'second':''}">${v}</span><span class="bar"><i style="--v:${v}"></i></span></td>`).join('')}</tr>`).join('')}</tbody>`;
+
+  /* ---------- 6. ablation explorer ---------- */
+  const ABL = [
+    {k:'base', n:'baseline（π0，无力）', v:45, pipe:[['图像 + 语言',''],['VLM',''],['动作专家','']], t:'不接力的 π0。表 3 里写作 “baseline”。'},
+    {k:'lin', n:'linear before VLM', v:55, pipe:[['图像 + 语言',''],['力 → Linear','f'],['VLM',''],['动作专家','']], t:'早融合：力经线性投影后，在 VLM 之前和视觉、语言一起送进 VLM。比不接力高 10 个点，比 VLM 之后融合低。'},
+    {k:'moe', n:'MoE before VLM', v:0, pipe:[['图像 + 语言',''],['力','f'],['MoE 融合','moe'],['VLM',''],['动作专家','']], t:'早融合：先用 MoE 把力与输入融合，再送进 VLM。成功率 0%。作者解释：改变预训练 VLM 的输入表示，破坏了它学到的特征分布。'},
+    {k:'cat', n:'concate after VLM', v:60, pipe:[['图像 + 语言',''],['VLM',''],['拼接力特征','f'],['动作专家','']], t:'晚融合：在解码阶段直接把力特征拼上去，作者称其等价于一个基础基线（数值与图 5 Insert Plug 列的 π0-base w/ F 相同）。'},
+    {k:'ours', n:'ForceVLA（FVLMoE after VLM）', v:80, pipe:[['图像 + 语言',''],['VLM',''],['力 token','f'],['FVLMoE','moe'],['动作专家','']], t:'晚融合 + FVLMoE：力在 VLM 之后进入，经 encoder 层和 4 专家 MoE 与 VL 特征融合，再加到动作 token 上。作者的两条结论：力要在 VLM 之后引入，融合要用专门的模块。'}
+  ];
+  const seg = $('#ablSeg'); let ablSel = 'ours';
+  ABL.forEach(a => { const b=document.createElement('button'); b.type='button'; b.setAttribute('role','radio'); b.dataset.k=a.k; b.textContent=a.n; b.addEventListener('click',()=>{ablSel=a.k; renderAbl();}); seg.appendChild(b); });
+  seg.addEventListener('keydown', e => { if (!['ArrowRight','ArrowLeft'].includes(e.key)) return; const i = ABL.findIndex(a=>a.k===ablSel); const j=(i+(e.key==='ArrowRight'?1:-1)+ABL.length)%ABL.length; ablSel=ABL[j].k; renderAbl(); $$('button',seg)[j].focus(); });
+  function renderAbl(){
+    const a = ABL.find(x=>x.k===ablSel);
+    $$('button', seg).forEach(b => { const s=b.dataset.k===ablSel; b.setAttribute('aria-checked', String(s)); b.tabIndex = s?0:-1; });
+    $('#ablPipe').innerHTML = a.pipe.map((p,i)=>`${i?'<span class="ar">→</span>':''}<span class="ch ${p[1]}">${p[0]}</span>`).join('');
+    $('#ablText').textContent = a.t;
+    $('#ablBars').innerHTML = `<p class="chart-title" style="margin-bottom:4px">表 3 · 成功率</p>` + ABL.map(x=>`<div class="hb${x.k===ablSel?' sel':''}"><span>${esc(x.n.replace('（π0，无力）','').replace('（FVLMoE after VLM）',''))}</span><span class="t"><i style="--v:${x.v}"></i></span><span class="v">${x.v}%</span></div>`).join('');
+  }
+  renderAbl();
+
+  /* ---------- 7. lightbox ---------- */
+  const lb = $('#lb'), lbImg = $('#lbImg'), lbCap = $('#lbCap'); let lastFocus = null;
+  $$('[data-lb]').forEach(b => b.addEventListener('click', () => {
+    lastFocus = b; lbImg.src = b.dataset.lb; lbImg.alt = $('img', b).alt;
+    const cap = b.closest('figure').querySelector('figcaption span'); lbCap.textContent = cap ? cap.textContent : '';
+    lb.hidden = false; $('#lbClose').focus();
+  }));
+  function closeLb(){ lb.hidden = true; lbImg.removeAttribute('src'); if (lastFocus) lastFocus.focus(); }
+  $('#lbClose').addEventListener('click', closeLb);
+  lb.addEventListener('click', e => { if (e.target === lb) closeLb(); });
+  document.addEventListener('keydown', e => { if (e.key==='Escape' && !lb.hidden) closeLb(); });
+
+  /* ---------- 8. rail highlight ---------- */
+  const links = $$('.rail a');
+  try {
+    const io = new IntersectionObserver(es => { es.forEach(e => { if (e.isIntersecting){ links.forEach(l => l.classList.toggle('on', l.getAttribute('href')==='#'+e.target.id)); } }); }, {rootMargin:'-30% 0px -60% 0px'});
+    $$('section.sec').forEach(s => io.observe(s));
+  } catch(e){}
+})();
+</script>
+</body>
+</html>
