@@ -356,7 +356,8 @@ details.faq>div>*+*{margin-top:.6em}
 @media (max-width:700px){.issues{grid-template-columns:1fr}}
 
 /* four papers */
-.spectrum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin-top:20px;position:relative}
+.spectrum-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+.spectrum{display:grid;grid-template-columns:repeat(7,minmax(150px,1fr));gap:0;margin-top:20px;position:relative;min-width:1080px}
 .spectrum::before{content:"";position:absolute;left:8px;right:8px;top:9px;height:2px;background:linear-gradient(to right,var(--press-wash-2),var(--press))}
 .spectrum>div{position:relative;padding:26px 10px 0 0}
 .spectrum>div::before{content:"";position:absolute;left:2px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--surface);border:2px solid var(--press)}
@@ -365,7 +366,7 @@ details.faq>div>*+*{margin-top:.6em}
 .spectrum h4{margin:2px 0 0;font-family:var(--f-display);font-weight:800;font-size:15px;font-stretch:108%}
 .spectrum p{font-size:13px;color:var(--ink-2);line-height:1.65;margin-top:4px}
 @media (max-width:760px){
-  .spectrum{grid-template-columns:1fr;gap:14px}
+  .spectrum{grid-template-columns:1fr;gap:14px;min-width:0}
   .spectrum::before{left:8px;right:auto;top:8px;bottom:8px;width:2px;height:auto;background:linear-gradient(to bottom,var(--press-wash-2),var(--press))}
   .spectrum>div{padding:0 0 0 30px}
   .spectrum>div::before{top:4px}
@@ -405,7 +406,7 @@ footer .col{border-top:1px solid var(--line);padding-top:16px}
 </head>
 <body>
 <!-- vap:nav -->
-<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/force-tactile/">力与触觉</a></span><span class="vapnav-links"><a href="../../papers/forcevla/">ForceVLA</a><a href="../../papers/tactile-vla/" aria-current="page">Tactile-VLA</a><a href="../../papers/motus2/">Motus2</a><a href="../../papers/me-dex/">ME-Dex 1.0</a></span></div></div>
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/force-tactile/">力与触觉</a></span><span class="vapnav-links"><a href="../../papers/forcevla/">ForceVLA</a><a href="../../papers/tactile-vla/" aria-current="page">Tactile-VLA</a><a href="../../papers/t-rex/">T-Rex</a><a href="../../papers/n0-twam/">N₀-TWAM</a><a href="../../papers/n0-vtla/">N₀-VTLA</a><a href="../../papers/motus2/">Motus2</a><a href="../../papers/me-dex/">ME-Dex 1.0</a></span></div></div>
 <!-- /vap:nav -->
 <nav class="topnav wrap" aria-label="页面目录">
   <div class="inner">
@@ -419,7 +420,7 @@ footer .col{border-top:1px solid var(--line);padding-top:16px}
     <a class="l" href="#results">结果</a>
     <a class="l" href="#insight">读懂它</a>
     <a class="l" href="#limits">疑点</a>
-    <a class="l" href="#four">四篇对照</a>
+    <a class="l" href="#four">七篇对照</a>
     <a class="l" href="#glossary">术语</a>
   </div>
 </nav>
@@ -857,35 +858,44 @@ footer .col{border-top:1px solid var(--line);padding-top:16px}
 
 <section id="four" class="wrap">
   <div class="col flow">
-    <span class="eyebrow">放到四篇里看</span>
+    <span class="eyebrow">放到七篇里看</span>
     <h2>力和触觉怎样进入机器人基础模型</h2>
-    <p>这一批读四篇：ForceVLA、Tactile-VLA、ME-Dex 1.0、Motus2。按「力 / 触觉在模型里扮演什么角色」排，大致是一条由浅到深的线。这个排法是我们的归纳。<span class="tag jd">解读</span></p>
+    <p>力与触觉专题现在收了七篇：ForceVLA、Tactile-VLA、T-Rex、N₀-VTLA、N₀-TWAM、Motus2、ME-Dex 1.0。按「力 / 触觉在模型里扮演什么角色」排，大致是一条由浅到深的线，窄屏下可左右滑动。这个排法是我们的归纳。<span class="tag jd">解读</span></p>
   </div>
   <div class="wide">
-    <div class="spectrum">
+    <div class="spectrum-scroll"><div class="spectrum">
       <div><span class="k">触觉是输入条件</span><h4>ForceVLA</h4><p>6 轴力 / 力矩作为一等模态，在动作解码阶段用力感知 MoE 与视觉语言嵌入融合。</p></div>
       <div class="me"><span class="k">触觉是输入，力是输出</span><h4>Tactile-VLA</h4><p>触觉 token 早融合进 VLM 前缀；动作里带目标力，由混合控制器执行；语言直接调节力。</p></div>
+      <div><span class="k">触觉是块内高频修正</span><h4>T-Rex</h4><p>主干不看触觉；去噪的最后一段交给只读触觉的专家，块内每 4 步用最新触觉重跑。</p></div>
+      <div><span class="k">触觉进入世界模型闭环</span><h4>Motus2</h4><p>一套权重给出策略、模拟器、评估器三个接口；旁路触觉专家沿用 T-Rex 的切分去噪修正动作。</p></div>
+      <div><span class="k">触觉是要预测的潜变量</span><h4>N₀-VTLA</h4><p>不给动作专家当前触觉，而是先预测接下来一个动作块里触觉的净变化 z。</p></div>
       <div><span class="k">触觉是要预测的观测</span><h4>ME-Dex 1.0</h4><p>未来触觉和视频、动作一起用 flow matching 联合去噪生成，触觉与视频同为「世界状态的观测」。</p></div>
-      <div><span class="k">触觉进入世界模型闭环</span><h4>Motus2</h4><p>一套权重给出策略、模拟器、评估器三个接口，组成闭环；触觉反馈用于接触感知的控制。</p></div>
-    </div>
+      <div><span class="k">触觉既被预测也被观测</span><h4>N₀-TWAM</h4><p>未来触觉与未来视频一起生成；当前触觉转成力图，经交叉注意力直接进动作流。</p></div>
+    </div></div>
     <div class="tw cmpw" style="margin-top:22px">
       <table class="cmp">
         <thead><tr><th>论文</th><th>模型形态</th><th>力 / 触觉信号</th><th>怎样进入模型</th><th>数据与评测</th></tr></thead>
         <tbody>
           <tr><td>ForceVLA<br><span class="small muted">2505.22159 · 复旦 / 上交</span></td><td>基于 π0 的 VLA</td><td>6 轴力 / 力矩</td><td>FVLMoE：在动作解码阶段按上下文路由到模态专属专家，融合 VL 嵌入与实时力反馈</td><td>自采 ForceVLA-Data，5 个接触密集任务；平均成功率比 π0 基线高 23.2%</td></tr>
           <tr class="me"><td>Tactile-VLA<br><span class="small muted">2507.09160 · 清华等</span></td><td>基于 π0 的 VLA（Gemma 2.6B + 300M 动作专家）</td><td>双指尖触觉，法向 + 剪切，100 Hz</td><td>H 步历史经 MLP 成 1 个 token 进 VLM 前缀；动作输出带目标力；混合位置-力控制器执行；CoT 变体用触觉做语言推理</td><td>UMI 手持采集，3 类真机任务共 800 条示范；主打语言、常识、推理三类零样本泛化</td></tr>
+          <tr><td>T-Rex<br><span class="small muted">2606.17055 · UC Berkeley / NVIDIA 等</span></td><td>Qwen3-VL-2B 三专家 MoT（latent / 动作 / 触觉）</td><td>Sharpa Wave 灵巧手 10 指：6 轴力历史 + 当前力 + 形变深度图</td><td>独立触觉专家读主干 KV 缓存，只做去噪最后一段（τ 0.4 → 0），块内 4 次</td><td>人类视频预训练 + 100 小时带触觉遥操作中训练；双臂灵巧手真机 12 任务，平均 65 分</td></tr>
+          <tr><td>N₀-VTLA<br><span class="small muted">2607.23782 · NeoteAI / 复旦</span></td><td>基于 π0.5 的 VLA，加潜在触觉预测器</td><td>自研视觉式触觉，当前帧减回合起始帧的差分图</td><td>预测器输出 10 个 token z（训练初期对齐未来 50 步触觉变化），拼在动作 token 前；不进 VLM 前缀</td><td>NeoData 视触觉预训练；NeoReal 真机 9 任务 + 20 个仿真任务；另有离线 RL 方法 ALTER</td></tr>
+          <tr><td>N₀-TWAM<br><span class="small muted">2607.23783 · NeoteAI / 复旦</span></td><td>视频、触觉、动作三专家世界动作模型，7.16B</td><td>视觉式触觉；预测用 Wan VAE 潜变量，观测用三轴力图</td><td>未来触觉与视频共同去噪；当前触觉经 NeoForce 编码、交叉注意力进动作流</td><td>NeoData 超 3 万小时；UniVTAC、NeoSim 仿真 + 8 个真机任务</td></tr>
           <tr><td>ME-Dex 1.0<br><span class="small muted">2609.21449 · 理想汽车</span></td><td>世界动作触觉模型，MoT 三专家（Video / Tactile / Action），均用 flow matching</td><td>多来源异构触觉，经 Canonical Hand Model 与 Unified Tactile Autoencoder 统一</td><td>专家间共享注意力，触觉作为未来观测与视频、动作联合去噪</td><td>Agentic Tactile Data Engine 在仿真轨迹回放中补录力传感器数据；RoboTwin、DexJoCo、ManiFeel 仿真与真机</td></tr>
           <tr><td>Motus2<br><span class="small muted">2608.30237 · 清华朱军组 / GensPI</span></td><td>自进化通用世界模型：策略、动作条件模拟器、价值评估器共享权重</td><td>触觉反馈（作为扩展加入）</td><td>策略提出候选动作块，模拟器预测视觉后果，评估器打分，形成决策与学习闭环</td><td>单目第一视角 → 双目第一视角 → 机器人域适配；仿生双臂双灵巧手平台</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="small muted" style="margin-top:8px">其他三篇的信息只取自各自摘要级别的概括，细节以各篇页面为准。</p>
+    <p class="small muted" style="margin-top:8px">ForceVLA、ME-Dex 1.0、Motus2 三行只取自各自摘要级别的概括；T-Rex、N₀-VTLA、N₀-TWAM 三行来自对应的精读页。细节以各篇页面为准。</p>
   </div>
   <div class="col flow" style="margin-top:22px">
-    <h3>和另外三篇的异同 <span class="tag jd">解读</span></h3>
+    <h3>和其余六篇的异同 <span class="tag jd">解读</span></h3>
     <p><strong>和 ForceVLA</strong>：两篇几乎同期，都从 π0 出发、都做真机接触密集任务。区别在融合位置和论点。ForceVLA 在动作解码阶段用 MoE 融合力信号，VLM 部分不需要「看到」力；Tactile-VLA 把触觉早融合进 VLM 前缀，代价是改动了 VLM 的输入，好处是 VLM 可以对触觉做语言推理，CoT 变体正依赖这一点。论点上，ForceVLA 的主要结果是成功率提升，Tactile-VLA 主打语言到力的语义泛化。Tactile-VLA 在相关工作里把 ForceVLA 归为「modality-specific routing」一类。</p>
     <p><strong>和 ME-Dex 1.0</strong>：ME-Dex 的摘要批评「只把触觉特征当条件输入、不联合预测未来触觉」的做法，Tactile-VLA 正属于这一类：它读当前触觉、输出目标力，但不预测未来触觉或画面。另外 ME-Dex 要处理多种手、多种传感器布局，并用仿真回放补数据；Tactile-VLA 只有一种夹爪、一种传感器，数据全部来自真实手持采集。</p>
     <p><strong>和 Motus2</strong>：两篇都用到了失败数据，用法完全不同。Tactile-VLA-CoT 把失败翻译成语言（为什么失败、下次怎么改），在真机上定时自检；Motus2 按其摘要，用失败和次优交互去学动力学和价值，在学到的模拟器里提出、预测、评估候选动作。前者的「自我纠正」停留在语言层面、一次一条指令，后者是有预测和打分的闭环。</p>
+    <p><strong>和 T-Rex</strong>：T-Rex 把 Tactile-VLA 当作基线复现，这是专题里唯一一个第三方复现 Tactile-VLA 的数字。它把原版的 GelSight 图像输入改成 10 指 6 维力，用 Simple-MLP 编码，每个任务单独训练；动作空间和评测协议与其他基线统一，没说是否保留混合位置-力控制器。结果是 12 个双臂灵巧手任务平均 15 分，比不接触觉的 π0.5（17）还略低，T-Rex 是 65。这个复现换了传感器、本体和控制方式，不能直接当成对原论文的否定，但它说明“触觉 token 进前缀”这套做法搬到灵巧手上并不自然见效。</p>
+    <p><strong>和 N₀-VTLA</strong>：N₀-VTLA 直接拿 Tactile-VLA 当反面例子：把触觉 token 拼进视觉语言上下文，相当于把触觉当成“又一个相机”，可一个稀疏、大部分时间沉默的信号，放进为信息密集的视图设计的前缀里收益有限。所以 N₀-VTLA 让触觉完全不进前缀，只通过预测的潜变量 z 影响动作专家。代价是 VLM 不能再对触觉做语言推理，而这正是 Tactile-VLA-CoT 依赖的能力。</p>
+    <p><strong>和 N₀-TWAM</strong>：N₀-TWAM 把 Tactile-VLA 归为“把触觉当输入通道消费、从不预测它”的一类。它同样读当前触觉（观测通路），但读的是估计出的三轴力图，接在动作头之前而不是 VLM 前缀里；另外还让模型生成未来触觉。两篇都有“力”的概念，Tactile-VLA 把力当作要输出、交给控制器执行的目标，N₀-TWAM 把力当作输入的表示空间。</p>
     <p><strong>一句话定位</strong>：在这条线上，Tactile-VLA 的特色是把「语言怎样落到力上」作为主问题，并给出了最简单直接的一套答案：触觉当 token、力当动作、控制器兜底。它的实验规模和对照都偏少，更适合当作一个有启发性的概念验证来读。</p>
   </div>
 </section>

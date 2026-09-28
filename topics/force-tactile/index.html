@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="icon" href="data:,">
-<title>力与触觉 · 四篇精读</title>
-<meta name="description" content="ForceVLA、Tactile-VLA、Motus2、ME-Dex 1.0 四篇论文的中文精读索引与横向对照。">
+<title>力与触觉 · 七篇精读</title>
+<meta name="description" content="ForceVLA、Tactile-VLA、T-Rex、N0-VTLA、N0-TWAM、Motus2、ME-Dex 1.0 七篇论文的中文精读索引与横向对照。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
@@ -54,7 +54,8 @@ section+section{border-top:1px solid var(--rule)}
 h2{font:700 24px/1.3 var(--f-disp);margin:0 0 6px;text-wrap:balance}
 .sub{color:var(--muted);margin:0 0 24px;font-size:14.5px}
 .tag-interp{display:inline-block;font:500 11px/1.6 var(--f-mono);letter-spacing:.06em;color:var(--warn);border:1px solid currentColor;border-radius:3px;padding:0 6px;margin-left:8px;vertical-align:2px}
-.strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));position:relative}
+.strip-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px}
+.strip{display:grid;grid-template-columns:repeat(7,minmax(168px,1fr));position:relative;min-width:1100px}
 .strip::before{content:"";position:absolute;left:0;right:14px;top:9px;height:2px;background:linear-gradient(90deg,var(--rule-2),var(--accent))}
 .strip::after{content:"";position:absolute;right:0;top:4px;border-left:14px solid var(--accent);border-top:6px solid transparent;border-bottom:6px solid transparent}
 .step{position:relative;padding:32px 18px 0 0}
@@ -67,7 +68,7 @@ h2{font:700 24px/1.3 var(--f-disp);margin:0 0 6px;text-wrap:balance}
 .step .role{font-weight:700;color:var(--accent);margin:10px 0 4px;font-size:15px}
 .step p{margin:0;color:var(--ink-2);font-size:14.5px;line-height:1.7}
 @media (max-width:760px){
-  .strip{grid-template-columns:1fr;padding-left:26px}
+  .strip{grid-template-columns:1fr;padding-left:26px;min-width:0}
   .strip::before{left:5px;right:auto;top:6px;bottom:14px;width:2px;height:auto;background:linear-gradient(180deg,var(--rule-2),var(--accent))}
   .strip::after{left:-1px;right:auto;top:auto;bottom:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:14px solid var(--accent);border-bottom:0}
   .step{padding:0 0 28px}
@@ -99,7 +100,7 @@ dl.facts dd.doubt{color:var(--ink)}
 
 /* table */
 .tbl{overflow-x:auto;border:1px solid var(--rule);border-radius:4px;background:var(--surface)}
-table{border-collapse:collapse;width:100%;min-width:860px;font-size:14px;line-height:1.65}
+table{border-collapse:collapse;width:100%;min-width:1500px;font-size:14px;line-height:1.65}
 th,td{text-align:left;vertical-align:top;padding:12px 14px;border-bottom:1px solid var(--rule)}
 tr:last-child th,tr:last-child td{border-bottom:0}
 thead th{font:700 15px/1.3 var(--f-disp);color:var(--ink);background:var(--bg);position:sticky;top:0}
@@ -128,20 +129,20 @@ footer p{margin:0 0 8px;max-width:60em}
 </head>
 <body>
 <!-- vap:nav -->
-<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/force-tactile/" aria-current="page">力与触觉</a></span><span class="vapnav-links"><a href="../../papers/forcevla/">ForceVLA</a><a href="../../papers/tactile-vla/">Tactile-VLA</a><a href="../../papers/motus2/">Motus2</a><a href="../../papers/me-dex/">ME-Dex 1.0</a></span></div></div>
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/force-tactile/" aria-current="page">力与触觉</a></span><span class="vapnav-links"><a href="../../papers/forcevla/">ForceVLA</a><a href="../../papers/tactile-vla/">Tactile-VLA</a><a href="../../papers/t-rex/">T-Rex</a><a href="../../papers/n0-twam/">N₀-TWAM</a><a href="../../papers/n0-vtla/">N₀-VTLA</a><a href="../../papers/motus2/">Motus2</a><a href="../../papers/me-dex/">ME-Dex 1.0</a></span></div></div>
 <!-- /vap:nav -->
 <div class="wrap">
 
 <header class="top">
-  <div class="eyebrow">Force &amp; Tactile · 4 papers</div>
-  <h1>力与触觉 · 四篇精读</h1>
-  <p class="lede">四篇论文都在回答同一个问题：力和触觉怎样进入机器人基础模型。按时间排开，力/触觉在模型里的角色一路加重，从 VLA 的输入条件，到要输出的目标力，再到世界模型里的快速修正通道和要预测的未来观测。每篇有一个单独的精读页，下面是索引和横向对照。</p>
+  <div class="eyebrow">Force &amp; Tactile · 7 papers</div>
+  <h1>力与触觉 · 七篇精读</h1>
+  <p class="lede">七篇论文都在回答同一个问题：力和触觉怎样进入机器人基础模型。按时间排开，力/触觉在模型里的角色一路加重：从 VLA 的输入条件，到要输出的目标力，到块内高频的修正通道，再到要预测的潜变量和要生成的未来观测。最新的几篇开始把“预测未来触觉”和“读当前触觉”两件事同时做。每篇有一个单独的精读页，下面是索引和横向对照。</p>
 </header>
 
 <section id="line" aria-labelledby="h-line">
   <h2 id="h-line">力/触觉在模型里的角色<span class="tag-interp">解读</span></h2>
-  <p class="sub">按 arXiv 首版时间排序。归类是我们读完四篇后的归纳，不是论文自己的说法。</p>
-  <div class="strip">
+  <p class="sub">按 arXiv 首版时间排序，窄屏下可左右滑动。归类是我们读完七篇后的归纳，不是论文自己的说法。</p>
+  <div class="strip-scroll"><div class="strip">
     <div class="step">
       <div class="d">2025-05 · 2505.22159</div>
       <div class="n"><a href="../../papers/forcevla/">ForceVLA</a></div>
@@ -157,6 +158,27 @@ footer p{margin:0 0 8px;max-width:60em}
       <p>触觉进 VLM 前缀；动作里带目标力，交给位置-力混合控制器执行。</p>
     </div>
     <div class="step">
+      <div class="d">2026-06 · 2606.17055</div>
+      <div class="n"><a href="../../papers/t-rex/">T-Rex</a></div>
+      <div class="route">VLA 路线 · 三专家 MoT</div>
+      <div class="role">触觉是块内高频修正</div>
+      <p>去噪轨迹在 τ=0.4 劈开，只读触觉的小专家在块内每 4 步用最新触觉跑完后半段。</p>
+    </div>
+    <div class="step">
+      <div class="d">2026-07 · 2607.23782</div>
+      <div class="n"><a href="../../papers/n0-vtla/">N₀-VTLA</a></div>
+      <div class="route">VLA 路线 · 基于 π0.5</div>
+      <div class="role">触觉是要预测的潜变量</div>
+      <p>预测一个动作块内触觉的净变化 z，动作专家读 z；触觉不进 VLM 前缀。</p>
+    </div>
+    <div class="step">
+      <div class="d">2026-07 · 2607.23783</div>
+      <div class="n"><a href="../../papers/n0-twam/">N₀-TWAM</a></div>
+      <div class="route">世界模型路线 · 三专家 MoT</div>
+      <div class="role">触觉既被预测也被观测</div>
+      <p>未来触觉与未来视频一起生成；当前触觉在力空间经交叉注意力进动作流。</p>
+    </div>
+    <div class="step">
       <div class="d">2026-08 · 2608.30237</div>
       <div class="n"><a href="../../papers/motus2/">Motus2</a></div>
       <div class="route">世界模型路线 · 一套权重三接口</div>
@@ -170,11 +192,11 @@ footer p{margin:0 0 8px;max-width:60em}
       <div class="role">触觉是要预测的观测</div>
       <p>未来触觉和视频、动作一起联合去噪，推理时也生成。</p>
     </div>
-  </div>
+  </div></div>
 </section>
 
 <section id="papers" aria-labelledby="h-papers">
-  <h2 id="h-papers">四篇</h2>
+  <h2 id="h-papers">七篇</h2>
   <p class="sub">每篇给出做法、主要结果和最大的疑点。数字取自各论文 arXiv 源码里的 tex 表格。</p>
   <div class="entries">
 
@@ -203,6 +225,48 @@ footer p{margin:0 0 8px;max-width:60em}
           <dt>疑点</dt><dd class="doubt">基线本身不输出力，所以分不清成功来自「VLM 先验里的物理语义」，还是来自「多了力通道和控制器」。多张表没写试验次数，文中至少 4 处前后不一致。</dd>
         </dl>
         <a class="go" href="../../papers/tactile-vla/">读 Tactile-VLA 精读 →</a>
+      </div>
+    </article>
+
+    <article class="entry">
+      <div class="meta"><b>2026-06</b><a href="https://arxiv.org/abs/2606.17055" target="_blank" rel="noopener">arXiv 2606.17055</a><br>UC Berkeley、NVIDIA、Stanford 等</div>
+      <div>
+        <h3><a href="../../papers/t-rex/">T-Rex</a></h3>
+        <p class="orig">Tactile-Reactive Dexterous Manipulation</p>
+        <dl class="facts">
+          <dt>做法</dt><dd>Qwen3-VL-2B 的三专家 MoT：latent 专家预测未来视觉潜变量，动作专家把动作从 τ=1 去噪到 0.4，0.62B 的触觉专家复用缓存的 KV，在一个 16 步动作块内于第 0/4/8/12 步各用最新触觉走完最后 4 步。触觉 = 逐指 VQ-VAE 力 token + 当前 6 维力 + 冻结 CNN 的形变图特征。人类视频预训练 → 100 小时触觉中训练 → 单任务后训练。</dd>
+          <dt>结果</dt><dd>12 个双臂灵巧手真机任务平均 <span class="num">65</span>，EgoScale <span class="num">35</span>、π0.5 <span class="num">17</span>、Tactile-VLA <span class="num">15</span>；6 任务上去掉触觉 <span class="num">65</span> → <span class="num">42</span>，同步版本 <span class="num">60</span>。</dd>
+          <dt>疑点</dt><dd class="doubt">分数是按细则给部分分的进度分；只有 T-Rex 用了 100 小时中训练数据，按同 6 个任务换算，架构本身比 EgoScale 高约 9 分。反应频率和时延没有实测。</dd>
+        </dl>
+        <a class="go" href="../../papers/t-rex/">读 T-Rex 精读 →</a>
+      </div>
+    </article>
+
+    <article class="entry">
+      <div class="meta"><b>2026-07</b><a href="https://arxiv.org/abs/2607.23782" target="_blank" rel="noopener">arXiv 2607.23782</a><br>NeoteAI、复旦 TEAI</div>
+      <div>
+        <h3><a href="../../papers/n0-vtla/">N₀-VTLA</a></h3>
+        <p class="orig">Scaling Vision–Tactile–Language–Action Model with Latent Tactile Tokens</p>
+        <dl class="facts">
+          <dt>做法</dt><dd>π0.5 上加一条通路：冻结 DINOv2 编码触觉差分图，小预测器结合视觉语言上下文输出 10 个潜在触觉 token z，拼在动作 token 前。三阶段接入：只训预测器（InfoNCE 对上未来 50 步触觉变化）→ 屏蔽前缀逼动作专家读 z → 端到端。另有离线 RL 方法 ALTER。</dd>
+          <dt>结果</dt><dd>NeoReal 9 个真机任务全胜，均值 <span class="num">47.2%</span> vs π0.5 <span class="num">29.4%</span>；20 个仿真任务 <span class="num">63.8%</span> vs <span class="num">44.0%</span>；ALTER 后三个长时程任务 <span class="num">95/80/75%</span>。</dd>
+          <dt>疑点</dt><dd class="doubt">没有闭环消融：三阶段 vs free-latent、预测的 z vs 当前触觉都只用检索准确率论证。π0.5 基线是否也有 NeoData 预训练没写，触觉和额外数据的贡献分不开。</dd>
+        </dl>
+        <a class="go" href="../../papers/n0-vtla/">读 N₀-VTLA 精读 →</a>
+      </div>
+    </article>
+
+    <article class="entry">
+      <div class="meta"><b>2026-07</b><a href="https://arxiv.org/abs/2607.23783" target="_blank" rel="noopener">arXiv 2607.23783</a><br>NeoteAI、复旦 TEAI</div>
+      <div>
+        <h3><a href="../../papers/n0-twam/">N₀-TWAM</a></h3>
+        <p class="orig">Scaling Tactile-Native World Action Model for Contact-Rich Manipulation</p>
+        <dl class="facts">
+          <dt>做法</dt><dd>从 LingBot-VA 改出视频（5.00B）、动作、触觉（各约 1B）三专家的非对称 MoT，每层共享一次自注意力；帧级因果掩码让块内先共同生成未来视频和未来触觉（同一个 Wan VAE 潜空间），再去噪动作。后训练加一条力空间观测通路（NeoForce + 零初始化交叉注意力）；触觉接触事件切分并推进子任务。</dd>
+          <dt>结果</dt><dd>UniVTAC <span class="num">84.5</span>（最强基线 <span class="num">67.1</span>），NeoSim <span class="num">49.4</span>（π0.5 <span class="num">45.8</span>），8 个真机任务 <span class="num">46.3</span>（π0.5 <span class="num">30.0</span>）。去掉预测通路或观测通路，NeoSim 分别降到 <span class="num">41.1</span> 和 <span class="num">29.6</span>。</dd>
+          <dt>疑点</dt><dd class="doubt">主表 4 个仿真任务用绝对位姿、其余用 delta，按 delta 重算 NeoSim 不再领先 π0.5。消融逐任务起伏极大；没有推理时延数字。和同日的 N₀-VTLA 共用基准却不互相比较。</dd>
+        </dl>
+        <a class="go" href="../../papers/n0-twam/">读 N₀-TWAM 精读 →</a>
       </div>
     </article>
 
@@ -243,42 +307,63 @@ footer p{margin:0 0 8px;max-width:60em}
   <div class="tbl">
     <table>
       <thead>
-        <tr><th scope="col"></th><th scope="col"><a href="../../papers/forcevla/">ForceVLA</a></th><th scope="col"><a href="../../papers/tactile-vla/">Tactile-VLA</a></th><th scope="col"><a href="../../papers/motus2/">Motus2</a></th><th scope="col"><a href="../../papers/me-dex/">ME-Dex 1.0</a></th></tr>
+        <tr><th scope="col"></th><th scope="col"><a href="../../papers/forcevla/">ForceVLA</a></th><th scope="col"><a href="../../papers/tactile-vla/">Tactile-VLA</a></th><th scope="col"><a href="../../papers/t-rex/">T-Rex</a></th><th scope="col"><a href="../../papers/n0-vtla/">N₀-VTLA</a></th><th scope="col"><a href="../../papers/n0-twam/">N₀-TWAM</a></th><th scope="col"><a href="../../papers/motus2/">Motus2</a></th><th scope="col"><a href="../../papers/me-dex/">ME-Dex 1.0</a></th></tr>
       </thead>
       <tbody>
         <tr><th scope="row">骨干</th>
           <td>π0（VLA）</td>
           <td>π0（Gemma 2.6B + 300M 动作专家；动作专家随机初始化）</td>
+          <td>Qwen3-VL-2B 三专家 MoT（latent / 动作 / 触觉，触觉专家 0.62B）</td>
+          <td>π0.5（PaliGemma），加潜在触觉预测器</td>
+          <td>LingBot-VA 改出的三专家 MoT，3072 / 1024 / 1024 宽，共 7.16B</td>
           <td>视频-动作因果 DiT，Wan2.2-5B 初始化，一套权重三接口</td>
           <td>WAM：Wan2.2-5B 结构的视频专家 + 动作专家（均从 Motus 初始化）+ 触觉专家</td></tr>
         <tr><th scope="row">力/触觉信号</th>
           <td>6 维末端力/力矩，每次只读一帧</td>
           <td>UMI 夹爪双指尖触觉（法向 + 剪切），取最近 H 步</td>
+          <td>Sharpa Wave 灵巧手 10 指：6 轴力 16 帧历史 + 当前力 + 形变深度图</td>
+          <td>自研视觉式触觉，当前帧减回合起始帧的差分图</td>
+          <td>视觉式触觉（真机 InTac S1）；预测用 Wan VAE 潜变量，观测用三轴力图</td>
           <td>灵巧手力信号：Wuji Hand 2 为 1086 维；Sharpa Wave 为 60 维力/力矩 + 指腹形变图</td>
           <td>多源异构触觉阵列（夹爪与灵巧手），统一到规范手</td></tr>
         <tr><th scope="row">接入位置</th>
           <td>VLM 之后、动作专家之前（FVLMoE）</td>
           <td>VLM 输入前缀（1 个 token）</td>
+          <td>触觉专家读主干 KV，只做去噪最后一段（τ 0.4 → 0）</td>
+          <td>预测器输出 z，拼在动作后缀前；不进前缀</td>
+          <td>触觉专家每层共享注意力 + 动作头前的力空间交叉注意力</td>
           <td>旁路触觉专家读主干 KV，只做每块去噪的最后一段（σ 0.2 → 0）</td>
           <td>独立触觉专家，中间层与视频、动作共享注意力</td></tr>
         <tr><th scope="row">预测未来力/触觉</th>
           <td>否</td>
           <td>否（输出的是目标力）</td>
+          <td>否</td>
+          <td class="yes"><span class="k">训练时</span>Stage 1 预测 50 步内触觉净变化的潜变量，之后撤掉目标</td>
+          <td class="yes"><span class="k">是</span>未来触觉（残差）与未来视频一起生成，推理时也生成</td>
           <td class="yes"><span class="k">训练时</span>预测子块之后的力窗口，只作辅助目标，部署不用</td>
           <td class="yes"><span class="k">是</span>推理时也和视频、动作联合生成</td></tr>
         <tr><th scope="row">触觉起作用的频率</th>
           <td>每生成一个动作块读一次</td>
           <td>混合控制器按力误差调整执行</td>
+          <td>块内每 4 个控制步一次（示意频率约 20 Hz，未实测）</td>
+          <td>每个 50 步动作块一次</td>
+          <td>块级预测；观测通路称按传感器频率刷新（未给数字）</td>
           <td>块内每 0.2 s 一次（48 步动作块切成 8 个子块）</td>
           <td>动作块之间（新观测 + 重新规划）</td></tr>
         <tr><th scope="row">数据</th>
           <td>自采 ForceVLA-Data，5 个接触任务</td>
           <td>带触觉的 UMI 手持采集，3 类任务共 800 条</td>
+          <td>22,889 小时人类视频预训练 + 100 小时触觉遥操作中训练（207 物体 × 22 原语）</td>
+          <td>NeoData 多平台视触觉数据（规模见配套报告）</td>
+          <td>NeoData 超 3 万小时、6 种本体、450 任务</td>
           <td>人类第一视角数据（单目 → 双目）预训练 → 机器人域；触觉只在后训练出现</td>
           <td>仿真回放补录（RoboTwin、DexJoCo）+ ManiFeel + 真机</td></tr>
         <tr><th scope="row">评测</th>
           <td>真机 5 任务 + 5 种泛化设置</td>
           <td>真机：力度指令、按物体常识调力、自适应推理</td>
+          <td>双臂灵巧手真机 12 任务，每任务 16 次，细则给部分分</td>
+          <td>NeoReal 9 任务 + UniVTAC 8 + NeoSim 12；ALTER 3 个长时程任务</td>
+          <td>UniVTAC 8 + NeoSim 12（各 100 次）+ 真机 8 任务（各 20 次）</td>
           <td>仿生双臂双灵巧手真机，每格 20 次</td>
           <td>RoboTwin、DexJoCo、ManiFeel 仿真 + 真机定性</td></tr>
       </tbody>
@@ -288,7 +373,8 @@ footer p{margin:0 0 8px;max-width:60em}
 
 <footer>
   <p>图全部来自各论文 arXiv 源码里的原图，数字按源码里的 tex 表格核对。各页中标「解读」的内容是我们的判断，和论文的主张分开写。</p>
-  <p>四个精读页是并行写的。每页「放到四篇里看」一节里对另外三篇的描述主要依据摘要，没有逐篇读原文；细节以对应论文自己的精读页和这里的对照表为准。</p>
+  <p>ForceVLA、Tactile-VLA、Motus2、ME-Dex 1.0 四个精读页最初是并行写的，它们在「放到七篇里看」一节里对彼此的描述主要依据摘要；后加入的 T-Rex、N₀-VTLA、N₀-TWAM 是逐篇精读后写的，各页对这三篇的描述也取自它们的精读页。细节以对应论文自己的精读页和这里的对照表为准。</p>
+  <p>几条跨论文的线索：Motus2 的触觉旁路专家在附录里写明参照 T-Rex 的切分去噪；N₀-VTLA 与 N₀-TWAM 出自同一团队、同一天发布，共用 UniVTAC / NeoSim 基准和同一批基线数字，但互不比较；T-Rex 与 ME-Dex 都观察到把触觉直接拼进 π0.5 会掉分。</p>
 </footer>
 
 </div>

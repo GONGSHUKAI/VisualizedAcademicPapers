@@ -369,15 +369,16 @@ details.faq .a p:last-child{margin:0}
 .two li{margin-bottom:8px}
 
 /* timeline */
-.tl{list-style:none;margin:18px 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;position:relative}
+.tl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tl{list-style:none;margin:18px 0;padding:0;display:grid;grid-template-columns:repeat(7,minmax(140px,1fr));gap:0;position:relative;min-width:1000px}
 .tl::before{content:"";position:absolute;left:0;right:0;top:9px;border-top:1px solid var(--line)}
 .tl li{position:relative;padding:26px 14px 0 0;font-size:13.5px;line-height:1.6}
 .tl li::before{content:"";position:absolute;left:0;top:3px;width:12px;height:12px;border-radius:50%;background:var(--bg);border:2px solid var(--muted)}
 .tl li.me::before{background:var(--tac);border-color:var(--tac)}
 .tl .d{font:500 12px var(--f-mono);color:var(--muted)}
 .tl .n{font-family:var(--f-display);font-stretch:108%;font-weight:700;font-size:1rem;display:block;margin:2px 0 4px}
-@media (max-width:760px){.tl{grid-template-columns:minmax(0,1fr)}.tl::before{left:5px;right:auto;top:0;bottom:0;border-top:0;border-left:1px solid var(--line)}.tl li{padding:0 0 16px 26px}.tl li::before{top:5px}}
-table.cmp{min-width:820px}
+@media (max-width:760px){.tl{grid-template-columns:minmax(0,1fr);min-width:0}.tl::before{left:5px;right:auto;top:0;bottom:0;border-top:0;border-left:1px solid var(--line)}.tl li{padding:0 0 16px 26px}.tl li::before{top:5px}}
+table.cmp{min-width:1460px}
 table.cmp td{font-size:13.5px}
 table.cmp th.me,table.cmp td.me{background:color-mix(in oklab,var(--tac-soft) 45%,transparent)}
 svg.timing{display:block;width:100%;height:auto;min-width:640px}
@@ -415,7 +416,7 @@ footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;c
 </head>
 <body>
 <!-- vap:nav -->
-<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/force-tactile/">力与触觉</a></span><span class="vapnav-links"><a href="../../papers/forcevla/">ForceVLA</a><a href="../../papers/tactile-vla/">Tactile-VLA</a><a href="../../papers/motus2/">Motus2</a><a href="../../papers/me-dex/" aria-current="page">ME-Dex 1.0</a></span></div></div>
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/force-tactile/">力与触觉</a></span><span class="vapnav-links"><a href="../../papers/forcevla/">ForceVLA</a><a href="../../papers/tactile-vla/">Tactile-VLA</a><a href="../../papers/t-rex/">T-Rex</a><a href="../../papers/n0-twam/">N₀-TWAM</a><a href="../../papers/n0-vtla/">N₀-VTLA</a><a href="../../papers/motus2/">Motus2</a><a href="../../papers/me-dex/" aria-current="page">ME-Dex 1.0</a></span></div></div>
 <!-- /vap:nav -->
 <header class="hero page">
   <div class="hero-grid">
@@ -464,7 +465,7 @@ footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;c
       <li><a href="#results">结果</a></li>
       <li><a href="#insight">读懂它</a></li>
       <li><a href="#limits">局限与疑点</a></li>
-      <li><a href="#four">四篇对照</a></li>
+      <li><a href="#four">七篇对照</a></li>
       <li><a href="#glossary">术语表</a></li>
     </ol>
   </nav>
@@ -1012,29 +1013,57 @@ footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;c
       </div>
     </section>
 
-    <!-- ================= 四篇对照 ================= -->
+    <!-- ================= 七篇对照 ================= -->
     <section id="four">
-      <p class="eyebrow">放到四篇里看</p>
-      <h2>力 / 触觉进入机器人基础模型的四个位置</h2>
-      <div class="prose"><p>这一批四篇按时间排开，力 / 触觉在模型里的位置一路后移：从动作解码前的条件，到输出力目标再交给力控，再到被世界模型当作要预测的对象。</p></div>
-      <ol class="tl">
+      <p class="eyebrow">放到七篇里看</p>
+      <h2>力 / 触觉进入机器人基础模型的几种位置</h2>
+      <div class="prose"><p>力与触觉专题现在收了七篇。按时间排开，力 / 触觉在模型里的位置一路后移：从动作解码前的条件，到输出力目标再交给力控，到块内高频修正动作，再到被当作要预测的对象。窄屏下时间线可左右滑动。</p></div>
+      <div class="tl-scroll"><ol class="tl">
         <li><span class="d">2025-05 · 2505.22159</span><span class="n">ForceVLA</span>6 轴力 / 力矩当一等模态，force-aware MoE 在动作解码阶段融合。</li>
         <li><span class="d">2025-07 · 2507.09160</span><span class="n">Tactile-VLA</span>触觉 token 进 VLA 前缀，混合位置-力控制器执行学到的力目标。</li>
+        <li><span class="d">2026-06 · 2606.17055</span><span class="n">T-Rex</span>双臂灵巧手；去噪最后一段交给只读触觉的专家，块内每 4 步用新触觉重跑。</li>
+        <li><span class="d">2026-07 · 2607.23782</span><span class="n">N₀-VTLA</span>π0.5 上预测一个动作块内的触觉变化潜变量 z，动作专家读 z。</li>
+        <li><span class="d">2026-07 · 2607.23783</span><span class="n">N₀-TWAM</span>三专家世界动作模型：未来触觉与视频共同生成，当前触觉在力空间读入。</li>
         <li><span class="d">2026-08 · 2608.30237</span><span class="n">Motus2</span>世界模型 + 轻量触觉专家：块内高频精修动作，训练时预测未来力。</li>
         <li class="me"><span class="d">2026-09 · 2609.21449</span><span class="n">ME-Dex 1.0</span>触觉与视频并列为未来观测，三专家联合生成；跨本体统一表示。</li>
-      </ol>
+      </ol></div>
       <div class="tblwrap">
         <table class="t cmp">
-          <thead><tr><th></th><th>ForceVLA</th><th>Tactile-VLA</th><th class="me">ME-Dex 1.0</th><th>Motus2</th></tr></thead>
+          <thead><tr><th></th><th>ForceVLA</th><th>Tactile-VLA</th><th>T-Rex</th><th>N₀-VTLA</th><th>N₀-TWAM</th><th class="me">ME-Dex 1.0</th><th>Motus2</th></tr></thead>
           <tbody>
-            <tr><th>骨干</th><td>π0 类 VLA</td><td>VLA，共享部分用 π0 参数初始化</td><td class="me">WAM：Wan2.2-5B 视频专家 + 动作专家（Motus 初始化）+ 触觉专家</td><td>通用世界模型，共享权重给出 policy / simulator / evaluator 三个接口</td></tr>
-            <tr><th>力 / 触觉的形态</th><td>6 轴力 / 力矩向量</td><td>UMI 夹爪上的双高分辨率触觉传感器（法向 + 剪切）</td><td class="me">多源分布式触觉阵列，每面 3×H×W 力场；夹爪 + 灵巧手</td><td>灵巧手力信号（90 Hz），Sharpa Wave 另有形变图像</td></tr>
-            <tr><th>进入模型的方式</th><td>力投影成 token，与视觉-语言嵌入经稀疏 MoE 融合，指导 flow 动作专家</td><td>MLP 把触觉历史编码成一个 token，放进 Transformer 输入前缀</td><td class="me">当前触觉作干净条件，未来触觉作生成目标；H-Bridge 中层共享注意力</td><td>轻量触觉专家读取主干缓存的中间动作块和 KV，用最新触觉窗口精修</td></tr>
-            <tr><th>预测未来力 / 触觉</th><td>否</td><td>输出的是力目标，交给控制器</td><td class="me">是，推理时也联合生成</td><td>是，但只作训练期辅助目标</td></tr>
-            <tr><th>触觉影响执行的频率</th><td>每次生成动作时作为条件</td><td>混合位置-力控制器按力误差 ΔF 调整执行</td><td class="me">动作块之间（观测更新 + 重规划）</td><td>块内每 0.2 s 一次</td></tr>
-            <tr><th>数据来源</th><td>自采 ForceVLA-Data：5 个接触密集任务，视觉、本体、力 / 力矩同步</td><td>基于 UMI 的手持采集，触觉 100 Hz、视觉 20 Hz，下采样对齐</td><td class="me">仿真回放补录（RoboTwin / DexJoCo）+ ManiFeel 原生触觉 + 真机；Canonical Hand 统一夹爪与灵巧手</td><td>第一视角人类数据（单目 → 双目）→ 机器人域；触觉专家用目标任务后训练数据，两种灵巧手共用一个结构</td></tr>
+            <tr><th>骨干</th><td>π0 类 VLA</td><td>VLA，共享部分用 π0 参数初始化</td><td>Qwen3-VL-2B 三专家 MoT（latent / 动作 / 触觉）</td><td>π0.5 + 潜在触觉预测器</td><td>WAM：从 LingBot-VA 改造，视频 5.00B + 动作 1.13B + 触觉 1.03B</td><td class="me">WAM：Wan2.2-5B 视频专家 + 动作专家（Motus 初始化）+ 触觉专家</td><td>通用世界模型，共享权重给出 policy / simulator / evaluator 三个接口</td></tr>
+            <tr><th>力 / 触觉的形态</th><td>6 轴力 / 力矩向量</td><td>UMI 夹爪上的双高分辨率触觉传感器（法向 + 剪切）</td><td>Sharpa Wave 灵巧手 10 指：6 轴力历史 + 当前力 + 形变深度图</td><td>自研视觉式触觉，当前帧减回合起始帧的差分图</td><td>视觉式触觉图像（与视频共用 Wan VAE）；观测时转成三轴力图</td><td class="me">多源分布式触觉阵列，每面 3×H×W 力场；夹爪 + 灵巧手</td><td>灵巧手力信号（90 Hz），Sharpa Wave 另有形变图像</td></tr>
+            <tr><th>进入模型的方式</th><td>力投影成 token，与视觉-语言嵌入经稀疏 MoE 融合，指导 flow 动作专家</td><td>MLP 把触觉历史编码成一个 token，放进 Transformer 输入前缀</td><td>独立触觉专家读主干 KV 缓存，只做去噪最后一段（τ 0.4 → 0）</td><td>预测器输出 z，拼在动作 token 前；不进 VLM 前缀</td><td>触觉专家每层共享注意力；当前触觉经 NeoForce 编码、零初始化交叉注意力进动作流</td><td class="me">当前触觉作干净条件，未来触觉作生成目标；H-Bridge 中层共享注意力</td><td>轻量触觉专家读取主干缓存的中间动作块和 KV，用最新触觉窗口精修</td></tr>
+            <tr><th>预测未来力 / 触觉</th><td>否</td><td>输出的是力目标，交给控制器</td><td>否</td><td>训练 Stage 1 预测未来 50 步触觉净变化的潜变量，之后撤掉目标</td><td>是，残差形式，推理时也生成</td><td class="me">是，推理时也联合生成</td><td>是，但只作训练期辅助目标</td></tr>
+            <tr><th>触觉影响执行的频率</th><td>每次生成动作时作为条件</td><td>混合位置-力控制器按力误差 ΔF 调整执行</td><td>块内每 4 个控制步一次</td><td>每个 50 步动作块一次</td><td>块级预测；观测通路称按传感器频率刷新（未给数字）</td><td class="me">动作块之间（观测更新 + 重规划）</td><td>块内每 0.2 s 一次</td></tr>
+            <tr><th>数据来源</th><td>自采 ForceVLA-Data：5 个接触密集任务，视觉、本体、力 / 力矩同步</td><td>基于 UMI 的手持采集，触觉 100 Hz、视觉 20 Hz，下采样对齐</td><td>22,889 小时人类视频预训练 + 100 小时带触觉遥操作中训练</td><td>NeoData 多平台视触觉数据</td><td>NeoData 超 3 万小时、6 种本体、450 任务</td><td class="me">仿真回放补录（RoboTwin / DexJoCo）+ ManiFeel 原生触觉 + 真机；Canonical Hand 统一夹爪与灵巧手</td><td>第一视角人类数据（单目 → 双目）→ 机器人域；触觉专家用目标任务后训练数据，两种灵巧手共用一个结构</td></tr>
           </tbody>
         </table>
+      </div>
+
+
+      <h3>ME-Dex 和 N₀-TWAM：专题里结构最接近的两篇</h3>
+      <div class="prose"><p>两篇几乎是同一个设计的两个版本：Wan2.2-5B 系的全宽视频专家（宽 3072）、宽 1024 的动作专家、再加一个触觉专家，三者都用 flow matching，未来触觉和未来视频一起生成。差别集中在下表几处。</p></div>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th></th><th>ME-Dex 1.0</th><th>N₀-TWAM</th></tr></thead>
+          <tbody>
+            <tr><th>视频 / 动作专家初始化</th><td>Motus</td><td>LingBot-VA（非 MoT 的共享主干，拆成专家）</td></tr>
+            <tr><th>触觉专家</th><td>30 层，宽 512，随机初始化</td><td>30 层，宽 1024，从头训练</td></tr>
+            <tr><th>专家怎么交互</th><td>只在中间若干层（H-Bridge）做联合注意力</td><td>每一层共享一次自注意力，帧级因果掩码让动作读本块预测出的视频和触觉</td></tr>
+            <tr><th>触觉表示</th><td>Canonical Hand Model + Unified Tactile AE，统一夹爪与灵巧手的异构阵列</td><td>视觉式触觉图像直接用视频的 Wan VAE 编码；预测残差 x<sub>i</sub> − x<sub>0</sub></td></tr>
+            <tr><th>当前触觉</th><td>作为干净的首帧条件</td><td>首帧条件之外，另有一条力空间观测通路（冻结力估计器 → NeoForce → 交叉注意力），只在后训练打开</td></tr>
+            <tr><th>数据</th><td>仿真回放补录 + ManiFeel + 真机</td><td>NeoData 真机数据，超 3 万小时</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>“当前触觉有没有用”，两篇给出了相反的证据</h4>
+        <p>ME-Dex 在 RoboTwin 上推理时把当前触觉置零，成功率 91.70 / 91.74，和完整模型的 91.56 / 91.92 几乎一样。N₀-TWAM 去掉观测通路重新后训练，NeoSim 从 49.4 掉到 29.6，UniVTAC 从 84.5 掉到 70.5。两者不能直接比：一个是推理时置零，一个是训练时就没有这条支路；基准也不同。但它提示了一种解释：只把当前触觉当作生成的首帧条件时，模型很少用到它；给它一条专门接到动作头的通路，它才会被用上。</p>
+      </div>
+      <div class="prose">
+        <p><strong>和 T-Rex：</strong>下一节说的“块内快速修正通道”最早来自 T-Rex：主干把动作去噪到 τ = 0.4，只读触觉的专家在一个 16 步动作块里用最新触觉重跑 4 次，Motus2 的附录明确写了参照 T-Rex。T-Rex 在 6 个任务上去掉触觉从 65 掉到 42，是专题里触觉增益最大的数字之一；它和 ME-Dex 还都观察到，把触觉直接拼进 π0.5 会掉分（T-Rex 里平均 17 → 6）。</p>
+        <p><strong>和 N₀-VTLA：</strong>它也把触觉当作要预测的量，但走得更轻：不在世界模型里生成未来触觉，只让一个小预测器输出一个动作块内触觉净变化的潜变量，而且这个预测目标只在训练第一阶段施加。</p>
       </div>
 
       <h3>ME-Dex 和 Motus2：同一条世界模型路线，触觉放在两个不同的位置</h3>
@@ -1081,7 +1110,7 @@ footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;c
       </div>
       <div class="note">
         <h4><span class="tag read">解读</span>两条路线可以互补</h4>
-        <p>ME-Dex 的局限一节写的“触觉驱动的局部高频反馈控制”，正是 Motus2 已经实现的做法；反过来，Motus2 局限一节说触觉手套数据难以跨本体迁移，而跨本体统一表示正是 ME-Dex 的 Canonical Hand + 统一 AE 想解决的。ME-Dex 在 RoboTwin 上“推理时置零触觉不掉点”的结果也说明：只在块间读触觉，反馈价值很难体现；要让触觉在执行中起作用，块内的快速修正通道可能是必要的。</p>
+        <p>ME-Dex 的局限一节写的“触觉驱动的局部高频反馈控制”，正是 Motus2（以及它参照的 T-Rex）已经实现的做法；反过来，Motus2 局限一节说触觉手套数据难以跨本体迁移，而跨本体统一表示正是 ME-Dex 的 Canonical Hand + 统一 AE 想解决的。ME-Dex 在 RoboTwin 上“推理时置零触觉不掉点”的结果也说明：只在块间读触觉，反馈价值很难体现；要让触觉在执行中起作用，块内的快速修正通道可能是必要的。</p>
       </div>
     </section>
 

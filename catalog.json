@@ -57,6 +57,42 @@
       "topics": ["force-tactile"],
       "summary": "视频、触觉、动作三专家联合去噪的世界动作模型，触觉作为要预测的未来观测；夹爪和灵巧手的触觉统一到规范手。",
       "added": "2026-09-28"
+    },
+    {
+      "slug": "t-rex",
+      "title": "T-Rex",
+      "full_title": "T-Rex: Tactile-Reactive Dexterous Manipulation",
+      "arxiv": "2606.17055",
+      "version": "v2",
+      "date": "2026-06",
+      "org": "UC Berkeley、NVIDIA、Stanford 等",
+      "topics": ["force-tactile"],
+      "summary": "去噪轨迹从 τ=0.4 劈开：动作专家每块跑前 6 步，只读触觉的小专家在块内每 4 步用最新触觉跑完后 4 步；100 小时触觉中训练，12 个灵巧手任务平均 65 分，最强基线 35。",
+      "added": "2026-09-28"
+    },
+    {
+      "slug": "n0-vtla",
+      "title": "N₀-VTLA",
+      "full_title": "N0-VTLA: Scaling Vision–Tactile–Language–Action Model with Latent Tactile Tokens",
+      "arxiv": "2607.23782",
+      "version": "v1",
+      "date": "2026-07",
+      "org": "NeoteAI、复旦 TEAI",
+      "topics": ["force-tactile"],
+      "summary": "触觉不进 VLM 前缀，先预测接下来一个动作块的触觉变化潜变量 z，再用 z 条件动作专家；三阶段接入 π0.5，20 个仿真任务 63.8%（π0.5 44.0%），另有离线 RL 方法 ALTER。",
+      "added": "2026-09-28"
+    },
+    {
+      "slug": "n0-twam",
+      "title": "N₀-TWAM",
+      "full_title": "N0-TWAM: Scaling Tactile-Native World Action Model for Contact-Rich Manipulation",
+      "arxiv": "2607.23783",
+      "version": "v1",
+      "date": "2026-07",
+      "org": "NeoteAI、复旦 TEAI",
+      "topics": ["force-tactile"],
+      "summary": "视频、触觉、动作三专家的非对称 MoT 世界动作模型：未来触觉和未来视频一起生成，当前触觉在力空间经交叉注意力读入；UniVTAC 84.5%，8 个真机任务平均 46.3%（π0.5 30.0%）。",
+      "added": "2026-09-28"
     }
   ]
 }

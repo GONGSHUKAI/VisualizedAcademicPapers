@@ -357,7 +357,7 @@ footer{padding-block:36px 56px;border-top:1px solid var(--rule);font-size:13px;c
 </head>
 <body>
 <!-- vap:nav -->
-<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/force-tactile/">力与触觉</a></span><span class="vapnav-links"><a href="../../papers/forcevla/">ForceVLA</a><a href="../../papers/tactile-vla/">Tactile-VLA</a><a href="../../papers/motus2/" aria-current="page">Motus2</a><a href="../../papers/me-dex/">ME-Dex 1.0</a></span></div></div>
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/force-tactile/">力与触觉</a></span><span class="vapnav-links"><a href="../../papers/forcevla/">ForceVLA</a><a href="../../papers/tactile-vla/">Tactile-VLA</a><a href="../../papers/t-rex/">T-Rex</a><a href="../../papers/n0-twam/">N₀-TWAM</a><a href="../../papers/n0-vtla/">N₀-VTLA</a><a href="../../papers/motus2/" aria-current="page">Motus2</a><a href="../../papers/me-dex/">ME-Dex 1.0</a></span></div></div>
 <!-- /vap:nav -->
 <div class="topbar">
   <div class="wrap">
@@ -373,7 +373,7 @@ footer{padding-block:36px 56px;border-top:1px solid var(--rule);font-size:13px;c
       <a href="#results">结果</a>
       <a href="#reading">读懂它</a>
       <a href="#doubts">局限与疑点</a>
-      <a href="#four">四篇对照</a>
+      <a href="#four">七篇对照</a>
       <a href="#glossary">术语</a>
     </nav>
   </div>
@@ -762,7 +762,7 @@ footer{padding-block:36px 56px;border-top:1px solid var(--rule);font-size:13px;c
     <figcaption><span class="src">Figure 8 (h)(i) · 触觉任务</span><b>Pull Out Paper Cup</b>：稳住一摞套叠的纸杯，抽出一只，不能掉也不能捏扁。<b>Tear Paper</b>：双手配合抓住一张纸并从纸卷上撕下。原图是一行 8 帧，这里排成 2 行 × 4 帧，从左上到右下是时间顺序。</figcaption>
   </figure>
   <div class="prose">
-    <p><span class="tag read">解读</span>这里的触觉设计本质上是“双速率”：主干以块为单位（1.6 秒）做一次重计算，专家以 0.2 秒为单位用新的力信号做一次轻量修正，从而在不重跑 5B 主干的前提下拿到更高的反应频率。代价是触觉只作用在动作生成的最后一段：主干、模拟器和评估器都看不到触觉，规划和 MBRL 也就没法对接触后果做推理。这一点在<a href="#four">四篇对照</a>里与 ME-Dex 1.0 对比会更清楚。</p>
+    <p><span class="tag read">解读</span>这里的触觉设计本质上是“双速率”：主干以块为单位（1.6 秒）做一次重计算，专家以 0.2 秒为单位用新的力信号做一次轻量修正，从而在不重跑 5B 主干的前提下拿到更高的反应频率。代价是触觉只作用在动作生成的最后一段：主干、模拟器和评估器都看不到触觉，规划和 MBRL 也就没法对接触后果做推理。这一点在<a href="#four">七篇对照</a>里与 ME-Dex 1.0 对比会更清楚。</p>
   </div>
 </section>
 
@@ -955,36 +955,36 @@ footer{padding-block:36px 56px;border-top:1px solid var(--rule);font-size:13px;c
 
 <section class="wrap" id="four">
   <div class="prose">
-    <div class="eyebrow">本批四篇 · ForceVLA · Tactile-VLA · ME-Dex 1.0 · Motus2</div>
-    <h2>放到四篇里看</h2>
-    <p>这四篇都在回答“力和触觉怎么进入机器人基础模型”。其中两篇走 VLA 路线，把力或触觉接进视觉-语言-动作模型；另两篇走世界模型路线，模型要预测未来。Motus2 的主要贡献其实在三接口的通用世界模型和第一视角数据扩展，触觉只占一节和一张表；但它给出了一种与 ME-Dex 1.0 很不一样的触觉接入方式。</p>
+    <div class="eyebrow">力与触觉专题 · 七篇</div>
+    <h2>放到七篇里看</h2>
+    <p>专题里的七篇都在回答“力和触觉怎么进入机器人基础模型”。ForceVLA、Tactile-VLA、T-Rex、N₀-VTLA 走 VLA 路线，把力或触觉接进视觉-语言-动作模型；Motus2、ME-Dex 1.0、N₀-TWAM 走世界模型路线，模型要预测未来。Motus2 的主要贡献其实在三接口的通用世界模型和第一视角数据扩展，触觉只占一节和一张表；但它给出了一种与 ME-Dex 1.0 很不一样的触觉接入方式。</p>
   </div>
   <div class="tbl-wrap">
-    <table class="cmp" style="--tmin:860px">
-      <thead><tr><th></th><th>ForceVLA</th><th>Tactile-VLA</th><th>ME-Dex 1.0</th><th class="me">Motus2</th></tr></thead>
+    <table class="cmp" style="--tmin:1480px">
+      <thead><tr><th></th><th>ForceVLA</th><th>Tactile-VLA</th><th>T-Rex</th><th>N₀-VTLA</th><th>N₀-TWAM</th><th>ME-Dex 1.0</th><th class="me">Motus2</th></tr></thead>
       <tbody>
-        <tr><td>来源</td><td>arXiv 2505.22159 · 复旦、上交</td><td>arXiv 2507.09160 · 清华（高阳组）</td><td>arXiv 2609.21449 · 理想汽车基础模型团队</td><td class="me">arXiv 2608.30237 · 生数、清华（朱军组）</td></tr>
-        <tr><td>路线</td><td>VLA，基于 π<sub>0</sub></td><td>VLA</td><td>World Action Tactile Model：MoT 三专家（Video / Tactile / Action），全部 flow matching</td><td class="me">通用世界模型：视频-动作因果 DiT，一套权重三接口</td></tr>
-        <tr><td>力/触觉信号</td><td>6 轴力/力矩</td><td>触觉</td><td>多源异构触觉（不同本体、不同传感布局）</td><td class="me">灵巧手力信号：Wuji Hand 2 为 1086 维；Sharpa Wave 为 60 维力/力矩 + 指腹形变图</td></tr>
-        <tr><td>接入方式</td><td>force-aware MoE（FVLMoE）在动作解码阶段融合 VL 嵌入与实时力反馈</td><td>深度融合进 VLA，配混合位置-力控制器和基于触觉反馈的推理模块</td><td>Tactile Expert 与视频、动作专家在中间层共享注意力，联合去噪；Canonical Hand Model + Unified Tactile Autoencoder 统一空间与隐空间</td><td class="me">旁路触觉专家读主干 detached KV，只负责每块去噪的最后一段（σ 0.2 → 0）</td></tr>
-        <tr><td>触觉的角色</td><td>条件</td><td>条件</td><td>被预测的未来观测，与视频同等</td><td class="me">前一窗口作条件修正动作；后一窗口的预测只是训练辅助，部署不用；主干不受触觉梯度</td></tr>
-        <tr><td>数据</td><td>自采 ForceVLA-Data：视觉、本体、力/力矩同步，5 个接触密集任务</td><td>少量示范激活 VLM 先验</td><td>Agentic Tactile Data Engine 在 RoboTwin、DexJoCo 轨迹回放中补录力传感器数据</td><td class="me">真机后训练数据；人类第一视角预训练数据不含触觉</td></tr>
-        <tr><td>主要证据</td><td>平均成功率比 π<sub>0</sub> 基线高 23.2%，插头插入等任务最高 80%</td><td>零样本泛化到触觉相关的指令跟随、常识和推理</td><td>RoboTwin、DexJoCo、ManiFeel 仿真 + 真机（夹爪与灵巧手）</td><td class="me">2 个任务 × 20 次：60.0% → 72.5%</td></tr>
+        <tr><td>来源</td><td>arXiv 2505.22159 · 复旦、上交</td><td>arXiv 2507.09160 · 清华（高阳组）</td><td>arXiv 2606.17055 · UC Berkeley、NVIDIA、Stanford 等</td><td>arXiv 2607.23782 · NeoteAI、复旦 TEAI</td><td>arXiv 2607.23783 · NeoteAI、复旦 TEAI</td><td>arXiv 2609.21449 · 理想汽车基础模型团队</td><td class="me">arXiv 2608.30237 · 生数、清华（朱军组）</td></tr>
+        <tr><td>路线</td><td>VLA，基于 π<sub>0</sub></td><td>VLA</td><td>VLA：Qwen3-VL-2B 三专家 MoT（latent / 动作 / 触觉）</td><td>VLA：π0.5 + 潜在触觉预测器</td><td>世界动作模型：视频、触觉、动作三专家非对称 MoT，从 LingBot-VA 改造</td><td>World Action Tactile Model：MoT 三专家（Video / Tactile / Action），全部 flow matching</td><td class="me">通用世界模型：视频-动作因果 DiT，一套权重三接口</td></tr>
+        <tr><td>力/触觉信号</td><td>6 轴力/力矩</td><td>触觉</td><td>Sharpa Wave 灵巧手 10 指：6 轴力 16 帧历史 + 当前力 + 形变深度图</td><td>自研视觉式触觉，差分图经冻结 DINOv2 编码</td><td>视觉式触觉；与视频共用 Wan VAE，另用估计的三轴力图</td><td>多源异构触觉（不同本体、不同传感布局）</td><td class="me">灵巧手力信号：Wuji Hand 2 为 1086 维；Sharpa Wave 为 60 维力/力矩 + 指腹形变图</td></tr>
+        <tr><td>接入方式</td><td>force-aware MoE（FVLMoE）在动作解码阶段融合 VL 嵌入与实时力反馈</td><td>深度融合进 VLA，配混合位置-力控制器和基于触觉反馈的推理模块</td><td>触觉专家读主干 KV，只做去噪最后一段（τ 0.4 → 0），块内 4 次，每次输出整块</td><td>预测器输出 z，拼在动作 token 前；不进 VLM 前缀</td><td>触觉专家每层共享注意力；当前触觉经零初始化交叉注意力进动作流</td><td>Tactile Expert 与视频、动作专家在中间层共享注意力，联合去噪；Canonical Hand Model + Unified Tactile Autoencoder 统一空间与隐空间</td><td class="me">旁路触觉专家读主干 detached KV，只负责每块去噪的最后一段（σ 0.2 → 0）</td></tr>
+        <tr><td>触觉的角色</td><td>条件</td><td>条件</td><td>条件（块内高频）</td><td>被预测的潜变量（只在训练 Stage 1 施加预测目标）</td><td>既是要生成的未来观测，也是动作的条件</td><td>被预测的未来观测，与视频同等</td><td class="me">前一窗口作条件修正动作；后一窗口的预测只是训练辅助，部署不用；主干不受触觉梯度</td></tr>
+        <tr><td>数据</td><td>自采 ForceVLA-Data：视觉、本体、力/力矩同步，5 个接触密集任务</td><td>少量示范激活 VLM 先验</td><td>人类视频预训练 + 100 小时带触觉遥操作中训练 + 每任务约 100 条</td><td>NeoData 多平台视触觉数据</td><td>NeoData 超 3 万小时，6 种本体</td><td>Agentic Tactile Data Engine 在 RoboTwin、DexJoCo 轨迹回放中补录力传感器数据</td><td class="me">真机后训练数据；人类第一视角预训练数据不含触觉</td></tr>
+        <tr><td>主要证据</td><td>平均成功率比 π<sub>0</sub> 基线高 23.2%，插头插入等任务最高 80%</td><td>零样本泛化到触觉相关的指令跟随、常识和推理</td><td>6 个任务上去掉触觉 65 → 42；同步版本 60</td><td>没有去掉触觉的闭环消融；真机 9 任务均值 47.2% vs π0.5 29.4%</td><td>去掉观测通路 NeoSim 49.4 → 29.6，去掉预测通路 → 41.1</td><td>RoboTwin、DexJoCo、ManiFeel 仿真 + 真机（夹爪与灵巧手）</td><td class="me">2 个任务 × 20 次：60.0% → 72.5%</td></tr>
       </tbody>
     </table>
   </div>
   <div class="prose">
-    <p class="chart-note">其余三篇的信息取自本批次的摘要级概述，细节以各自的精读页为准。</p>
+    <p class="chart-note">ForceVLA、Tactile-VLA、ME-Dex 1.0 三列取自摘要级概述；T-Rex、N₀-VTLA、N₀-TWAM 三列来自对应的精读页。细节以各自的精读页为准。</p>
     <h3>触觉在模型里处于什么位置 <span class="tag read" style="vertical-align:3px">解读</span></h3>
   </div>
   <div class="quad">
     <div></div><div class="hd">力/触觉作为条件</div><div class="hd">力/触觉也被预测</div>
     <div class="rh">VLA 路线</div>
-    <div class="q"><b>ForceVLA · Tactile-VLA</b>力或触觉作为当前观测输入，影响动作生成</div>
-    <div class="q empty">本批无</div>
+    <div class="q"><b>ForceVLA · Tactile-VLA · T-Rex</b>力或触觉作为当前观测输入影响动作生成；T-Rex 把它放在去噪最后一段、块内多次读取</div>
+    <div class="q"><b>N₀-VTLA</b>预测接下来一个动作块内的触觉变化潜变量 z，动作专家读 z 而不读当前触觉</div>
     <div class="rh">世界模型路线</div>
     <div class="q" style="box-shadow:inset 0 0 0 2px var(--c-policy)"><b>Motus2</b>以条件为主：旁路专家用之前的触觉修正动作；力预测只是训练辅助，不进主干</div>
-    <div class="q"><b>ME-Dex 1.0</b>触觉和视频一样是要预测的未来观测，在联合去噪中与动作共享注意力</div>
+    <div class="q"><b>ME-Dex 1.0 · N₀-TWAM</b>触觉和视频一样是要预测的未来观测，在联合去噪中与动作共享注意力；N₀-TWAM 另把当前触觉作为条件直接注入动作流</div>
   </div>
   <div class="prose">
     <h3>和 ME-Dex 1.0 的关键区别</h3>
@@ -994,6 +994,24 @@ footer{padding-block:36px 56px;border-top:1px solid var(--rule);font-size:13px;c
       <li><strong>Motus2</strong> 让主干保持纯视觉-动作，触觉通过旁路专家在最后一步修正动作。好处是主干可以用 13 万小时不带触觉的人类数据预训练，触觉只在后训练用少量真机数据；专家每 0.2 秒修正一次，不必重跑主干。代价是模拟器和评估器看不到触觉，规划和 MBRL 无法推理接触后果；力预测只影响旁路专家，不塑造主干的世界表示。</li>
     </ul>
     <p>换句话说，如果问“触觉是条件还是被预测的观测”：ME-Dex 1.0 明确选了后者；Motus2 两者都做了一点，但真正进入部署链路的只有条件这一面，它的“世界模型”部分仍然是视觉的。两篇放在一起读，正好对应了触觉进入世界模型的两种代价取舍：要表示层面的统一，就得解决数据；要数据可扩展，触觉就只能晚一点、浅一点地接入。</p>
+    <h3>和 T-Rex：同一个切分去噪机制</h3>
+    <p>Motus2 在附录 E.3 写明触觉专家的时间调度“参照 T-Rex”。两篇的做法对照如下：</p>
+    <div class="tbl-wrap"><table class="cmp" style="--tmin:640px">
+      <thead><tr><th></th><th>T-Rex</th><th class="me">Motus2</th></tr></thead>
+      <tbody>
+        <tr><td>主干去噪到</td><td>τ<sub>split</sub> = 0.4（10 步里的前 6 步）</td><td class="me">σ<sub>c</sub> = 0.2</td></tr>
+        <tr><td>触觉专家怎么收尾</td><td>4 个 Euler 步，每次输出整个 16 步动作块</td><td class="me">一步走完剩下的 σ<sub>c</sub>，每次只完成当前 6 步子块</td></tr>
+        <tr><td>每块调用次数</td><td>4 次（块内偏移 0 / 4 / 8 / 12）</td><td class="me">8 次（48 步切 8 个子块，每 0.2 s）</td></tr>
+        <tr><td>触觉专家规模</td><td>0.62B，FFN 中间宽度 1536</td><td class="me">30 层，宽 128</td></tr>
+        <tr><td>额外目标</td><td>无；主干另有未来视觉潜变量预测</td><td class="me">训练时预测子块之后的力窗口</td></tr>
+        <tr><td>手</td><td>Sharpa Wave（双手）</td><td class="me">Sharpa Wave、Wuji Hand 2</td></tr>
+        <tr><td>触觉增益</td><td>6 任务 42 → 65（每任务 16 次，部分分）</td><td class="me">2 任务 60.0% → 72.5%（每任务 20 次）</td></tr>
+      </tbody>
+    </table></div>
+    <p><span class="tag read">解读</span>T-Rex 的消融还提供了一个 Motus2 没有的数字：把异步多次调用换成同步，6 个任务平均只从 65 掉到 60，而去掉触觉掉到 42。也就是说，这类设计的收益大部分来自“有一个只读触觉的专家负责收尾”，块内多次刷新本身贡献较小。两篇的 Split Cup 与 Pull Out Paper Cup 是同一类任务：稳住一摞套叠的杯子，只取出一只。</p>
+    <h3>和 N₀-TWAM：把触觉放进世界模型本身</h3>
+    <p><span class="tag read">解读</span>N₀-TWAM 是这个专题里第三个世界模型，它的选择和 Motus2 相反，和 ME-Dex 1.0 同边：触觉专家在每一层与视频、动作共享注意力，未来触觉和未来视频一起生成，所以世界模型的“未来”里包含接触。按上面说的代价取舍，它是用自家超过 3 万小时的 NeoData（“很大一部分”带触觉）来解决数据问题的。它同时保留了一条读当前触觉的观测通路，接在动作头之前，这一点又和 Motus2 的“当前触觉修正动作”相近，只是没有切分去噪、也没给刷新频率。</p>
+    <p>VLA 路线上的 N₀-VTLA（与 N₀-TWAM 同一团队）则走了第三条路：不做高频修正，也不生成完整的未来触觉，只预测一个动作块内触觉变化的潜变量。</p>
   </div>
 </section>
 

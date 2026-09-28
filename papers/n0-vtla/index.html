@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>N₀-VTLA 精读</title>
+<meta name="description" content="N0-VTLA 中文精读：用预测的触觉潜变量条件动作专家，三阶段把触觉通路接进 π0.5，离线 RL 方法 ALTER，以及 NeoReal / UniVTAC / NeoSim 结果与疑点。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Roboto+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F3F1F4; --surface:#FCFBFD; --surface-2:#E7E3EA; --ink:#1B1620; --ink-2:#403947; --muted:#6C6474; --line:#D7D1DC;
+  --z:#B23A87; --z-soft:#F6DDEC; --on-z:#FFFFFF;
+  --vl:#4C7F57; --vl-soft:#DCEBDD;
+  --tac:#2C7C9E; --tac-soft:#D6EAF2;
+  --act:#9A7128; --act-soft:#F1E6CF;
+  --warn:#A8381F; --warn-soft:#F6DDD5;
+  --base:#9B94A2; --base-2:#C9C3CE;
+  --heat-0:#0B0612; --heat-1:#5B1E6E; --heat-2:#C2427A; --heat-3:#F29B4B;
+  --plate:#FFFFFF; --focus:#B23A87;
+  --f-display:"Sora","Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"Roboto Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#121016; --surface:#1A171F; --surface-2:#25212B; --ink:#ECE7F0; --ink-2:#C7BFCE; --muted:#958C9D; --line:#332D3A;
+    --z:#E57DBE; --z-soft:#3B1C31; --on-z:#1E0B17;
+    --vl:#86C08F; --vl-soft:#1C2E20;
+    --tac:#6CB9DA; --tac-soft:#15303C;
+    --act:#D6AE62; --act-soft:#342914;
+    --warn:#EE8C70; --warn-soft:#3A1F18;
+    --base:#7A7282; --base-2:#4E4755;
+    --plate:#F2F0F4; --focus:#E57DBE;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#121016; --surface:#1A171F; --surface-2:#25212B; --ink:#ECE7F0; --ink-2:#C7BFCE; --muted:#958C9D; --line:#332D3A;
+  --z:#E57DBE; --z-soft:#3B1C31; --on-z:#1E0B17;
+  --vl:#86C08F; --vl-soft:#1C2E20;
+  --tac:#6CB9DA; --tac-soft:#15303C;
+  --act:#D6AE62; --act-soft:#342914;
+  --warn:#EE8C70; --warn-soft:#3A1F18;
+  --base:#7A7282; --base-2:#4E4755;
+  --plate:#F2F0F4; --focus:#E57DBE;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:var(--z);text-underline-offset:3px;text-decoration-thickness:1px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+strong{font-weight:700}
+em{font-style:normal;background:linear-gradient(transparent 62%,var(--z-soft) 62%)}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+sub,sup{font-size:.72em;line-height:0}
+.page{max-width:1200px;margin:0 auto;padding-inline:24px}
+@media (max-width:560px){.page{padding-inline:16px}}
+
+.hero{padding-block:44px 24px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:40px;align-items:center}
+@media (max-width:900px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+.kicker{font:500 12px/1.4 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--z);margin:0 0 14px}
+h1.title{font-family:var(--f-display);font-weight:800;font-size:clamp(3rem,1.8rem + 5.6vw,5.8rem);line-height:.95;letter-spacing:-.04em;margin:0}
+h1.title .n{font-style:italic;font-weight:700}
+h1.title sub{font-size:.42em;line-height:0;vertical-align:-.1em;letter-spacing:0}
+h1.title .v{color:var(--z)}
+.entitle{font-family:var(--f-display);font-weight:500;font-size:clamp(.98rem,.88rem + .4vw,1.18rem);line-height:1.45;color:var(--ink-2);margin:14px 0 0}
+.thesis{font-size:clamp(1.08rem,1rem + .4vw,1.28rem);line-height:1.75;margin:20px 0 0;max-width:34em}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin:20px 0 0;padding:0;list-style:none;font:13px/1.6 var(--f-mono);color:var(--muted)}
+.meta b{color:var(--ink-2);font-weight:500}
+.hero-fig{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.hero-fig svg{display:block;width:100%;height:auto}
+.hero-fig text{font-family:var(--f-mono);font-size:11px;fill:var(--muted)}
+.hero-fig .lab{font-family:var(--f-body);font-size:12.5px;fill:var(--ink-2)}
+.hero-fig figcaption{font:12px/1.6 var(--f-mono);color:var(--muted);margin-top:8px}
+.tldr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:32px}
+@media (max-width:760px){.tldr{grid-template-columns:minmax(0,1fr)}}
+.tldr>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.tldr h3{font:500 12px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.tldr p{margin:0;font-size:15px;line-height:1.75}
+.tldr .flag h3{color:var(--warn)}
+
+.layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:52px;padding-block:20px 80px}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr);gap:0}}
+.toc{position:sticky;top:20px;align-self:start;font-size:14px;line-height:1.5}
+.toc p{font:500 11px/1.4 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.toc li a{display:block;padding:5px 0 5px 14px;margin-left:-1px;border-left:2px solid transparent;color:var(--muted);text-decoration:none}
+.toc li a:hover{color:var(--ink)}
+.toc li a.on{color:var(--ink);border-left-color:var(--z);font-weight:500}
+@media (max-width:1000px){
+  .toc{position:static;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .toc p{display:none}
+  .toc ol{display:flex;gap:6px;border:0;white-space:nowrap;padding-bottom:6px}
+  .toc li a{border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin:0;background:var(--surface)}
+  .toc li a.on{border-color:var(--z)}
+}
+main{min-width:0}
+section{padding-top:56px;scroll-margin-top:12px}
+section:first-child{padding-top:8px}
+.eyebrow{font:500 12px/1.4 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--z);margin:0 0 8px}
+h2{font-family:var(--f-display);font-weight:700;font-size:clamp(1.4rem,1.15rem + 1.1vw,2rem);line-height:1.3;letter-spacing:-.015em;margin:0 0 18px}
+h3{font-family:var(--f-display);font-weight:700;font-size:1.08rem;line-height:1.45;margin:36px 0 10px}
+p{margin:0 0 14px}
+.prose{max-width:44em}
+.prose li{margin-bottom:6px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.tag{display:inline-block;font:500 11px/1 var(--f-mono);letter-spacing:.04em;padding:4px 6px 3px;border-radius:4px;vertical-align:2px;margin-right:6px;white-space:nowrap}
+.tag.read{border:1px dashed var(--ink-2);color:var(--ink-2)}
+.tag.doubt{background:var(--warn-soft);color:var(--warn)}
+.note{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 18px;margin:18px 0;max-width:46em}
+.note>:last-child{margin-bottom:0}
+.note h4{font:500 12px/1.4 var(--f-mono);letter-spacing:.06em;margin:0 0 6px;color:var(--muted)}
+.note.doubt{border-color:color-mix(in oklab,var(--warn) 35%,var(--line));background:color-mix(in oklab,var(--warn-soft) 55%,var(--surface))}
+.note.doubt h4{color:var(--warn)}
+.note.key{border-left:3px solid var(--z)}
+.eq{font-family:"Times New Roman",Georgia,"Noto Serif SC",serif;font-size:1.1rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:14px 0;overflow-x:auto;white-space:nowrap;display:flex;justify-content:space-between;gap:24px;max-width:46em}
+.eq .no{font:12px var(--f-mono);color:var(--muted);align-self:center}
+
+figure.plate{margin:22px 0}
+figure.plate .zoom{display:block;width:100%;padding:10px;background:var(--plate);border:1px solid var(--line);border-radius:8px;cursor:zoom-in}
+figure.plate img{display:block;width:100%;height:auto}
+figure.plate figcaption{font-size:14px;line-height:1.7;color:var(--ink-2);margin-top:10px;max-width:52em}
+figure.plate figcaption b{font:500 12px var(--f-mono);letter-spacing:.04em;color:var(--muted);margin-right:8px}
+dialog#lb{border:0;padding:0;background:transparent;max-width:min(96vw,1800px);width:96vw}
+dialog#lb::backdrop{background:rgba(10,6,14,.84)}
+dialog#lb .box{background:var(--plate);border-radius:8px;padding:10px;max-height:88vh;overflow:auto}
+dialog#lb img{display:block;width:100%;height:auto}
+dialog#lb .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#EEE9F2;font-size:14px;padding:8px 2px 0}
+dialog#lb button{font:500 13px var(--f-mono);background:#EEE9F2;color:#1B1620;border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
+
+.tblwrap{overflow-x:auto;margin:16px 0;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;font-size:14px;line-height:1.6;min-width:100%}
+table.t th,table.t td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.t thead th{font:500 12px/1.4 var(--f-mono);color:var(--muted);border-bottom:1.5px solid var(--ink-2);white-space:nowrap}
+table.t tbody th{font-weight:500;white-space:nowrap;color:var(--ink-2)}
+table.t .num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t tr.best td,table.t tr.best th{font-weight:700}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+.dot.z{background:var(--z)} .dot.vl{background:var(--vl)} .dot.t{background:var(--tac)} .dot.a{background:var(--act)}
+
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.cards.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:860px){.cards.three{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.cards{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card h4{font-family:var(--f-display);font-weight:700;font-size:.98rem;line-height:1.45;margin:0 0 8px}
+.card p{font-size:14.5px;line-height:1.75;margin:0 0 8px}
+.card p:last-child{margin:0}
+.card ul{margin:0;padding-left:18px;font-size:14.5px;line-height:1.7}
+
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin:22px 0}
+.lab-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;margin-bottom:12px}
+.lab-head h4{font-family:var(--f-display);font-weight:700;font-size:1rem;margin:0}
+.lab-head p{margin:0;font-size:13px;color:var(--muted)}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:0 0 12px;font-size:14px}
+.ctrl input[type=range]{width:min(260px,100%);accent-color:var(--z)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--bg);flex-wrap:wrap}
+.seg button{font:500 13px/1 var(--f-body);border:0;background:transparent;color:var(--muted);padding:8px 12px;cursor:pointer;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.st-wrap{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.st svg{display:block;width:100%;height:auto;min-width:560px}
+.st text{font-family:var(--f-body);font-size:12.5px;fill:var(--ink)}
+.st .sm{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.st .box{stroke-width:1.6;rx:8}
+.detail{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:14px 16px;font-size:14px;line-height:1.75}
+.detail h5{font-family:var(--f-display);font-weight:700;font-size:15px;margin:0 0 6px}
+.detail p{margin:0 0 8px}.detail p:last-child{margin:0}
+.detail dl{display:grid;grid-template-columns:64px minmax(0,1fr);gap:4px 10px;margin:8px 0 0;font-size:13.5px}
+.detail dt{color:var(--muted)} .detail dd{margin:0}
+.legend2{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--ink-2);margin-top:10px}
+.legend2 i{display:inline-block;width:14px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:1.6px solid}
+.alt svg{display:block;width:100%;height:auto;min-width:600px}
+.alt text{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.alt .lb{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+.say{font-size:14px;line-height:1.75;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:12px 0 0}
+
+.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 16px 10px;margin:18px 0}
+.chartbox h4{font-family:var(--f-display);font-weight:700;font-size:.98rem;margin:0 0 2px}
+.chartbox .sub{font-size:13px;color:var(--muted);margin:0 0 10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink-2);margin:0 0 6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+svg.chart{display:block;width:100%;height:auto;min-width:620px}
+svg.chart text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+svg.chart .tick{font:11px var(--f-mono);fill:var(--muted)}
+svg.chart .val{font:10.5px var(--f-mono);fill:var(--ink-2)}
+svg.chart .val.hi{fill:var(--ink);font-weight:500}
+svg.chart .grid{stroke:var(--line);stroke-width:1}
+svg.chart .base{stroke:var(--ink-2);stroke-width:1}
+svg.chart .glabel{font-size:12px;fill:var(--ink)}
+.c-z{fill:var(--z)} .c-b0{fill:var(--base)} .c-b1{fill:var(--base-2)} .c-vl{fill:var(--vl)} .c-act{fill:var(--act)} .c-tac{fill:var(--tac)}
+.bg-z{background:var(--z)} .bg-b0{background:var(--base)} .bg-b1{background:var(--base-2)} .bg-vl{background:var(--vl)} .bg-act{background:var(--act)} .bg-tac{background:var(--tac)}
+details.raw{margin:8px 0 4px;font-size:13.5px}
+details.raw summary{cursor:pointer;color:var(--muted);font:500 12.5px var(--f-mono)}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);font:12.5px/1.55 var(--f-body);padding:8px 10px;border-radius:6px;max-width:280px}
+table.heat{border-collapse:separate;border-spacing:3px;font-size:13px;min-width:720px;width:100%}
+table.heat th{font:500 11px/1.3 var(--f-mono);color:var(--muted);text-align:center;padding:6px 4px;white-space:nowrap}
+table.heat th.row{text-align:left;font:500 13px/1.3 var(--f-body);color:var(--ink);white-space:nowrap;padding-right:10px}
+table.heat th.ours{color:var(--z)}
+table.heat td{text-align:center;font:500 12.5px var(--f-mono);font-variant-numeric:tabular-nums;border-radius:4px;padding:7px 4px;color:var(--ink)}
+table.heat td.dk{color:var(--on-z)}
+table.heat td.best{box-shadow:inset 0 0 0 2px var(--ink)}
+table.heat tr.avg th.row{font-weight:700}
+table.heat tr.sec th{font:500 11.5px var(--f-mono);color:var(--muted);text-align:left;padding-top:10px}
+
+details.faq{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:10px 0;max-width:50em}
+details.faq summary{cursor:pointer;padding:12px 16px;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::after{content:"+";font:500 16px var(--f-mono);color:var(--muted)}
+details.faq[open] summary::after{content:"−"}
+details.faq .a{padding:0 16px 14px;font-size:15px;line-height:1.8}
+details.faq .a p:last-child{margin:0}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0;align-items:start}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.two>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.two h4{font:500 12px/1.4 var(--f-mono);letter-spacing:.08em;margin:0 0 10px;color:var(--muted)}
+.two ul{margin:0;padding-left:18px;font-size:14.5px;line-height:1.75}
+.two li{margin-bottom:8px}
+table.cmp{min-width:860px}
+table.cmp td{font-size:13.5px}
+table.cmp th.me,table.cmp td.me{background:color-mix(in oklab,var(--z-soft) 50%,transparent)}
+details.gl{background:var(--surface);border:1px solid var(--line);border-radius:10px;max-width:52em}
+details.gl summary{cursor:pointer;padding:14px 18px;font-weight:500}
+details.gl dl{margin:0;padding:0 18px 16px;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:8px 18px;font-size:14px;line-height:1.7}
+details.gl dt{font-family:var(--f-mono);font-size:13px;color:var(--ink)}
+details.gl dd{margin:0;color:var(--ink-2)}
+@media (max-width:560px){details.gl dl{grid-template-columns:minmax(0,1fr);gap:2px}details.gl dd{margin-bottom:10px}}
+footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/force-tactile/">力与触觉</a></span><span class="vapnav-links"><a href="../../papers/forcevla/">ForceVLA</a><a href="../../papers/tactile-vla/">Tactile-VLA</a><a href="../../papers/t-rex/">T-Rex</a><a href="../../papers/n0-twam/">N₀-TWAM</a><a href="../../papers/n0-vtla/" aria-current="page">N₀-VTLA</a><a href="../../papers/motus2/">Motus2</a><a href="../../papers/me-dex/">ME-Dex 1.0</a></span></div></div>
+<!-- /vap:nav -->
+<header class="hero page">
+  <div class="hero-grid">
+    <div>
+      <p class="kicker">论文精读 · 视触觉 VLA · 离线 RL</p>
+      <h1 class="title"><span class="n">N</span><sub>0</sub><span class="v">-VTLA</span></h1>
+      <p class="entitle">Scaling Vision–Tactile–Language–Action Model with Latent Tactile Tokens</p>
+      <p class="thesis">不把<strong>当前</strong>触觉交给动作专家，而是先预测<strong>接下来一个动作块里触觉会变多少</strong>，再用这个预测去条件动作生成。触觉通路从不进入 VLM 前缀，靠三阶段训练接到 π0.5 上；另附一个从部署数据做离线 RL 的方法 ALTER。</p>
+      <ul class="meta">
+        <li><b>NeoteAI · 复旦 TEAI</b></li>
+        <li><b>arXiv</b> 2607.23782v1</li>
+        <li><b>v1</b> 2026-07-26</li>
+        <li><a href="https://arxiv.org/abs/2607.23782" target="_blank" rel="noopener">arXiv</a></li>
+      </ul>
+    </div>
+    <figure class="hero-fig">
+      <svg viewBox="0 0 520 300" role="img" aria-label="示意：接触强度随时间变化，当前时刻 τ 的触觉读数，以及接下来 H=50 步的触觉变化 z*">
+        <rect x="248" y="30" width="200" height="200" fill="var(--z-soft)" opacity=".7"/>
+        <line x1="30" y1="230" x2="500" y2="230" stroke="var(--line)"/>
+        <line x1="30" y1="30" x2="30" y2="230" stroke="var(--line)"/>
+        <path d="M30 222 L120 221 L170 220 C 200 219, 215 214, 232 205 C 250 196, 262 150, 285 110 C 300 86, 318 78, 340 80 C 370 82, 385 96, 400 92 C 420 88, 432 60, 448 62 L500 70" fill="none" stroke="var(--tac)" stroke-width="2.4"/>
+        <line x1="248" y1="24" x2="248" y2="236" stroke="var(--ink)" stroke-width="1.6"/>
+        <circle cx="248" cy="178" r="6" fill="var(--tac)"/>
+        <circle cx="448" cy="62" r="6" fill="var(--z)"/>
+        <path d="M262 176 C 330 170, 390 120, 440 70" fill="none" stroke="var(--z)" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--z)"/></marker></defs>
+        <text x="248" y="252" text-anchor="middle">τ（现在）</text>
+        <text x="448" y="252" text-anchor="middle">τ + H</text>
+        <text x="348" y="46" text-anchor="middle">一个动作块 H = 50 步</text>
+        <text class="lab" x="40" y="54">接触变化</text>
+        <text class="lab" x="40" y="160" style="fill:var(--tac)">g：当前触觉差分</text>
+        <text class="lab" x="40" y="178" style="fill:var(--tac)">只记录已经发生的接触</text>
+        <text class="lab" x="300" y="210" style="fill:var(--z)">z* = 这 50 步的</text>
+        <text class="lab" x="300" y="226" style="fill:var(--z)">触觉净变化</text>
+        <text x="30" y="286">预测器看 g 和视觉语言上下文，输出 z ≈ z*，动作专家读 z</text>
+      </svg>
+      <figcaption>示意，不是论文数据。z* 的定义见式 (2)。</figcaption>
+    </figure>
+  </div>
+  <div class="tldr" aria-label="一分钟版">
+    <div><h3>做了什么</h3><p>π0.5（PaliGemma + flow matching 动作专家）上加一条触觉通路：冻结的 DINOv2 编码“当前帧 − 回合起始帧”的触觉差分图，小预测器结合视觉语言上下文输出 10 个<b>潜在触觉 token z</b>，拼在动作 token 前面给动作专家读。</p></div>
+    <div><h3>怎么训</h3><p>先在自家 NeoData 视触觉数据上预训练，再三阶段接通路：① 只训预测器，用 InfoNCE 让 z 对上未来触觉变化；② 屏蔽视觉语言前缀，逼动作专家读 z；③ 端到端联合训练。之后按任务 SFT。</p></div>
+    <div><h3>结果</h3><p>NeoReal 9 个真机任务全部在成功率上胜出，均值 <b>47.2%</b> vs π0.5 29.4%；20 个仿真任务 <b>63.8%</b> vs 44.0%。ALTER 离线 RL 后三个长时程任务 95 / 80 / 75%。</p></div>
+    <div class="flag"><h3>最该留意的</h3><p>没有闭环消融：三阶段 vs free-latent、预测的 z vs 直接喂当前触觉，都只用检索准确率论证，没有成功率对比。π0.5 基线是否也用 NeoData 预训练没写，“触觉带来的增益”和“更多预训练数据”分不开。</p></div>
+  </div>
+</header>
+
+<div class="page layout">
+  <nav class="toc" aria-label="目录">
+    <p>目录</p>
+    <ol>
+      <li><a href="#problem">问题</a></li>
+      <li><a href="#model">模型</a></li>
+      <li><a href="#stages">三阶段训练</a></li>
+      <li><a href="#data">数据</a></li>
+      <li><a href="#alter">ALTER</a></li>
+      <li><a href="#setup">实验设置</a></li>
+      <li><a href="#results">结果</a></li>
+      <li><a href="#insight">读懂它</a></li>
+      <li><a href="#limits">局限与疑点</a></li>
+      <li><a href="#topic">放到专题里看</a></li>
+      <li><a href="#glossary">术语表</a></li>
+    </ol>
+  </nav>
+  <main>
+    <section id="problem">
+      <p class="eyebrow">问题</p>
+      <h2>现有两种接法：当成又一个相机，或者当成当前读数</h2>
+      <div class="prose">
+        <p>论文聚焦<strong>视觉式触觉传感器</strong>（GelSight、DIGIT 这一类），每根夹爪手指装一个自研传感器，接触被读成一张图。这种信号和相机画面完全不同：噪声大，远离接触时几乎是空的，只在接触刚形成或即将变化的短窗口里有信息。</p>
+        <p>作者把已有做法分成两条路，并指出各自的问题：</p>
+        <ul>
+          <li><strong>拼进视觉语言上下文</strong>（Tactile-VLA、OmniVTLA）：把触觉当成又一个相机。可一个稀疏、大部分时间沉默的信号，放进为信息密集的视图设计的前缀里，得不到多少收益。</li>
+          <li><strong>注入动作通路</strong>（RDP、TouchGuide）：用当前触觉引导去噪。但当前触觉记录的是<em>已经发生</em>的接触，单独看它说不出下一段动作要应对什么接触，<strong>策略总比自己的接触事件慢一步</strong>。</li>
+        </ul>
+        <p>第三条路：触觉不进前缀，动作专家读的是对触觉的<strong>预测</strong>。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/teaser.jpg" aria-label="放大原文图 1"><img src="fig/teaser.jpg" width="1800" height="908" alt="原文图 1：N0-VTLA 总览，模型架构、ALTER 训练、三个基准的结果" loading="lazy"></button>
+        <figcaption><b>原文 Figure 1</b>右上：触觉图 → 潜在触觉预测器 → 预测的未来触觉 z（粉色）→ 动作专家；视觉和指令进 VLM，VLM 的输出同时给预测器和动作专家。左下：ALTER 用稠密进度对和事件偏好对训练成对进度模型，再给样本打正/负优势标签。右下：三个基准的均值。注意 NeoReal 面板画的是 100 分制<strong>进度分</strong>（56.8 vs 42.3），另两块是成功率。</figcaption>
+      </figure>
+    </section>
+
+    <section id="model">
+      <p class="eyebrow">模型 · §2</p>
+      <h2>基座不动，只加一条“潜在触觉”通路</h2>
+      <div class="cards">
+        <div class="card"><h4><span class="dot vl"></span>基座：π0.5</h4><p>PaliGemma 视觉语言主干 + flow matching 动作专家，从官方 π0.5 权重初始化。相机视图、指令和<strong>离散化的机器人状态</strong>组成前缀。动作块 H = 50 步，放进 32 维的通用容器；损失对 32 维全部计算，没用的维度学着输出 0。其余结构、tokenizer、训练流程都照搬 π0.5。</p></div>
+        <div class="card"><h4><span class="dot t"></span>触觉编码器</h4><p>当前触觉帧减去回合开头的零接触帧，在像素空间做差，再送进<strong>冻结的 DINOv2</strong> 加一个可训练的线性投影，投到主干的 token 宽度 d：</p><p class="mono">g<sub>k</sub> = f<sub>enc</sub>(tac<sub>τ</sub><sup>k</sup> − tac<sub>0</sub><sup>k</sup>) ∈ ℝ<sup>10×d</sup></p><p>每张图 10 个 token：1 个 CLS + 16×16 patch 网格做 3×3 自适应平均池化得到的 9 个。n 个视图拼起来是 10n 个。</p></div>
+      </div>
+      <div class="prose">
+        <p><strong>为什么差分、为什么冻结。</strong>和回合起点做差，去掉了凝胶本身的外观和大部分安装位置带来的印记，对传感器位置差异更稳健（论文说“不是严格不变”）。冻结编码器有三个好处：保留自监督表示；换新传感器只需训投影层；省掉编码器的激活和优化器显存。</p>
+      </div>
+      <h3>预测器与它的目标</h3>
+      <div class="prose">
+        <p>预测器是一个轻量模块：读当前触觉 token g，同时读<strong>经过上下文化的视觉语言前缀</strong>，把它们蒸馏进一组可学习的 latent query，输出 z ∈ ℝ<sup>10×d</sup>。没有触觉的回合用一个可学习的 null token 代替 g，所以 z 总会产生，策略退化为纯视觉语言控制而不是报错。</p>
+        <p>让 z 成为“预测”而不是“描述”的，是它的训练目标：用同一个编码器编码每个视图在接下来 H 步里的触觉变化，再在视图间平均：</p>
+      </div>
+      <div class="eq"><span>z<sup>*</sup> = (1/n) Σ<sub>k</sub> f<sub>enc</sub>( tac<sup>k</sup><sub>τ+H</sub> − tac<sup>k</sup><sub>τ</sub> ) ∈ ℝ<sup>10×d</sup>,&nbsp;&nbsp; H = 50</span><span class="no">(2)</span></div>
+      <div class="prose">
+        <p><strong>z 怎么进动作专家。</strong>z 投影到动作专家的宽度，放在动作后缀的最前面、噪声动作 token 之前。动作 token 可以看 z，也照常看视觉语言前缀；前缀看不到 z；z 的位置在动作输出头之前被切掉，不输出动作。当前触觉 token g <strong>从不直接进入动作专家</strong>，只能经过预测器变成 z。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/step1.png" aria-label="放大原文图 2"><img src="fig/step1.png" width="1800" height="564" alt="原文图 2：Step 1 潜在触觉预测器训练" loading="lazy"></button>
+        <figcaption><b>原文 Figure 2</b>Step 1。观测到的触觉经编码器变成蓝色 token g，视觉语言上下文是绿色网格，预测器（火焰 = 可训练）输出粉色的 z。右上：未来触觉经同一个编码器得到目标 z*，损失只回传进预测器。</figcaption>
+      </figure>
+      <div class="note key">
+        <h4><span class="tag read">原文 keybox</span>为什么预测而不是反应</h4>
+        <p>触觉最要紧的行为是<strong>预判性</strong>的：抓取合拢前毫米级的预加载，物体开始动之前就接住初始滑移。这些发生在“接触前的盲区”，纯反应式的信号来得太晚，影响不了造成它的那个动作。作者据此假设：用预测性的潜变量而不是原始当前 token 条件动作，是更好的归纳偏置。在学到的潜空间里预测、不重建原始信号，沿用了 JEPA 系（I-JEPA、LeJEPA、LeWorldModel）的思路。</p>
+      </div>
+    </section>
+
+    <section id="stages">
+      <p class="eyebrow">三阶段潜在触觉训练 · §4.2</p>
+      <h2>一次只放开一块：先定义 z 的含义，再教专家用它</h2>
+      <div class="prose"><p>触觉通路是新初始化的，直接接到预训练好的多平台 checkpoint 上。三个阶段依次从上一阶段的 checkpoint 出发。“free-latent”变体把三步压成一次联合训练，不加 Stage 1 的监督。</p></div>
+      <div class="lab" id="st-lab">
+        <div class="lab-head"><h4>逐阶段看：谁在训练、谁冻结、哪条路被屏蔽</h4><p>依据 §2.2、§4.2 与图 2–4</p></div>
+        <div class="ctrl">
+          <div class="seg" role="group" aria-label="选择阶段" id="st-seg">
+            <button type="button" data-s="1" aria-pressed="true">Stage 1 · 定锚</button>
+            <button type="button" data-s="2" aria-pressed="false">Stage 2 · 对齐</button>
+            <button type="button" data-s="3" aria-pressed="false">Stage 3 · 端到端</button>
+            <button type="button" data-s="f" aria-pressed="false">free-latent</button>
+          </div>
+        </div>
+        <div class="st-wrap">
+          <div class="scroll st"><svg id="st-svg" viewBox="0 0 600 330" role="img" aria-label="三阶段训练的模块与数据流"></svg></div>
+          <div class="detail" id="st-detail" aria-live="polite"></div>
+        </div>
+        <div class="legend2"><span><i style="border-color:var(--z);background:var(--z-soft)"></i>训练</span><span><i style="border-color:var(--line);background:var(--surface-2)"></i>冻结</span><span><i style="border-color:var(--line);border-style:dashed;background:transparent"></i>本阶段不用</span><span><i style="border-color:var(--warn);background:transparent"></i>被屏蔽的路径</span></div>
+      </div>
+      <div class="prose"><p>Stage 1 的损失（§4.2）：h(·) 表示对 10 个 latent token 取均值再做 ℓ₂ 归一化，s<sub>ij</sub> = ⟨h(z<sub>i</sub>), h(z*<sub>j</sub>)⟩，</p></div>
+      <div class="eq"><span>𝓛<sub>NCE</sub> = −(1/2B) Σ<sub>i</sub> [ log e<sup>s<sub>ii</sub></sup>/Σ<sub>j</sub>e<sup>s<sub>ij</sub></sup> + log e<sup>s<sub>ii</sub></sup>/Σ<sub>j</sub>e<sup>s<sub>ji</sub></sup> ],&nbsp;&nbsp; 𝓛<sub>1</sub> = 𝓛<sub>NCE</sub> + λ<sub>rec</sub> ‖ r<sub>ψ</sub>(z) − D̄<sub>τ→τ+H</sub> ‖<sub>1</sub></span><span class="no">(4)(5)</span></div>
+      <div class="prose"><p>对比项让 z 能在一个 batch 里“认出”自己的未来目标；重建头把 z 解码回一张降采样的接触变化场，锚定接触发生的<strong>位置</strong>，防止 z 学成一个只会区分 batch、不编码接触位置的捷径。λ<sub>rec</sub> 的具体值未披露。</p></div>
+      <div class="cards three">
+        <figure class="plate" style="margin:0"><button class="zoom" type="button" data-src="fig/step2.png" aria-label="放大原文图 3"><img src="fig/step2.png" width="1800" height="586" alt="原文图 3：Step 2 动作专家对齐" loading="lazy"></button><figcaption><b>原文 Figure 3</b>Step 2：预测器和 VLM 冻结（雪花），VLM 到动作专家的路径被 Masked，只剩 z。</figcaption></figure>
+        <figure class="plate" style="margin:0"><button class="zoom" type="button" data-src="fig/step3.png" aria-label="放大原文图 4"><img src="fig/step3.png" width="1800" height="593" alt="原文图 4：Step 3 端到端训练" loading="lazy"></button><figcaption><b>原文 Figure 4</b>Step 3：除 DINOv2 主干外全部解冻，视觉语言到专家的直连恢复。</figcaption></figure>
+        <figure class="plate" style="margin:0"><button class="zoom" type="button" data-src="fig/pretrain-loss.png" aria-label="放大原文图 6"><img src="fig/pretrain-loss.png" width="1800" height="550" alt="原文图 6：多平台视触觉预训练的 loss 与梯度范数" loading="lazy"></button><figcaption><b>原文 Figure 6</b>多平台视触觉预训练的 loss 和梯度范数。论文用它说明训练稳定；步数、规模未标注。</figcaption></figure>
+      </div>
+    </section>
+
+    <section id="data">
+      <p class="eyebrow">数据 · §3 · 附录 A–C</p>
+      <h2>NeoData：一个 32 维容器装下单臂和双臂</h2>
+      <div class="prose">
+        <ul>
+          <li><strong>平台：</strong>ARX X5、UR5e、Flexiv、Franka、Piper 等单臂/双臂机械臂，加一个 UMI 式手持采集夹爪 Neo TacUMI。每根参与任务的手指都装自研视触觉传感器。</li>
+          <li><strong>模态：</strong>每回合 3 路 RGB（1 个第三人称 + 2 个腕部），单臂平台 2 路触觉、双臂 4 路；全部 30 fps；RGB 采集最高 640×480，触觉保留传感器原生分辨率，喂模型时统一缩放到 224×224。LeRobot 格式。</li>
+          <li><strong>动作/状态容器：</strong>继承 π0.5 的 32 维。前 20 维每臂 10 维：3 维末端位置 + 6D 旋转（rot6d）+ 1 维夹爪；后 12 维恒为 0。单臂数据只填第一个槽。磁盘上存绝对位姿，训练时把每个动作块改写成相对块首帧的位姿，部署时再逆变换回绝对位姿、IK 求关节。</li>
+          <li><strong>触觉约定：</strong>每回合开头至少 0.5 秒夹爪张开静止，这一帧作为零接触参照。部署时每次 reset 后的第一帧成为新参照。</li>
+          <li><strong>仿真数据：</strong>UniVTAC 视触觉仿真器的回合同样转成上面的格式。</li>
+        </ul>
+        <p class="small muted">数据规模、采集协议、传感器规格、算力都放在配套的数据报告里，本文未披露（附录 A 的 Scale 一栏写的就是“见数据报告”）。同一团队的 N₀-TWAM 报告称 NeoData 超过 30,000 小时。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>附录 C 的“数据工程红线”值得一读</h4>
+        <p>九条入库前的检查项，每条配一个“违反后会出现的症状”。几条很实在：动作必须按绝对位姿存盘，否则 loss 正常收敛但真机不能用；归一化统计必须在训练时同样的“相对块首帧”变换下算，否则 loss 看着健康但动作尺度错了；视频 GOP 不超过 30 帧，否则随机读取要从最近的关键帧解码，吞吐周期性卡死。部署侧（附录 D）还有一条：必须把 50 步动作块<strong>全部执行完</strong>再请求下一块，提前重规划会丢掉集中在块尾的夹爪闭合指令，结果是手臂到位了夹爪却没合上。</p>
+      </div>
+    </section>
+
+    <section id="alter">
+      <p class="eyebrow">ALTER · 从部署数据做离线 RL · §4.4</p>
+      <h2>把“进度”变成一句 <code>Advantage: positive</code></h2>
+      <div class="prose">
+        <p>ALTER = Advantage Labeling from Trajectory Events and Relative Progress。给定一个固定的部署语料，不再和环境交互，做优势条件化的离线 RL（和 π*0.6 的 RECAP 同一框架）。流程分三步：</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/alter.jpg" aria-label="放大原文图 7"><img src="fig/alter.jpg" width="1800" height="722" alt="原文图 7：ALTER 流程" loading="lazy"></button>
+        <figcaption><b>原文 Figure 7</b>左：事件偏好对（掉落前的帧优于掉落后）和稠密进度对（按阶段进度 φ 的差）一起训练成对进度模型 A<sub>θ</sub>(x<sub>a</sub>, x<sub>b</sub>)。中：冻结后，拿当前帧和 H 步后的帧比得到“局部执行变化”，拿当前帧和回合首帧比得到“全局任务阶段”。右：在每个阶段内部排序，高的标正、低的标负，作为文本条件拼进任务提示。底部虚线框：阶段边界来自触觉特征、手臂运动学、运动偏移、轴切换、夹爪事件和视觉线索的融合。</figcaption>
+      </figure>
+      <div class="cards three">
+        <div class="card"><h4>① 标注</h4><p>干净示范：Gemini-3.5-Flash 生成任务模板（L3 目标 → 有序 L2 阶段 → L1 步骤），人工审一次。每条示范用触觉接触变化找候选切点，再补充末端运动、夹爪状态、视觉 GEBD 线索，合并去重后由 VLM 把每段对到模板条目。</p><p>自主和人工介入回合不做单调进度标签（会退步、重试），只标<strong>局部事件</strong>：触觉检测的物体掉落、HIL 日志里的纠正区间。</p></div>
+        <div class="card"><h4>② 成对进度模型</h4><p>阶段 k 的进度份额按示范里的平均时长分配：w<sub>k</sub> = d̄<sub>k</sub> / Σd̄<sub>j</sub>，φ<sub>t</sub> = Σ<sub>j&lt;k</sub>w<sub>j</sub> + w<sub>k</sub>u<sub>t</sub>。模型基于 π0.5 的双观测结构（沿用 χ0），只输入两个时间点的多相机 RGB 和任务提示，三层 MLP 输出相对进度 ∈ [−1, 1]。</p><p>损失 = 示范对的回归 + λ<sub>event</sub> × 事件对的平方 hinge（margin m = 0.02）。事件对约占 5%，权重乘 0.1。<strong>触觉只用于构造标签，不是模型输入。</strong></p></div>
+        <div class="card"><h4>③ 优势条件训练</h4><p>φ̂<sub>t</sub> = δ<sub>e</sub> + A<sub>θ</sub>(x<sub>t</sub>, x<sub>0</sub>) 定阶段；r̂<sub>t</sub> = A<sub>θ</sub>(x<sub>t+H</sub>, x<sub>t</sub>) 是局部变化。<strong>在同一阶段内</strong>取 r̂ 的前 ρ = 30% 为正。标签以文本拼进提示；训练时 30% 概率不加标签；部署时恒用 <code>Advantage: positive</code>。策略结构和 flow matching 损失不变。</p></div>
+      </div>
+      <div class="lab" id="alt-lab">
+        <div class="lab-head"><h4>为什么要“阶段内”排序</h4><p>合成数据示意，不是论文数据</p></div>
+        <div class="ctrl">
+          <label>正样本比例 ρ <input type="range" id="alt-rho" min="0.1" max="0.9" step="0.05" value="0.3"> <span class="mono" id="alt-rho-v">0.30</span></label>
+          <div class="seg" role="group" aria-label="排序范围" id="alt-mode">
+            <button type="button" data-m="stage" aria-pressed="true">阶段内排序（ALTER）</button>
+            <button type="button" data-m="global" aria-pressed="false">全局排序</button>
+          </div>
+        </div>
+        <div class="scroll alt"><svg id="alt-svg" viewBox="0 0 720 250" role="img" aria-label="合成的进度曲线与正负标签"></svg></div>
+        <p class="say" id="alt-say"></p>
+      </div>
+      <div class="prose small muted"><p>细节（附录 E）：全局进度先做 5 帧中值滤波，再强制阶段编号不回退；从错误状态开始的“分阶段恢复”回合，初始进度偏移 δ<sub>e</sub> 由它的首帧与三条干净示范的起点比较估计；剩余帧不足 H 时，局部分按比例放大；最后一帧和自己比为 0。</p></div>
+    </section>
+
+    <section id="setup">
+      <p class="eyebrow">实验设置 · §5.1</p>
+      <h2>一个真机基准，两个仿真套件，一个离线 RL 对比</h2>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>评测</th><th>任务</th><th>基线</th><th>协议</th></tr></thead>
+          <tbody>
+            <tr><th>NeoReal（真机）</th><td>9 个接触任务：Cup Stacking、Fruit Collection、Board Wiping、Bottle Standing、Towel Folding、Socket Plugging、Board Insertion、Cardboard Box Folding、Bag Packing</td><td>ACT、π0.5（内部复现）</td><td>成功率 + 100 分制阶段进度分；<strong>每个任务的试验次数不同，未列出</strong></td></tr>
+            <tr><th>UniVTAC（仿真）</th><td>原版 8 个任务</td><td>ACT（纯视觉 / + UniVTAC 触觉）、VITaL、π0.5、StarVLA-α、InternVLA-A1、Xiaomi-Robotics-0、GigaWorld-Policy</td><td>每任务 100 条示范训练，按仿真器完成判据算成功率</td></tr>
+            <tr><th>NeoSim（仿真）</th><td>12 个任务：4 单臂 + 8 双臂</td><td>π0.5、StarVLA-α、InternVLA-A1、Xiaomi-Robotics-0、GigaWorld-Policy</td><td>同上，固定每任务语言提示</td></tr>
+            <tr><th>ALTER（真机）</th><td>Towel Folding、Bag Packing、Cardboard Box Folding</td><td>π0.5-SFT、N₀-VTLA-SFT、π0.5 + χ0、π0.5 + ALTER</td><td>SFT 只用干净示范；ALTER / χ0 用全部部署语料</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>ALTER 部署语料（附录 E）</th><th class="num">干净示范</th><th class="num">自主回合</th><th class="num">HIL 回合</th><th class="num">其中分阶段恢复</th></tr></thead>
+          <tbody>
+            <tr><th>Towel Folding</th><td class="num">351</td><td class="num">286</td><td class="num">180</td><td class="num">80</td></tr>
+            <tr><th>Bag Packing</th><td class="num">213</td><td class="num">243</td><td class="num">238</td><td class="num">72</td></tr>
+            <tr><th>Cardboard Box Folding</th><td class="num">550</td><td class="num">587</td><td class="num">397</td><td class="num">110</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="results">
+      <p class="eyebrow">结果 · §5</p>
+      <h2>真机九胜，仿真领先，但仿真上并非每项第一</h2>
+      <h3 style="margin-top:0">NeoReal 真机（原文 Figure 5）</h3>
+      <div class="chartbox">
+        <h4>成功率（%）</h4>
+        <p class="sub">数字取自原图矢量 PDF 的柱顶标注。最右一组是 9 个任务的均值。</p>
+        <div class="legend"><span><i class="bg-b1"></i>ACT</span><span><i class="bg-b0"></i>π0.5</span><span><i class="bg-z"></i>N₀-VTLA</span></div>
+        <div class="scroll"><svg class="chart" id="ch-real-sr"></svg></div>
+      </div>
+      <div class="chartbox">
+        <h4>100 分制进度分</h4>
+        <p class="sub">每任务拆成固定的子检查点，按到达的最深检查点给分。</p>
+        <div class="legend"><span><i class="bg-b1"></i>ACT</span><span><i class="bg-b0"></i>π0.5</span><span><i class="bg-z"></i>N₀-VTLA</span></div>
+        <div class="scroll"><svg class="chart" id="ch-real-ps"></svg></div>
+        <details class="raw" id="raw-real"><summary>图中数字</summary></details>
+      </div>
+      <div class="prose">
+        <p>成功率上 N₀-VTLA 九个任务全胜，均值 47.2% vs 29.4%。进度分上 8/9 领先，Board Wiping 52 vs π0.5 的 55.2。ACT 一个任务都没完成，均值 10.2 分。差距最大的几个：Socket Plugging 85% vs 60%，Board Insertion 25% vs 0%，Bottle Standing 30% vs 0%。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/rollouts.jpg" aria-label="放大原文图 13"><img src="fig/rollouts.jpg" width="1790" height="787" alt="原文图 13：代表性执行过程" loading="lazy"></button>
+        <figcaption><b>原文 Figure 13</b>N₀-VTLA 的代表性执行，从左到右是时间：Socket Plugging、Cardboard Box Folding、Bottle Standing（NeoReal），以及 NeoSim 的双臂 Cup Handover。</figcaption>
+      </figure>
+
+      <h3>UniVTAC 仿真（表 1）</h3>
+      <div class="chartbox">
+        <h4>8 个任务的成功率</h4>
+        <p class="sub">黑框为每列最高（与原表加粗一致，并列时都框）。</p>
+        <div class="scroll" id="heat-uni"></div>
+        <details class="raw" id="raw-uni"><summary>原表数字（表 1）</summary></details>
+      </div>
+      <h3>NeoSim 仿真（表 2）</h3>
+      <div class="chartbox">
+        <h4>12 个任务的成功率</h4>
+        <p class="sub">行是任务，列是方法；黑框为每行最高。</p>
+        <div class="scroll" id="heat-neo"></div>
+        <details class="raw" id="raw-neo"><summary>原表数字（表 2）</summary></details>
+      </div>
+      <div class="chartbox">
+        <h4>20 个仿真任务的总均值</h4>
+        <p class="sub">N₀-VTLA 和 π0.5 两项是论文正文给出的数；其余四项是我们按表 1、表 2 逐任务数字算的。</p>
+        <div class="scroll"><svg class="chart" id="ch-sim20"></svg></div>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>“大幅领先”主要来自 UniVTAC</h4>
+        <p>UniVTAC 上 83.1 vs 最强基线 67.1，领先 16 分；NeoSim 上 50.8 vs π0.5 的 45.8，只领先 5 分，而且 12 个任务里有 5 个不是第一（Grasp Chip 88 vs 93、Insert Screw 24 vs 26、Cup Handover 22 vs 25、Stack Plates 94 vs 96、Unstack Cup 10 vs 71）。UniVTAC 里 Insert HDMI 只有 25，远低于 Xiaomi-Robotics-0 的 69；Put Bottle 60，低于 StarVLA-α 的 88。</p>
+      </div>
+
+      <h3>ALTER 离线 RL（原文 Figure 9、附录 Figure 14）</h3>
+      <div class="chartbox">
+        <h4>三个长时程真机任务的成功率</h4>
+        <p class="sub">数字取自 tex 源码里的 TikZ 柱状图。</p>
+        <div class="legend"><span><i class="bg-b1"></i>π0.5-SFT</span><span><i class="bg-vl"></i>N₀-VTLA-SFT</span><span><i class="bg-act"></i>π0.5 + χ0</span><span><i class="bg-b0"></i>π0.5 + ALTER</span><span><i class="bg-z"></i>N₀-VTLA + ALTER</span></div>
+        <div class="scroll"><svg class="chart" id="ch-rl"></svg></div>
+      </div>
+      <div class="chartbox">
+        <h4>每小时成功完成次数</h4>
+        <p class="sub">三个任务纵轴范围不同，这里各自按自己的最大值画。</p>
+        <div class="scroll"><svg class="chart" id="ch-thr"></svg></div>
+        <details class="raw" id="raw-rl"><summary>原图数字</summary></details>
+      </div>
+      <div class="prose"><p>SFT 时 N₀-VTLA 比 π0.5 高 10 / 15 / 15 分；两者各自接 ALTER 后差距缩小到 5 / 5 / 15 分。同是 π0.5 主干，ALTER 比 χ0 的 Stage Advantage 监督高 10 / 10 / 5 分。</p></div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/towel-progress.jpg" aria-label="放大原文图 8"><img src="fig/towel-progress.jpg" width="1800" height="822" alt="原文图 8：两条不完美 Towel Folding 轨迹上的预测进度" loading="lazy"></button>
+        <figcaption><b>原文 Figure 8</b>两条留出的不完美轨迹。(a) 毛巾在 0:32 左右掉落，预测进度下降，恢复开始后回升（小图放大了掉落附近）；(b) 毛巾在搬运中揉皱且没有恢复，进度在 0:53 后急跌并保持在低位。</figcaption>
+      </figure>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/stages.jpg" aria-label="放大原文图 15"><img src="fig/stages.jpg" width="1800" height="816" alt="原文图 15：三个任务的阶段标注层级" loading="lazy"></button>
+        <figcaption><b>原文 Figure 15</b>进度模型用的阶段粒度。Towel Folding 和 Bag Packing 用 L1 阶段（6 段），下方是所属 L2 阶段；Cardboard Box Folding 的 L1 太碎，直接用 5 个 L2 阶段。</figcaption>
+      </figure>
+
+      <h3>表示分析（§5.5）</h3>
+      <div class="chartbox">
+        <h4>z 能否从候选池里认出自己的未来触觉目标</h4>
+        <p class="sub">Stage 1 结束时测，378 个留出查询，top-1 准确率。“当前触觉 g”是只用预测器的输入去排序的对照。128 候选池的随机基线（1/128 ≈ 0.8%）是我们算的，论文只给了 32 候选时的 3.2%。</p>
+        <div class="legend"><span><i class="bg-z"></i>预测的 z</span><span><i class="bg-tac"></i>当前触觉 g</span><span><i class="bg-b1"></i>随机</span></div>
+        <div class="scroll"><svg class="chart" id="ch-ret"></svg></div>
+      </div>
+      <div class="prose">
+        <p>第三个探针是扰动：换掉触觉输入，z 在中心化余弦距离上移动约 0.9；同时换掉 RGB 和提示，z 最多移动约 0.2。触觉/视觉语言敏感度比在 Stage 1 结束时是 <strong>4.3</strong>，端到端联合训练后降到约 <strong>1.4</strong>。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/counterfactual.png" aria-label="放大原文图 10"><img src="fig/counterfactual.png" width="1800" height="492" alt="原文图 10：有无触觉的反事实动作路径" loading="lazy"></button>
+        <figcaption><b>原文 Figure 10</b>同一观测、同一采样噪声下，有触觉（实线）和去掉触觉（虚线）的预测末端路径。(a) 牢固接触和 (b) 抓取时两条路径分开，有触觉的那条成功；(c) 自由空间里两者重合。(d) 50 步动作块内两条路径的逐步距离：接触时段增长到约 0.03–0.04，自由空间保持在 0.003 以下。只有一个回合。</figcaption>
+      </figure>
+      <div class="prose"><p>论文的四条 Findings（§6）里还有两段定性描述：插入任务里 π0.5 视觉上对齐就一直往下压，碰到插座边缘仍继续，N₀-VTLA 会抬手、重新对准再试；Bottle Standing 里 π0.5 把空瓶口捏得太紧、把整个瓶子提起来，N₀-VTLA 会连续微调夹爪开度。</p></div>
+    </section>
+
+    <section id="insight">
+      <p class="eyebrow">读懂它</p>
+      <h2>这篇真正说明了什么</h2>
+      <div class="cards">
+        <div class="card"><h4>1. “预测触觉变化”可以做得很轻</h4><p>不训触觉专用编码器，不解码完整的未来触觉序列：冻结 DINOv2 + 线性投影 + 小预测器，目标是一个动作块内的净变化在同一个编码空间里的表示。和 N₀-TWAM、ME-Dex 那种在世界模型里生成未来触觉相比，这是最省的“预测式”接法。</p></div>
+        <div class="card"><h4>2. 新通路怎么安全地嫁接到预训练 VLA 上</h4><p>三阶段的逻辑很清楚：先固定 z 的含义（只训预测器），再固定专家怎么用 z（屏蔽前缀，只有 z 可读），最后才放开联合训练。Stage 2 屏蔽前缀是关键一步：不屏蔽的话，专家完全可以绕过新来的 z。</p></div>
+        <div class="card"><h4>3. 预测器确实超出了它的输入</h4><p>只用当前触觉 g 去排序能到 57%，z 到 92.3%；候选池扩到 128 时差距拉大（40% vs 81%）。说明 z 里有“未来接触”的信息，不只是当前读数的自相关。</p></div>
+        <div class="card"><h4>4. 离线 RL 的收益比触觉还大</h4><p>在三个长时程任务上，ALTER 把 π0.5 从 40 / 20 / 5 提到 90 / 75 / 60；N₀-VTLA 的触觉预训练在 SFT 时带来 10–15 分，接 ALTER 后缩到 5–15 分。</p></div>
+      </div>
+      <h3>容易误解的地方</h3>
+      <div class="prose">
+        <ul>
+          <li><strong>“触觉作为预测目标”只在 Stage 1 成立。</strong>Stage 3 起对比和重建目标都关掉了，z 只靠动作梯度维持。表示分析里的 92.3% 是 Stage 1 结束时测的；联合训练后只报告了敏感度比从 4.3 降到 1.4，没再测检索准确率。</li>
+          <li><strong>“隔离了触觉通路的贡献”是结构上的说法。</strong>§5.1 说关掉触觉开关模型就退化为基座，所以和“基座策略”的差就是触觉的贡献。但论文实际比较的是官方 π0.5 权重微调出来的基线，没有报告“同一 N₀ 预训练、关掉触觉”的闭环结果。</li>
+          <li><strong>NeoReal 面板的数字是进度分。</strong>图 1 右下 NeoReal 用 56.8 / 42.3 / 10.2，那是进度分，不是成功率（成功率是 47.2 / 29.4 / 0）。</li>
+          <li><strong>ALTER 的比较混入了数据量。</strong>SFT 只用干净示范（351 / 213 / 550 条），ALTER 用全部部署语料（总数约 2.3 / 3.3 / 2.8 倍）。π0.5 + χ0 同样用全部语料，才是控制了数据的对照。</li>
+        </ul>
+      </div>
+      <h3>FAQ</h3>
+      <details class="faq"><summary>z 的“未来”有多远？</summary><div class="a"><p>H = 50 步，和动作块长度相同。数据 30 fps，如果动作也按 30 Hz，大约 1.7 秒。目标是这段时间的净变化 tac<sub>τ+H</sub> − tac<sub>τ</sub>，不是整条轨迹，中间怎么变化的不在目标里。</p></div></details>
+      <details class="faq"><summary>free-latent 变体效果如何？</summary><div class="a"><p>论文定义了它（单阶段、无 Stage 1 监督、训练时不需要未来帧），也在结论里把它和监督版称为“设计空间里的两个点”，但没有报告它的任何闭环结果。main.tex 里还定义了一个 <code>N0-Concat</code> 宏（按名字应是把触觉直接拼接的变体），正文从未使用。</p></div></details>
+      <details class="faq"><summary>和 π0.5 相比，推理多了多少开销？</summary><div class="a"><p>论文没报告。结构上多了：每个触觉视图一次 DINOv2 前向（冻结）、预测器前向、动作专家序列里多 10 个 token。去噪仍是一次前缀编码 + 10 个 Euler 步。附录 B 明确说省略了硬件型号、卡数、显存和吞吐数字。</p></div></details>
+      <details class="faq"><summary>成对进度模型能看触觉吗？</summary><div class="a"><p>不能。触觉、运动学和事件信号只用来构造离线标签（阶段切点、掉落事件），进度模型本身只输入两帧多相机 RGB 和任务提示。</p></div></details>
+    </section>
+
+    <section id="limits">
+      <p class="eyebrow">局限与疑点</p>
+      <h2>作者承认的，和我们读出来的</h2>
+      <div class="two">
+        <div>
+          <h4>论文自己提到的</h4>
+          <ul>
+            <li>free-latent 与监督版只是设计空间里的两个点，预测式潜变量这个框架值得超出当前预测器结构继续探索。</li>
+            <li>ALTER 只在三个任务上验证，需要扩展到更多操作场景。</li>
+            <li>触觉传感器测的不是力，只是形变信号和力强相关（§6）。</li>
+            <li>差分只让表示对传感器位置差异“更稳健”，并非严格不变。</li>
+            <li>limitations.tex 在源码里是空文件。</li>
+          </ul>
+        </div>
+        <div>
+          <h4>我们读出来的</h4>
+          <ul>
+            <li><span class="tag doubt">疑点</span>没有任何闭环消融：三阶段 vs free-latent、z vs 当前触觉 g、有无 NeoData 预训练，都没有成功率对比。“为什么预测”的论证只有检索准确率和一个回合的反事实图。</li>
+            <li><span class="tag doubt">疑点</span>π0.5 基线从官方权重微调，N₀-VTLA 多了 NeoData 视触觉预训练。两者的差距里，触觉通路和额外预训练数据的贡献分不开。</li>
+            <li><span class="tag doubt">疑点</span>NeoReal 每个任务的试验次数没写（“each task carries its own trial budget”），所有成功率都是 5 的倍数。</li>
+            <li><span class="tag doubt">疑点</span>图 5 的图注写“上图为 Simulation success rate”，但 NeoReal 是真机。</li>
+            <li>联合训练后触觉/视觉语言敏感度比从 4.3 降到 1.4，z 更依赖视觉语言上下文了；论文把这解读为“仍偏向触觉”。</li>
+            <li>检索是在约 32 个候选（相当于 batch 内负样本）里做的 top-1，不是全库检索，论文也注明了。</li>
+            <li>数据规模、算力、传感器规格都推给了配套报告，本文无法独立核对。</li>
+            <li>和同团队同日发布的 N₀-TWAM 用的是同一套基准和同一批基线数字，但两篇互不比较（见下节）。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="topic">
+      <p class="eyebrow">放到专题里看</p>
+      <h2>“预测式”触觉里最轻的一种</h2>
+      <div class="prose"><p>在<a href="../../topics/force-tactile/">力与触觉专题</a>里，N₀-VTLA 站在 VLA 路线上，却已经把触觉当成要<strong>预测</strong>的量：预测的不是未来触觉图像，而是一个动作块内触觉净变化的潜在表示。</p></div>
+      <div class="tblwrap">
+        <table class="t cmp">
+          <thead><tr><th></th><th class="me">N₀-VTLA</th><th>N₀-TWAM（同团队）</th><th>T-Rex</th><th>ME-Dex 1.0</th><th>Tactile-VLA</th></tr></thead>
+          <tbody>
+            <tr><th>骨干</th><td class="me">π0.5（PaliGemma）</td><td>LingBot-VA 视频世界动作模型（Wan2.2-5B 系）</td><td>Qwen3-VL-2B 三专家 MoT</td><td>Wan2.2-5B 结构的三专家 WAM</td><td>π0</td></tr>
+            <tr><th>触觉进哪里</th><td class="me">预测器 → z → 动作专家后缀；不进前缀</td><td>触觉专家（生成未来触觉）+ 力空间交叉注意力（当前触觉）</td><td>触觉专家做去噪最后一段</td><td>触觉专家，中层共享注意力</td><td>VLM 前缀</td></tr>
+            <tr><th>预测什么</th><td class="me">H 步触觉净变化的 DINOv2 表示（只在 Stage 1 监督）</td><td>未来触觉的 VAE 潜变量（残差形式）</td><td>不预测</td><td>未来触觉潜变量</td><td>不预测</td></tr>
+            <tr><th>UniVTAC</th><td class="me">83.1</td><td>84.5</td><td>—</td><td>—</td><td>—</td></tr>
+            <tr><th>NeoSim</th><td class="me">50.8</td><td>49.4</td><td>—</td><td>—</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>和 N₀-TWAM：</strong>同一团队、同一天挂 arXiv，数据（NeoData）、基准（UniVTAC、NeoSim、NeoReal 的一部分）和基线数字（π0.5 等）完全相同，但两篇不互相比较。仿真上两者几乎打平（83.1 vs 84.5，50.8 vs 49.4）。真机上两篇共有的 6 个任务（Cup Stacking、Fruit Collection、Board Wiping、Bottle Standing、Socket Plugging、Bag Packing），π0.5 的数字也一模一样；N₀-VTLA 在这 6 个任务上的均值是 55.0，N₀-TWAM 是 52.5 <span class="tag read">解读</span>。能否直接对比取决于两篇的试验设置是否一致，论文没说明。</li>
+          <li><strong>和 T-Rex：</strong>论点正好相对。T-Rex 让当前触觉更高频地进入动作生成；N₀-VTLA 认为当前触觉“总慢一步”，改为预测。两篇都让触觉绕开主干的输入前缀。</li>
+          <li><strong>和 Tactile-VLA：</strong>N₀-VTLA 把 Tactile-VLA 的做法（触觉当作前缀里的又一个相机）作为反面例子。</li>
+          <li><strong>和 ME-Dex：</strong>都把触觉当成要预测的量。ME-Dex 在世界动作模型里真的生成未来触觉，推理时也要生成；N₀-VTLA 只预测一个压缩的潜变量，训练后期连这个预测目标都撤掉了。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="glossary">
+      <p class="eyebrow">术语表</p>
+      <h2>读这篇会遇到的词</h2>
+      <details class="gl"><summary>展开术语表</summary>
+        <dl>
+          <dt>VTLA</dt><dd>Vision–Tactile–Language–Action，视觉-触觉-语言-动作模型。</dd>
+          <dt>latent tactile tokens z</dt><dd>预测器输出的 10 个潜在触觉 token，目标是未来 H 步触觉净变化的编码 z*。</dd>
+          <dt>g</dt><dd>当前触觉差分图（当前帧 − 回合起始帧）经冻结 DINOv2 + 投影得到的 token，每视图 10 个。</dd>
+          <dt>contact-difference image</dt><dd>触觉帧减去零接触参照帧的差分图。</dd>
+          <dt>free-latent</dt><dd>不加 Stage 1 监督、单阶段联合训练的简化变体，z 只由动作梯度塑造。</dd>
+          <dt>InfoNCE</dt><dd>对比损失，把预测与自己的目标拉近，与 batch 内其他目标推远；这里是双向对称版本。</dd>
+          <dt>NeoData / NeoReal / NeoSim</dt><dd>同团队的视触觉数据集、真机基准、仿真基准，细节在配套数据报告里。</dd>
+          <dt>UniVTAC</dt><dd>公开的视触觉仿真框架和 8 任务基准。</dd>
+          <dt>ALTER</dt><dd>Advantage Labeling from Trajectory Events and Relative Progress，本文的离线 RL 方法。</dd>
+          <dt>RECAP</dt><dd>π*0.6 提出的优势条件化策略提取：给样本打二值优势标签，作为条件训练，部署时固定用正标签。</dd>
+          <dt>χ0</dt><dd>用成对观测预测阶段相对进度的方法，ALTER 的进度模型结构沿用它；它按阶段均匀分配进度、用已过时间做目标。</dd>
+          <dt>HIL</dt><dd>human-in-the-loop，人在回路中接管纠正的部署回合。</dd>
+          <dt>GEBD</dt><dd>Generic Event Boundary Detection，通用事件边界检测，这里作为视觉切点线索。</dd>
+          <dt>rot6d</dt><dd>旋转矩阵前两列组成的 6 维连续旋转表示。</dd>
+        </dl>
+      </details>
+    </section>
+  </main>
+</div>
+<footer class="page">
+  <p>图全部来自论文 arXiv 源码（v1）里的原图。表 1、表 2 数字取自 tex 表格；NeoReal 数字取自原图矢量 PDF 的文字层；ALTER 数字取自 tex 源码中 TikZ 图的数据。标「解读」的是我们的判断。</p>
+</footer>
+<dialog id="lb" aria-label="放大查看"><div class="box"><img id="lb-img" alt=""></div><div class="bar"><span id="lb-cap"></span><button type="button" id="lb-close">关闭</button></div></dialog>
+<div class="tip" id="tip" hidden></div>
+<script>
+(function(){
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, text){ const e = document.createElementNS(NS, tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+  const tip = $('#tip');
+  function place(x, y){ const r = tip.getBoundingClientRect(); let l = x + 14, t = y + 14; if (l + r.width > innerWidth - 8) l = x - r.width - 14; if (t + r.height > innerHeight - 8) t = y - r.height - 14; tip.style.left = Math.max(8, l) + 'px'; tip.style.top = Math.max(8, t) + 'px'; }
+  document.addEventListener('pointerover', e => { const t = e.target.closest && e.target.closest('[data-tip]'); if (!t) return; tip.textContent = t.getAttribute('data-tip'); tip.hidden = false; place(e.clientX, e.clientY); });
+  document.addEventListener('pointermove', e => { if (tip.hidden) return; if (!(e.target.closest && e.target.closest('[data-tip]'))) { tip.hidden = true; return; } place(e.clientX, e.clientY); });
+  const lb = $('#lb');
+  $$('figure.plate .zoom').forEach(b => b.addEventListener('click', () => { $('#lb-img').src = b.dataset.src; const c = b.parentElement.querySelector('figcaption b'); $('#lb-cap').textContent = c ? c.textContent : ''; if (lb.showModal) lb.showModal(); else lb.setAttribute('open', ''); }));
+  $('#lb-close').addEventListener('click', () => lb.close());
+  lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+  const links = $$('.toc a');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id)); }), { rootMargin: '-35% 0px -60% 0px' });
+    $$('main section').forEach(s => io.observe(s));
+  }
+  function rawTable(host, head, rows){
+    const d = document.createElement('div'); d.className = 'tblwrap';
+    d.innerHTML = '<table class="t"><thead><tr>' + head.map((h, i) => '<th' + (i ? ' class="num"' : '') + '>' + h + '</th>').join('') + '</tr></thead><tbody>' +
+      rows.map(r => '<tr' + (r.best ? ' class="best"' : '') + '>' + r.cells.map((c, i) => i ? '<td class="num">' + c + '</td>' : '<th>' + c + '</th>').join('') + '</tr>').join('') + '</tbody></table>';
+    host.appendChild(d);
+  }
+  function vgroups(svg, groups, series, opt){
+    opt = opt || {}; const W = opt.W || 760, H = opt.H || 280, L = 40, R = 10, T = 16, B = 46, max = opt.max || 100;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const y = v => T + (H - T - B) * (1 - v / max);
+    for (let g = 0; g <= max; g += (opt.step || 20)) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g)); }
+    const n = groups.length, gw = (W - L - R) / n, bw = Math.min(opt.bw || 20, (gw - 10) / series.length);
+    groups.forEach((gr, i) => {
+      const cx = L + gw * i + gw / 2, x0 = cx - bw * series.length / 2;
+      if (gr.sep) svg.appendChild(el('line', { x1: L + gw * i, x2: L + gw * i, y1: T, y2: H - 8, stroke: 'var(--ink-2)', 'stroke-dasharray': '3 3' }));
+      series.forEach((s, j) => {
+        const v = gr.vals[j]; const yy = y(v);
+        svg.appendChild(el('rect', { x: x0 + j * bw + 1, y: yy, width: bw - 2, height: Math.max(1, y(0) - yy), rx: 2, class: s.cls, 'data-tip': gr.name.replace('\n', ' ') + ' · ' + s.name + '：' + v }));
+        if (opt.labels !== false) svg.appendChild(el('text', { x: x0 + j * bw + bw / 2, y: yy - 4, 'text-anchor': 'middle', class: 'val', 'font-size': opt.fs || 9.5 }, v));
+      });
+      gr.name.split('\n').forEach((w, k) => svg.appendChild(el('text', { x: cx, y: H - B + 16 + k * 14, 'text-anchor': 'middle', class: 'glabel', 'font-size': 11, 'font-weight': gr.sep ? 700 : 400 }, w)));
+    });
+    svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(0), y2: y(0), class: 'base' }));
+  }
+  function hbars(svg, rows, opt){
+    opt = opt || {}; const W = 720, L = opt.left || 170, R = 60, top = 14, rh = 30, max = opt.max || 100;
+    const H = top + rows.length * rh + 26; svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const x = v => L + (W - L - R) * v / max;
+    for (let g = 0; g <= max; g += 20) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: top - 6, y2: H - 22, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: H - 6, 'text-anchor': 'middle', class: 'tick' }, g)); }
+    rows.forEach((r, i) => {
+      const y = top + i * rh;
+      svg.appendChild(el('text', { x: L - 10, y: y + rh / 2 + 4, 'text-anchor': 'end', class: 'glabel', 'font-weight': r.hi ? 700 : 400 }, r.label));
+      svg.appendChild(el('rect', { x: L, y: y + 5, width: Math.max(1, x(r.v) - L), height: rh - 12, rx: 3, class: r.cls, 'data-tip': r.label + '：' + r.v + (r.note ? '（' + r.note + '）' : '') }));
+      svg.appendChild(el('text', { x: x(r.v) + 6, y: y + rh / 2 + 4, class: 'val' + (r.hi ? ' hi' : '') }, r.v + (r.note ? ' · ' + r.note : '')));
+    });
+    svg.appendChild(el('line', { x1: L, x2: L, y1: top - 6, y2: H - 22, class: 'base' }));
+  }
+  function heat(host, rowNames, colNames, data, opt){
+    opt = opt || {}; // data[r][c]; best by column or by row
+    let h = '<table class="heat"><thead><tr><th></th>' + colNames.map((c, j) => '<th class="' + (j === opt.oursCol ? 'ours' : '') + '">' + esc(c) + '</th>').join('') + '</tr></thead><tbody>';
+    rowNames.forEach((rn, i) => {
+      if (opt.sections && opt.sections[i]) h += '<tr class="sec"><th colspan="' + (colNames.length + 1) + '">' + opt.sections[i] + '</th></tr>';
+      const row = data[i];
+      h += '<tr class="' + (opt.avgRows && opt.avgRows.indexOf(i) >= 0 ? 'avg' : '') + '"><th class="row' + (i === opt.oursRow ? ' ours' : '') + '">' + esc(rn) + '</th>' + row.map((v, j) => {
+        let best = false;
+        if (opt.bestBy === 'col') best = v === Math.max.apply(null, data.filter((r, k) => !(opt.skipRows || []).includes(k)).map(r => r[j])) && !(opt.skipRows || []).includes(i);
+        if (opt.bestBy === 'row') best = v === Math.max.apply(null, row);
+        const p = Math.round(v * .88);
+        return '<td class="' + (p > 52 ? 'dk ' : '') + (best ? 'best' : '') + '" style="background:color-mix(in oklab,var(--z) ' + p + '%,var(--surface))">' + v + '</td>';
+      }).join('') + '</tr>';
+    });
+    host.innerHTML = h + '</tbody></table>';
+  }
+
+  /* NeoReal */
+  const RT = ['Cup\nStacking', 'Fruit\nCollection', 'Board\nWiping', 'Bottle\nStanding', 'Towel\nFolding', 'Socket\nPlugging', 'Board\nInsertion', 'Cardboard\nBox Folding', 'Bag\nPacking', '9 任务\n均值'];
+  const SR = [[0,50,75],[0,50,60],[0,40,45],[0,0,30],[0,40,50],[0,60,85],[0,0,25],[0,5,20],[0,20,35],[0,29.4,47.2]];
+  const PS = [[18,66,75.75],[21,67.5,69],[12,55.2,52],[15,0,45],[9,56.8,69.75],[7,73.5,77],[5,0,34],[0,19,37.2],[5,43,51.25],[10.2,42.3,56.8]];
+  const S3 = [{ name: 'ACT', cls: 'c-b1' }, { name: 'π0.5', cls: 'c-b0' }, { name: 'N₀-VTLA', cls: 'c-z' }];
+  vgroups($('#ch-real-sr'), RT.map((n, i) => ({ name: n, vals: SR[i], sep: i === 9 })), S3, { H: 290 });
+  vgroups($('#ch-real-ps'), RT.map((n, i) => ({ name: n, vals: PS[i], sep: i === 9 })), S3, { H: 290 });
+  rawTable($('#raw-real'), ['任务', 'ACT 成功率', 'π0.5 成功率', 'N₀-VTLA 成功率', 'ACT 进度分', 'π0.5 进度分', 'N₀-VTLA 进度分'], RT.map((n, i) => ({ cells: [n.replace('\n', ' ')].concat(SR[i], PS[i]), best: i === 9 })));
+
+  /* UniVTAC */
+  const UT = ['Lift Bottle', 'Pull-out Key', 'Lift Can', 'Put Bottle', 'Insert Hole', 'Insert HDMI', 'Insert Tube', 'Grasp Classify', 'Avg'];
+  const UM = [
+    ['ACT (Vision Only)', [42,28,20,28,19,15,45,50,30.9]], ['ACT + UniVTAC', [71,46,29,31,24,28,56,99,48.0]], ['VITaL', [72,47,8,32,25,6,34,100,40.5]],
+    ['π0.5', [100,35,6,34,25,8,74,49,41.4]], ['StarVLA-α', [32,51,65,88,52,24,69,68,56.1]], ['InternVLA-A1', [58,66,90,37,93,12,95,86,67.1]],
+    ['Xiaomi-Robotics-0', [21,80,13,12,96,69,98,45,54.3]], ['GigaWorld-Policy', [38,32,0,21,12,0,9,20,16.5]], ['N₀-VTLA', [99,99,88,60,95,25,99,100,83.1]]
+  ];
+  heat($('#heat-uni'), UM.map(m => m[0]), UT, UM.map(m => m[1]), { bestBy: 'col', oursRow: 8 });
+  rawTable($('#raw-uni'), ['Method'].concat(UT), UM.map((m, i) => ({ cells: [m[0]].concat(m[1]), best: i === 8 })));
+
+  /* NeoSim */
+  const NM = ['π0.5', 'StarVLA-α', 'InternVLA-A1', 'Xiaomi-Rob.-0', 'GigaWorld-P.', 'N₀-VTLA'];
+  const NT = ['Pour Ball', 'Unplug & Plug Charger', 'Plug USB', 'Grasp Chip', '单臂均值', 'Insert Screw', 'Place Gears', 'Unstack Bowl', 'Cup Handover', 'Stack Cups', 'Stack Plates', 'Stack Bowls', 'Unstack Cup', '双臂均值', 'NeoSim 均值'];
+  const ND = [[92,32,47,52,0,96],[23,0,0,5,3,30],[74,72,36,62,34,81],[86,93,12,49,71,88],[68.8,49.3,23.8,42.0,27.0,73.8],[26,8,0,0,0,24],[18,0,0,0,0,29],[3,17,0,0,0,17],[13,25,0,0,0,22],[22,0,0,0,12,23],[96,0,0,0,0,94],[93,0,8,42,0,96],[3,31,0,71,9,10],[34.3,10.1,1.0,14.1,2.6,39.4],[45.8,23.2,8.6,23.4,10.8,50.8]];
+  heat($('#heat-neo'), NT, NM, ND, { bestBy: 'row', oursCol: 5, avgRows: [4, 13, 14], sections: { 0: '单臂', 5: '双臂' } });
+  rawTable($('#raw-neo'), ['Task'].concat(NM), NT.map((t, i) => ({ cells: [t].concat(ND[i]), best: [4, 13, 14].includes(i) })));
+
+  hbars($('#ch-sim20'), [
+    { label: 'N₀-VTLA', v: 63.8, cls: 'c-z', hi: true, note: '论文' }, { label: 'π0.5', v: 44.0, cls: 'c-b0', note: '论文' },
+    { label: 'StarVLA-α', v: 36.4, cls: 'c-b1', note: '我们算' }, { label: 'Xiaomi-Robotics-0', v: 35.8, cls: 'c-b1', note: '我们算' },
+    { label: 'InternVLA-A1', v: 32.0, cls: 'c-b1', note: '我们算' }, { label: 'GigaWorld-Policy', v: 13.1, cls: 'c-b1', note: '我们算' }
+  ], { left: 150 });
+
+  /* ALTER */
+  const RLT = ['Towel Folding', 'Bag Packing', 'Cardboard Box Folding'];
+  const RLS = [{ name: 'π0.5-SFT', cls: 'c-b1' }, { name: 'N₀-VTLA-SFT', cls: 'c-vl' }, { name: 'π0.5 + χ0', cls: 'c-act' }, { name: 'π0.5 + ALTER', cls: 'c-b0' }, { name: 'N₀-VTLA + ALTER', cls: 'c-z' }];
+  const RLV = [[40,50,80,90,95],[20,35,65,75,80],[5,20,55,60,75]];
+  const THR = [[18,23,36,41,43],[4,7,12,14,15],[4,8,22,24,30]], TMAX = [50, 18, 35];
+  vgroups($('#ch-rl'), RLT.map((n, i) => ({ name: n, vals: RLV[i] })), RLS, { H: 260, bw: 30, fs: 11 });
+  (function(){
+    const svg = $('#ch-thr'), W = 760, H = 250, T = 16, B = 40; svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const pw = (W - 20) / 3;
+    RLT.forEach((n, i) => {
+      const ox = 10 + pw * i + 34, w = pw - 50, max = TMAX[i], y = v => T + (H - T - B) * (1 - v / max);
+      [0, max / 2, max].forEach(g => { svg.appendChild(el('line', { x1: ox, x2: ox + w, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: ox - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g)); });
+      const bw = w / 5;
+      THR[i].forEach((v, j) => { svg.appendChild(el('rect', { x: ox + j * bw + 3, y: y(v), width: bw - 6, height: y(0) - y(v), rx: 2, class: RLS[j].cls, 'data-tip': n + ' · ' + RLS[j].name + '：' + v + ' 次/小时' })); svg.appendChild(el('text', { x: ox + j * bw + bw / 2, y: y(v) - 4, 'text-anchor': 'middle', class: 'val' }, v)); });
+      svg.appendChild(el('line', { x1: ox, x2: ox + w, y1: y(0), y2: y(0), class: 'base' }));
+      svg.appendChild(el('text', { x: ox + w / 2, y: H - 14, 'text-anchor': 'middle', class: 'glabel', 'font-weight': 700 }, n));
+    });
+  })();
+  rawTable($('#raw-rl'), ['任务 · 指标'].concat(RLS.map(s => s.name)), [].concat.apply([], RLT.map((n, i) => [{ cells: [n + ' · 成功率 %'].concat(RLV[i]) }, { cells: [n + ' · 次/小时'].concat(THR[i]) }])));
+
+  /* retrieval */
+  vgroups($('#ch-ret'), [{ name: '候选池约 32', vals: [92.3, 57, 3.2] }, { name: '候选池 128', vals: [81, 40, 0.8] }], [{ name: '预测的 z', cls: 'c-z' }, { name: '当前触觉 g', cls: 'c-tac' }, { name: '随机', cls: 'c-b1' }], { H: 230, W: 520, bw: 46, fs: 11 });
+  (function(){ const t = $('#ch-ret').querySelectorAll('text.val'); const last = t[t.length - 1]; if (last) last.textContent = '≈0.8'; })();
+
+  /* stage lab */
+  const svg = $('#st-svg');
+  const MOD = {
+    tacIn: { x: 14, y: 30, w: 96, h: 44, t: '触觉差分图', s: 'tac_τ − tac_0' },
+    enc: { x: 140, y: 22, w: 118, h: 60, t: 'DINOv2（冻结）', s: '+ 线性投影' },
+    pred: { x: 300, y: 22, w: 120, h: 60, t: '潜在触觉预测器', s: '→ z（10 token）' },
+    rec: { x: 450, y: 22, w: 136, h: 60, t: '目标 z* / 重建头', s: 'InfoNCE + L1' },
+    vis: { x: 14, y: 160, w: 96, h: 44, t: '图像 · 指令 · 状态', s: '' },
+    vlm: { x: 140, y: 150, w: 138, h: 64, t: 'VLM（PaliGemma）', s: '前缀' },
+    proj: { x: 330, y: 150, w: 96, h: 44, t: 'z → 专家投影', s: '' },
+    act: { x: 450, y: 140, w: 136, h: 84, t: '动作专家', s: 'flow matching · 50 步' }
+  };
+  const ST = {
+    '1': { train: ['pred', 'rec', 'encP'], frozen: ['vlm', 'act', 'enc'], unused: ['proj'], masked: [], loss: 'rec',
+      h: 'Stage 1 · 给 z 定锚', p: '整个基座策略冻结，只训预测器、触觉投影和一个轻量重建头。z 被 InfoNCE 拉向未来触觉目标 z*，重建头把 z 解码回降采样的接触变化场。', d: [['训练', '预测器、触觉线性投影、重建头'], ['冻结', 'VLM、动作专家、DINOv2'], ['损失', '𝓛_NCE + λ_rec 𝓛_rec'], ['结果', 'z 从约 32 个候选中认出自己目标的 top-1 为 92.3%']] },
+    '2': { train: ['proj', 'act'], frozen: ['vlm', 'pred', 'enc', 'encP'], unused: ['rec'], masked: ['vlm-act'], loss: 'act',
+      h: 'Stage 2 · 教动作专家读 z', p: '触觉感知栈停在 Stage 1 的权重上，只训 z 到专家的投影和动作专家本身。关键一步：动作 query 看不到视觉语言前缀的 K/V，只剩 z 和噪声动作 token 可读，降低动作损失的唯一办法就是读 z。', d: [['训练', 'z→专家投影、动作专家'], ['冻结', 'VLM、预测器、触觉编码'], ['屏蔽', '前缀 → 动作专家'], ['损失', '基座的动作 flow matching']] },
+    '3': { train: ['vlm', 'pred', 'proj', 'act', 'encP'], frozen: ['enc'], unused: ['rec'], masked: [], loss: 'act',
+      h: 'Stage 3 · 端到端联合训练', p: '除 DINOv2 主干外全部解冻，前缀到专家的直连恢复，按标准预训练配方只用动作目标训练。对比和重建目标不再施加，预测器的“接地”只能靠动作梯度保持。之后再做每任务 SFT。', d: [['训练', '除 DINOv2 外全部'], ['冻结', 'DINOv2 主干'], ['损失', '只有动作 flow matching'], ['探针', '触觉/视觉语言敏感度比从 4.3 降到约 1.4']] },
+    'f': { train: ['vlm', 'pred', 'proj', 'act', 'encP'], frozen: ['enc'], unused: ['rec'], masked: [], loss: 'act',
+      h: 'free-latent · 一步到位', p: '把三阶段压成一次联合训练，没有 Stage 1 的未来触觉目标，z 完全由动作梯度塑造，训练时也不需要未来帧。作者担心的是：没有东西阻止这个瓶颈退化成前缀的副本，或者干脆被绕开。', d: [['训练', '除 DINOv2 外全部'], ['监督', '没有 z*'], ['结果', '论文没有报告它的闭环成绩']] }
+  };
+  function drawStage(k){
+    const s = ST[k]; svg.innerHTML = '';
+    const defs = el('defs'); const mk = el('marker', { id: 'arr', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto-start-reverse' }); mk.appendChild(el('path', { d: 'M0 0L10 5L0 10z', fill: 'var(--ink-2)' })); defs.appendChild(mk);
+    const mk2 = el('marker', { id: 'arrw', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto' }); mk2.appendChild(el('path', { d: 'M0 0L10 5L0 10z', fill: 'var(--warn)' })); defs.appendChild(mk2); svg.appendChild(defs);
+    function line(d, key, dash){ const masked = s.masked.indexOf(key) >= 0; const unusedLine = (key === 'z-proj' || key === 'proj-act') && s.unused.indexOf('proj') >= 0 || key === 'z-rec' && s.unused.indexOf('rec') >= 0; svg.appendChild(el('path', { d: d, fill: 'none', stroke: masked ? 'var(--warn)' : 'var(--ink-2)', 'stroke-width': masked ? 2 : 1.4, 'stroke-dasharray': masked || unusedLine || dash ? '5 4' : 'none', opacity: unusedLine ? .35 : 1, 'marker-end': masked ? 'url(#arrw)' : 'url(#arr)' })); if (masked) svg.appendChild(el('text', { x: 300, y: 268, fill: 'var(--warn)', style: 'fill:var(--warn);font-weight:700' }, '✕ 屏蔽：前缀 → 动作专家')); }
+    line('M110 52 L138 52', 'in-enc'); line('M258 52 L298 52', 'enc-pred'); line('M420 52 L448 52', 'z-rec');
+    line('M110 182 L138 182', 'vis-vlm'); line('M230 150 C 250 110, 290 100, 318 84', 'vlm-pred');
+    line('M360 82 L372 148', 'z-proj'); line('M426 172 L448 172', 'proj-act');
+    line('M278 205 C 330 250, 410 250, 460 226', 'vlm-act');
+    Object.keys(MOD).forEach(k2 => {
+      const m = MOD[k2]; let st = 'none';
+      if (s.train.indexOf(k2) >= 0) st = 'train'; else if (s.frozen.indexOf(k2) >= 0) st = 'frozen'; else if (s.unused.indexOf(k2) >= 0) st = 'unused';
+      if (k2 === 'enc') st = s.train.indexOf('encP') >= 0 ? 'mixed' : 'frozen';
+      const isIO = k2 === 'tacIn' || k2 === 'vis';
+      const fill = isIO ? 'transparent' : st === 'train' ? 'var(--z-soft)' : st === 'frozen' ? 'var(--surface-2)' : st === 'mixed' ? 'var(--surface-2)' : 'transparent';
+      const stroke = isIO ? 'var(--line)' : st === 'train' ? 'var(--z)' : st === 'mixed' ? 'var(--z)' : 'var(--line)';
+      svg.appendChild(el('rect', { x: m.x, y: m.y, width: m.w, height: m.h, rx: 8, fill: fill, stroke: stroke, 'stroke-width': 1.6, 'stroke-dasharray': st === 'unused' || st === 'mixed' ? '5 4' : 'none', opacity: st === 'unused' ? .55 : 1 }));
+      svg.appendChild(el('text', { x: m.x + m.w / 2, y: m.y + m.h / 2 - (m.s ? 3 : -4), 'text-anchor': 'middle', 'font-weight': 700 }, m.t));
+      if (m.s) svg.appendChild(el('text', { x: m.x + m.w / 2, y: m.y + m.h / 2 + 14, 'text-anchor': 'middle', class: 'sm' }, m.s));
+      if (!isIO) svg.appendChild(el('text', { x: m.x + m.w - 6, y: m.y + 13, 'text-anchor': 'end', class: 'sm', style: 'fill:' + (st === 'train' || st === 'mixed' ? 'var(--z)' : 'var(--muted)') }, st === 'train' ? '训练' : st === 'frozen' ? '冻结' : st === 'mixed' ? '主干冻结·投影训' : '不用'));
+    });
+    svg.appendChild(el('text', { x: 14, y: 292, class: 'sm' }, s.loss === 'rec' ? '损失作用在 z 上（右上），梯度只进预测器一侧' : '损失 = 动作 flow matching（右下）'));
+    svg.appendChild(el('text', { x: 14, y: 312, class: 'sm' }, '当前触觉 token g 从不直接进入动作专家；前缀永远看不到 z'));
+    $('#st-detail').innerHTML = '<h5>' + s.h + '</h5><p>' + s.p + '</p><dl>' + s.d.map(r => '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>').join('') + '</dl>';
+  }
+  $$('#st-seg button').forEach(b => b.addEventListener('click', () => { $$('#st-seg button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); drawStage(b.dataset.s); }));
+  drawStage('1');
+
+  /* ALTER demo (synthetic) */
+  const N = 180; const phi = []; let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  const W = [0.3, 0.4, 0.3]; // duration-calibrated stage weights (synthetic); this rollout lingers in S2
+  for (let t = 0; t < N; t++) {
+    let v;
+    if (t < 40) v = 0.3 * t / 40; else if (t < 140) v = 0.3 + 0.4 * (t - 40) / 100; else v = 0.7 + 0.3 * (t - 140) / 40;
+    if (t >= 88 && t < 104) v -= 0.1 * Math.sin((t - 88) / 16 * Math.PI); // drop and recovery
+    phi.push(Math.max(0, Math.min(1, v + (rnd() - .5) * 0.02)));
+  }
+  const Hh = 8;
+  const r = phi.map((v, t) => phi[Math.min(t + Hh, N - 1)] - v);
+  const stage = phi.map(v => v < W[0] ? 0 : v < W[0] + W[1] ? 1 : 2);
+  let rho = 0.3, amode = 'stage';
+  function quant(arr, q){ const s = arr.slice().sort((a, b) => a - b); const i = Math.min(s.length - 1, Math.max(0, Math.floor(q * (s.length - 1)))); return s[i]; }
+  function drawAlt(){
+    const svg2 = $('#alt-svg'); svg2.innerHTML = '';
+    const L = 50, Rr = 20, T = 16, PH = 150, x = t => L + (720 - L - Rr) * t / (N - 1), y = v => T + PH * (1 - v);
+    [0, .5, 1].forEach(g => { svg2.appendChild(el('line', { x1: L, x2: 700, y1: y(g), y2: y(g), stroke: 'var(--line)' })); svg2.appendChild(el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end' }, g)); });
+    [W[0], W[0] + W[1]].forEach(g => svg2.appendChild(el('line', { x1: L, x2: 700, y1: y(g), y2: y(g), stroke: 'var(--ink-2)', 'stroke-dasharray': '4 4' })));
+    svg2.appendChild(el('text', { x: 704, y: y(W[0] / 2) + 4 }, 'S1')); svg2.appendChild(el('text', { x: 704, y: y(W[0] + W[1] / 2) + 4 }, 'S2')); svg2.appendChild(el('text', { x: 704, y: y(.87) + 4 }, 'S3'));
+    svg2.appendChild(el('polyline', { points: phi.map((v, t) => x(t) + ',' + y(v)).join(' '), fill: 'none', stroke: 'var(--vl)', 'stroke-width': 2 }));
+    svg2.appendChild(el('rect', { x: x(88), y: T, width: x(104) - x(88), height: PH, fill: 'var(--warn-soft)', opacity: .6 }));
+    svg2.appendChild(el('text', { x: x(96), y: T + 12, 'text-anchor': 'middle', style: 'fill:var(--warn)' }, '掉落→恢复'));
+    const thr = {};
+    if (amode === 'stage') [0, 1, 2].forEach(k => { thr[k] = quant(r.filter((v, t) => stage[t] === k), 1 - rho); });
+    else { const q = quant(r, 1 - rho); thr[0] = thr[1] = thr[2] = q; }
+    let pos = [0, 0, 0], cnt = [0, 0, 0];
+    for (let t = 0; t < N; t++) {
+      const p = r[t] >= thr[stage[t]]; cnt[stage[t]]++; if (p) pos[stage[t]]++;
+      svg2.appendChild(el('rect', { x: x(t) - 1.8, y: 186, width: 3.2, height: 22, fill: p ? 'var(--vl)' : 'var(--z)', opacity: p ? .95 : .55 }));
+    }
+    svg2.appendChild(el('text', { x: L - 6, y: 201, 'text-anchor': 'end' }, '标签'));
+    svg2.appendChild(el('text', { x: L, y: 236, class: 'lb' }, '绿 = Advantage: positive · 粉 = negative · 曲线 = 预测全局进度 φ̂（合成）'));
+    svg2.appendChild(el('text', { x: L - 6, y: y(.5) - 70, 'text-anchor': 'end' }, 'φ̂'));
+    $('#alt-rho-v').textContent = rho.toFixed(2);
+    const pct = k => Math.round(100 * pos[k] / cnt[k]);
+    $('#alt-say').textContent = (amode === 'stage' ? '阶段内排序：每个阶段各自取局部变化 r̂ 最高的 ' + Math.round(rho * 100) + '% 为正。' : '全局排序：整条轨迹统一取 r̂ 最高的 ' + Math.round(rho * 100) + '% 为正。') +
+      ' S1 / S2 / S3 的正样本占比分别是 ' + pct(0) + '% / ' + pct(1) + '% / ' + pct(2) + '%。' +
+      (amode === 'global' ? '按示范时长校准后，示范里三个阶段推进得一样快；这条合成轨迹在较难的 S2 里比示范慢，于是 S2 的 r̂ 整体偏低，全局排序只分给它很少的正标签，策略就学不到“S2 做得好”是什么样。' : '每个阶段都分到自己的好样本，S2 虽然整体比示范慢，里面推进较快的片段仍被标为正。掉落区间的 r̂ 为负，基本都落在负标签里。');
+  }
+  $('#alt-rho').addEventListener('input', e => { rho = +e.target.value; drawAlt(); });
+  $$('#alt-mode button').forEach(b => b.addEventListener('click', () => { amode = b.dataset.m; $$('#alt-mode button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); drawAlt(); }));
+  drawAlt();
+})();
+</script>
+</body>
+</html>

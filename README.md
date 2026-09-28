@@ -15,6 +15,9 @@
 
 - [ForceVLA](https://gongshukai.github.io/VisualizedAcademicPapers/papers/forcevla/) · 2025-05 · arXiv [2505.22159](https://arxiv.org/abs/2505.22159) — π0 加力感知 MoE：6 维力/力矩在 VLM 之后融合，5 个真机接触任务平均成功率 60.5%，不接力的 π0 为 37.3%。
 - [Tactile-VLA](https://gongshukai.github.io/VisualizedAcademicPapers/papers/tactile-vla/) · 2025-07 · arXiv [2507.09160](https://arxiv.org/abs/2507.09160) — 触觉 token 进 VLM 前缀，动作里带目标力，交给位置-力混合控制器；主打「轻一点」「用力」这类力度词的零样本泛化。
+- [T-Rex](https://gongshukai.github.io/VisualizedAcademicPapers/papers/t-rex/) · 2026-06 · arXiv [2606.17055](https://arxiv.org/abs/2606.17055) — 去噪轨迹从 τ=0.4 劈开：动作专家每块跑前 6 步，只读触觉的小专家在块内每 4 步用最新触觉跑完后 4 步；100 小时触觉中训练，12 个灵巧手任务平均 65 分，最强基线 35。
+- [N₀-TWAM](https://gongshukai.github.io/VisualizedAcademicPapers/papers/n0-twam/) · 2026-07 · arXiv [2607.23783](https://arxiv.org/abs/2607.23783) — 视频、触觉、动作三专家的非对称 MoT 世界动作模型：未来触觉和未来视频一起生成，当前触觉在力空间经交叉注意力读入；UniVTAC 84.5%，8 个真机任务平均 46.3%（π0.5 30.0%）。
+- [N₀-VTLA](https://gongshukai.github.io/VisualizedAcademicPapers/papers/n0-vtla/) · 2026-07 · arXiv [2607.23782](https://arxiv.org/abs/2607.23782) — 触觉不进 VLM 前缀，先预测接下来一个动作块的触觉变化潜变量 z，再用 z 条件动作专家；三阶段接入 π0.5，20 个仿真任务 63.8%（π0.5 44.0%），另有离线 RL 方法 ALTER。
 - [Motus2](https://gongshukai.github.io/VisualizedAcademicPapers/papers/motus2/) · 2026-08 · arXiv [2608.30237](https://arxiv.org/abs/2608.30237) — 一套权重分别当策略、模拟器、评估器的自进化世界模型；触觉是一个旁路专家，在动作块内每 0.2 s 修正一次动作。
 - [ME-Dex 1.0](https://gongshukai.github.io/VisualizedAcademicPapers/papers/me-dex/) · 2026-09 · arXiv [2609.21449](https://arxiv.org/abs/2609.21449) — 视频、触觉、动作三专家联合去噪的世界动作模型，触觉作为要预测的未来观测；夹爪和灵巧手的触觉统一到规范手。
 <!-- catalog:end -->
