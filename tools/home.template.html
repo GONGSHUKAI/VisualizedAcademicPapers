@@ -68,6 +68,11 @@ li.paper{display:grid;grid-template-columns:150px minmax(0,1fr);gap:4px 28px;pad
 .pfull{margin:2px 0 8px;color:var(--muted);font-size:13.5px;line-height:1.55}
 .psum{margin:0;color:var(--ink-2);max-width:48em}
 .porg{margin:6px 0 0;font-size:13px;color:var(--muted)}
+.cat{margin-top:30px}
+.chead{font:700 19px/1.3 var(--f-disp);margin:0;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;color:var(--ink)}
+.chead::before{content:"";flex:none;width:10px;height:10px;border-radius:2px;background:var(--accent);align-self:center}
+.csum{margin:4px 0 0;max-width:44em;color:var(--ink-2);font-size:15px}
+.cat ul.papers{margin-top:12px}
 @media (max-width:640px){
   li.paper{grid-template-columns:1fr}
   .pmeta{flex-direction:row;gap:14px}

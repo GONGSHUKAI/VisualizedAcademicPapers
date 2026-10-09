@@ -1,0 +1,1443 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>SOMA 精读</title>
+<meta name="description" content="Spatial Memory for Out-of-Vision Manipulation in Vision-Language-Action（SOMA）中文精读：可动头部扫描建图、门控 EMA 刷新、交叉注意力读出的物体级空间记忆，5 个视野外真机任务与 RoboCasa GR1、SimplerEnv 结果和疑点。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Overpass+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#EEE7D2; --surface:#F8F3E3; --surface-2:#E3D9BC; --ink:#26231A; --ink-2:#4A4431; --muted:#736A50; --line:#D2C7A4;
+  --mem:#566B26; --mem-soft:#DCE3BF; --on-mem:#FFFFFF;
+  --och:#AD611A; --och-soft:#F1DABA;
+  --sea:#356886; --sea-soft:#D3E2EA;
+  --warn:#A53A25; --warn-soft:#F4D9CF;
+  --base:#9C927A; --base-2:#C9BFA5; --base-3:#6F6752;
+  --contour:#C9B98F; --table:#F4EDD8; --grid:rgba(120,100,50,.07);
+  --plate:#FFFFFF; --focus:#566B26;
+  --f-display:"Big Shoulders Display","Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"Overpass Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#15140E; --surface:#1D1B13; --surface-2:#29261B; --ink:#ECE5CF; --ink-2:#CCC3A8; --muted:#9C927A; --line:#3A3522;
+    --mem:#B0C46F; --mem-soft:#2A3216; --on-mem:#151A08;
+    --och:#E6A35C; --och-soft:#3B2915;
+    --sea:#84B5D3; --sea-soft:#1A2B36;
+    --warn:#EE8D72; --warn-soft:#3B1F17;
+    --base:#857C69; --base-2:#5A5344; --base-3:#ABA28A;
+    --contour:#3F3A27; --table:#222016; --grid:rgba(220,200,140,.035);
+    --plate:#F1EDE2; --focus:#B0C46F;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#15140E; --surface:#1D1B13; --surface-2:#29261B; --ink:#ECE5CF; --ink-2:#CCC3A8; --muted:#9C927A; --line:#3A3522;
+  --mem:#B0C46F; --mem-soft:#2A3216; --on-mem:#151A08;
+  --och:#E6A35C; --och-soft:#3B2915;
+  --sea:#84B5D3; --sea-soft:#1A2B36;
+  --warn:#EE8D72; --warn-soft:#3B1F17;
+  --base:#857C69; --base-2:#5A5344; --base-3:#ABA28A;
+  --contour:#3F3A27; --table:#222016; --grid:rgba(220,200,140,.035);
+  --plate:#F1EDE2; --focus:#B0C46F;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background-color:var(--bg);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:48px 48px;color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:var(--mem);text-underline-offset:3px;text-decoration-thickness:1px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+strong{font-weight:700}
+em{font-style:normal;background:linear-gradient(transparent 62%,var(--och-soft) 62%)}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+sub,sup{font-size:.72em;line-height:0}
+.page{max-width:1200px;margin:0 auto;padding-inline:24px}
+@media (max-width:560px){.page{padding-inline:16px}}
+
+/* hero */
+.hero{padding-block:40px 20px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,.98fr);gap:40px;align-items:center}
+@media (max-width:900px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:22px}}
+.kicker{font:500 12px/1.5 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--och);margin:0 0 12px}
+h1.title{font-family:var(--f-display);font-weight:900;font-size:clamp(4rem,2.4rem + 8vw,8.4rem);line-height:.86;letter-spacing:.01em;margin:0;text-transform:uppercase}
+h1.title span{color:var(--mem)}
+.entitle{font-family:var(--f-display);font-weight:700;font-size:clamp(1.1rem,.95rem + .5vw,1.4rem);line-height:1.3;letter-spacing:.02em;color:var(--ink-2);margin:14px 0 0}
+.thesis{font-size:clamp(1.05rem,1rem + .35vw,1.22rem);line-height:1.78;margin:18px 0 0;max-width:35em}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin:18px 0 0;padding:0;list-style:none;font:13px/1.6 var(--f-mono);color:var(--muted)}
+.meta b{color:var(--ink-2);font-weight:500}
+.plate-hero{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:12px;position:relative}
+.plate-hero::before,.plate-hero::after{content:"";position:absolute;width:14px;height:14px;border:1.5px solid var(--och)}
+.plate-hero::before{left:-1px;top:-1px;border-right:0;border-bottom:0}
+.plate-hero::after{right:-1px;bottom:-1px;border-left:0;border-top:0}
+.plate-hero svg{display:block;width:100%;height:auto}
+.plate-hero figcaption{font:12px/1.6 var(--f-mono);color:var(--muted);margin-top:8px}
+.hm text{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.hm .lab{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+.tldr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:30px}
+@media (max-width:760px){.tldr{grid-template-columns:minmax(0,1fr)}}
+.tldr>div{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--mem);border-radius:4px;padding:15px 18px}
+.tldr h3{font:600 12px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.tldr p{margin:0;font-size:15px;line-height:1.75}
+.tldr .flag{border-left-color:var(--warn)}
+.tldr .flag h3{color:var(--warn)}
+
+/* layout */
+.layout{display:grid;grid-template-columns:176px minmax(0,1fr);gap:52px;padding-block:20px 80px}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr);gap:0}}
+.toc{position:sticky;top:20px;align-self:start;font-size:14px;line-height:1.5}
+.toc p{font:600 11px/1.4 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.toc ol{list-style:none;margin:0;padding:0;border-left:1px dashed var(--line);counter-reset:t}
+.toc li a{display:block;padding:5px 0 5px 14px;margin-left:-1px;border-left:2px solid transparent;color:var(--muted);text-decoration:none}
+.toc li a::before{counter-increment:t;content:counter(t,decimal-leading-zero) " ";font:500 11px var(--f-mono);color:var(--base)}
+.toc li a:hover{color:var(--ink)}
+.toc li a.on{color:var(--ink);border-left-color:var(--och);font-weight:500}
+@media (max-width:1000px){
+  .toc{position:static;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .toc p{display:none}
+  .toc ol{display:flex;gap:6px;border:0;white-space:nowrap;padding-bottom:6px}
+  .toc li a{border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin:0;background:var(--surface)}
+  .toc li a.on{border-color:var(--och)}
+}
+main{min-width:0}
+section{padding-top:56px;scroll-margin-top:12px}
+section:first-child{padding-top:8px}
+.eyebrow{font:600 12px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--och);margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.eyebrow::before{content:"";width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:10px solid var(--och)}
+h2{font-family:var(--f-display);font-weight:800;font-size:clamp(1.5rem,1.15rem + 1.3vw,2.2rem);line-height:1.22;letter-spacing:.01em;margin:0 0 18px}
+h3{font-family:var(--f-display);font-weight:800;font-size:1.22rem;line-height:1.4;letter-spacing:.01em;margin:36px 0 10px}
+p{margin:0 0 14px}
+.prose{max-width:44em}
+.prose li{margin-bottom:6px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.tag{display:inline-block;font:600 11px/1 var(--f-mono);letter-spacing:.05em;padding:4px 6px 3px;border-radius:3px;vertical-align:2px;margin-right:6px;white-space:nowrap}
+.tag.read{border:1px dashed var(--ink-2);color:var(--ink-2)}
+.tag.doubt{background:var(--warn-soft);color:var(--warn)}
+.tag.nd{background:var(--surface-2);color:var(--muted)}
+.note{border:1px solid var(--line);background:var(--surface);border-radius:4px;padding:14px 18px;margin:18px 0;max-width:46em}
+.note>:last-child{margin-bottom:0}
+.note h4{font:600 12.5px/1.5 var(--f-mono);letter-spacing:.04em;margin:0 0 6px;color:var(--muted)}
+.note.doubt{border-color:color-mix(in oklab,var(--warn) 35%,var(--line));background:color-mix(in oklab,var(--warn-soft) 55%,var(--surface))}
+.note.doubt h4{color:var(--warn)}
+.eq{font-family:"Times New Roman",Georgia,"Noto Serif SC",serif;font-size:1.08rem;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:12px 16px;margin:14px 0;overflow-x:auto;white-space:nowrap;display:flex;justify-content:space-between;gap:24px;max-width:46em}
+.eq .no{font:12px var(--f-mono);color:var(--muted);align-self:center}
+
+figure.plate{margin:22px 0}
+figure.plate .zoom{display:block;width:100%;padding:10px;background:var(--plate);border:1px solid var(--line);border-radius:4px;cursor:zoom-in}
+figure.plate img{display:block;width:100%;height:auto}
+figure.plate figcaption{font-size:14px;line-height:1.7;color:var(--ink-2);margin-top:10px;max-width:52em}
+figure.plate figcaption b{font:600 12px var(--f-mono);letter-spacing:.04em;color:var(--och);margin-right:8px}
+dialog#lb{border:0;padding:0;background:transparent;max-width:min(96vw,1800px);width:96vw}
+dialog#lb::backdrop{background:rgba(14,12,6,.85)}
+dialog#lb .box{background:var(--plate);border-radius:4px;padding:10px;max-height:88vh;overflow:auto}
+dialog#lb img{display:block;width:100%;height:auto}
+dialog#lb .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#EEE8DA;font-size:14px;padding:8px 2px 0}
+dialog#lb button{font:500 13px var(--f-mono);background:#EEE8DA;color:#26231A;border:0;border-radius:4px;padding:6px 12px;cursor:pointer}
+
+.tblwrap{overflow-x:auto;margin:16px 0;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;font-size:14px;line-height:1.6;min-width:100%}
+table.t th,table.t td{padding:7px 11px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.t thead th{font:600 12px/1.4 var(--f-mono);letter-spacing:.03em;color:var(--muted);border-bottom:1.5px solid var(--ink-2);white-space:nowrap}
+table.t tbody th{font-weight:500;white-space:nowrap;color:var(--ink-2)}
+table.t .num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t tr.best td,table.t tr.best th{font-weight:700}
+table.t td.me,table.t th.me{background:color-mix(in oklab,var(--mem-soft) 60%,transparent)}
+
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.cards.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:860px){.cards.three{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.cards{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:15px 18px}
+.card h4{font-family:var(--f-display);font-weight:800;font-size:1.08rem;letter-spacing:.01em;line-height:1.4;margin:0 0 8px}
+.card p{font-size:14.5px;line-height:1.75;margin:0 0 8px}
+.card p:last-child{margin:0}
+.card.m{border-top:3px solid var(--mem)} .card.o{border-top:3px solid var(--och)} .card.s{border-top:3px solid var(--sea)}
+.card dl{display:grid;grid-template-columns:64px minmax(0,1fr);gap:4px 10px;margin:0;font-size:13.5px;line-height:1.65}
+.card dt{color:var(--muted);font-family:var(--f-mono);font-size:12px;padding-top:2px} .card dd{margin:0}
+.card .no{font:600 11px var(--f-mono);color:var(--och);letter-spacing:.08em;display:block;margin-bottom:2px}
+
+/* lab */
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:18px;margin:22px 0;position:relative}
+.lab-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 16px;margin-bottom:12px}
+.lab-head h4{font-family:var(--f-display);font-weight:800;font-size:1.15rem;letter-spacing:.01em;margin:0}
+.lab-head p{margin:0;font-size:13px;color:var(--muted)}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:0 0 10px;font-size:14px}
+.ctrl .lbl{font:600 11.5px var(--f-mono);letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--bg);flex-wrap:wrap}
+.seg button{font:500 13px/1 var(--f-body);border:0;background:transparent;color:var(--muted);padding:8px 11px;cursor:pointer;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.btn{font:500 13px/1 var(--f-body);border:1px solid var(--ink-2);background:var(--bg);color:var(--ink);border-radius:4px;padding:8px 12px;cursor:pointer;min-height:34px}
+.btn.pri{background:var(--mem);border-color:var(--mem);color:var(--on-mem)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{font:500 13px/1.2 var(--f-body);border:1px solid var(--line);background:var(--bg);color:var(--ink-2);border-radius:999px;padding:6px 11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chips button i{width:10px;height:10px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.25)}
+.chips button[aria-pressed="true"]{border-color:var(--och);background:var(--och-soft);color:var(--ink)}
+input[type=range]{accent-color:var(--och);width:220px;max-width:100%}
+.lab svg{display:block;width:100%;height:auto}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.mapsvg text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+.mapsvg .mono{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.mapsvg .tbl{fill:var(--table);stroke:var(--contour);stroke-width:1.2}
+.mapsvg .ct{fill:none;stroke:var(--contour);stroke-width:1}
+.mapsvg .fr{fill:var(--och);fill-opacity:.14;stroke:var(--och);stroke-width:1.4}
+.mapsvg .arc{fill:none;stroke:var(--och);stroke-width:1.2;stroke-dasharray:4 4;opacity:.8}
+.mapsvg .pin{fill:var(--mem);stroke:var(--surface);stroke-width:1.2}
+.mapsvg .pin.stale{fill:var(--warn)}
+.mapsvg .pin.upd{fill:var(--och)}
+.mapsvg .pinlab.upd{fill:var(--och)}
+.mapsvg .tie.upd{stroke:var(--och)}
+.mapsvg .pinlab{font:600 10.5px var(--f-mono);fill:var(--mem)}
+.mapsvg .pinlab.stale{fill:var(--warn)}
+.mapsvg .tie{stroke:var(--warn);stroke-width:1.2;stroke-dasharray:3 3}
+.mapsvg .det{fill:none;stroke:var(--och);stroke-width:1.6}
+.mapsvg .tgt{fill:none;stroke:var(--ink);stroke-width:1.6;stroke-dasharray:2 3}
+.mapsvg .robot{fill:var(--surface-2);stroke:var(--ink-2);stroke-width:1.2}
+.mapsvg .shot{fill:var(--och)}
+.mapsvg .obj{stroke:rgba(30,25,10,.55);stroke-width:1;cursor:pointer}
+.readout{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+@media (max-width:700px){.readout{grid-template-columns:minmax(0,1fr)}}
+.readout>div{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:10px 12px;font-size:13.5px;line-height:1.6}
+.readout b{font-family:var(--f-mono);font-weight:600;font-size:17px;color:var(--ink);display:block}
+.readout .k{font:600 11px var(--f-mono);letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.say{font-size:14px;line-height:1.75;background:var(--bg);border:1px solid var(--line);border-left:3px solid var(--och);border-radius:4px;padding:11px 14px;margin:12px 0 0}
+.memtbl{font-size:13px}
+.memtbl td,.memtbl th{padding:5px 9px!important}
+.memtbl .sw{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:-1px;margin-right:6px;border:1px solid rgba(0,0,0,.3)}
+.st{font:600 11px var(--f-mono);padding:2px 6px;border-radius:3px;white-space:nowrap}
+.st.fresh{background:var(--mem-soft);color:var(--mem)} .st.new{background:var(--sea-soft);color:var(--sea)} .st.upd{background:var(--och-soft);color:var(--och)} .st.stale{background:var(--warn-soft);color:var(--warn)}
+.retr text{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.retr .hd{font-family:var(--f-body);font-size:12px;fill:var(--ink-2);font-weight:500}
+.mini{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:820px){.mini{grid-template-columns:minmax(0,1fr)}}
+.slider{display:grid;grid-template-columns:96px minmax(0,1fr) 46px;gap:10px;align-items:center;font-size:14px;margin:6px 0}
+.slider output{font:600 13px var(--f-mono);text-align:right}
+.mixbar{height:26px;border-radius:3px;overflow:hidden;display:flex;border:1px solid var(--line);margin:10px 0 4px}
+.mixbar i{display:block;height:100%}
+
+/* charts */
+.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:16px 16px 10px;margin:18px 0}
+.chartbox h4{font-family:var(--f-display);font-weight:800;font-size:1.1rem;letter-spacing:.01em;margin:0 0 2px}
+.chartbox .sub{font-size:13px;color:var(--muted);margin:0 0 10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink-2);margin:0 0 6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+svg.chart{display:block;width:100%;height:auto;min-width:620px}
+svg.chart.narrow{min-width:0;max-width:600px}
+svg.chart text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+svg.chart .tick{font:11px var(--f-mono);fill:var(--muted)}
+svg.chart .val{font:11px var(--f-mono);fill:var(--ink-2)}
+svg.chart .val.hi{fill:var(--ink);font-weight:600}
+svg.chart .grid{stroke:var(--line);stroke-width:1}
+svg.chart .base{stroke:var(--ink-2);stroke-width:1}
+svg.chart .glabel{font-size:12.5px;fill:var(--ink)}
+svg.chart .hdr{font:600 11.5px var(--f-mono);fill:var(--och);letter-spacing:.04em}
+.c-ours{fill:var(--mem)} .c-b0{fill:var(--base)} .c-b1{fill:var(--base-2)} .c-b2{fill:var(--base-3)} .c-och{fill:var(--och)} .c-sea{fill:var(--sea)} .c-warn{fill:var(--warn)}
+.bg-ours{background:var(--mem)} .bg-b0{background:var(--base)} .bg-b1{background:var(--base-2)} .bg-b2{background:var(--base-3)} .bg-och{background:var(--och)} .bg-sea{background:var(--sea)} .bg-warn{background:var(--warn)}
+details.raw{margin:8px 0 4px;font-size:13.5px}
+details.raw summary{cursor:pointer;color:var(--muted);font:600 12.5px var(--f-mono)}
+details.raw .tblwrap{margin:8px 0}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);font:12.5px/1.55 var(--f-body);padding:8px 10px;border-radius:4px;max-width:280px}
+table.heat{border-collapse:separate;border-spacing:3px;font-size:13px;min-width:600px;width:100%}
+table.heat th{font:600 11.5px/1.3 var(--f-mono);color:var(--muted);text-align:center;padding:6px 4px;white-space:nowrap}
+table.heat th.row{text-align:left;font:500 13px/1.3 var(--f-body);color:var(--ink);white-space:nowrap;padding-right:10px}
+table.heat th.ours{color:var(--mem)}
+table.heat td{text-align:center;font:500 12.5px var(--f-mono);font-variant-numeric:tabular-nums;border-radius:3px;padding:7px 4px;color:var(--ink)}
+table.heat td.dk{color:var(--on-mem)}
+table.heat td.na{color:var(--muted);background:transparent}
+table.heat tr.avg th.row{font-weight:700}
+table.heat tr.avg td{box-shadow:inset 0 2px 0 var(--ink-2)}
+table.heat td small{display:block;font-size:10.5px;opacity:.85}
+.stack{display:flex;height:30px;border-radius:3px;overflow:hidden;margin:6px 0 4px}
+.stack span{display:flex;align-items:center;justify-content:center;font:600 12px var(--f-mono);color:var(--bg);white-space:nowrap;overflow:hidden}
+.stack span.bg-b0{color:var(--ink)}
+.stackleg{list-style:none;margin:6px 0 14px;padding:0;font-size:13.5px;line-height:1.65}
+.stackleg li{display:grid;grid-template-columns:14px minmax(0,1fr);gap:8px;margin-bottom:4px}
+.stackleg i{width:11px;height:11px;border-radius:2px;margin-top:6px}
+
+details.faq{background:var(--surface);border:1px solid var(--line);border-radius:4px;margin:10px 0;max-width:50em}
+details.faq summary{cursor:pointer;padding:12px 16px;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::after{content:"+";font:600 16px var(--f-mono);color:var(--muted)}
+details.faq[open] summary::after{content:"−"}
+details.faq .a{padding:0 16px 14px;font-size:15px;line-height:1.8}
+details.faq .a p:last-child{margin:0}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0;align-items:start}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.two>div{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:16px 18px}
+.two h4{font:600 12px/1.4 var(--f-mono);letter-spacing:.1em;margin:0 0 10px;color:var(--muted)}
+.two ul{margin:0;padding-left:18px;font-size:14.5px;line-height:1.75}
+.two li{margin-bottom:8px}
+table.cmp{min-width:900px}
+table.cmp td{font-size:13.5px}
+details.gl{background:var(--surface);border:1px solid var(--line);border-radius:4px;max-width:52em}
+details.gl summary{cursor:pointer;padding:14px 18px;font-weight:500}
+details.gl dl{margin:0;padding:0 18px 16px;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:8px 18px;font-size:14px;line-height:1.7}
+details.gl dt{font-family:var(--f-mono);font-size:13px;color:var(--ink)}
+details.gl dd{margin:0;color:var(--ink-2)}
+@media (max-width:560px){details.gl dl{grid-template-columns:minmax(0,1fr);gap:2px}details.gl dd{margin-bottom:10px}}
+footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+.vapnav-grp{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-cat{font-size:11.5px;letter-spacing:.04em;opacity:.5}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/">Harness for Robotics</a></span><span class="vapnav-links"><span class="vapnav-grp"><span class="vapnav-cat">上下文</span><a href="../../papers/activevla/">ActiveVLA</a><a href="../../papers/tic-vla/">TIC-VLA</a><a href="../../papers/ra-vla/">RA-VLA</a></span><span class="vapnav-grp"><span class="vapnav-cat">记忆</span><a href="../../papers/memoryvla/">MemoryVLA</a><a href="../../papers/optimusvla/">OptimusVLA</a><a href="../../papers/soma/" aria-current="page">SOMA</a><a href="../../papers/hime/">HiMe</a></span><span class="vapnav-grp"><span class="vapnav-cat">结构化执行</span><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/motormind/">MotorMind</a></span><span class="vapnav-grp"><span class="vapnav-cat">评估与反馈</span><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/tau0-vla/">τ₀-VLA</a></span></span></div></div>
+<!-- /vap:nav -->
+<header class="hero page">
+  <div class="hero-grid">
+    <div>
+      <p class="kicker">论文精读 · Harness for Robotics · Persistent State / Memory</p>
+      <h1 class="title">SO<span>MA</span></h1>
+      <p class="entitle">Spatial Memory for Out-of-Vision Manipulation in Vision-Language-Action</p>
+      <p class="thesis">给 GR00T N1.5 式的 VLA 外挂一层<strong>物体级空间记忆</strong>：目标不在视野里时，可动头部按固定轨迹扫一圈，用 YOLO-World 检测、DINOv3 取外观、VGGT 抬到 3D，每个物体压成一个记忆 token；操作中用头部新画面做门控 EMA 刷新，再让 VLM 的 token 对记忆做交叉注意力，结果送进 DiT 动作头。5 个涉及视野外物体的真机抓放任务，每任务 20 次，各阶段平均成功率 28.3%，GR00T N1.5 约 18%。</p>
+      <ul class="meta">
+        <li><b>港科大（广州）· AI²Robotics · 港科大</b></li>
+        <li><b>arXiv</b> 2605.22283v1</li>
+        <li><b>v1</b> 2026-05-21 · arXiv 注明已被 ICML 2026 接收</li>
+        <li><a href="https://arxiv.org/abs/2605.22283" target="_blank" rel="noopener">arXiv</a> · 代码：论文称“即将发布”</li>
+      </ul>
+    </div>
+    <figure class="plate-hero">
+      <svg class="hm" id="hero-map" viewBox="0 0 520 330" role="img" aria-label="俯视示意：头部相机视锥在桌面上左右扫过，视锥外的物体以记忆标记留下"></svg>
+      <figcaption>俯视示意（不是实验数据）：橙色扇形是头部相机视锥，按固定轨迹左右扫；被看到过的物体留下 ▲ 记忆标记，转走以后仍然在。</figcaption>
+    </figure>
+  </div>
+  <div class="tldr" aria-label="一分钟版">
+    <div><h3>做了什么</h3><p>三个组件：<b>Spatial Memory Construction</b>（扫描建图）、<b>Dynamic Memory Refinement</b>（α = g·s 的门控 EMA 刷新）、<b>Contextual Memory Retrieval</b>（VLM token 作 query 的交叉注意力）。记忆是一组物体 token：m = Φ<sub>mem</sub>(DINOv3 外观) + Φ<sub>pos</sub>(VGGT 3D 框)，384 维。</p></div>
+    <div><h3>数据与配方</h3><p>自研人形平台：两条 7 自由度 Realman 臂、2 自由度云台头、头和双腕各一个 D435。VR + 外骨骼遥操作，5 个任务各 400 条示范（约 15.5 小时）。以 GR00T N1.5 为基座，除 VLM 语言解码器外全部训练，32 张 H200、30k 步。</p></div>
+    <div><h3>结果</h3><p>真机 5 任务各阶段平均 28.3%；按图 4 算，GR00T N1.5 18.3%、StarVLA 18.2%、SpatialVLA 15.5%。头部搜索转角、抓取次数等 5 项行为指标比 GR00T 少 40–60%。全可见的 RoboCasa GR1：Full 数据 49.3 vs GR00T 45.9；SimplerEnv Visual Matching 平均 63.2。</p></div>
+    <div class="flag"><h3>最该留意的</h3><p>真机绝对成功率低（最难的双臂任务放置阶段 10%，即 2/20），每任务 20 次、无方差。表 2 消融的数字和“20 次 × 阶段平均”的粒度对不上；附录 GR1 逐任务表与类别均值多处算不拢；仿真两套基准都是全可见，没有测视野外能力。</p></div>
+  </div>
+</header>
+
+<div class="page layout">
+  <nav class="toc" aria-label="目录">
+    <p>目录</p>
+    <ol>
+      <li><a href="#problem">问题</a></li>
+      <li><a href="#overview">全局与沙盘</a></li>
+      <li><a href="#construct">扫描建图</a></li>
+      <li><a href="#refine">门控刷新</a></li>
+      <li><a href="#retrieve">注意力读出</a></li>
+      <li><a href="#train">训练与推理</a></li>
+      <li><a href="#setup">实验设置</a></li>
+      <li><a href="#results">结果</a></li>
+      <li><a href="#insight">读懂它</a></li>
+      <li><a href="#limits">局限与疑点</a></li>
+      <li><a href="#topic">放到专题里看</a></li>
+      <li><a href="#glossary">术语表</a></li>
+    </ol>
+  </nav>
+  <main>
+    <section id="problem">
+      <p class="eyebrow">问题 · §1</p>
+      <h2>指令里的东西不在画面里，VLA 就没有依据</h2>
+      <div class="prose">
+        <p>多数 VLA 在固定视角的桌面上训练：一个静态相机或第三人称视角，标定简单、状态估计稳定、数据好采。论文指出这里藏着一个<strong>视野绑定假设</strong>（view-bound assumption）：决策时，指令提到的物体一定在当前相机画面里。目标一旦被遮挡或在视野外，感知—动作回路就断了，策略没有任何上下文去推断它在哪。</p>
+        <p>现有的两条补救路线，论文认为都不够：</p>
+        <ul>
+          <li><strong>靠模型内部的空间推理猜。</strong>RoboBrain、Galaxea G0、AgiBot 等用学到的空间先验推断看不见的目标。但现有 MLLM 只有在画面里有部分证据或相关线索时才推得准，目标完全在视野外时空间估计迅速变差（引 VSI-Bench）。没见过、或者见过但没存下来的东西，模型再大也补不回来。</li>
+          <li><strong>装可动相机去找。</strong>ViA、ActiveUMI 用可动相机暴露未见区域，但它们不看指令（instruction-agnostic），底层是 Diffusion Policy，没有持久的空间记忆。MemoryVLA、MemER 这类记忆设计存的是最近的观测或关键帧，服务于短时推理，也不保存当前视锥以外的空间信息。</li>
+        </ul>
+        <p>论文的结论是需要两样东西同时具备：<strong>能拿到当前视野以外的空间证据</strong>（可动头部），以及<strong>把证据存进一个持久的场景表示</strong>（空间记忆）。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/teaser.jpg" aria-label="放大原文图 1"><img src="fig/teaser.jpg" width="1600" height="1205" alt="原文图 1：人形机器人的头部和双腕相机视锥都只覆盖桌子中间的篮子，左右两侧的杯子、水瓶、玩具鸭在视野外" loading="lazy"></button>
+        <figcaption><b>原文 Figure 1</b>三个浅蓝色视锥分别是头部、左腕、右腕相机，都只罩住中间的篮子（Visible Objects）。左右红框里的粉色杯、水瓶、黄鸭、橙/黄/红杯都在视野外。指令是“把粉色杯放进篮子”，纯反应式的策略只能回答“找不到指定物体”。注意这张图里头部是固定的，这正是论文要打破的设定。</figcaption>
+      </figure>
+      <div class="note">
+        <h4><span class="tag read">解读</span>这篇的 harness 改的是“记什么”，但先要改“看什么”</h4>
+        <p>SOMA 的记忆不是从策略看过的画面里被动攒出来的。它先主动扫一遍场景，把视锥外的物体写进记忆，再让策略在操作时读。所以它同时动了两处：扫描阶段决定<em>记忆里有什么</em>，检索阶段决定<em>策略每一步从记忆里拿到什么</em>。表 2 的消融正好把这两件事拆开（见结果部分）。</p>
+      </div>
+    </section>
+
+    <section id="overview">
+      <p class="eyebrow">方法 · 全局 · §3 · Figure 2</p>
+      <h2>扫描 → 记忆 → 刷新 → 读出 → DiT</h2>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/framework.jpg" aria-label="放大原文图 2"><img src="fig/framework.jpg" width="1800" height="1140" alt="原文图 2：SOMA 框架，左上头部扫描，右上空间记忆构建，中间动态记忆刷新与上下文检索，右侧 DiT 动作头" loading="lazy"></button>
+        <figcaption><b>原文 Figure 2</b>左下：当前观测里找不到粉色杯（Can not find the pick cup）→ 左上：操作前头部扫描，视角 1（中）、2（左）、3（右）。(A) 右上：每帧经 DINOv3 取裁剪特征、YOLO 检测、VGGT 给出相对 3D 框，外观特征平均后堆成 Object Semantics，3D 框堆成 Spatial Semantics，两者相加得到 overview memory 𝓜<sub>0</sub>。(B) 操作中当前帧得到 𝓜<sub>t</sub>，经自适应相似度门控做 EMA，得到 𝓜̂<sub>t</sub>。(C) VLM 的 token 当 Query，𝓜̂<sub>t</sub> 当 Key/Value 做交叉注意力，输出（棋盘格方块）和状态 token、加噪动作 token 一起进 DiT 块和动作解码器。</figcaption>
+      </figure>
+      <div class="prose">
+        <p>推理时的一个回合按论文 §3 和 §4.2 的描述是这样走的：</p>
+        <ol>
+          <li><strong>触发。</strong>一个轻量检测器检查指令里的目标在当前视野里能不能定位到。能，就不扫描；不能，就启动扫描。</li>
+          <li><strong>扫描建图。</strong>头部沿<strong>预先定义的轨迹</strong>转动，采一段多视角视频，每 N 帧取一帧，生成 overview memory 𝓜<sub>0</sub>。</li>
+          <li><strong>每一步。</strong>输入当前三路相机 o<sup>t</sup><sub>c</sub>（c ∈ {l, r, h}：左腕、右腕、头部）、指令、机器人状态、加噪动作序列。只有<strong>头部</strong>画面 o<sup>t</sup><sub>h</sub> 被拿来刷新记忆，得到 𝓜̂<sub>t</sub>。</li>
+          <li><strong>读出与出动作。</strong>VLM 的视觉语言 token 对 𝓜̂<sub>t</sub> 做交叉注意力得到 <b>X</b><sub>boost</sub>，和原始视觉语言 token、状态、加噪动作一起进 DiT，动作解码器输出长度为 H 的动作块（H 未披露）。</li>
+        </ol>
+      </div>
+
+      <div class="lab" id="map-lab">
+        <div class="lab-head">
+          <h4>俯视沙盘：一张桌面走一遍 SOMA</h4>
+          <p>机制按 §3 与表 2 的变体定义；场景、坐标、视场角是示意</p>
+        </div>
+        <div class="ctrl">
+          <span class="lbl">变体（表 2）</span>
+          <div class="seg" role="group" aria-label="选择变体" id="map-var">
+            <button type="button" data-v="full" aria-pressed="true">Full SOMA</button>
+            <button type="button" data-v="scanonly" aria-pressed="false">Scan-only</button>
+            <button type="button" data-v="noscan" aria-pressed="false">No-Scan</button>
+            <button type="button" data-v="gr00t" aria-pressed="false">Scan+GR00T</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <span class="lbl">指令目标</span>
+          <div class="chips" id="map-tgt" role="group" aria-label="选择目标物"></div>
+        </div>
+        <div class="ctrl">
+          <button type="button" class="btn pri" id="map-start">▶ 开始一回合</button>
+          <label for="map-pan" class="lbl">头部 pan</label>
+          <input type="range" id="map-pan" min="-60" max="60" step="5" value="0" aria-describedby="map-pan-v">
+          <output id="map-pan-v" class="mono">0°</output>
+          <button type="button" class="btn" id="map-obs">观测一帧（t+N）</button>
+          <button type="button" class="btn" id="map-place">把目标放进篮子</button>
+          <div class="seg" role="group" aria-label="关联判定" id="map-assoc">
+            <button type="button" data-a="loose" aria-pressed="true">关联：匹配上</button>
+            <button type="button" data-a="strict" aria-pressed="false">关联：没匹配上</button>
+          </div>
+        </div>
+        <div class="scroll"><svg class="mapsvg" id="map-svg" viewBox="0 0 720 440" role="img" aria-label="俯视桌面：机器人头部视锥、物体、记忆标记" style="min-width:560px"></svg></div>
+        <div class="readout" id="map-read"></div>
+        <p class="say" id="map-say" aria-live="polite"></p>
+        <div class="tblwrap"><table class="t memtbl" id="map-mem"></table></div>
+        <div class="scroll"><svg class="retr" id="map-retr" viewBox="0 0 720 150" role="img" aria-label="交叉注意力读出示意" style="min-width:560px"></svg></div>
+        <p class="small muted" style="margin:6px 0 0">用法：先选目标再点“开始”。扫描结束后拖动头部 pan，松手或点“观测一帧”即处理一帧头部画面（相当于前进 N 步）。“把目标放进篮子”模拟一次抓放，之后把头转回篮子方向看记忆怎样刷新。两个“关联”按钮对应论文的类内外观+几何关联在物体被挪动后的两种结果，阈值数值论文未披露。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>沙盘里哪些是论文的，哪些是我们补的</h4>
+        <p>论文的：扫描只在目标定位不到时触发；扫描轨迹是预定义的（图 2 画的是中→左→右）；每 N 帧取一帧；同类实例按外观+几何相似度关联、超过阈值就平均合并；操作中只用头部画面刷新；匹配上的条目做 α = g·s 的 EMA，没匹配上的观测追加为新条目，没被观测到的旧条目保留；四个变体的定义取自表 2 图注。我们补的：物体摆放、坐标、69° 视场、扫描角度范围、EMA 的位置插值画法（真实的插值发生在 384 维向量上），以及“关联匹配上/没匹配上”这两种结果的手动切换。</p>
+      </div>
+    </section>
+
+    <section id="construct">
+      <p class="eyebrow">方法 · ① Spatial Memory Construction · §3.1 · 附录 B</p>
+      <h2>每个物体压成一个 token：外观 + 3D 框</h2>
+      <div class="prose">
+        <p>输入是头部扫描视频 V = {f<sub>i</sub>}<sub>i=1…N<sub>v</sub></sub>，每 N 帧均匀取一帧得到子集 Ṽ。每一帧过同一条感知流水线：</p>
+      </div>
+      <div class="cards three">
+        <div class="card o"><span class="no">GEOMETRY</span><h4>VGGT</h4><p>估计每帧的相机位姿和粗略场景几何。VGGT 在同一个场景级坐标系里给出所有帧的位姿，论文直接把它当作<strong>全局参考系</strong>，所有 3D 框都表达在这个系里。</p><p class="small muted">论文的理由：扫描是短时、静态的，位姿漂移可以忽略。</p></div>
+        <div class="card s"><span class="no">SEMANTICS</span><h4>YOLO-World</h4><p>检测物体、给出 2D 框 b<sup>(i)</sup><sub>j</sub> 和类别标签 c。开放词表的提示词（检测哪些类）论文没写。</p></div>
+        <div class="card m"><span class="no">APPEARANCE</span><h4>DINOv3</h4><p>给出特征图 <b>F</b><sup>(i)</sup> ∈ ℝ<sup>H×W×C</sup>。用 2D 框裁出对应区域，空间平均池化，得到实例外观向量 <b>f</b><sup>(i)</sup><sub>j</sub> ∈ ℝ<sup>C</sup>。</p></div>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>抬到 3D。</strong>每个 2D 检测借 VGGT 的几何先验抬成 3D 框 <b>b</b><sup>(i)</sup><sub>j</sub> ∈ ℝ<sup>8×3</sup>（8 个角点）。</li>
+          <li><strong>跨视角关联。</strong>同一物体会在多帧里出现，同类的不同物体也要分开。做法是<strong>按类别分组</strong>，组内用 DINOv3 外观的余弦相似度加 3D 框的空间一致性算联合相似度，超过阈值就合并，外观特征和 3D 几何<strong>取平均</strong>。得到 N<sub>I</sub> 个全局实例：𝓕 = {<b>f</b><sub>k</sub>}、𝓑<sub>3D</sub> = {<b>b</b><sub>k</sub>}、𝓒<sub>3D</sub> = {c<sub>k</sub>}。</li>
+          <li><strong>空帧兜底。</strong>某个采样帧一个物体都没检测到时，注入学到的占位嵌入和伪框，保证记忆结构连续。</li>
+        </ul>
+      </div>
+      <div class="eq"><span><b>p</b><sub>k</sub> = Φ<sub>pos</sub>(<b>b</b><sub>k</sub>),&nbsp;&nbsp;&nbsp; <b>m</b><sup>0</sup><sub>k</sub> = Φ<sub>mem</sub>(<b>f</b><sub>k</sub>) + <b>p</b><sub>k</sub>,&nbsp;&nbsp;&nbsp; 𝓜<sub>0</sub> = {<b>m</b><sup>0</sup><sub>k</sub>}<sub>k=1…N<sub>I</sub></sub></span><span class="no">§3.1</span></div>
+      <div class="tblwrap">
+        <table class="t" style="min-width:680px">
+          <thead><tr><th>模块（附录表 6）</th><th>结构</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><th>Φ<sub>pos</sub> 3D 框嵌入</th><td class="mono">LN(8×3) → 24→768 → GELU → 768→768 → GELU → 768→384 → GELU → LN 384</td><td>8 个角点坐标 → 384 维位置描述</td></tr>
+            <tr><th>Spatial Positional Refinement</th><td class="mono">LN 384 → 384→768 → GELU → 768→768 → GELU → 768→384 → GELU → LN 384</td><td>第二级 MLP，压多视角抬升带来的几何噪声（正文没提到这一级）</td></tr>
+            <tr><th>Φ<sub>mem</sub> 记忆投影</th><td class="mono">LN 384 → 384→768 → GELU → 768→384 → GELU → LN 384</td><td>外观向量投到记忆空间，和 <b>p</b><sub>k</sub> 相加</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>记忆的形状：N<sub>I</sub> 个 384 维 token，与时间长度无关</h4>
+        <p>Φ<sub>mem</sub> 的输入是 384 维，说明 DINOv3 的特征宽度 C = 384，对应 ViT-S 一档（论文没写用哪个变体）。图 8 里去掉 DINOv3 只省约 114 MB 显存（7966 → 7852 MB），也和小模型一致。记忆的大小由场景里的物体数决定：一个桌面几个物体，就是几个 token。这和 MemoryVLA 那种按时间步存 token 的记忆很不一样，后者随回合变长而增长，需要合并来控制容量。</p>
+      </div>
+
+      <h3>几何从哪来：VGGT 还是深度相机（附录表 13）</h3>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>几何来源</th><th class="num">视野外任务 SR (%) ↑</th><th class="num">延迟 (s) ↓</th></tr></thead>
+          <tbody>
+            <tr><th>RGB-D + OpenCV 融合</th><td class="num">22.6</td><td class="num">0.18</td></tr>
+            <tr class="best"><th>VGGT 几何 + 位姿</th><td class="num">27.3</td><td class="num">0.21</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose"><p>平台上明明有 D435 深度相机，论文仍选 VGGT。理由是真实深度有噪声、缺失和跨视角错位，多视角点云配准时误差累积，记忆的几何一致性变差；VGGT 在头部转动时给出更稳定的跨视角几何和位姿。论文的总结是：对视野外操作，<strong>几何一致性比原始深度精度更重要</strong>。表里的延迟指什么环节（每帧？每次建图？）没写清。</p></div>
+
+      <h3>预处理开销（原文 Figure 8）</h3>
+      <div class="chartbox">
+        <h4>去掉哪个感知模型，省多少</h4>
+        <p class="sub">横轴显存（MB），纵轴耗时（s/it），点旁标 GR1 消融成功率。数字读自原图标注；“每 it”是每帧还是每条示范，图注说“per demo”，坐标轴写 s/it，没讲清。</p>
+        <div class="scroll"><svg class="chart" id="ch-pre" viewBox="0 0 720 250"></svg></div>
+      </div>
+      <div class="prose"><p>VGGT 是大头：去掉它显存从 7966 MB 降到 1224 MB、耗时减半多，但 GR1 成功率掉 4.2 个点；去掉 DINOv3 几乎不省资源，却掉 5.6 个点。注意这是<strong>训练时离线预处理</strong>的开销；部署时这条感知栈要在线跑，论文只给了整体的每块延迟（见训练与推理）。</p></div>
+    </section>
+
+    <section id="refine">
+      <p class="eyebrow">方法 · ② Dynamic Memory Refinement · §3.2</p>
+      <h2>新观测要不要写进去，由两个门的乘积决定</h2>
+      <div class="prose">
+        <p>操作过程中物体会被移动、遮挡或新出现。每一步，当前头部画面 o<sup>t</sup><sub>h</sub> 过同一条流水线，得到当前记忆 token 𝓜<sub>t</sub> = {<b>m</b><sup>t</sup><sub>j</sub>}，其中 <b>m</b><sup>t</sup><sub>j</sub> = Φ<sub>mem</sub>(<b>f</b><sup>t</sup><sub>j</sub>) + <b>p̄</b><sub>c<sub>j</sub><sup>t</sup></sub>。然后和上一时刻的记忆 𝓜<sub>t−1</sub> 做实例级关联：</p>
+        <ul>
+          <li>只在<strong>同类</strong>条目里找，判据与扫描建图时相同（外观+几何）。</li>
+          <li><strong>一对一</strong>：每个观测最多匹配一个记忆条目，每个条目每步最多被一个观测更新。</li>
+          <li>匹配上的，算两个分数再做 EMA：</li>
+        </ul>
+      </div>
+      <div class="eq"><span>s<sup>t</sup><sub>kj</sub> = σ(Φ<sub>sim</sub>([<b>m</b><sup>t−1</sup><sub>k</sub> − <b>m</b><sup>t</sup><sub>j</sub>])),&nbsp;&nbsp; g<sup>t</sup><sub>kj</sub> = σ(Φ<sub>fuse</sub>([<b>m</b><sup>t−1</sup><sub>k</sub>, <b>m</b><sup>t</sup><sub>j</sub>]))</span><span class="no">(1)</span></div>
+      <div class="eq"><span>α<sup>t</sup><sub>kj</sub> = g<sup>t</sup><sub>kj</sub> · s<sup>t</sup><sub>kj</sub>,&nbsp;&nbsp;&nbsp; <b>m</b><sup>t</sup><sub>k</sub> = α<sup>t</sup><sub>kj</sub> <b>m</b><sup>t</sup><sub>j</sub> + (1 − α<sup>t</sup><sub>kj</sub>) <b>m</b><sup>t−1</sup><sub>k</sub></span><span class="no">(2)</span></div>
+      <div class="prose">
+        <ul>
+          <li><strong>没匹配上的新观测</strong>追加为新条目。</li>
+          <li><strong>没被观测到的旧条目保留</strong>，用来应对暂时遮挡和部分可观测。</li>
+        </ul>
+        <p>结果记为 𝓜̂<sub>t</sub> = {<b>m̂</b><sup>t</sup><sub>k</sub>}，共 N<sup>M</sup><sub>t</sub> 个条目。整个过程<strong>没有删除操作</strong>。</p>
+      </div>
+      <div class="lab" id="alpha-lab">
+        <div class="lab-head"><h4>两个门：s 和 g 都开才写入</h4><p>公式 (1)(2)；右侧为附录表 10 的更新策略消融</p></div>
+        <div class="mini">
+          <div>
+            <div class="slider"><label for="al-s">s 相似度门</label><input type="range" id="al-s" min="0" max="1" step="0.05" value="0.8"><output id="al-s-v">0.80</output></div>
+            <div class="slider"><label for="al-g">g 融合门</label><input type="range" id="al-g" min="0" max="1" step="0.05" value="0.7"><output id="al-g-v">0.70</output></div>
+            <div class="mixbar" aria-hidden="true"><i id="al-new" class="bg-och"></i><i id="al-old" class="bg-ours"></i></div>
+            <div class="legend"><span><i class="bg-och"></i>新观测 <b>m</b><sup>t</sup><sub>j</sub> 的份额 α</span><span><i class="bg-ours"></i>旧记忆 <b>m</b><sup>t−1</sup><sub>k</sub> 的份额 1−α</span></div>
+            <p class="say" id="al-say"></p>
+          </div>
+          <div><svg class="chart narrow" id="ch-upd" viewBox="0 0 360 180"></svg></div>
+        </div>
+      </div>
+      <div class="prose"><p>消融里 SimEMA 是“普通 EMA 更新”（引 SimCLR），Only s<sup>t</sup><sub>kj</sub> / Only g<sup>t</sup><sub>kj</sub> 是只用一个门。完整的乘积门 49.3，比三种替代高 5.1–8.6 个点。</p></div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>公式和附录表 6 对不上的三处</h4>
+        <ul>
+          <li><strong>Φ<sub>sim</sub> 的输入维度。</strong>公式里 Φ<sub>sim</sub> 只吃差向量 [<b>m</b><sub>k</sub> − <b>m</b><sub>j</sub>]（384 维），表 6 却写 LN(3×384)、Linear(1152→768)，输入是三个 384 维向量的拼接，可能是 [<b>m</b><sub>k</sub>, <b>m</b><sub>j</sub>, <b>m</b><sub>k</sub> − <b>m</b><sub>j</sub>]，正文没说。</li>
+          <li><strong>s 和 g 不是标量。</strong>表 6 里 Φ<sub>sim</sub> 和 Φ<sub>fuse</sub> 的最后一层都输出 384 维（再接 LayerNorm），过 sigmoid 后是 384 维向量。如果按表 6 实现，α 是逐通道的门，“语义相似度分数”这个说法只是比喻。另外整个训练只有动作损失，s 并没有被监督成“相似度”。</li>
+          <li><strong>位置项的记号变了。</strong>§3.1 用每个实例自己的 <b>p</b><sub>k</sub>，§3.2 写成 <b>p̄</b><sub>c</sub>。tex 源码里被注释掉的早期版本把 <b>p̄</b><sub>c</sub> 定义为<em>同类别所有框的平均位置编码</em>；正式版说它是“由该实例估计 3D 位置得到的位置编码”。如果实现里真是按类平均，同类的多个杯子会共用一个位置，这和“类内区分实例”的目标矛盾。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="retrieve">
+      <p class="eyebrow">方法 · ③ Contextual Memory Retrieval · §3.3 · 附录表 6</p>
+      <h2>没有“选中目标”这一步：VLM 的所有 token 对全部记忆做注意力</h2>
+      <div class="prose">
+        <p>VLM 输出的视觉语言 token <b>X</b><sub>vl</sub> = {<b>x</b><sub>i</sub>}<sub>i=1…N<sub>q</sub></sub> 当 query，刷新后的记忆 𝓜̂<sub>t</sub> 当 key/value。记忆 token 先经对齐 MLP 投到 VLM 的特征空间：</p>
+      </div>
+      <div class="eq"><span><b>m̃</b><sup>t</sup><sub>k</sub> = Φ<sub>align</sub>(<b>m̂</b><sup>t</sup><sub>k</sub>),&nbsp;&nbsp;&nbsp; <b>X</b><sub>boost</sub> = softmax( <b>Q K</b><sup>⊤</sup> / √C ) <b>V</b>,&nbsp;&nbsp; <b>Q</b> = <b>X</b><sub>vl</sub>,&nbsp; <b>K</b>, <b>V</b> ← 𝓜̃<sub>t</sub></span><span class="no">§3.3</span></div>
+      <div class="cards three">
+        <div class="card s"><span class="no">QUERY</span><h4>N<sub>q</sub> 个 VL token</h4><p>来自 VLM（框架图里三路相机画面和指令一起进 VLM），包括图像 token 和指令 token。<b>X</b><sub>boost</sub> 的长度和 query 一样是 N<sub>q</sub>：每个 VL token 都被“补”上记忆里的空间信息，而不是检索出几条记忆。</p></div>
+        <div class="card m"><span class="no">KEY / VALUE</span><h4>N<sup>M</sup><sub>t</sub> 个记忆 token</h4><p>Φ<sub>align</sub>：LN 384 → 384→768 → GELU → 768→d<sub>VLM</sub> → GELU → LN。d<sub>VLM</sub> 的数值没写。附录的 Memory–Token Transformer 是 3 层、32 头、每头 64 维、dropout 0.2。</p></div>
+        <div class="card o"><span class="no">INJECT</span><h4>进 DiT 当全局上下文</h4><p><b>X</b><sub>boost</sub> 作为空间—语义先验注入 DiT 块；原始 VL token、机器人状态、加噪动作嵌入照常进 DiT。论文说 <b>X</b><sub>boost</sub> “调制 token 间的交互”，具体是拼进交叉注意力的 K/V 还是别的方式，<span class="tag nd">未披露</span></p></div>
+      </div>
+      <div class="chartbox">
+        <h4>读出模块怎么做（附录表 10 · Retrieval Module）</h4>
+        <p class="sub">GR1 Full 数据，平均成功率。Concat = 把感知 token 和记忆特征直接拼接；Light / Middle / Heavy = 2 / 3 / 4 层交叉注意力。</p>
+        <div class="scroll"><svg class="chart" id="ch-ret" viewBox="0 0 720 170"></svg></div>
+      </div>
+      <div class="prose"><p>论文说读出性能“和模型容量强相关”，但数字并不单调：2 层（42.8）比直接拼接（45.6）还低，4 层（44.4）又比 3 层（49.3）低近 5 个点。更稳妥的读法是：3 层这个配置在这次评测里最好。</p></div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>交叉注意力还是自注意力</h4>
+        <p>正文和表 10 图注都说是交叉注意力（cross-attention），附录表 6 却把这个模块写成“Self-Attention Transformer (3 layers)”。如果是把记忆 token 和 VL token 拼在一起做自注意力，记忆 token 之间、VL token 之间也会互相看，和公式里的单向读出不是一回事。另外公式用 √C 缩放，而多头实现里应是每头维度 64。</p>
+      </div>
+    </section>
+
+    <section id="train">
+      <p class="eyebrow">方法 · 训练与推理 · §4.2 · 附录 B · 算法 1</p>
+      <h2>训练时感知栈离线跑，推理时在线跑</h2>
+      <div class="cards">
+        <div class="card m">
+          <h4>训练</h4>
+          <dl>
+            <dt>基座</dt><dd>GR00T N1.5。论文原话是“采用 GR00T N1.5 作为真机 baseline”；框架图里的 VLM、状态/动作编码器、DiT 块和 embodiment-specific 动作解码器与 GR00T N1.5 一致，<span class="tag read">解读</span>记忆模块是加在它上面的</dd>
+            <dt>可训练</dt><dd>除 VLM 的语言解码器外全部训练，多任务学习</dd>
+            <dt>规模</dt><dd>batch 60，30,000 步，32 张 H200</dd>
+            <dt>损失</dt><dd>正文没写；输入里有“加噪动作序列”，<span class="tag read">解读</span>应沿用 GR00T 的 flow matching 动作损失，记忆模块没有辅助损失</dd>
+            <dt>记忆</dt><dd>Spatial Memory Construction 在数据预处理阶段离线完成（算法 1）</dd>
+          </dl>
+        </div>
+        <div class="card o">
+          <h4>推理</h4>
+          <dl>
+            <dt>硬件</dt><dd>一台 RTX 4090 服务器（机器人上有 Jetson AGX Orin 64 GB，但推理不在上面）</dd>
+            <dt>触发</dt><dd>轻量检测器判断目标是否可见，不可见才扫描；检测器是哪个没写</dd>
+            <dt>扫描</dt><dd>预定义轨迹，不是学出来的探索策略</dd>
+            <dt>仿真</dt><dd>overview memory 直接用初始观测构建，没有扫描</dd>
+            <dt>延迟</dt><dd>约 1.58 s / 动作块（表 12），GR00T N1.5 约 1.30 s</dd>
+          </dl>
+        </div>
+      </div>
+      <h3>算法 1：稀疏取证据，再回填到每一步</h3>
+      <div class="chartbox">
+        <h4>MemoryPreprocess 的三步</h4>
+        <p class="sub">示意 N = 20（表 11 选定的间隔）。扫描段每 N/3 帧取一帧，操作段每 N 步取一帧，其余步回填最近的取样步 t′ = ⌊t/N⌋·N。</p>
+        <div class="scroll"><svg class="chart" id="ch-alg" viewBox="0 0 760 190"></svg></div>
+      </div>
+      <div class="prose">
+        <p>回填意味着训练时一个 20 步区间内的所有样本，看到的是同一份记忆证据；论文称这样“经验上保留了刷新所需的全部信息”。推理时记忆多久刷新一次，论文没有单独说明。</p>
+      </div>
+      <div class="chartbox">
+        <h4>采样间隔 N（附录表 11）</h4>
+        <p class="sub">GR1 平均成功率。表题说的是“扫描序列的采样频率”，但 GR1 没有扫描阶段（记忆从首帧构建），这里实际变的应是操作段的刷新间隔。</p>
+        <div class="scroll"><svg class="chart narrow" id="ch-int" viewBox="0 0 520 170" style="min-width:360px"></svg></div>
+        <details class="raw" id="raw-int"><summary>原表数字（表 11）</summary></details>
+      </div>
+      <div class="chartbox">
+        <h4>在线推理延迟（附录表 12）</h4>
+        <p class="sub">真机实验，每个动作块的秒数，均为约数。</p>
+        <div class="scroll"><svg class="chart narrow" id="ch-lat" viewBox="0 0 520 150" style="min-width:360px"></svg></div>
+      </div>
+      <div class="prose"><p>SOMA 比 GR00T N1.5 每块多约 0.28 s。论文说“同一量级、不构成过大开销”。动作块长度 H 和控制频率都没给，所以换算不出实际的反应频率；这 1.58 s 里是否每块都重跑 YOLO-World + DINOv3 + VGGT 也没说。</p></div>
+    </section>
+
+    <section id="setup">
+      <p class="eyebrow">实验设置 · §4.1–4.2 · 附录 A、C</p>
+      <h2>五个“看不见”的抓放任务，外加两个全可见的仿真基准</h2>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/robot.jpg" aria-label="放大原文图 6"><img src="fig/robot.jpg" width="1400" height="817" alt="原文图 6：自研人形机器人，标注 7 自由度 Realman ZM73 手臂、2 自由度颈部电机、RealSense D435、1 自由度夹爪、Jetson AGX Orin" loading="lazy"></button>
+        <figcaption><b>原文 Figure 6</b>自研人形平台：两条 7 自由度 Realman ZM73 臂、1 自由度自适应夹爪、2 自由度云台头（pan–tilt）。正文说头部和双腕各装一个 Intel RealSense D435（RGB-D）；图里胸前还有一个 D435，论文没提到它的用途。机载 NVIDIA Jetson AGX Orin 64 GB。</figcaption>
+      </figure>
+      <div class="cards">
+        <div class="card o">
+          <h4>遥操作与数据清洗（附录 A）</h4>
+          <p>Meta Quest 3 做统一接口，操作员穿仿 GELLO 的全尺寸双臂外骨骼，关节到关节映射到机器人双臂。头部 pan–tilt 映射到 Quest 3 手柄按键，离散、低延迟地调视角。<strong>不往头显里推相机画面</strong>，所有画面显示在工作站的显示器上，以免编码、无线传输和渲染延迟。</p>
+          <p>逐帧人工审查 6 条规则：执行延迟 ≥300 ms；夹爪开合抖动；夹爪读数尖峰（正常 0–1000，出现 1001–1010 视为损坏）；画面被人体侵入、手臂缺失或严重运动模糊；自上而下的抓取（要求水平抓取）；丢帧 ≥2.5 帧（录制上限 25 FPS）。</p>
+        </div>
+        <div class="card m">
+          <h4>数据量（附录 A）</h4>
+          <p>5 个任务 × 400 条示范 = 2000 条，每个任务 3 种物体。每条轨迹包含<strong>扫描段</strong>（建 overview memory）和<strong>操作段</strong>（所有对比模型都用操作段训练）。</p>
+          <p>原始数据降采样 2 倍后共 <strong>711,524 帧</strong>，平均 <strong>12.74 Hz</strong>，约 <strong>15.52 小时</strong>。</p>
+          <p class="small muted">基线同样在“可动头部”的数据上训练，论文称为公平起见；Fixed Head Camera 是把 SOMA 放在固定头部设置下训练。</p>
+        </div>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/tasks.jpg" aria-label="放大原文图 3"><img src="fig/tasks.jpg" width="1800" height="337" alt="原文图 3：五个视野外抓放任务的俯视示意，红色区域为初始视野外" loading="lazy"></button>
+        <figcaption><b>原文 Figure 3</b>五个任务的俯视布置，偏红的区域在机器人初始视野外，虚线是物体的移动路径。1–3 用左臂把视野外（或视野内）的物体放进篮子；4 先放一个视野内物体、再放一个视野外物体；5 需要双臂交接。</figcaption>
+      </figure>
+      <div class="tblwrap">
+        <table class="t" style="min-width:640px">
+          <thead><tr><th>任务</th><th>抓取目标</th><th>放置目标</th><th>评测阶段（图 4）</th><th>考什么</th></tr></thead>
+          <tbody>
+            <tr><th>1 Invisible-to-Invisible</th><td>视野外</td><td>视野外</td><td>Pick / Place</td><td>完全脱离直接观测的操作</td></tr>
+            <tr><th>2 Visible-to-Invisible</th><td>视野内</td><td>视野外</td><td>Pick / Place</td><td>召回看不见的放置位置</td></tr>
+            <tr><th>3 Invisible-to-Visible</th><td>视野外</td><td>视野内</td><td>Pick / Place</td><td>召回看不见的物体再精确执行</td></tr>
+            <tr><th>4 Sequential Dual-Object</th><td>先视野内、后视野外</td><td>同一个篮子</td><td>PnP-1 / PnP-2</td><td>跨阶段保留并复用记忆</td></tr>
+            <tr><th>5 Dual-Arm Coordination</th><td>视野外</td><td>视野外</td><td>Pick / Exchange / Place</td><td>双臂交接 + 全局一致的空间表示</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>真机评测：</strong>每个任务 20 个回合，报告各阶段成功率。基线 StarVLA、SpatialVLA、GR00T N1.5 均用可动头部训练，外加 Fixed Head Camera 版 SOMA。</li>
+          <li><strong>RoboCasa Tabletop GR1：</strong>GR-1 人形 + Fourier 灵巧手，24 个任务分 5 类（容器交互、烹饪准备、桌面上菜、餐具转移、托盘整理），单路头部第一视角 RGB。每任务 30 / 100 / 300 条示范和 Full（完整数据集）。基线 Diffusion Policy、StarVLA*（Qwen-GR00T 设置）、GR00T N1.5。<strong>所有物体都可见。</strong></li>
+          <li><strong>SimplerEnv：</strong>只用 Fractal（Google Robot）套件的 3 个任务：Pick Coke Can、Move Near、Open/Close Drawer，分 Visual Matching 和 Variant Aggregation 两种协议。表注说所有模型都在 OXE 上预训练、再在 Fractal 上微调。</li>
+          <li><strong>消融：</strong>在 GR1 上做，以 Full 数据版本为基线，正文说“每个设置评测 50 个回合”。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="results">
+      <p class="eyebrow">结果 · §4.3–4.5 · 附录 D</p>
+      <h2>真机三组、仿真两组、消融四组</h2>
+
+      <h3 style="margin-top:0">真机：五个任务的分阶段成功率（原文 Figure 4）</h3>
+      <div class="chartbox">
+        <h4>每个阶段的成功率，20 个回合</h4>
+        <p class="sub">数字读自原图柱顶标注。上：任务 1–3；下：任务 4–5。纵向虚线分隔任务。</p>
+        <div class="legend"><span><i class="bg-b2"></i>Fixed Head Camera</span><span><i class="bg-b1"></i>StarVLA</span><span><i class="bg-b0"></i>SpatialVLA</span><span><i class="bg-sea"></i>GR00T N1.5</span><span><i class="bg-ours"></i>SOMA</span></div>
+        <div class="scroll"><svg class="chart" id="ch-real-a" viewBox="0 0 720 280"></svg></div>
+        <div class="scroll"><svg class="chart" id="ch-real-b" viewBox="0 0 720 280"></svg></div>
+        <details class="raw" id="raw-real"><summary>图中数字（Figure 4）</summary></details>
+      </div>
+      <div class="chartbox">
+        <h4>按任务把阶段取平均，再对五个任务取平均</h4>
+        <p class="sub">我们按图 4 算的。SOMA 的结果 28.3 与表 2 “Full SOMA” 的 SR 一致，说明表 2 用的就是这种口径。</p>
+        <div class="scroll"><svg class="chart narrow" id="ch-real-avg" viewBox="0 0 560 190" style="min-width:380px"></svg></div>
+      </div>
+      <div class="prose">
+        <p>几个读数：</p>
+        <ul>
+          <li><strong>固定头部基本做不了。</strong>Fixed Head Camera 只在“抓取目标起初可见”的阶段有分（任务 2 Pick 25、任务 4 PnP-1 30），其余全是 0，说明任务确实依赖视野外信息。</li>
+          <li><strong>可动头部的三个基线几乎一样。</strong>StarVLA、SpatialVLA、GR00T N1.5 平均 15.5–18.3，差距在 1 个回合左右。</li>
+          <li><strong>SOMA 的优势落在后半程。</strong>任务 4 第二个物体（视野外）25 vs 15，任务 2 放到看不见的篮子里 35 vs 15。但任务 5 的 Exchange 阶段 SOMA 和 StarVLA、GR00T 一样是 10（2/20）。</li>
+          <li><strong>绝对水平低。</strong>最高的单阶段是 40（任务 4 PnP-1，StarVLA 同为 40）；每个百分点差 5 就是 1 个回合。</li>
+        </ul>
+      </div>
+
+      <h3>真机：行为指标（表 1）</h3>
+      <div class="chartbox">
+        <h4>GR00T N1.5 vs SOMA，越低越好</h4>
+        <p class="sub">附录 D.2 定义：每个回合算一次，再对 20 个回合平均。条旁的百分比是表里标注的降幅。</p>
+        <div class="ctrl"><div class="seg" role="group" aria-label="选择行为指标" id="beh-seg"></div></div>
+        <div class="legend"><span><i class="bg-sea"></i>GR00T N1.5</span><span><i class="bg-ours"></i>SOMA</span></div>
+        <div class="scroll"><svg class="chart" id="ch-beh" viewBox="0 0 720 300"></svg></div>
+        <p class="say" id="beh-def"></p>
+        <details class="raw" id="raw-beh"><summary>原表数字（表 1）</summary></details>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>行为指标的定义和用法有几处说不通</h4>
+        <ul>
+          <li><strong>First-Fixation Time 不是“找到目标的时间”。</strong>附录定义是从目标<em>首次进入</em>头部视野到手臂<em>开始抓取</em>的时长（人工离线标注）。正文却把它解读为“视觉锁定目标所需的时间缩短”。按定义，它衡量的是看到之后多快下手。</li>
+          <li><strong>Time-to-Grasp 的单位。</strong>附录定义为“从回合开始到成功抓取的环境步数”，表 1 的单位却是秒。</li>
+          <li><strong>失败回合怎么算。</strong>Grasp Attempt Count 和 Time-to-Grasp 都以“直到成功抓取”为终点，但 GR00T 的抓取阶段成功率只有 15–35%，SOMA 也只有 30–40%：多数回合没有成功抓取。论文说每个指标对 20 个回合取平均，失败回合用什么值没交代。SOMA 在任务 1、3 上 Grasp Attempt 恰好是 1.0。</li>
+          <li><strong>任务 2 的搜索转角。</strong>任务 2 的抓取目标起初就在视野里，“目标首次可见前的头部累计转角”应接近 0，表里却是 51.0 / 28.1 度，这里的“目标”指什么（可能是放置目标）没说明。</li>
+          <li><span class="tag read">解读</span><strong>降幅过于整齐。</strong>同一任务上五个性质不同的指标降幅几乎相同：任务 1 全在 44–45%，任务 5 全在 57–60%。论文没有给逐回合数据或方差，无法判断这是巧合还是计算方式造成的。</li>
+        </ul>
+      </div>
+
+      <h3>真机：扫描和记忆各贡献多少（表 2）</h3>
+      <div class="chartbox">
+        <h4>四个变体，5 个任务</h4>
+        <p class="sub">Scan+GR00T：扫描，把检测到目标的那一帧当作固定视觉输入给反应式策略，没有持久记忆。No-Scan SOMA：记忆只从第一帧初始化。Scan-only SOMA：扫描建图，但操作中关掉刷新。</p>
+        <div class="legend"><span><i class="bg-b1"></i>Scan+GR00T</span><span><i class="bg-b0"></i>No-Scan SOMA</span><span><i class="bg-och"></i>Scan-only SOMA</span><span><i class="bg-ours"></i>Full SOMA</span></div>
+        <div class="scroll"><svg class="chart" id="ch-scan" viewBox="0 0 720 280"></svg></div>
+        <details class="raw" id="raw-scan"><summary>原表数字（表 2）</summary></details>
+      </div>
+      <div class="prose"><p>按平均 SR 逐级看：只扫描不存（18.5）→ 有记忆结构但不扫描（19.8，+1.3）→ 扫描建图但不刷新（24.1，+4.3）→ 扫描 + 刷新（28.3，+4.2）。论文据此认为“主要增益来自持久记忆及其持续刷新，而不是扫描本身”。<span class="tag read">解读</span>也可以说扫描建图和刷新各占一半，单有记忆结构的增益（+1.3）很小。</p></div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>表 2 的数字和 20 个回合对不上</h4>
+        <p>图 4 的每个阶段成功率都是 5 的倍数（20 个回合），按任务对阶段取平均后，两阶段任务只能是 2.5 的倍数，三阶段任务只能是 1.67 的倍数。Full SOMA 那一列完全符合（30.0、35.0、27.5、32.5、16.7）。但另三列有 19.0、22.0、16.0、24.0、26.0、29.0、14.2 这类值，20 个回合按阶段平均得不出来。这三个变体的评测次数或口径论文没说。另外附录表 13 里“VGGT 几何 + 位姿”的视野外 SR 是 27.3，按理应与 Full SOMA 是同一配置，却和 28.3 不同。</p>
+      </div>
+
+      <h3>仿真：RoboCasa Tabletop GR1（表 3）</h3>
+      <div class="chartbox">
+        <h4>平均成功率随每任务示范数的变化</h4>
+        <p class="sub">横轴按类别等距。Diffusion Policy 没有 Full 数据的结果。</p>
+        <div class="legend"><span><i class="bg-b1"></i>Diffusion Policy</span><span><i class="bg-b2"></i>StarVLA*</span><span><i class="bg-sea"></i>GR00T N1.5</span><span><i class="bg-ours"></i>SOMA</span></div>
+        <div class="scroll"><svg class="chart" id="ch-gr1" viewBox="0 0 720 260"></svg></div>
+      </div>
+      <div class="chartbox">
+        <h4>五个类别的热力表</h4>
+        <p class="sub">颜色越深分越高；SOMA 列下方小字为相对 GR00T N1.5 的差值（我们算的）。</p>
+        <div class="ctrl"><span class="lbl">每任务示范数</span><div class="seg k" role="group" aria-label="选择示范数" id="gr1-seg"></div></div>
+        <div class="scroll" id="heat-gr1"></div>
+        <details class="raw" id="raw-gr1"><summary>原表数字（表 3）</summary></details>
+      </div>
+      <div class="prose">
+        <p>这个基准所有物体都可见，论文把它当作“隔离出记忆设计本身”的测试。SOMA 在 30 条示范时平均 48.3，已经高于 GR00T N1.5 用完整数据的 45.9，这是论文强调的数据效率。但 SOMA 自己的曲线几乎是平的（48.3 → 49.1 → 52.0 → 49.3），Full 比 300 条还低 2.7。</p>
+        <p>按类别看，优势集中在<strong>容器交互</strong>（放进柜子/抽屉/微波炉再关上）：Full 数据 55.6 vs 40.3。另外几类在 Full 数据下 SOMA 并不总是更好：烹饪准备 46.4 vs 49.2，托盘整理 47.6 vs 50.8，餐具转移 49.5 vs 50.0。容器交互在 300 条时 Diffusion Policy（54.2）也略高于 SOMA（53.3）。正文和附录说的“在所有数据量下都是 SOTA”只对<strong>平均值</strong>成立。</p>
+      </div>
+
+      <h3>仿真：SimplerEnv Fractal（表 4）</h3>
+      <div class="chartbox">
+        <h4>Google Robot 三个任务的平均</h4>
+        <p class="sub">左：Visual Matching；右：Variant Aggregation。两种协议列出的基线不同。</p>
+        <div class="scroll"><svg class="chart" id="ch-simpler" viewBox="0 0 760 260"></svg></div>
+        <details class="raw" id="raw-simpler"><summary>原表数字（表 4）</summary></details>
+      </div>
+      <div class="prose"><p>SOMA 相对自己的基座 GR00T N1.5 提升明显（VM 45.0 → 63.2，VA 42.4 → 52.5），主要来自 Pick Coke Can 和 Move Near；Open/Close Drawer 只有 31.5 / 25.4，低于表里多数基线。VM 平均 63.2 只比 OpenVLA-OFT 的 63.0 高 0.2。</p></div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>基线挑选与均值</h4>
+        <p>表 4 没有列 SOMA 在相关工作里引用的 MemoryVLA，也没列它在真机里对比的 SpatialVLA。按 MemoryVLA 论文自己的表，同样三个 VM 任务上 MemoryVLA 是 90.7 / 88.0 / 84.7，CogACT 是 91.3 / 85.0 / 71.8，SpatialVLA 是 79.3 / 90.0 / 54.6，都高于 SOMA 的 85.0 / 73.0 / 31.5（不同论文的评测细节可能不同）。此外表 4 里 TraceVLA 的 VM 平均写 42.0，三列的平均是 46.2；RoboVLM 的 VA 平均写 51.3，三列平均是 48.7。</p>
+      </div>
+
+      <h3>消融：记忆的三个组件（表 5 · 表 10）</h3>
+      <div class="chartbox">
+        <h4>GR1 Full 数据，平均成功率</h4>
+        <p class="sub">表 5 的 w/o Geo. 对应表 10 的 “Obj.”（只留物体语义），w/o Obj. 对应 “Geo.”（只留几何），w/o Update 对应 “NoUpd”。</p>
+        <div class="scroll"><svg class="chart" id="ch-abl" viewBox="0 0 720 360"></svg></div>
+        <details class="raw" id="raw-abl"><summary>原表数字（表 10 的类别行）</summary></details>
+      </div>
+      <div class="prose"><p>三个组件各拿掉一个：去掉几何 −4.2，去掉物体语义 −5.6，去掉刷新 −7.8（最大）。</p></div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>消融的增益几乎全来自一个类别，评测次数也对不上</h4>
+        <p>表 10 里完整模型在<strong>容器交互</strong>上是 55.7，所有变体都在 29.2–37.5。拿掉这一类、只看另外四类的平均（我们算的）：完整模型 47.8，Concat 48.5、Only g 48.0 反而更高，Heavy 47.0、Obj. 46.9、Geo. 46.2 也只差 1 个点左右。见下方“读懂它”里的对照图。</p>
+        <p>正文说每个消融设置评测 50 个回合，那么逐任务成功率应是 2 的倍数。完整模型那一列确实如此，但变体列大量出现 25.0、35.0、45.0、15.0 这样的 5 的倍数，更像 20 个回合。变体的“托盘整理”类别均值还都等于去掉 TrayToCardboardbox 后另外 4 个任务的平均（例如 SimEMA 47.5），而完整模型的 47.6 是 5 个任务的平均。正文还写“只用一个门掉 8.6%∼8.3%”，按表是 8.6 和 5.1。</p>
+      </div>
+
+      <h3>失败分析（附录 D.7 · 表 14 · 表 15）</h3>
+      <div class="two">
+        <div>
+          <h4>真机：25 个失败回合（每任务 5 个）</h4>
+          <div class="stack" id="fail-real"></div>
+          <ul class="stackleg" id="fail-real-leg"></ul>
+        </div>
+        <div>
+          <h4>GR1 全可见仿真：50 个失败回合（每类 10 个）</h4>
+          <div class="stack" id="fail-sim"></div>
+          <ul class="stackleg" id="fail-sim-leg"></ul>
+        </div>
+      </div>
+      <div class="prose"><p>两边的失败性质不同。真机上，论文认为记忆给出的定位基本可靠，问题出在<strong>头还在动时把定位变成准确的动作</strong>：视角变化导致抓取位姿估计不准占 48%。全可见仿真里没有视野外问题，失败暴露的是<strong>记忆机制本身</strong>：VGGT 在细长/无纹理物体上的几何噪声污染空间 token（44%），交叉注意力激活了无关记忆（32%），以及物体级记忆分不清“抽屉开着还是关着”这类状态变化（24%）。</p></div>
+
+      <h3>定性结果</h3>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/scan-examples.jpg" aria-label="放大原文图 9"><img src="fig/scan-examples.jpg" width="1500" height="1420" alt="原文图 9：顺序双物体和双臂协调任务的执行序列，每个任务上面一行是扫描阶段，下面两行是操作阶段" loading="lazy"></button>
+        <figcaption><b>原文 Figure 9</b>附录里的两个更难任务。每组第一行标 <b>Overview</b>，是操作前的扫描：红色箭头是头部转动方向，可以看到头先向一侧、再向另一侧转。下面两行是 <b>Manipulation</b>：(1) 顺序双物体，先放近处的物体，再转头去拿视野外的第二个；(2) 双臂协调，一只手取物、交接、另一只手放入篮子。</figcaption>
+      </figure>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/real-demo.jpg" aria-label="放大原文图 5"><img src="fig/real-demo.jpg" width="1800" height="878" alt="原文图 5：五个视野外任务的执行示例帧" loading="lazy"></button>
+        <figcaption><b>原文 Figure 5</b>五个任务各取几帧，红色箭头标头部转向。论文没有给出对应的失败示例或基线的对比画面。</figcaption>
+      </figure>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/gr1-qual.jpg" aria-label="放大原文图 10"><img src="fig/gr1-qual.jpg" width="1143" height="1300" alt="原文图 10：RoboCasa GR1 上 SOMA 的执行序列，8 个任务" loading="lazy"></button>
+        <figcaption><b>原文 Figure 10</b>GR1 上 8 段执行。论文想说明的是：GR-1 的手臂、手、腰部自由度高，头部相机视角跟着剧烈变化，记忆在这种视觉不稳定下仍可用。注意这里所有物体都在视野内。</figcaption>
+      </figure>
+    </section>
+
+    <section id="insight">
+      <p class="eyebrow">读懂它</p>
+      <h2>这篇真正说明了什么</h2>
+      <h3 style="margin-top:0">关键 insight</h3>
+      <div class="cards">
+        <div class="card m"><h4>1. 空间记忆可以按“物体”而不是按“时间”组织</h4><p>SOMA 的记忆是 N<sub>I</sub> 个物体 token，每个绑定一个 3D 框。它回答的是“东西在哪”，不是“刚才发生了什么”。容量随物体数增长、不随回合长度增长，也就不需要 MemoryVLA 那样的合并机制。代价是它对“状态”无感：失败分析里 24% 的仿真失败是分不清抽屉开关。</p></div>
+        <div class="card o"><h4>2. 扫描只是取证，存下来并持续刷新才有用</h4><p>表 2：只扫描、把那一帧喂给反应式策略（18.5）几乎没有增益，和图 4 里 GR00T 的 18.3 相当。扫描建图 +4.3，持续刷新再 +4.2。换句话说，主动去看本身不够，看到的东西要进一个能被反复读的结构。</p></div>
+        <div class="card s"><h4>3. 现成感知模型做“记什么”，VLA 只负责“怎么读”</h4><p>YOLO-World、DINOv3、VGGT 都是冻结的外部模块，训练时离线跑完。真正训练的是几个小 MLP、门控和 3 层注意力。这让记忆的质量上限受感知模型约束：44% 的仿真失败来自 VGGT 的几何噪声。</p></div>
+        <div class="card"><h4>4. 全可见的仿真增益主要来自一类任务</h4><p>GR1 上 SOMA 对 GR00T 的平均优势和消融里完整模型的优势，都主要落在容器交互这一类。下图把这一类拿掉后重算消融平均。</p></div>
+      </div>
+      <div class="chartbox">
+        <h4>拿掉“容器交互”之后，消融还剩多少差距</h4>
+        <p class="sub">我们用表 10 的类别行计算：5 类平均 vs 其余 4 类平均。</p>
+        <div class="ctrl"><div class="seg" role="group" aria-label="切换口径" id="ex-seg"><button type="button" data-x="all" aria-pressed="false">5 类平均（论文口径）</button><button type="button" data-x="ex" aria-pressed="true">去掉容器交互的 4 类平均</button></div></div>
+        <div class="scroll"><svg class="chart" id="ch-ex" viewBox="0 0 720 360"></svg></div>
+      </div>
+      <h3>容易误解的地方</h3>
+      <div class="prose">
+        <ul>
+          <li><strong>“检索”不是搜索。</strong>没有显式选出目标物再去找的步骤；所有 VL token 对全部记忆 token 做软注意力，取哪条靠学到的权重。仿真里 32% 的失败恰恰是注意力激活了无关条目。</li>
+          <li><strong>扫描不是学出来的主动探索。</strong>扫描沿预定义轨迹走，由一个检测器判断“目标不可见”来触发。操作中头怎么动是策略输出的（<span class="tag read">解读</span>：遥操作数据里操作员用手柄按键控制头部，行为指标统计的就是这部分头部运动，但论文没有列出动作空间的维度）。</li>
+          <li><strong>“40–60% 的行为改善”只对比了 GR00T N1.5。</strong>StarVLA、SpatialVLA 没有行为指标。</li>
+          <li><strong>仿真结果不测视野外能力。</strong>GR1 和 SimplerEnv 都是全可见，记忆从第一帧构建，没有扫描。论文把它们定位为“常规可见条件下记忆设计依然有益”。</li>
+          <li><strong>真机“最高成功率”是相对的。</strong>SOMA 平均 28.3%，意味着大约十次里成功三次左右。</li>
+        </ul>
+      </div>
+      <h3>FAQ</h3>
+      <details class="faq"><summary>物体在视野外被挪走，记忆会怎样？</summary><div class="a"><p>按 §3.2 的规则，没被观测到的条目原样保留，所以记忆会一直指向旧位置，直到头部再次看到这个物体。看到之后，如果按“同类 + 外观 + 几何”的判据匹配上，就用 α = g·s 做 EMA，逐步移到新位置；如果几何差太多没匹配上，会作为新条目追加，旧条目仍在，记忆里就有了一个过时的副本。论文在局限里承认“陈旧或错误的记忆可能危及安全”，提出记忆过期、重新扫描触发等缓解办法，但没有实现。真机的 5 个任务里也没有“趁机器人不看时挪动物体”这种扰动。可以在上面的沙盘里试。</p></div></details>
+      <details class="faq"><summary>操作阶段的单帧怎么放进扫描时的全局坐标系？</summary><div class="a"><p>论文没说。§3.1 说 VGGT 对扫描序列给出一致的场景坐标系，并把它当全局参考系；§3.2 说当前头部帧“过同一条流水线”。单帧跑 VGGT 只能得到相机坐标系下的几何，要和扫描坐标系对齐，需要联合推理、配准，或者用头部关节角算外参。三种做法论文都没提到。</p></div></details>
+      <details class="faq"><summary>为什么不直接用深度相机？</summary><div class="a"><p>表 13 的对比：RGB-D + OpenCV 融合 22.6%，VGGT 27.3%，延迟 0.18 s vs 0.21 s。论文的解释是多视角点云配准会累积深度噪声和错位，VGGT 的跨视角几何更一致。这是一次单配置对比，没有试别的配准方法。</p></div></details>
+      <details class="faq"><summary>记忆在 GR00T 里接在哪？</summary><div class="a"><p>在 VLM 输出和 DiT 动作头之间。VLM 的 token 先对记忆做 3 层注意力得到 <b>X</b><sub>boost</sub>，<b>X</b><sub>boost</sub> 作为额外的全局上下文送进 DiT，原始 VL token 照常送入。GR00T 的 VLM 本体不看记忆。训练时除了 VLM 的语言解码器，其余部分都更新。</p></div></details>
+      <details class="faq"><summary>为什么 GR1 上的记忆也有用，明明什么都看得见？</summary><div class="a"><p>论文的解释是显式场景表示 + 指令条件的读出提供了更结构化的归纳偏置。附录图 10 的图注补了一点：GR-1 的手臂、手、腰会带着头部相机大幅晃动，视角不稳，记忆提供了一个跨帧稳定的物体表示。不过上面的分析显示，增益主要集中在容器交互一类，其余类别和 GR00T 互有高低。</p></div></details>
+    </section>
+
+    <section id="limits">
+      <p class="eyebrow">局限与疑点</p>
+      <h2>作者承认的，和我们读出来的</h2>
+      <div class="two">
+        <div>
+          <h4>论文自己提到的（附录 D.7、D.8）</h4>
+          <ul>
+            <li>扫描假设场景准静态、时间短；实例关联和融合用全局固定阈值。完全动态的场景、更大的自运动、密集杂乱需要实时跟踪、基于置信度的重扫和逐 token 的几何置信度；匹配判据应该学出来而不是手调。</li>
+            <li>残余失败更多来自“头还在动时把空间线索变成精确动作”，需要更紧的头—臂协调和视角稳定的动作解码。</li>
+            <li>记忆只到物体级（位置和外观），分不清抽屉开/关这类有意义的状态变化，限制多阶段任务；可以给空间 token 加阶段转换信号。</li>
+            <li>扩展到移动操作或房间尺度需要分层记忆和回环/SLAM 对齐来控制漂移。</li>
+            <li>持久记忆带来安全和隐私风险：陈旧或错误的记忆可能危及人机共处环境的安全；建议置信度评分、重扫触发、记忆过期、本地存储和人在回路确认。</li>
+          </ul>
+        </div>
+        <div>
+          <h4>我们读出来的</h4>
+          <ul>
+            <li><span class="tag doubt">疑点</span>真机每任务 20 个回合，没有方差或置信区间；三个可动头部基线之间、以及 SOMA 与它们之间的很多差距只有 1–3 个回合。</li>
+            <li><span class="tag doubt">疑点</span>表 2 的三列变体数字与“20 回合 × 阶段平均”的粒度不符；表 13 的 VGGT 配置 27.3 与 Full SOMA 28.3 不一致。</li>
+            <li><span class="tag doubt">疑点</span>行为指标：First-Fixation Time 的定义与正文解读不符；Time-to-Grasp 定义为步数却以秒报告；失败回合如何计入未说明；任务 2 的搜索转角含义不明；五项降幅在同一任务上异常一致。</li>
+            <li><span class="tag doubt">疑点</span>附录表 9 的 GR1 逐任务数字与类别均值多处算不拢：SOMA 容器交互 300 条的 6 个任务平均是 58.2，表里写 53.3；GR00T 烹饪准备 Full 的 5 个任务平均是 55.6，表里写 49.2；GR00T 餐具转移 300 条是 43.0 vs 51.0。SOMA Full 列有 6 个任务的数字与表 10 的 Full 列不同，而两表的类别均值完全相同。正文表 3 与附录表 9 还有 55.6/55.7、52.0/51.9、44.9/45.0、45.9/46.0、20.0/20.1、54.2/54.3 这类小出入。</li>
+            <li><span class="tag doubt">疑点</span>消融：正文说 50 个回合，变体的逐任务数字是 5 的倍数；托盘整理类别均值的计算口径不一；“8.6%∼8.3%”应为 8.6 和 5.1；增益几乎全部来自容器交互。</li>
+            <li><span class="tag doubt">疑点</span>SimplerEnv 表没有列出在同样任务上报告更高分数的已发表方法（如 MemoryVLA、CogACT）；两个基线的平均值与其三列不符。</li>
+            <li>结构细节不一致：Φ<sub>sim</sub> 的输入维度、s/g 是向量还是标量、<b>p</b><sub>k</sub> 与 <b>p̄</b><sub>c</sub>、读出模块是交叉注意力还是自注意力；符号 C 同时指 DINOv3 宽度和 VL token 宽度。</li>
+            <li><span class="tag nd">未披露</span>动作块长度 H、控制频率、推理时的记忆刷新频率、触发用的检测器、YOLO-World 的词表、关联阈值和外观/几何权重、操作阶段单帧与扫描坐标系的对齐方式、预定义扫描轨迹的角度范围和时长、扫描段是否计入回合时间。</li>
+            <li>记忆 token 不带时间戳或“多久没被看到”的信息，策略无法区分新鲜条目和陈旧条目（对比 TIC-VLA 显式输入延迟元数据）。</li>
+            <li>只有一个自研平台、5 个抓放类任务、每个任务 3 种物体；代码尚未发布。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="topic">
+      <p class="eyebrow">放到专题里看</p>
+      <h2>记忆类 harness 里，唯一存“空间状态”的一篇</h2>
+      <div class="prose">
+        <p>在 <a href="../../topics/robot-harness/">Harness for Robotics 专题</a>里，SOMA 属于 <strong>Persistent State / Memory</strong>：它改的是策略<strong>记住什么</strong>。具体说，它在多步任务中持续保存的是<em>空间状态</em>（每个物体的外观和 3D 位置），形式是一组物体 token，插在 VLM 与 DiT 动作头之间，用交叉注意力读出。它也是同类四篇里唯一和“看什么”深度耦合的：记忆的内容取决于一次主动扫描。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t cmp">
+          <thead><tr><th></th><th class="me">SOMA</th><th>MemoryVLA</th><th>OptimusVLA</th><th>HiMe</th></tr></thead>
+          <tbody>
+            <tr><th>记住什么</th><td class="me">每个物体的 DINOv3 外观 + VGGT 3D 框（空间状态）</td><td>过去各时间步的 VLM 感知 token（256 个）和认知 token（1 个），带时间步位置编码（执行历史）</td><td>GPM：离线示范库里的整条轨迹；LCM：上一个动作块和 Mamba 隐状态（动作历史）</td><td>多模态键值库（图像 + 文字：物体状态、空间约束、人的偏好）+ 子目标清单（任务状态）</td></tr>
+            <tr><th>按什么索引</th><td class="me">物体（类别 + 外观 + 几何）</td><td>时间步</td><td>任务嵌入的余弦相似度</td><td>文本键的向量检索</td></tr>
+            <tr><th>写入 / 更新</th><td class="me">扫描时同类关联、平均合并；操作中 α = g·s 的门控 EMA，未匹配的观测追加</td><td>每步写入门控融合后的 token；超过容量时合并相邻最相似的一对</td><td>GPM 训练后固定；LCM 每块滚动</td><td>Sentry 判定子任务完成或偏离时，触发 GPT-4o Planner 做 Add / Update / Delete</td></tr>
+            <tr><th>遗忘</th><td class="me">无，未观测到的条目一直保留</td><td>相似合并</td><td>不适用</td><td>显式 Delete</td></tr>
+            <tr><th>怎么读出</th><td class="me">VL token 作 query，3 层注意力，输出作 DiT 的额外上下文</td><td>当前 token 作 query，2 层交叉注意力 + 门控融合，再条件扩散动作专家</td><td>检索 top-k 轨迹组成先验分布作 flow 起点；LCM 偏置加到初始噪声上</td><td>Planner 读检索结果，输出语言子目标给执行器</td></tr>
+            <tr><th>插在哪</th><td class="me">VLM 与动作头之间 + 外部感知栈</td><td>VLM 与动作专家之间</td><td>动作生成的起点（噪声先验）</td><td>策略外部的三层系统</td></tr>
+            <tr><th>训练</th><td class="me">在 GR00T N1.5 上微调；感知模型冻结、离线预处理</td><td>7B Prismatic VLM（OXE 预训练）+ 扩散动作专家，端到端</td><td>基于 π0.5，三阶段：预训练 → InfoNCE 训 Prior Head → 冻结 GPM 训 LCM</td><td>只微调执行器（π0.5）；Sentry（Qwen3-VL-8B）和 Planner（GPT-4o）零样本或少样本使用</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>和 <a href="../../papers/memoryvla/">MemoryVLA</a>：</strong>结构上最像。两者都用交叉注意力从记忆读、都有一个 sigmoid 门决定新旧比例（MemoryVLA 是 g ⊙ H + (1−g) ⊙ x 融合读出结果，SOMA 是 α = g·s 的 EMA 更新记忆本身）。根本区别在索引：MemoryVLA 按时间存，解决“动作做没做过”（如按钮按前按后看起来一样）；SOMA 按物体和 3D 位置存，解决“东西在哪”。MemoryVLA 用固定第三人称相机，SOMA 靠可动头部把视锥外的东西写进来。SOMA 在相关工作里把 MemoryVLA 归为“存最近观测或关键帧、服务短时推理”。</li>
+          <li><strong>和 <a href="../../papers/optimusvla/">OptimusVLA</a>：</strong>记忆放在完全不同的地方。OptimusVLA 记的是动作（相似任务的轨迹、刚执行的动作块），用来改动作生成的起点和平滑性；SOMA 记的是场景。两者可以叠加，互不冲突。</li>
+          <li><strong>和 <a href="../../papers/hime/">HiMe</a>：</strong>HiMe 的记忆在策略外面，由大模型用自然语言管理，有显式的增删改，还能记“这是 Alice 的杯子”这类像素里没有的信息；SOMA 的记忆是策略内部的向量，没有删除，也不懂语义状态。HiMe 的频率分层（执行器快、Planner 只在关键节点调用）和 SOMA 的“一次扫描 + 每步刷新”是两种摊销开销的思路。</li>
+          <li><strong>跨类：和 <a href="../../papers/activevla/">ActiveVLA</a>。</strong>同样针对“看不全”，ActiveVLA 属于 Context Architecture：用标定相机重建点云，在关键区域周围渲染<em>虚拟视角</em>并做 3D 放大，每一步重新决定看什么，不跨步保存。SOMA 移动<em>真实</em>的头部，并把看到的存下来。</li>
+          <li><strong>跨类：和 <a href="../../papers/ra-vla/">RA-VLA</a>。</strong>两者都把检索结果通过注意力注入动作生成，但 RA-VLA 检索的是专家示范片段（“怎么做”），来源是回合外的示范库；SOMA 检索的是本回合的场景记忆（“东西在哪”）。</li>
+          <li><strong>跨类：和 <a href="../../papers/tic-vla/">TIC-VLA</a>。</strong>TIC-VLA 把 VLM 语义的“陈旧程度”（延迟、期间的自运动）显式交给策略。SOMA 的记忆条目不带任何时间信息，很久以前看到、之后再没被确认过的条目，和刚刷新过的条目在策略眼里没有区别；<span class="tag read">解读</span>这正是 SOMA 局限里提到的“记忆过期”问题可以借鉴的方向。</li>
+          <li><strong>和（3）结构化执行、（4）评估与反馈两类：</strong>SOMA 在局限里承认记忆只到物体级，分不清抽屉开 / 关这类阶段变化（仿真失败里占 24%）；<a href="../../papers/tau0-vla/">τ₀-VLA</a> 的文字执行记忆记的正是阶段（标注时压缩已完成的阶段、保留当前子任务细节，例如「已放好杯子」「已加盐」）。<span class="tag read">解读</span>两者互补，一个回答「东西在哪」，一个回答「做到哪一步」。<a href="../../papers/motormind/">MotorMind</a> 回答「东西在哪」的办法是每次需要时让 VLM 在多个固定相机视角上画框、三角化，近距离换腕部相机细化；它的失败分析里，VLM 决策错误最多的一类就是定位。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="glossary">
+      <p class="eyebrow">术语表</p>
+      <h2>读这篇会遇到的词</h2>
+      <details class="gl"><summary>展开术语表</summary>
+        <dl>
+          <dt>OOV</dt><dd>Out-of-Vision，目标物或放置位置不在当前相机视野内。</dd>
+          <dt>frustum / 视锥</dt><dd>相机能看到的锥形空间区域。</dd>
+          <dt>view-bound assumption</dt><dd>论文用语：默认指令里的物体在决策时一定出现在当前画面中。</dd>
+          <dt>overview memory 𝓜<sub>0</sub></dt><dd>扫描后建立的初始场景记忆，每个物体一个 token。</dd>
+          <dt>𝓜<sub>t</sub> / 𝓜̂<sub>t</sub></dt><dd>当前头部画面得到的观测 token / 刷新后的记忆。</dd>
+          <dt>(<b>f</b><sub>k</sub>, c<sub>k</sub>, <b>b</b><sub>k</sub>)</dt><dd>一个全局实例的三元组：DINOv3 外观向量、类别、8×3 的 3D 框角点。</dd>
+          <dt>α = g·s</dt><dd>记忆 EMA 的更新系数，s 来自 Φ<sub>sim</sub>，g 来自 Φ<sub>fuse</sub>，都过 sigmoid。</dd>
+          <dt><b>X</b><sub>boost</sub></dt><dd>VL token 对记忆做注意力后的输出，作为 DiT 的额外上下文。</dd>
+          <dt>VGGT</dt><dd>Visual Geometry Grounded Transformer，前馈估计多视角相机位姿和几何。</dd>
+          <dt>YOLO-World</dt><dd>开放词表的实时目标检测器。</dd>
+          <dt>DINOv3</dt><dd>自监督视觉基础模型，这里用作实例外观编码器。</dd>
+          <dt>GR00T N1.5</dt><dd>NVIDIA 的人形机器人 VLA，VLM + DiT 动作头，本文的基座和主要对比对象。</dd>
+          <dt>StarVLA*</dt><dd>本文在仿真中用 Qwen-GR00T 设置实现的 StarVLA。</dd>
+          <dt>pan–tilt</dt><dd>水平转动（偏航）和俯仰，本文机器人的 2 自由度头部。</dd>
+          <dt>back-mapping</dt><dd>算法 1 的第三步：把每 N 步取一次的记忆证据回填给区间内的所有训练样本。</dd>
+          <dt>First-Fixation Time</dt><dd>目标首次进入头部视野到手臂开始抓取的时间（人工标注）。</dd>
+          <dt>Head Search Path Length</dt><dd>目标首次可见之前，头部 pan 和 tilt 角度变化的绝对值累加（度）。</dd>
+          <dt>Viewpoint Correction Count</dt><dd>目标已被看到后，头部改变运动方向去重新对准的次数。</dd>
+          <dt>Visual Matching / Variant Aggregation</dt><dd>SimplerEnv 的两种评测协议：前者贴近真实部署配置，后者加入背景、纹理、光照、干扰物、相机视角等扰动。</dd>
+          <dt>RoboCasa Tabletop GR1</dt><dd>GR-1 人形 + Fourier 灵巧手的桌面重排仿真基准，24 个任务、5 类，单路头部第一视角。</dd>
+        </dl>
+      </details>
+    </section>
+  </main>
+</div>
+<footer class="page">
+  <p>图全部来自论文 arXiv 源码（v1）里的原图。表 1–5、表 9–15 的数字取自 tex 表格；图 4、图 8 的数字读自原图标注。标「解读」的是我们的判断，标「未披露」的是论文没有给出的信息。</p>
+</footer>
+<dialog id="lb" aria-label="放大查看"><div class="box"><img id="lb-img" alt=""></div><div class="bar"><span id="lb-cap"></span><button type="button" id="lb-close">关闭</button></div></dialog>
+<div class="tip" id="tip" hidden></div>
+<script>
+(function(){
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, text){ const e = document.createElementNS(NS, tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* tooltip */
+  const tip = $('#tip');
+  function place(x, y){ const r = tip.getBoundingClientRect(); let l = x + 14, t = y + 14; if (l + r.width > innerWidth - 8) l = x - r.width - 14; if (t + r.height > innerHeight - 8) t = y - r.height - 14; tip.style.left = Math.max(8, l) + 'px'; tip.style.top = Math.max(8, t) + 'px'; }
+  document.addEventListener('pointerover', e => { const t = e.target.closest && e.target.closest('[data-tip]'); if (!t) return; tip.textContent = t.getAttribute('data-tip'); tip.hidden = false; place(e.clientX, e.clientY); });
+  document.addEventListener('pointermove', e => { if (tip.hidden) return; if (!(e.target.closest && e.target.closest('[data-tip]'))) { tip.hidden = true; return; } place(e.clientX, e.clientY); });
+
+  /* lightbox */
+  const lb = $('#lb');
+  $$('figure.plate .zoom').forEach(b => b.addEventListener('click', () => { $('#lb-img').src = b.dataset.src; const c = b.parentElement.querySelector('figcaption b'); $('#lb-cap').textContent = c ? c.textContent : ''; if (lb.showModal) lb.showModal(); else lb.setAttribute('open', ''); }));
+  $('#lb-close').addEventListener('click', () => lb.close());
+  lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+
+  /* toc */
+  const links = $$('.toc a');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id)); }), { rootMargin: '-35% 0px -60% 0px' });
+    $$('main section').forEach(s => io.observe(s));
+  }
+
+  function rawTable(host, head, rows){
+    const d = document.createElement('div'); d.className = 'tblwrap';
+    d.innerHTML = '<table class="t"><thead><tr>' + head.map((h, i) => '<th' + (i ? ' class="num"' : '') + '>' + h + '</th>').join('') + '</tr></thead><tbody>' +
+      rows.map(r => '<tr' + (r.best ? ' class="best"' : '') + '>' + r.cells.map((c, i) => i ? '<td class="num">' + c + '</td>' : '<th>' + c + '</th>').join('') + '</tr>').join('') + '</tbody></table>';
+    host.appendChild(d);
+  }
+
+  /* horizontal bars */
+  function hbars(svg, rows, opt){
+    opt = opt || {}; const W = opt.W || 720, L = opt.left || 190, R = opt.right || 64, top = opt.top || 18, rh = opt.rh || 28, max = opt.max || 100, min = opt.min || 0;
+    const heads = rows.filter(r => r.head).length;
+    const H = top + rows.length * rh + 26; svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const x = v => L + (W - L - R) * (v - min) / (max - min);
+    for (let g = min; g <= max + 1e-9; g += (opt.step || 20)) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: top - 6, y2: H - 22, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: H - 6, 'text-anchor': 'middle', class: 'tick' }, +g.toFixed(2))); }
+    rows.forEach((r, i) => {
+      const y = top + i * rh;
+      if (r.head) { svg.appendChild(el('text', { x: 4, y: y + rh / 2 + 5, class: 'hdr' }, r.head)); return; }
+      svg.appendChild(el('text', { x: L - 10, y: y + rh / 2 + 4, 'text-anchor': 'end', class: 'glabel', 'font-weight': r.hi ? 700 : 400 }, r.label));
+      svg.appendChild(el('rect', { x: L, y: y + 5, width: Math.max(1, x(r.v) - L), height: rh - 11, rx: 2, class: r.cls, 'data-tip': r.label + '：' + (opt.dec != null ? r.v.toFixed(opt.dec) : r.v) + (opt.unit || '') + (r.note ? '（' + r.note + '）' : '') }));
+      svg.appendChild(el('text', { x: x(r.v) + 6, y: y + rh / 2 + 4, class: 'val' + (r.hi ? ' hi' : '') }, (opt.prefix || '') + (opt.dec != null ? r.v.toFixed(opt.dec) : r.v) + (r.suffix || '')));
+    });
+    svg.appendChild(el('line', { x1: L, x2: L, y1: top - 6, y2: H - 22, class: 'base' }));
+  }
+
+  /* vertical grouped bars */
+  function vgroups(svg, groups, series, opt){
+    opt = opt || {}; const W = opt.W || 760, H = opt.H || 300, L = 40, R = 10, T = opt.T || 30, B = opt.B || 46, max = opt.max || 100;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const y = v => T + (H - T - B) * (1 - v / max);
+    for (let g = 0; g <= max; g += (opt.step || 20)) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g)); }
+    const n = groups.length, gw = (W - L - R) / n, bw = Math.min(opt.bw || 22, (gw - 10) / series.length);
+    groups.forEach((gr, i) => {
+      const cx = L + gw * i + gw / 2, x0 = cx - bw * series.length / 2;
+      if (gr.sep) svg.appendChild(el('line', { x1: L + gw * i, x2: L + gw * i, y1: 8, y2: H - 6, stroke: 'var(--ink-2)', 'stroke-dasharray': '3 4', 'stroke-width': .8 }));
+      if (gr.head) svg.appendChild(el('text', { x: L + gw * i + 4, y: 16, class: 'hdr' }, gr.head));
+      series.forEach((s, j) => {
+        const v = gr.vals[j]; const yy = y(v);
+        svg.appendChild(el('rect', { x: x0 + j * bw + 1, y: yy, width: bw - 2, height: Math.max(1, y(0) - yy), rx: 1.5, class: s.cls, 'data-tip': (gr.tipname || gr.name.replace('\n', ' ')) + ' · ' + s.name + '：' + v }));
+        svg.appendChild(el('text', { x: x0 + j * bw + bw / 2, y: yy - 4, 'text-anchor': 'middle', class: 'val', 'font-size': opt.vfs || 10 }, v));
+      });
+      gr.name.split('\n').forEach((w, k) => svg.appendChild(el('text', { x: cx, y: H - B + 16 + k * 14, 'text-anchor': 'middle', class: 'glabel', 'font-size': 11.5 }, w)));
+    });
+    svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(0), y2: y(0), class: 'base' }));
+  }
+
+  /* ---------- hero map ---------- */
+  const HOBJ = [
+    { x: -0.62, y: 0.55, c: '#E89AA8', n: '粉色杯' }, { x: -0.80, y: 0.30, c: '#BFD6E0', n: '水瓶' }, { x: -0.45, y: 0.30, c: '#E8C440', n: '黄鸭' },
+    { x: 0.0, y: 0.62, c: '#6F9BD1', n: '篮子', basket: true }, { x: 0.55, y: 0.70, c: '#E98A3A', n: '橙色杯' }, { x: 0.72, y: 0.40, c: '#D2453A', n: '红色杯' }, { x: 0.48, y: 0.32, c: '#8CC152', n: '绿鸭' }
+  ];
+  (function(){
+    const svg = $('#hero-map'); const cx = 260, cy = 300, S = 250;
+    const P = o => [cx + o.x * S, cy - o.y * S];
+    const g0 = el('g'); svg.appendChild(g0);
+    [[140, 62], [176, 84], [214, 108]].forEach((r, i) => g0.appendChild(el('ellipse', { cx: 250, cy: 150, rx: r[0], ry: r[1], fill: 'none', stroke: 'var(--contour)', 'stroke-width': 1, 'stroke-dasharray': i === 1 ? '0' : '2 4' })));
+    g0.appendChild(el('rect', { x: 40, y: 82, width: 440, height: 184, rx: 6, fill: 'var(--table)', stroke: 'var(--contour)', 'stroke-width': 1.2, 'fill-opacity': .85 }));
+    for (let i = 0; i <= 8; i++) { const xx = 40 + i * 55; g0.appendChild(el('line', { x1: xx, x2: xx, y1: 82, y2: 88, stroke: 'var(--muted)' })); g0.appendChild(el('text', { x: xx, y: 76, 'text-anchor': 'middle' }, String.fromCharCode(65 + i))); }
+    const fr = el('path', { fill: 'var(--och)', 'fill-opacity': .16, stroke: 'var(--och)', 'stroke-width': 1.3 }); svg.appendChild(fr);
+    const objs = HOBJ.map(o => { const [x, y] = P(o); const g = el('g'); const sh = o.basket ? el('rect', { x: x - 34, y: y - 16, width: 68, height: 32, rx: 4, fill: o.c, 'fill-opacity': .8, stroke: 'rgba(30,25,10,.5)' }) : el('circle', { cx: x, cy: y, r: 9, fill: o.c, stroke: 'rgba(30,25,10,.5)' }); g.appendChild(sh); const pin = el('path', { d: 'M' + x + ' ' + (y - 24) + ' l6 10 h-12 z', fill: 'var(--mem)', opacity: 0 }); g.appendChild(pin); g.appendChild(el('text', { x: x, y: y + (o.basket ? 30 : 22), 'text-anchor': 'middle', class: 'lab' }, o.n)); svg.appendChild(g); return { o, pin, seen: false }; });
+    svg.appendChild(el('path', { d: 'M' + (cx - 26) + ' ' + (cy + 22) + ' a26 26 0 0 1 52 0 z', fill: 'var(--surface-2)', stroke: 'var(--ink-2)' }));
+    svg.appendChild(el('circle', { cx: cx, cy: cy, r: 5, fill: 'var(--och)' }));
+    svg.appendChild(el('text', { x: cx + 34, y: cy + 16 }, '头部相机 · pan'));
+    svg.appendChild(el('text', { x: 40, y: 22, class: 'lab' }, '▲ 记忆标记   ◢ 视锥'));
+    const HALF = 34.5 * Math.PI / 180;
+    function draw(th){
+      const a = th * Math.PI / 180, L = 290;
+      const p1 = [cx + L * Math.sin(a - HALF), cy - L * Math.cos(a - HALF)], p2 = [cx + L * Math.sin(a + HALF), cy - L * Math.cos(a + HALF)];
+      fr.setAttribute('d', 'M' + cx + ' ' + cy + ' L' + p1[0] + ' ' + p1[1] + ' A' + L + ' ' + L + ' 0 0 1 ' + p2[0] + ' ' + p2[1] + ' Z');
+      objs.forEach(it => { const b = Math.atan2(it.o.x, it.o.y) * 180 / Math.PI; if (Math.abs(b - th) <= 34.5) it.seen = true; it.pin.setAttribute('opacity', it.seen ? 1 : 0); });
+    }
+    if (reduce) { objs.forEach(it => it.seen = true); draw(0); return; }
+    let t0 = null;
+    function step(ts){ if (t0 == null) t0 = ts; const T = 9000, u = ((ts - t0) % T) / T; let th; if (u < .12) th = 0; else if (u < .37) th = -58 * (u - .12) / .25; else if (u < .75) th = -58 + 116 * (u - .37) / .38; else if (u < .9) th = 58 - 58 * (u - .75) / .15; else th = 0; if (u < .02) objs.forEach(it => it.seen = false); draw(th); requestAnimationFrame(step); }
+    draw(0); requestAnimationFrame(step);
+  })();
+
+  /* ---------- map lab ---------- */
+  const OBJ = [
+    { id: 'pink', n: '粉色杯', cls: 'cup', c: '#E89AA8', x: -0.62, y: 0.55 },
+    { id: 'bottle', n: '水瓶', cls: 'bottle', c: '#BFD6E0', x: -0.80, y: 0.30 },
+    { id: 'yduck', n: '黄鸭', cls: 'duck', c: '#E8C440', x: -0.45, y: 0.30 },
+    { id: 'basket', n: '篮子', cls: 'basket', c: '#6F9BD1', x: 0.0, y: 0.62 },
+    { id: 'orange', n: '橙色杯', cls: 'cup', c: '#E98A3A', x: 0.55, y: 0.70 },
+    { id: 'red', n: '红色杯', cls: 'cup', c: '#D2453A', x: 0.72, y: 0.40 },
+    { id: 'gduck', n: '绿鸭', cls: 'duck', c: '#8CC152', x: 0.48, y: 0.32 }
+  ];
+  const BYID = {}; OBJ.forEach(o => BYID[o.id] = o);
+  const HALFFOV = 34.5, NSAMP = 4, ALPHA = 0.6;
+  const SR2 = { gr00t: { n: 'Scan+GR00T', v: [19.0, 22.0, 16.0, 25.0, 10.5], avg: 18.5 }, noscan: { n: 'No-Scan SOMA', v: [20.0, 24.0, 17.5, 26.0, 11.7], avg: 19.8 }, scanonly: { n: 'Scan-only SOMA', v: [25.0, 29.0, 22.5, 30.0, 14.2], avg: 24.1 }, full: { n: 'Full SOMA', v: [30.0, 35.0, 27.5, 32.5, 16.7], avg: 28.3 } };
+  const VDESC = { full: '扫描建图 + 操作中刷新', scanonly: '扫描建图，操作中不刷新', noscan: '不扫描，记忆从第一帧初始化，操作中刷新', gr00t: '扫描，把检测到目标的那一帧当固定输入，没有持久记忆' };
+  const st = { v: 'full', tgt: 'pink', th: 0, pos: {}, mem: [], fixed: null, step: 0, started: false, busy: false, assoc: 'loose', placed: false, shots: [], scanned: false };
+  function resetScene(){ OBJ.forEach(o => st.pos[o.id] = { x: o.x, y: o.y }); st.mem = []; st.fixed = null; st.step = 0; st.started = false; st.placed = false; st.shots = []; st.scanned = false; st.th = 0; $('#map-pan').value = 0; $('#map-pan-v').textContent = '0°'; }
+  const bearing = p => Math.atan2(p.x, p.y) * 180 / Math.PI;
+  const inView = (id, th) => Math.abs(bearing(st.pos[id]) - th) <= HALFFOV;
+  function jit(id, th){ const k = OBJ.findIndex(o => o.id === id); return { dx: 0.018 * Math.sin(th * 0.37 + k * 1.7), dy: 0.018 * Math.cos(th * 0.29 + k * 2.3) }; }
+  function detect(th){ return OBJ.filter(o => inView(o.id, th)).map(o => { const j = jit(o.id, th); return { id: o.id, cls: o.cls, x: st.pos[o.id].x + j.dx, y: st.pos[o.id].y + j.dy }; }); }
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  function matchOK(e, ob, phase){ if (e.cls !== ob.cls || e.id !== ob.id) return false; if (phase === 'scan') return dist(e, ob) < 0.2; return st.assoc === 'loose' ? true : dist(e, ob) < 0.2; }
+  let kc = 0;
+  function addEntry(ob, status){ st.mem.push({ k: ++kc, id: ob.id, cls: ob.cls, x: ob.x, y: ob.y, n: 1, status: status, seen: st.step }); }
+  function scanFrame(th){
+    const obs = detect(th); if (!obs.length) return 0;
+    obs.forEach(ob => { const e = st.mem.find(m => matchOK(m, ob, 'scan')); if (e) { e.x = (e.x * e.n + ob.x) / (e.n + 1); e.y = (e.y * e.n + ob.y) / (e.n + 1); e.n++; } else addEntry(ob, 'fresh'); });
+    return obs.length;
+  }
+  function refineFrame(){
+    st.step += 20;
+    const obs = detect(st.th); const used = new Set(); const res = { upd: [], add: [], kept: 0 };
+    obs.forEach(ob => {
+      const cand = st.mem.filter(m => !used.has(m.k) && matchOK(m, ob, 'op')).sort((a, b) => dist(a, ob) - dist(b, ob));
+      if (cand.length) { const e = cand[0]; used.add(e.k); const moved = dist(e, ob) > 0.06; e.x = ALPHA * ob.x + (1 - ALPHA) * e.x; e.y = ALPHA * ob.y + (1 - ALPHA) * e.y; e.n++; e.seen = st.step; e.status = moved ? 'upd' : 'fresh'; if (moved) res.upd.push(e); }
+      else { addEntry(ob, 'new'); res.add.push(st.mem[st.mem.length - 1]); }
+    });
+    res.kept = st.mem.filter(m => !used.has(m.k) && res.add.indexOf(m) < 0).length;
+    return res;
+  }
+  function markStale(){ st.mem.forEach(m => { const p = st.pos[m.id]; m.off = dist(m, p) > 0.08; }); }
+
+  const svg = $('#map-svg');
+  const X0 = 360, Y0 = 410, SC = 300;
+  const PX = p => [X0 + p.x * SC, Y0 - p.y * SC];
+  function drawMap(){
+    markStale();
+    svg.innerHTML = '';
+    svg.appendChild(el('ellipse', { cx: 360, cy: 230, rx: 330, ry: 190, class: 'ct', 'stroke-dasharray': '2 5' }));
+    svg.appendChild(el('ellipse', { cx: 360, cy: 236, rx: 290, ry: 160, class: 'ct' }));
+    svg.appendChild(el('rect', { x: 70, y: 120, width: 580, height: 230, rx: 6, class: 'tbl' }));
+    for (let i = 0; i <= 10; i++) { const xx = 70 + i * 58; svg.appendChild(el('line', { x1: xx, x2: xx, y1: 120, y2: 126, stroke: 'var(--muted)' })); svg.appendChild(el('text', { x: xx, y: 114, 'text-anchor': 'middle', class: 'mono' }, String.fromCharCode(65 + i))); }
+    for (let j = 0; j <= 4; j++) { const yy = 120 + j * 57.5; svg.appendChild(el('line', { x1: 70, x2: 76, y1: yy, y2: yy, stroke: 'var(--muted)' })); svg.appendChild(el('text', { x: 62, y: yy + 4, 'text-anchor': 'end', class: 'mono' }, j + 1)); }
+    // scan arc
+    const R = 120; const a1 = -59 * Math.PI / 180, a2 = 59 * Math.PI / 180;
+    svg.appendChild(el('path', { d: 'M' + (X0 + R * Math.sin(a1)) + ' ' + (Y0 - R * Math.cos(a1)) + ' A' + R + ' ' + R + ' 0 0 1 ' + (X0 + R * Math.sin(a2)) + ' ' + (Y0 - R * Math.cos(a2)), class: 'arc' }));
+    st.shots.forEach(a => { const r = a * Math.PI / 180; svg.appendChild(el('circle', { cx: X0 + R * Math.sin(r), cy: Y0 - R * Math.cos(r), r: 3.2, class: 'shot', 'data-tip': '扫描采样帧 @ ' + a + '°' })); });
+    // frustum
+    const a = st.th * Math.PI / 180, h = HALFFOV * Math.PI / 180, L = 318;
+    const p1 = [X0 + L * Math.sin(a - h), Y0 - L * Math.cos(a - h)], p2 = [X0 + L * Math.sin(a + h), Y0 - L * Math.cos(a + h)];
+    svg.appendChild(el('path', { d: 'M' + X0 + ' ' + Y0 + ' L' + p1[0] + ' ' + p1[1] + ' A' + L + ' ' + L + ' 0 0 1 ' + p2[0] + ' ' + p2[1] + ' Z', class: 'fr', 'data-tip': '头部视锥 · pan ' + st.th + '°（示意视场 69°）' }));
+    // objects
+    OBJ.forEach(o => {
+      const [x, y] = PX(st.pos[o.id]); const g = el('g', { 'data-id': o.id, 'data-tip': o.n + '（类别 ' + o.cls + '）· 点击设为目标' });
+      let sh;
+      if (o.cls === 'basket') sh = el('rect', { x: x - 44, y: y - 22, width: 88, height: 44, rx: 5, fill: o.c, 'fill-opacity': .75, class: 'obj' });
+      else if (o.cls === 'bottle') sh = el('rect', { x: x - 8, y: y - 15, width: 16, height: 30, rx: 6, fill: o.c, class: 'obj' });
+      else if (o.cls === 'duck') sh = el('ellipse', { cx: x, cy: y, rx: 14, ry: 10, fill: o.c, class: 'obj' });
+      else sh = el('circle', { cx: x, cy: y, r: 12, fill: o.c, class: 'obj' });
+      g.appendChild(sh);
+      if (o.id !== 'basket' || true) g.appendChild(el('text', { x: x, y: y + (o.cls === 'basket' ? 36 : 28), 'text-anchor': 'middle' }, o.n));
+      if (inView(o.id, st.th) && st.started) { const s = o.cls === 'basket' ? 50 : 19; g.appendChild(el('path', { d: 'M' + (x - s) + ' ' + (y - s + 6) + ' v-6 h6 M' + (x + s - 6) + ' ' + (y - s) + ' h6 v6 M' + (x + s) + ' ' + (y + s - 6) + ' v6 h-6 M' + (x - s + 6) + ' ' + (y + s) + ' h-6 v-6', class: 'det' })); }
+      if (o.id === st.tgt) g.appendChild(el('circle', { cx: x, cy: y, r: o.cls === 'basket' ? 54 : 24, class: 'tgt' }));
+      g.addEventListener('click', () => { if (o.id !== 'basket' && !st.busy) selectTarget(o.id); });
+      svg.appendChild(g);
+    });
+    // memory pins
+    if (st.v !== 'gr00t') st.mem.forEach(m => {
+      const [x, y] = PX(m); const just = m.status === 'upd' && m.seen === st.step; const kind = m.off ? (just ? ' upd' : ' stale') : '';
+      if (m.off) { const [tx, ty] = PX(st.pos[m.id]); svg.appendChild(el('line', { x1: x, y1: y, x2: tx, y2: ty, class: 'tie' + kind })); }
+      svg.appendChild(el('circle', { cx: x, cy: y, r: 2.6, class: 'pin' + kind }));
+      svg.appendChild(el('path', { d: 'M' + x + ' ' + (y - 3) + ' l-7.5 -14 h15 z', class: 'pin' + kind, 'data-tip': 'm' + m.k + '：' + BYID[m.id].n + '（' + m.cls + '）· 合并 ' + m.n + ' 次观测' + (m.off ? (just ? ' · 刚做过 EMA，还没到真实位置' : ' · 与真实位置不符') : '') }));
+      svg.appendChild(el('text', { x: x + 9, y: y - 10, class: 'pinlab' + kind }, 'm' + m.k));
+    });
+    if (st.v === 'gr00t' && st.fixed != null) svg.appendChild(el('text', { x: 80, y: 142, class: 'mono' }, '固定输入帧：pan ' + st.fixed + '°（无记忆）'));
+    // robot
+    svg.appendChild(el('path', { d: 'M' + (X0 - 40) + ' ' + (Y0 + 30) + ' a40 34 0 0 1 80 0 z', class: 'robot' }));
+    svg.appendChild(el('circle', { cx: X0, cy: Y0, r: 6, fill: 'var(--och)' }));
+    svg.appendChild(el('text', { x: X0 + 48, y: Y0 + 20, class: 'mono' }, 'head · pan ' + st.th + '°'));
+    svg.appendChild(el('text', { x: 80, y: 30, class: 'mono' }, '▲ 记忆条目   ◢ 头部视锥   ⌜⌟ 当前帧检测   ◌ 指令目标   ● 扫描采样帧'));
+    svg.appendChild(el('text', { x: 80, y: 48, class: 'mono' }, '指令：把' + BYID[st.tgt].n + '放进篮子 · 变体：' + SR2[st.v].n));
+    drawRead(); drawMem(); drawRetr();
+  }
+  function drawRead(){
+    const t = st.tgt, vis = inView(t, st.th), e = st.mem.filter(m => m.id === t);
+    let memTxt;
+    if (st.v === 'gr00t') memTxt = '<b>无记忆</b>' + (st.fixed != null ? '只有一帧固定输入（pan ' + st.fixed + '°）' : '扫描中还没检测到目标');
+    else if (!e.length) memTxt = '<b>不在记忆里</b>策略输入中没有关于它的任何信息';
+    else { const m = e[e.length - 1], b = bearing(m); const off = Math.abs(b - st.th) - HALFFOV; memTxt = '<b>m' + m.k + (e.length > 1 ? ' 等 ' + e.length + ' 条' : '') + '</b>记忆方位 ' + b.toFixed(0) + '°，' + (off > 0 ? '在当前视野外 ' + off.toFixed(0) + '°' : '在当前视野内') + (m.off ? '；<span style="color:var(--warn)">与真实位置不符</span>' : ''); }
+    const sr = SR2[st.v];
+    $('#map-read').innerHTML = '<div><span class="k">当前头部画面</span><b>' + (vis ? '看得到目标' : '看不到目标') + '</b>检测到 ' + (st.started ? detect(st.th).map(o => BYID[o.id].n).join('、') || '无' : '—') + '</div>' +
+      '<div><span class="k">目标在记忆中</span>' + memTxt + '</div>' +
+      '<div><span class="k">表 2 · ' + sr.n + '</span><b>' + sr.avg + '%</b>' + VDESC[st.v] + '；任务 1–5：' + sr.v.join(' / ') + '</div>';
+  }
+  const f2 = v => (Math.abs(v) < 0.005 ? 0 : v).toFixed(2);
+  function drawMem(){
+    const T = $('#map-mem');
+    if (st.v === 'gr00t') { T.innerHTML = '<thead><tr><th>Scan+GR00T 的输入</th></tr></thead><tbody><tr><td>没有记忆库。扫描中第一次检测到目标的那一帧被固定下来，作为反应式策略的额外视觉输入；之后头怎么转、物体怎么动，这一帧都不变。</td></tr></tbody>'; return; }
+    if (!st.mem.length) { T.innerHTML = '<thead><tr><th>记忆库 𝓜</th></tr></thead><tbody><tr><td class="muted">空。点“开始一回合”。</td></tr></tbody>'; return; }
+    const lab = { fresh: ['fresh', '已确认'], new: ['new', '新增'], upd: ['upd', 'EMA 更新'] };
+    T.innerHTML = '<thead><tr><th>条目</th><th>类别 c</th><th>外观 f（384 维，用颜色代表）</th><th class="num">3D 框中心（示意）</th><th class="num">合并观测</th><th>状态</th></tr></thead><tbody>' +
+      st.mem.map(m => { const just = m.status === 'upd' && m.seen === st.step; const s = just ? lab.upd : m.off ? ['stale', '陈旧'] : lab[m.status]; return '<tr' + (m.id === st.tgt ? ' class="best"' : '') + '><th>m' + m.k + '</th><td class="mono">' + m.cls + '</td><td><span class="sw" style="background:' + BYID[m.id].c + '"></span>' + BYID[m.id].n + '</td><td class="num">(' + f2(m.x) + ', ' + f2(m.y) + ')</td><td class="num">' + m.n + '</td><td><span class="st ' + s[0] + '">' + s[1] + '</span></td></tr>'; }).join('') + '</tbody>';
+  }
+  function drawRetr(){
+    const s = $('#map-retr'); s.innerHTML = '';
+    s.appendChild(el('text', { x: 8, y: 16, class: 'hd' }, '③ 读出：Q = VLM 的视觉语言 token，K/V = Φ_align(记忆 token)，3 层注意力 → X_boost → DiT'));
+    s.appendChild(el('text', { x: 8, y: 34 }, '所有记忆 token 都参与 softmax，没有硬选择；连线只表示“每个 query 都连到每条记忆”，粗细不代表真实权重（论文未展示注意力分布）'));
+    const qs = [{ n: '头部图像', c: 'var(--sea)', k: 5 }, { n: '左腕', c: 'var(--sea)', k: 3 }, { n: '右腕', c: 'var(--sea)', k: 3 }, { n: '指令「' + BYID[st.tgt].n + '」', c: 'var(--och)', k: 4 }];
+    let x = 20; const qy = 120, my = 64; const qpos = [];
+    qs.forEach(q => { for (let i = 0; i < q.k; i++) { s.appendChild(el('rect', { x: x, y: qy, width: 12, height: 12, rx: 2, fill: q.c, 'data-tip': 'query：' + q.n + ' token' })); qpos.push([x + 6, qy]); x += 15; } s.appendChild(el('text', { x: x - q.k * 15, y: qy + 26 }, q.n)); x += 14; });
+    if (st.v === 'gr00t' || !st.mem.length) { s.appendChild(el('text', { x: 360, y: my + 10, class: 'hd' }, st.v === 'gr00t' ? '没有记忆 token：读出模块不存在' : '记忆为空')); return; }
+    const n = st.mem.length, mx0 = 380, gap = Math.min(40, 320 / n);
+    st.mem.forEach((m, i) => {
+      const mx = mx0 + i * gap;
+      qpos.forEach(q => s.appendChild(el('line', { x1: q[0], y1: q[1], x2: mx + 7, y2: my + 14, stroke: 'var(--muted)', 'stroke-opacity': .16, 'stroke-width': .8 })));
+      s.appendChild(el('rect', { x: mx, y: my, width: 14, height: 14, rx: 2, fill: BYID[m.id].c, stroke: m.id === st.tgt ? 'var(--ink)' : 'rgba(0,0,0,.3)', 'stroke-width': m.id === st.tgt ? 2.2 : 1, 'data-tip': 'key/value：m' + m.k + '（' + BYID[m.id].n + '）' }));
+      s.appendChild(el('text', { x: mx + 7, y: my - 6, 'text-anchor': 'middle' }, 'm' + m.k));
+    });
+    s.appendChild(el('text', { x: mx0 - 12, y: my + 11, 'text-anchor': 'end', class: 'hd' }, 'K/V：' + n + ' 个记忆 token'));
+  }
+  function say(t){ $('#map-say').innerHTML = t; }
+  function setBusy(b){ st.busy = b; ['#map-start', '#map-pan', '#map-place', '#map-obs'].forEach(s => $(s).disabled = b); $$('#map-var button, #map-tgt button, #map-assoc button').forEach(x => x.disabled = b); }
+  function syncPlace(){ $('#map-place').disabled = st.busy || !st.started || st.placed; }
+
+  function start(){
+    resetScene(); kc = 0; st.started = true; drawMap();
+    const t = st.tgt, vis0 = inView(t, 0);
+    if (st.v === 'noscan') {
+      scanFrame(0); st.shots = [0];
+      say('<b>No-Scan SOMA：</b>不扫描，记忆只用第一帧（pan 0°）初始化，只有 ' + st.mem.map(m => BYID[m.id].n).join('、') + '。目标' + BYID[t].n + (vis0 ? '已在画面里。' : '不在记忆里，策略对它一无所知。') + '刷新是开着的：拖动头部 pan，看到新物体就会追加进记忆。');
+      drawMap(); syncPlace(); return;
+    }
+    if (vis0) {
+      scanFrame(0); st.shots = [0];
+      say('检测器在当前画面里找到了' + BYID[t].n + '和篮子，<b>不触发扫描</b>。论文没说这种情况下 𝓜₀ 怎么来，这里按首帧初始化画（与 No-Scan 相同）。');
+      if (st.v === 'gr00t') { st.fixed = 0; st.mem = []; }
+      drawMap(); syncPlace(); return;
+    }
+    say('① 检测器在当前画面（pan 0°）里找不到' + BYID[t].n + ' → <b>触发扫描</b>：头部沿预定义轨迹 中 → 左 → 右 → 中 转动，每 ' + NSAMP + ' 帧取 1 帧（示意 N）。');
+    const path = []; for (let a = 0; a >= -55; a -= 5) path.push(a); for (let a = -50; a <= 55; a += 5) path.push(a); for (let a = 50; a >= 0; a -= 5) path.push(a);
+    setBusy(true); let i = 0;
+    const tick = () => {
+      if (i >= path.length) { finishScan(); return; }
+      st.th = path[i]; $('#map-pan').value = st.th; $('#map-pan-v').textContent = st.th + '°';
+      if (i % NSAMP === 0) { st.shots.push(st.th); if (st.v === 'gr00t') { if (st.fixed == null && inView(t, st.th)) st.fixed = st.th; } else scanFrame(st.th); }
+      i++; drawMap();
+      if (reduce) tick(); else setTimeout(tick, 70);
+    };
+    tick();
+  }
+  function finishScan(){
+    st.scanned = true; st.th = 0; $('#map-pan').value = 0; $('#map-pan-v').textContent = '0°'; setBusy(false);
+    if (st.v === 'gr00t') say('② 扫描结束。Scan+GR00T <b>不建记忆</b>：只把第一次检测到目标的那一帧（pan ' + st.fixed + '°）固定下来当额外输入。头转回中间以后，策略关于' + BYID[st.tgt].n + '的全部信息就是这一张旧画面。表 2 平均 18.5%。');
+    else { const nC = st.mem.filter(m => m.cls === 'cup').length; say('② 扫描结束，得到 overview memory 𝓜₀：' + st.mem.length + ' 个条目，每个是 Φ<sub>mem</sub>(外观) + Φ<sub>pos</sub>(3D 框)。同类的 ' + nC + ' 个杯子靠 DINOv3 外观区分；同一物体在多帧里的观测按类内外观+几何相似度合并、取平均（见“合并观测”列）。头转回中间后，' + BYID[st.tgt].n + '已不在画面里，但 m' + (st.mem.find(m => m.id === st.tgt) || { k: '?' }).k + ' 还在。' + (st.v === 'scanonly' ? '<b>Scan-only：</b>之后的观测不会写入记忆。' : '')); }
+    drawMap(); syncPlace();
+  }
+  function onPanChange(){
+    if (!st.started || st.busy) return;
+    if (st.v === 'gr00t') { say('Scan+GR00T 没有记忆，转头只改变当前画面；固定输入帧不变。'); drawMap(); return; }
+    if (st.v === 'scanonly') { st.step += 20; say('处理一帧头部画面（t = ' + st.step + '）：<b>刷新已关闭</b>，新观测不写入记忆。' + (st.placed ? '目标被挪走后，m 条目仍停在原位。' : '')); drawMap(); return; }
+    const r = refineFrame();
+    let t = '处理一帧头部画面（t = ' + st.step + '，pan ' + st.th + '°）：';
+    const obs = detect(st.th);
+    if (!obs.length) t += '画面里没有检测到物体（训练时这种帧会注入学到的占位嵌入）。';
+    else t += '检测到 ' + obs.map(o => BYID[o.id].n).join('、') + '。';
+    if (r.upd.length) t += ' 关联上并做 EMA：' + r.upd.map(e => 'm' + e.k).join('、') + ' 以 α = g·s（这里取示意值 ' + ALPHA + '）向新观测移动；多看几帧会继续靠近。';
+    if (r.add.length) t += ' 没匹配上的观测追加为新条目：' + r.add.map(e => 'm' + e.k + '（' + BYID[e.id].n + '）').join('、') + '。';
+    const stale = st.mem.filter(m => m.off && !(m.status === 'upd' && m.seen === st.step));
+    if (stale.length) t += ' <span style="color:var(--warn)">' + stale.map(m => 'm' + m.k).join('、') + ' 与真实位置不符，但规则是“未匹配的旧条目保留”，它不会被删掉。</span>';
+    say(t); drawMap();
+  }
+  function placeTarget(){
+    if (!st.started || st.placed) return;
+    const b = st.pos.basket; st.pos[st.tgt] = { x: b.x + 0.07, y: b.y + 0.02 }; st.placed = true; syncPlace();
+    say('模拟一次抓放：' + BYID[st.tgt].n + '现在在篮子里。' + (st.v === 'gr00t' ? '' : '记忆里的条目还在原处（红色，虚线连到真实位置），因为刷新只在头部再次看到它时才发生。头朝篮子方向（0° 附近）时点“观测一帧”，看“' + (st.assoc === 'loose' ? '匹配上 → EMA' : '没匹配上 → 追加新条目、旧条目保留') + '”的结果。'));
+    drawMap();
+  }
+  function selectTarget(id){ st.tgt = id; $$('#map-tgt button').forEach(b => b.setAttribute('aria-pressed', b.dataset.id === id ? 'true' : 'false')); start(); }
+  const chipHost = $('#map-tgt');
+  OBJ.filter(o => o.id !== 'basket').forEach(o => { const b = document.createElement('button'); b.type = 'button'; b.dataset.id = o.id; b.setAttribute('aria-pressed', o.id === st.tgt ? 'true' : 'false'); b.innerHTML = '<i style="background:' + o.c + '"></i>' + o.n; b.addEventListener('click', () => selectTarget(o.id)); chipHost.appendChild(b); });
+  $$('#map-var button').forEach(b => b.addEventListener('click', () => { st.v = b.dataset.v; $$('#map-var button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); start(); }));
+  $$('#map-assoc button').forEach(b => b.addEventListener('click', () => { st.assoc = b.dataset.a; $$('#map-assoc button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); }));
+  $('#map-start').addEventListener('click', start);
+  $('#map-place').addEventListener('click', placeTarget);
+  const pan = $('#map-pan');
+  pan.addEventListener('input', () => { st.th = +pan.value; $('#map-pan-v').textContent = st.th + '°'; if (!st.busy) drawMap(); });
+  pan.addEventListener('change', onPanChange);
+  $('#map-obs').addEventListener('click', onPanChange);
+  resetScene(); drawMap(); syncPlace();
+  say('当前设定与原文图 1 一致：头朝正前方，只看得到篮子。选一个目标，点“开始一回合”。');
+
+  /* ---------- alpha widget ---------- */
+  function alphaDraw(){
+    const s = +$('#al-s').value, g = +$('#al-g').value, a = s * g;
+    $('#al-s-v').textContent = s.toFixed(2); $('#al-g-v').textContent = g.toFixed(2);
+    $('#al-new').style.width = (a * 100) + '%'; $('#al-old').style.width = ((1 - a) * 100) + '%';
+    let t = 'α = g · s = ' + g.toFixed(2) + ' × ' + s.toFixed(2) + ' = <b>' + a.toFixed(2) + '</b>。';
+    if (a < 0.15) t += '几乎不写入：记忆基本保持原样。只要有一个门接近 0，乘积就接近 0。';
+    else if (a > 0.7) t += '大幅覆盖：记忆向量主要由新观测决定。';
+    else t += '新旧混合。';
+    t += ' 论文的设想：小的视角变化时保持稳定，场景真正变化时快速跟上。按附录表 6，s 和 g 实际是 384 维向量，α 是逐通道的。';
+    $('#al-say').innerHTML = t;
+  }
+  ['#al-s', '#al-g'].forEach(s => $(s).addEventListener('input', alphaDraw)); alphaDraw();
+  hbars($('#ch-upd'), [
+    { label: 'SimEMA', v: 41.0, cls: 'c-b1' }, { label: 'Only s', v: 40.7, cls: 'c-b1' }, { label: 'Only g', v: 44.2, cls: 'c-b0' }, { label: '完整 α = g·s', v: 49.3, cls: 'c-ours', hi: true }
+  ], { W: 360, left: 100, right: 40, max: 60, step: 20, rh: 32, dec: 1 });
+
+  /* ---------- preprocess scatter (Fig 8) ---------- */
+  (function(){
+    const s = $('#ch-pre'); s.innerHTML = '';
+    const W = 720, H = 250, L = 70, R = 30, T = 20, B = 40;
+    const x = v => L + (W - L - R) * v / 9000, y = v => T + (H - T - B) * (1 - v / 0.25);
+    for (let g = 0; g <= 9000; g += 1500) { s.appendChild(el('line', { x1: x(g), x2: x(g), y1: T, y2: H - B, class: 'grid' })); s.appendChild(el('text', { x: x(g), y: H - B + 16, 'text-anchor': 'middle', class: 'tick' }, g)); }
+    for (let g = 0; g <= 0.25 + 1e-9; g += 0.05) { s.appendChild(el('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), class: 'grid' })); s.appendChild(el('text', { x: L - 8, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g.toFixed(2))); }
+    s.appendChild(el('text', { x: W - R, y: H - 6, 'text-anchor': 'end', class: 'tick' }, '显存 GPU (MB)'));
+    s.appendChild(el('text', { x: L, y: 12, class: 'tick' }, '耗时 (s/it)'));
+    [{ n: '完整', t: 0.210, m: 7966, sr: 49.3, c: 'c-ours', dx: -14, a: 'end', ly: -8 }, { n: 'w/o DINOv3', t: 0.178, m: 7852, sr: 43.7, c: 'c-sea', dx: -14, a: 'end', ly: 12 }, { n: 'w/o VGGT', t: 0.089, m: 1224, sr: 45.1, c: 'c-och', dx: 14, a: 'start', ly: 2 }].forEach(p => {
+      s.appendChild(el('circle', { cx: x(p.m), cy: y(p.t), r: 9, class: p.c, 'data-tip': p.n + '：' + p.t + ' s/it，' + p.m + ' MB，GR1 SR ' + p.sr + '%' }));
+      s.appendChild(el('text', { x: x(p.m) + p.dx, y: y(p.t) + p.ly - 2, 'text-anchor': p.a, class: 'glabel', 'font-weight': 700 }, p.n));
+      s.appendChild(el('text', { x: x(p.m) + p.dx, y: y(p.t) + p.ly + 12, 'text-anchor': p.a, class: 'val' }, p.t + ' s · ' + p.m + ' MB · SR ' + p.sr + '%'));
+    });
+    s.appendChild(el('line', { x1: L, x2: L, y1: T, y2: H - B, class: 'base' })); s.appendChild(el('line', { x1: L, x2: W - R, y1: H - B, y2: H - B, class: 'base' }));
+  })();
+
+  /* ---------- retrieval ablation ---------- */
+  hbars($('#ch-ret'), [
+    { label: 'Concat（直接拼接）', v: 45.6, cls: 'c-b1' }, { label: 'Light · 2 层', v: 42.8, cls: 'c-b0' }, { label: 'Middle · 3 层（采用）', v: 49.3, cls: 'c-ours', hi: true }, { label: 'Heavy · 4 层', v: 44.4, cls: 'c-b0' }
+  ], { left: 170, max: 60, step: 10, dec: 1 });
+
+  /* ---------- algorithm 1 timeline ---------- */
+  (function(){
+    const s = $('#ch-alg'); s.innerHTML = '';
+    const L = 120, W = 740;
+    s.appendChild(el('text', { x: 8, y: 34, class: 'glabel', 'font-weight': 700 }, '(1) 扫描段'));
+    s.appendChild(el('text', { x: 8, y: 92, class: 'glabel', 'font-weight': 700 }, '(2) 操作段取样'));
+    s.appendChild(el('text', { x: 8, y: 150, class: 'glabel', 'font-weight': 700 }, '(3) 回填'));
+    const sx0 = L, sx1 = 250;
+    s.appendChild(el('rect', { x: sx0, y: 22, width: sx1 - sx0, height: 18, rx: 3, fill: 'var(--och-soft)', stroke: 'var(--och)' }));
+    for (let i = 0; i <= 12; i++) { const xx = sx0 + (sx1 - sx0) * i / 12; s.appendChild(el('line', { x1: xx, x2: xx, y1: 22, y2: 40, stroke: 'var(--och)', 'stroke-width': .6 })); if (i % 2 === 0) s.appendChild(el('circle', { cx: xx, cy: 31, r: 3.5, fill: 'var(--och)', 'data-tip': '扫描帧取样（每 N/3）' })); }
+    s.appendChild(el('path', { d: 'M' + (sx1 + 6) + ' 31 h40', stroke: 'var(--ink-2)', 'marker-end': '', fill: 'none' }));
+    s.appendChild(el('text', { x: sx1 + 52, y: 35, class: 'val' }, '融合 → R_sparse[0] = 𝓜₀ 的证据（每 N/3 帧取 1 帧）'));
+    const ox0 = L, ox1 = W - 10, steps = 100, xs = t => ox0 + (ox1 - ox0) * t / steps;
+    s.appendChild(el('line', { x1: ox0, x2: ox1, y1: 88, y2: 88, class: 'base' }));
+    for (let t = 0; t <= steps; t += 5) s.appendChild(el('line', { x1: xs(t), x2: xs(t), y1: 84, y2: 92, stroke: 'var(--muted)', 'stroke-width': .6 }));
+    for (let t = 0; t <= steps; t += 20) { s.appendChild(el('circle', { cx: xs(t), cy: 88, r: 5, class: 'c-ours', 'data-tip': 't = ' + t + '：跑一次感知栈，存 R_sparse[' + t + ']' })); s.appendChild(el('text', { x: xs(t), y: 110, 'text-anchor': 'middle', class: 'tick' }, 't=' + t)); }
+    for (let k = 0; k < 5; k++) { const a = xs(k * 20), b = xs(k * 20 + 20) - 2; s.appendChild(el('rect', { x: a, y: 138, width: b - a, height: 18, rx: 2, fill: 'color-mix(in oklab,var(--mem) ' + (25 + k * 12) + '%,var(--surface))', stroke: 'var(--mem)', 'data-tip': 't = ' + (k * 20) + '…' + (k * 20 + 19) + ' 的样本都用 R_sparse[' + (k * 20) + ']' })); s.appendChild(el('text', { x: (a + b) / 2, y: 151, 'text-anchor': 'middle', class: 'val' }, 'R[' + (k * 20) + ']')); }
+    s.appendChild(el('text', { x: ox0, y: 178, class: 'tick' }, 't′ = ⌊t / N⌋ · N：每个训练样本都配上最近一次取样的记忆证据'));
+  })();
+
+  /* interval */
+  hbars($('#ch-int'), [{ label: 'N = 10', v: 44.9, cls: 'c-b0' }, { label: 'N = 20（采用）', v: 49.3, cls: 'c-ours', hi: true }, { label: 'N = 30', v: 44.9, cls: 'c-b0' }, { label: 'N = 40', v: 44.4, cls: 'c-b0' }], { W: 520, left: 120, max: 60, step: 10, dec: 1 });
+  rawTable($('#raw-int'), ['类别', 'N=10', 'N=20', 'N=30', 'N=40'], [
+    { cells: ['Container Interaction', 41.7, 55.7, 38.7, 35.7] }, { cells: ['Cuttingboard-Origin', 45.6, 46.4, 45.2, 45.2] }, { cells: ['Placemat-Origin', 45.5, 47.5, 44.5, 44.0] }, { cells: ['Plate-Origin', 50.5, 49.5, 50.0, 52.0] }, { cells: ['Tray-Origin', 41.0, 47.6, 46.0, 45.2] }, { cells: ['Average', 44.9, 49.3, 44.9, 44.4], best: true }]);
+  hbars($('#ch-lat'), [{ label: 'StarVLA', v: 1.26, cls: 'c-b1', suffix: ' s' }, { label: 'GR00T N1.5', v: 1.30, cls: 'c-sea', suffix: ' s' }, { label: 'SpatialVLA', v: 1.45, cls: 'c-b0', suffix: ' s' }, { label: 'SOMA', v: 1.58, cls: 'c-ours', hi: true, suffix: ' s' }], { W: 520, left: 110, max: 2, step: 0.5, prefix: '~', unit: ' s', dec: 2 });
+
+  /* ---------- real-world Fig 4 ---------- */
+  const RM = [{ name: 'Fixed Head Camera', cls: 'c-b2' }, { name: 'StarVLA', cls: 'c-b1' }, { name: 'SpatialVLA', cls: 'c-b0' }, { name: 'GR00T N1.5', cls: 'c-sea' }, { name: 'SOMA', cls: 'c-ours' }];
+  const RT = [
+    { t: '1 Invisible→Invisible', st: ['Pick', 'Place'], v: [[0, 0], [15, 15], [15, 15], [20, 20], [30, 30]] },
+    { t: '2 Visible→Invisible', st: ['Pick', 'Place'], v: [[25, 0], [25, 15], [15, 15], [25, 15], [35, 35]] },
+    { t: '3 Invisible→Visible', st: ['Pick', 'Place'], v: [[0, 0], [15, 15], [15, 10], [15, 15], [30, 25]] },
+    { t: '4 Sequential', st: ['PnP-1', 'PnP-2'], v: [[30, 0], [40, 15], [35, 15], [35, 15], [40, 25]] },
+    { t: '5 Dual-Arm', st: ['Pick', 'Exchange', 'Place'], v: [[0, 0, 0], [25, 10, 5], [20, 5, 5], [20, 10, 5], [30, 10, 10]] }
+  ];
+  const RG = []; RT.forEach((tk, ti) => tk.st.forEach((sn, si) => RG.push({ name: sn, tipname: '任务 ' + tk.t + ' · ' + sn, vals: tk.v.map(m => m[si]), sep: si === 0 && ti > 0, head: si === 0 ? tk.t : null })));
+  const nA = RT[0].st.length + RT[1].st.length + RT[2].st.length;
+  vgroups($('#ch-real-a'), RG.slice(0, nA), RM, { W: 720, H: 280, max: 50, step: 10, bw: 18, vfs: 10 });
+  vgroups($('#ch-real-b'), RG.slice(nA).map((g, i) => i === 0 ? Object.assign({}, g, { sep: false }) : g), RM, { W: 720, H: 280, max: 50, step: 10, bw: 18, vfs: 10 });
+  rawTable($('#raw-real'), ['任务 · 阶段'].concat(RM.map(m => m.name)), RG.map(g => ({ cells: [g.tipname].concat(g.vals) })));
+  const RAVG = RM.map((m, mi) => { const per = RT.map(tk => tk.v[mi].reduce((a, b) => a + b, 0) / tk.v[mi].length); return { label: m.name, v: +(per.reduce((a, b) => a + b, 0) / 5).toFixed(1), cls: m.cls, hi: mi === 4 }; });
+  hbars($('#ch-real-avg'), RAVG.slice().sort((a, b) => b.v - a.v), { W: 560, left: 150, max: 40, step: 10, unit: '%', dec: 1 });
+
+  /* ---------- behaviour Table 1 ---------- */
+  const BEH = [
+    { k: 'fft', n: 'First-Fixation Time', u: 's', g: [7.6, 21.0, 14.8, 10.9, 11.5], s: [4.2, 12.7, 8.2, 4.9, 4.7], p: [45, 40, 45, 55, 59], d: '目标首次进入头部视野 → 手臂开始抓取，单位秒，人工离线标注。' },
+    { k: 'hspl', n: 'Head Search Path Length', u: '°', g: [50.5, 51.0, 83.8, 109.2, 164.0], s: [27.8, 28.1, 50.3, 54.6, 70.4], p: [45, 45, 40, 50, 57], d: '目标首次可见之前，头部 pan 和 tilt 角变化的绝对值累加，单位度。' },
+    { k: 'vcc', n: 'Viewpoint Correction Count', u: '次', g: [1.6, 1.9, 1.4, 3.4, 5.3], s: [0.9, 1.1, 0.8, 1.7, 2.3], p: [44, 42, 43, 50, 57], d: '目标被看到至少一次之后，头部改变运动方向去重新对准的次数。' },
+    { k: 'gac', n: 'Grasp Attempt Count', u: '次', g: [1.8, 2.0, 1.7, 2.4, 3.7], s: [1.0, 1.2, 1.0, 1.2, 1.6], p: [44, 40, 41, 50, 57], d: '直到成功抓取为止的抓取次数，一次完整的夹爪闭合算一次。接近 1 即“近乎一次抓成”。' },
+    { k: 'ttg', n: 'Time-to-Grasp', u: 's', g: [58.0, 30.0, 50.0, 65.5, 36.5], s: [32.3, 16.8, 29.7, 30.4, 14.6], p: [44, 44, 41, 54, 60], d: '附录定义为从回合开始到成功抓取的环境步数；表 1 标的单位是秒。' }
+  ];
+  const TN = ['任务 1', '任务 2', '任务 3', '任务 4', '任务 5'];
+  let behK = 0;
+  function drawBeh(){
+    const m = BEH[behK], s = $('#ch-beh'); s.innerHTML = '';
+    const W = 720, L = 80, R = 80, T = 14, gh = 54, H = T + gh * 5 + 24; s.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    const mx = Math.max.apply(null, m.g) * 1.08, x = v => L + (W - L - R) * v / mx;
+    const st = mx > 100 ? 40 : mx > 40 ? 10 : mx > 10 ? 5 : 1;
+    for (let g = 0; g <= mx; g += st) { s.appendChild(el('line', { x1: x(g), x2: x(g), y1: T - 4, y2: H - 22, class: 'grid' })); s.appendChild(el('text', { x: x(g), y: H - 6, 'text-anchor': 'middle', class: 'tick' }, g)); }
+    TN.forEach((t, i) => {
+      const y = T + i * gh;
+      s.appendChild(el('text', { x: L - 10, y: y + 27, 'text-anchor': 'end', class: 'glabel' }, t));
+      s.appendChild(el('rect', { x: L, y: y + 4, width: x(m.g[i]) - L, height: 19, rx: 2, class: 'c-sea', 'data-tip': t + ' · GR00T N1.5：' + m.g[i] + ' ' + m.u }));
+      s.appendChild(el('text', { x: x(m.g[i]) + 6, y: y + 18, class: 'val' }, m.g[i]));
+      s.appendChild(el('rect', { x: L, y: y + 26, width: x(m.s[i]) - L, height: 19, rx: 2, class: 'c-ours', 'data-tip': t + ' · SOMA：' + m.s[i] + ' ' + m.u + '（↓' + m.p[i] + '%）' }));
+      s.appendChild(el('text', { x: x(m.s[i]) + 6, y: y + 40, class: 'val hi' }, m.s[i] + '  ↓' + m.p[i] + '%'));
+    });
+    s.appendChild(el('line', { x1: L, x2: L, y1: T - 4, y2: H - 22, class: 'base' }));
+    $('#beh-def').innerHTML = '<b>' + m.n + '</b>（' + m.u + '）：' + m.d;
+  }
+  const bseg = $('#beh-seg');
+  BEH.forEach((m, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = m.n; b.setAttribute('aria-pressed', i ? 'false' : 'true'); b.addEventListener('click', () => { behK = i; $$('button', bseg).forEach((x, j) => x.setAttribute('aria-pressed', j === i ? 'true' : 'false')); drawBeh(); }); bseg.appendChild(b); });
+  drawBeh();
+  rawTable($('#raw-beh'), ['指标 · 模型'].concat(TN), [].concat.apply([], BEH.map(m => [{ cells: [m.n + ' · GR00T-N1.5'].concat(m.g) }, { cells: [m.n + ' · SOMA'].concat(m.s.map((v, i) => v + ' (↓' + m.p[i] + '%)')), best: true }])));
+
+  /* ---------- Table 2 ---------- */
+  const T2 = [SR2.gr00t, SR2.noscan, SR2.scanonly, SR2.full];
+  const T2S = [{ name: 'Scan+GR00T', cls: 'c-b1' }, { name: 'No-Scan SOMA', cls: 'c-b0' }, { name: 'Scan-only SOMA', cls: 'c-och' }, { name: 'Full SOMA', cls: 'c-ours' }];
+  vgroups($('#ch-scan'), TN.map((t, i) => ({ name: t, vals: T2.map(r => r.v[i]) })).concat([{ name: '平均 SR', vals: T2.map(r => r.avg), sep: true }]), T2S, { W: 720, H: 280, max: 40, step: 10, bw: 25, T: 22, vfs: 9.5 });
+  rawTable($('#raw-scan'), ['OOV Task', 'Scan+GR00T', 'No-Scan SOMA', 'Scan-only SOMA', 'Full SOMA'], TN.map((t, i) => ({ cells: ['Task ' + (i + 1)].concat(T2.map(r => r.v[i].toFixed(1))) })).concat([{ cells: ['SR (%)'].concat(T2.map(r => r.avg)), best: true }]));
+
+  /* ---------- GR1 Table 3 ---------- */
+  const CATS = ['Container Interaction', 'Cooking Preparation', 'Tabletop Serving', 'Dish Transfer', 'Tray Organization'];
+  const CATZ = ['容器交互', '烹饪准备', '桌面上菜', '餐具转移', '托盘整理'];
+  const GR1 = [
+    { n: 'Diffusion Policy', cls: 'c-b1', color: 'var(--base-2)', c: [[35.1, 49.5, 54.2, null], [19.2, 31.4, 35.3, null], [13.2, 18.4, 28.4, null], [16.9, 22.3, 39.0, null], [15.7, 32.6, 39.2, null]], avg: [20.0, 30.8, 39.2, null] },
+    { n: 'StarVLA*', cls: 'c-b2', color: 'var(--base-3)', c: [[1.4, 1.1, 1.8, 3.0], [10.5, 14.2, 25.8, 27.6], [15.0, 18.5, 24.0, 25.0], [11.3, 15.0, 21.5, 22.5], [25.3, 28.2, 27.9, 28.8]], avg: [12.7, 15.4, 20.2, 21.4] },
+    { n: 'GR00T N1.5', cls: 'c-sea', color: 'var(--sea)', c: [[35.3, 33.7, 35.7, 40.3], [40.8, 45.2, 42.8, 49.2], [41.0, 47.5, 48.5, 39.5], [44.0, 58.5, 51.0, 50.0], [36.0, 40.0, 43.6, 50.8]], avg: [39.4, 44.9, 44.3, 45.9] },
+    { n: 'SOMA', cls: 'c-ours', color: 'var(--mem)', c: [[52.3, 52.0, 53.3, 55.6], [43.6, 50.8, 48.4, 46.4], [44.5, 46.5, 54.0, 47.5], [58.0, 58.0, 55.0, 49.5], [43.2, 38.0, 48.8, 47.6]], avg: [48.3, 49.1, 52.0, 49.3], ours: true }
+  ];
+  const DEM = ['30', '100', '300', 'Full'];
+  (function(){
+    const s = $('#ch-gr1'); s.innerHTML = '';
+    const W = 720, H = 260, L = 50, R = 130, T = 16, B = 34, x = i => L + 34 + (W - L - R - 34) * i / 3, y = v => T + (H - T - B) * (1 - v / 60);
+    for (let g = 0; g <= 60; g += 10) { s.appendChild(el('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), class: 'grid' })); s.appendChild(el('text', { x: L - 8, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g)); }
+    DEM.forEach((d, i) => s.appendChild(el('text', { x: x(i), y: H - B + 18, 'text-anchor': 'middle', class: 'tick' }, d + (i < 3 ? ' 条' : ''))));
+    GR1.forEach(m => {
+      const pts = m.avg.map((v, i) => v == null ? null : [x(i), y(v)]).filter(Boolean);
+      s.appendChild(el('polyline', { points: pts.map(p => p.join(',')).join(' '), fill: 'none', stroke: m.color, 'stroke-width': m.ours ? 2.8 : 2 }));
+      m.avg.forEach((v, i) => { if (v == null) return; s.appendChild(el('circle', { cx: x(i), cy: y(v), r: m.ours ? 5 : 4, fill: m.color, 'data-tip': m.n + ' · ' + DEM[i] + '：' + v })); s.appendChild(el('text', { x: x(i), y: y(v) + (m.ours ? -9 : (m.n === 'GR00T N1.5' && i === 2 ? -8 : 16)), 'text-anchor': 'middle', class: 'val' + (m.ours ? ' hi' : '') }, v.toFixed(1))); });
+      if (m.avg[3] != null) { const last = pts[pts.length - 1]; s.appendChild(el('text', { x: last[0] + 12, y: last[1] + 4, class: 'glabel', 'font-weight': m.ours ? 700 : 400 }, m.n)); }
+    });
+  })();
+  let gk = 3;
+  function drawHeat(){
+    let h = '<table class="heat"><thead><tr><th></th>' + GR1.map(m => '<th class="' + (m.ours ? 'ours' : '') + '">' + esc(m.n) + '</th>').join('') + '</tr></thead><tbody>';
+    const cell = (v, extra) => { if (v == null) return '<td class="na">—</td>'; const p = Math.round(Math.max(0, v - 10) * 1.6); return '<td class="' + (p > 60 ? 'dk' : '') + '" style="background:color-mix(in oklab,var(--mem) ' + Math.min(90, p) + '%,var(--surface))">' + v.toFixed(1) + (extra || '') + '</td>'; };
+    CATS.forEach((c, i) => { h += '<tr><th class="row">' + CATZ[i] + ' <span class="muted small">' + c + '</span></th>' + GR1.map(m => { const v = m.c[i][gk]; let ex = ''; if (m.ours) { const d = v - GR1[2].c[i][gk]; ex = '<small>' + (d >= 0 ? '+' : '') + d.toFixed(1) + '</small>'; } return cell(v, ex); }).join('') + '</tr>'; });
+    h += '<tr class="avg"><th class="row">平均</th>' + GR1.map(m => { const v = m.avg[gk]; let ex = ''; if (m.ours) { const d = v - GR1[2].avg[gk]; ex = '<small>' + (d >= 0 ? '+' : '') + d.toFixed(1) + '</small>'; } return cell(v, ex); }).join('') + '</tr></tbody></table>';
+    $('#heat-gr1').innerHTML = h;
+  }
+  const gseg = $('#gr1-seg');
+  DEM.forEach((d, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = d; b.setAttribute('aria-pressed', i === gk ? 'true' : 'false'); b.addEventListener('click', () => { gk = i; $$('button', gseg).forEach((x, j) => x.setAttribute('aria-pressed', j === i ? 'true' : 'false')); drawHeat(); }); gseg.appendChild(b); });
+  drawHeat();
+  rawTable($('#raw-gr1'), ['类别 · 方法'].concat(DEM), [].concat.apply([], CATS.map((c, i) => GR1.map(m => ({ cells: [c + ' · ' + m.n].concat(m.c[i].map(v => v == null ? '-' : v.toFixed(1))) })))).concat(GR1.map(m => ({ cells: ['Average · ' + m.n].concat(m.avg.map(v => v == null ? '-' : v.toFixed(1))), best: m.ours }))));
+
+  /* ---------- SimplerEnv ---------- */
+  const VM = [['Moto', 74.0, 60.4, 43.1, 59.2], ['RoboVLM', 77.3, 61.7, 43.5, 60.6], ['TraceVLA', 28.0, 53.7, 57.0, 42.0], ['π0', 72.7, 65.3, 38.3, 58.8], ['π0+FAST', 75.3, 67.5, 42.9, 61.9], ['OpenVLA-OFT', 72.3, 69.6, 47.2, 63.0], ['GR00T-N1.5', 47.0, 70.0, 18.1, 45.0], ['SOMA', 85.0, 73.0, 31.5, 63.2]];
+  const VA = [['OpenVLA', 54.5, 47.7, 17.7, 39.8], ['RoboVLM', 75.6, 60.0, 10.6, 51.3], ['TraceVLA', 60.0, 56.4, 31.0, 45.0], ['OpenVLA-OFT', 65.3, 59.0, 12.2, 45.5], ['GR00T-N1.5', 46.7, 62.9, 17.5, 42.4], ['SOMA', 55.5, 76.6, 25.4, 52.5]];
+  (function(){
+    const s = $('#ch-simpler'); s.innerHTML = '';
+    const panels = [{ t: '(a) Visual Matching', d: VM, ox: 0 }, { t: '(b) Variant Aggregation', d: VA, ox: 390 }];
+    panels.forEach(p => {
+      const L = p.ox + 100, Wd = 260, rh = 26, T = 30, x = v => L + Wd * v / 80;
+      s.appendChild(el('text', { x: p.ox + 4, y: 16, class: 'hdr' }, p.t));
+      for (let g = 0; g <= 80; g += 20) { s.appendChild(el('line', { x1: x(g), x2: x(g), y1: T - 4, y2: T + rh * 8, class: 'grid' })); s.appendChild(el('text', { x: x(g), y: T + rh * 8 + 14, 'text-anchor': 'middle', class: 'tick' }, g)); }
+      p.d.slice().sort((a, b) => b[4] - a[4]).forEach((r, i) => {
+        const y = T + i * rh, me = r[0] === 'SOMA', base = r[0] === 'GR00T-N1.5';
+        s.appendChild(el('text', { x: L - 8, y: y + 16, 'text-anchor': 'end', class: 'glabel', 'font-weight': me ? 700 : 400 }, r[0]));
+        s.appendChild(el('rect', { x: L, y: y + 4, width: x(r[4]) - L, height: rh - 9, rx: 2, class: me ? 'c-ours' : base ? 'c-sea' : 'c-b0', 'data-tip': r[0] + '：Coke ' + r[1] + ' · Move Near ' + r[2] + ' · Drawer ' + r[3] + ' · 平均 ' + r[4] }));
+        s.appendChild(el('text', { x: x(r[4]) + 5, y: y + 16, class: 'val' + (me ? ' hi' : '') }, r[4].toFixed(1)));
+      });
+    });
+  })();
+  rawTable($('#raw-simpler'), ['协议 · 模型', 'Pick Coke Can', 'Move Near', 'Open/Close Drawer', 'Average'], VM.map(r => ({ cells: ['VM · ' + r[0]].concat(r.slice(1)), best: r[0] === 'SOMA' })).concat(VA.map(r => ({ cells: ['VA · ' + r[0]].concat(r.slice(1)), best: r[0] === 'SOMA' }))));
+
+  /* ---------- ablation Table 10 ---------- */
+  const AB = [
+    { g: '更新策略', n: 'SimEMA', c: [31.7, 52.0, 32.5, 41.2, 47.5], a: 41.0, cls: 'c-b1' },
+    { g: '更新策略', n: 'Only s', c: [35.8, 49.0, 33.8, 45.0, 40.0], a: 40.7, cls: 'c-b1' },
+    { g: '更新策略', n: 'Only g', c: [29.2, 47.0, 53.8, 53.8, 37.5], a: 44.2, cls: 'c-b1' },
+    { g: '读出模块', n: 'Concat', c: [34.2, 44.0, 53.8, 51.2, 45.0], a: 45.6, cls: 'c-sea' },
+    { g: '读出模块', n: 'Light（2 层）', c: [37.0, 43.0, 40.0, 48.8, 45.0], a: 42.8, cls: 'c-sea' },
+    { g: '读出模块', n: 'Heavy（4 层）', c: [33.8, 48.0, 48.8, 57.5, 33.7], a: 44.4, cls: 'c-sea' },
+    { g: '记忆表示', n: 'w/o Geo.（Obj.）', c: [37.5, 44.0, 42.5, 56.2, 45.0], a: 45.1, cls: 'c-och' },
+    { g: '记忆表示', n: 'w/o Obj.（Geo.）', c: [33.3, 50.0, 45.0, 43.7, 46.2], a: 43.7, cls: 'c-och' },
+    { g: '记忆表示', n: 'w/o Update（NoUpd）', c: [31.7, 46.0, 38.8, 50.0, 41.2], a: 41.5, cls: 'c-och' },
+    { g: '完整', n: 'Full（Middle 3 层）', c: [55.7, 46.4, 47.5, 49.5, 47.6], a: 49.3, cls: 'c-ours', hi: true }
+  ];
+  function ablRows(mode){ const out = []; let last = ''; AB.forEach(r => { if (r.g !== last) { out.push({ head: r.g }); last = r.g; } const v = mode === 'ex' ? +((r.c[1] + r.c[2] + r.c[3] + r.c[4]) / 4).toFixed(1) : r.a; out.push({ label: r.n, v: v, cls: r.cls, hi: r.hi }); }); return out; }
+  hbars($('#ch-abl'), ablRows('all'), { left: 190, max: 60, step: 10, rh: 24, dec: 1 });
+  rawTable($('#raw-abl'), ['设置'].concat(CATS, ['Average']), AB.map(r => ({ cells: [r.g + ' · ' + r.n].concat(r.c, [r.a]), best: r.hi })));
+  function drawEx(mode){ hbars($('#ch-ex'), ablRows(mode), { left: 190, max: 60, step: 10, rh: 24, dec: 1 }); }
+  drawEx('ex');
+  $$('#ex-seg button').forEach(b => b.addEventListener('click', () => { $$('#ex-seg button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); drawEx(b.dataset.x); }));
+
+  /* ---------- failures ---------- */
+  function stack(host, leg, items){
+    $(host).innerHTML = items.map(it => '<span class="' + it.cls + '" style="width:' + it.p + '%" data-tip="' + esc(it.n) + '：' + it.cnt + '（' + it.p + '%）">' + it.p + '%</span>').join('');
+    $(leg).innerHTML = items.map(it => '<li><i class="' + it.cls + '"></i><span><b>' + it.n + '</b> · ' + it.cnt + ' · ' + it.d + '</span></li>').join('');
+  }
+  stack('#fail-real', '#fail-real-leg', [
+    { n: '动态视角下抓取位姿不准', cnt: '12/25', p: 48.0, cls: 'bg-warn', d: '视觉搜索中头部视角变化，抓取估计变差，接近偏差或夹爪打滑；任务 1、3、5 头部移动多时最明显。' },
+    { n: '放置时机与精度错误', cnt: '8/25', p: 32.0, cls: 'bg-och', d: '记忆引导移动时误判释放时机；窄口容器上记忆与现实的偏差累积。' },
+    { n: '头—臂协调失配', cnt: '5/25', p: 20.0, cls: 'bg-b0', d: '头朝向一只手的工作区，另一只手没有视觉引导，双臂交接失败（任务 5）。' }
+  ]);
+  stack('#fail-sim', '#fail-sim-leg', [
+    { n: '3D 估计不准导致空间 token 有噪声', cnt: '22/50', p: 44.0, cls: 'bg-warn', d: 'VGGT 在细长/无纹理物体上的几何噪声经检索传到动作预测。' },
+    { n: '检索激活无关记忆', cnt: '16/50', p: 32.0, cls: 'bg-sea', d: '多物体场景里交叉注意力激活与任务无关的条目，稀释动作信号。' },
+    { n: '记忆缺少任务阶段感知', cnt: '12/50', p: 24.0, cls: 'bg-b0', d: '物体级刷新分不清抽屉开/关这类有意义的变化和细微视觉差异。' }
+  ]);
+})();
+</script>
+</body>
+</html>

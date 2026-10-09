@@ -1,0 +1,1393 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>OptimusVLA 精读</title>
+<meta name="description" content="OptimusVLA（Global Prior Meets Local Consistency）中文精读：检索到的全局先验替换 flow policy 的高斯起点、Mamba 读动作历史给起点加偏置；三阶段训练、LIBERO/CALVIN/RoboTwin/真机结果，以及加速口径、少步数对照缺失等疑点。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700;800;900&family=Red+Hat+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F5F3EE; --surface:#FCFBF8; --surface-2:#EAE6DD; --ink:#16181E; --ink-2:#393D47; --muted:#646B79; --line:#D9D4C9;
+  --gpm:#1F4FB8; --gpm-soft:#DCE5F8; --gpm-mid:#7E9BDB; --on-gpm:#FFFFFF;
+  --lcm:#E08A0C; --lcm-ink:#94500A; --lcm-soft:#FBE6C3; --on-lcm:#1F1404;
+  --pol:#4D5363; --tgt:#16181E;
+  --warn:#B3341F; --warn-soft:#F7DDD6;
+  --base:#9B958A; --base-2:#C8C2B6;
+  --plate:#FFFFFF; --focus:#1F4FB8;
+  --f-display:"Red Hat Display","Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"Red Hat Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0F1116; --surface:#161922; --surface-2:#1F2330; --ink:#E8EAF0; --ink-2:#C0C5D1; --muted:#8E95A6; --line:#2B303E;
+    --gpm:#7499F2; --gpm-soft:#18244A; --gpm-mid:#3F5EA8; --on-gpm:#0A1330;
+    --lcm:#F0A63A; --lcm-ink:#F4B65E; --lcm-soft:#3A2A10; --on-lcm:#1F1404;
+    --pol:#A9AFBE; --tgt:#E8EAF0;
+    --warn:#F08A6E; --warn-soft:#3B1E17;
+    --base:#747B8B; --base-2:#4A5061;
+    --plate:#F1F2F4; --focus:#7499F2;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0F1116; --surface:#161922; --surface-2:#1F2330; --ink:#E8EAF0; --ink-2:#C0C5D1; --muted:#8E95A6; --line:#2B303E;
+  --gpm:#7499F2; --gpm-soft:#18244A; --gpm-mid:#3F5EA8; --on-gpm:#0A1330;
+  --lcm:#F0A63A; --lcm-ink:#F4B65E; --lcm-soft:#3A2A10; --on-lcm:#1F1404;
+  --pol:#A9AFBE; --tgt:#E8EAF0;
+  --warn:#F08A6E; --warn-soft:#3B1E17;
+  --base:#747B8B; --base-2:#4A5061;
+  --plate:#F1F2F4; --focus:#7499F2;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:var(--gpm);text-underline-offset:3px;text-decoration-thickness:1px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+strong{font-weight:700}
+em{font-style:normal;background:linear-gradient(transparent 62%,var(--lcm-soft) 62%)}
+code,.mono{font-family:var(--f-mono);font-size:.9em}
+sub,sup{font-size:.72em;line-height:0}
+.hat,.tl,.ov{position:relative;display:inline-block;line-height:1;text-indent:0}
+.hat::after,.tl::after{position:absolute;left:0;right:0;text-align:center;font-size:.78em;line-height:1}
+.hat::after{content:"^";top:-.4em}
+.tl::after{content:"~";top:-.52em}
+.ov::after{content:"";position:absolute;left:.04em;right:.04em;top:.1em;border-top:1px solid currentColor}
+.g{color:var(--gpm);font-weight:500} .l{color:var(--lcm-ink);font-weight:500}
+.page{max-width:1200px;margin:0 auto;padding-inline:24px}
+@media (max-width:560px){.page{padding-inline:16px}}
+
+/* hero */
+.hero{padding-block:44px 24px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,.98fr);gap:40px;align-items:center}
+@media (max-width:900px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+.kicker{font:500 12px/1.5 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--gpm);margin:0 0 14px}
+.kicker b{color:var(--lcm-ink);font-weight:600}
+h1.title{font-family:var(--f-display);font-weight:900;font-size:clamp(2.9rem,1.6rem + 5.4vw,5.6rem);line-height:.98;letter-spacing:-.035em;margin:0;overflow-wrap:anywhere}
+h1.title .a{color:var(--gpm)} h1.title .b{color:var(--lcm)}
+.bars{display:flex;gap:6px;margin:14px 0 0;max-width:420px}
+.bars i{display:block;height:6px;border-radius:3px}
+.bars .bg{flex:3;background:var(--gpm)} .bars .bl{flex:1;background:var(--lcm)}
+.entitle{font-family:var(--f-display);font-weight:500;font-size:clamp(.95rem,.85rem + .4vw,1.12rem);line-height:1.5;color:var(--ink-2);margin:14px 0 0}
+.thesis{font-size:clamp(1.05rem,1rem + .35vw,1.24rem);line-height:1.78;margin:20px 0 0;max-width:34em}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin:20px 0 0;padding:0;list-style:none;font:13px/1.6 var(--f-mono);color:var(--muted)}
+.meta b{color:var(--ink-2);font-weight:500}
+.ribbon{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.ribbon svg{display:block;width:100%;height:auto}
+.ribbon svg text{font-family:var(--f-mono);fill:var(--muted);font-size:11px}
+.ribbon svg .lab{font-family:var(--f-body);font-size:12.5px;fill:var(--ink-2)}
+.ribbon svg .hd{font-family:var(--f-display);font-weight:700;font-size:13px;fill:var(--ink)}
+.ribbon figcaption{font:12px/1.6 var(--f-mono);color:var(--muted);margin-top:8px}
+@media (prefers-reduced-motion:no-preference){
+  .rb-step{animation:stepin 3.2s ease-in-out infinite}
+  @keyframes stepin{0%,15%{opacity:.25}35%,100%{opacity:1}}
+}
+.tldr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:32px}
+@media (max-width:760px){.tldr{grid-template-columns:minmax(0,1fr)}}
+.tldr>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.tldr h3{font:500 12px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.tldr p{margin:0;font-size:15px;line-height:1.75}
+.tldr .flag h3{color:var(--warn)}
+
+/* layout */
+.layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:52px;padding-block:20px 80px}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr);gap:0}}
+.toc{position:sticky;top:20px;align-self:start;font-size:14px;line-height:1.5}
+.toc p{font:500 11px/1.4 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.toc li a{display:block;padding:5px 0 5px 14px;margin-left:-1px;border-left:2px solid transparent;color:var(--muted);text-decoration:none}
+.toc li a:hover{color:var(--ink)}
+.toc li a.on{color:var(--ink);border-left-color:var(--gpm);font-weight:500}
+@media (max-width:1000px){
+  .toc{position:static;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .toc p{display:none}
+  .toc ol{display:flex;gap:6px;border:0;white-space:nowrap;padding-bottom:6px}
+  .toc li a{border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin:0;background:var(--surface)}
+  .toc li a.on{border-color:var(--gpm)}
+}
+main{min-width:0}
+section{padding-top:56px;scroll-margin-top:12px}
+section:first-child{padding-top:8px}
+.eyebrow{font:500 12px/1.4 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--gpm);margin:0 0 8px}
+h2{font-family:var(--f-display);font-weight:800;font-size:clamp(1.35rem,1.1rem + 1.1vw,1.9rem);line-height:1.3;letter-spacing:-.01em;margin:0 0 18px}
+h3{font-family:var(--f-display);font-weight:700;font-size:1.06rem;line-height:1.45;margin:36px 0 10px}
+p{margin:0 0 14px}
+.prose{max-width:44em}
+.prose li{margin-bottom:6px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.tag{display:inline-block;font:500 11px/1 var(--f-mono);letter-spacing:.06em;padding:4px 6px 3px;border-radius:4px;vertical-align:2px;margin-right:6px;white-space:nowrap}
+.tag.read{border:1px dashed var(--ink-2);color:var(--ink-2)}
+.tag.doubt{background:var(--warn-soft);color:var(--warn)}
+.tag.toy{background:var(--lcm-soft);color:var(--lcm-ink)}
+.note{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 18px;margin:18px 0;max-width:46em}
+.note>:last-child{margin-bottom:0}
+.note h4{font:500 12.5px/1.5 var(--f-mono);letter-spacing:.04em;margin:0 0 6px;color:var(--muted)}
+.note.doubt{border-color:color-mix(in oklab,var(--warn) 35%,var(--line));background:color-mix(in oklab,var(--warn-soft) 55%,var(--surface))}
+.note.doubt h4{color:var(--warn)}
+.eq{font-family:"Times New Roman",Georgia,"Noto Serif SC",serif;font-size:1.08rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:14px 0;overflow-x:auto;white-space:nowrap;display:flex;justify-content:space-between;gap:24px;max-width:46em}
+.eq .no{font:12px var(--f-mono);color:var(--muted);align-self:center}
+.eq .gg{color:var(--gpm)} .eq .ll{color:var(--lcm-ink)}
+
+figure.plate{margin:22px 0}
+figure.plate .zoom{display:block;width:100%;padding:10px;background:var(--plate);border:1px solid var(--line);border-radius:8px;cursor:zoom-in}
+figure.plate img{display:block;width:100%;height:auto}
+figure.plate.narrow{max-width:560px}
+figure.plate figcaption{font-size:14px;line-height:1.7;color:var(--ink-2);margin-top:10px;max-width:52em}
+figure.plate figcaption b{font:500 12px var(--f-mono);letter-spacing:.04em;color:var(--muted);margin-right:8px}
+.figrow{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:24px;align-items:start}
+@media (max-width:820px){.figrow{grid-template-columns:minmax(0,1fr)}}
+.figrow figure.plate{margin:0}
+dialog#lb{border:0;padding:0;background:transparent;max-width:min(96vw,1800px);width:96vw}
+dialog#lb::backdrop{background:rgba(8,10,14,.86)}
+dialog#lb .box{background:var(--plate);border-radius:8px;padding:10px;max-height:88vh;overflow:auto}
+dialog#lb img{display:block;width:100%;height:auto}
+dialog#lb .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#E8EAF0;font-size:14px;padding:8px 2px 0}
+dialog#lb button{font:500 13px var(--f-mono);background:#E8EAF0;color:#16181E;border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
+
+.tblwrap{overflow-x:auto;margin:16px 0;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;font-size:14px;line-height:1.6;min-width:100%}
+table.t th,table.t td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.t thead th{font:500 12px/1.4 var(--f-mono);letter-spacing:.03em;color:var(--muted);border-bottom:1.5px solid var(--ink-2);white-space:nowrap}
+table.t tbody th{font-weight:500;white-space:nowrap;color:var(--ink-2)}
+table.t .num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t tr.best td,table.t tr.best th{font-weight:700}
+table.t.wide{min-width:640px}
+table.t td.flag{color:var(--warn);font-weight:600}
+
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.cards.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:860px){.cards.three{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.cards{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card h4{font-family:var(--f-display);font-weight:700;font-size:.98rem;line-height:1.45;margin:0 0 8px}
+.card p{font-size:14.5px;line-height:1.75;margin:0 0 8px}
+.card p:last-child{margin:0}
+.card.cg{border-top:3px solid var(--gpm)} .card.cl{border-top:3px solid var(--lcm)} .card.cp{border-top:3px solid var(--pol)}
+.card dl{display:grid;grid-template-columns:76px minmax(0,1fr);gap:4px 10px;margin:0;font-size:13.5px;line-height:1.65}
+.card dt{color:var(--muted)} .card dd{margin:0}
+
+/* labs */
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin:22px 0}
+@media (max-width:560px){.lab{padding:14px 12px}}
+.lab-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 16px;margin-bottom:12px}
+.lab-head h4{font-family:var(--f-display);font-weight:800;font-size:1.02rem;margin:0}
+.lab-head p{margin:0;font-size:13px;color:var(--muted)}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:0 0 12px;font-size:14px}
+.ctrl .lbl{font:500 12px var(--f-mono);color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--bg);flex-wrap:wrap}
+.seg button{font:500 13px/1 var(--f-body);border:0;background:transparent;color:var(--muted);padding:8px 11px;cursor:pointer;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg.k button{font-family:var(--f-mono);min-width:36px}
+.btn{font:500 13px/1 var(--f-body);border:1px solid var(--line);background:var(--bg);color:var(--ink-2);border-radius:7px;padding:8px 12px;cursor:pointer;min-height:34px}
+.btn:hover{border-color:var(--ink-2)}
+.lab svg{display:block;width:100%;height:auto}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.pipe svg{min-width:700px}
+.pipe text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+.pipe .mono{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.pipe .node rect{fill:var(--bg);stroke:var(--line);stroke-width:1.2}
+.pipe .node.ng rect{stroke:var(--gpm)} .pipe .node.nl rect{stroke:var(--lcm)} .pipe .node.np rect{stroke:var(--pol)}
+.pipe .node.on rect{stroke-width:2.6}
+.pipe .node.ng.on rect{fill:var(--gpm-soft)} .pipe .node.nl.on rect{fill:var(--lcm-soft)} .pipe .node.np.on rect{fill:var(--surface-2)}
+.pipe .node{cursor:pointer}
+.pipe .node.dim{opacity:.38}
+.pipe .ar{stroke:var(--muted);stroke-width:1.3;fill:none}
+.pipe .ar.g{stroke:var(--gpm)} .pipe .ar.l{stroke:var(--lcm)}
+.steps{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
+.steps button{font:500 12.5px/1.2 var(--f-body);border:1px solid var(--line);background:var(--bg);color:var(--ink-2);border-radius:999px;padding:6px 11px;cursor:pointer}
+.steps button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.stepbox{background:var(--bg);border:1px solid var(--line);border-left:3px solid var(--gpm);border-radius:8px;padding:12px 14px;font-size:14.5px;line-height:1.75;margin:10px 0 12px}
+.stepbox.sl{border-left-color:var(--lcm)} .stepbox.sp{border-left-color:var(--pol)}
+.stepbox h5{font-family:var(--f-display);font-weight:700;font-size:.98rem;margin:0 0 4px}
+.stepbox p{margin:0 0 6px} .stepbox p:last-child{margin:0}
+.stepbox .io{font:12.5px/1.6 var(--f-mono);color:var(--muted)}
+.chunk text{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.chunk .lg{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+.readout{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}
+@media (max-width:760px){.readout{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.readout>div{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:13px;line-height:1.55}
+.readout b{font-family:var(--f-mono);font-weight:500;font-size:18px;color:var(--ink);display:block}
+.readout .k{font:500 11px var(--f-mono);letter-spacing:.04em;color:var(--muted)}
+.say{font-size:14px;line-height:1.75;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:12px 0 0}
+.toy2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:18px;align-items:start}
+@media (max-width:860px){.toy2{grid-template-columns:minmax(0,1fr)}}
+.toy2 svg text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+.toy2 svg .mono{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.fbt th,.fbt td{padding:6px 6px!important;font-size:12.5px}
+.minibar{display:grid;grid-template-columns:76px minmax(0,1fr) 44px;gap:8px;align-items:center;font:12.5px var(--f-mono);margin:4px 0}
+.minibar .tr{height:12px;background:var(--surface-2);border-radius:3px;position:relative;overflow:hidden}
+.minibar .tr i{position:absolute;inset:0 auto 0 0;border-radius:3px}
+.minibar.on{font-weight:600;color:var(--ink)}
+
+/* charts */
+.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 16px 10px;margin:18px 0}
+.chartbox h4{font-family:var(--f-display);font-weight:700;font-size:.98rem;margin:0 0 2px}
+.chartbox .sub{font-size:13px;color:var(--muted);margin:0 0 10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink-2);margin:0 0 6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.legend i.ring{border-radius:50%;border:2px solid var(--gpm);background:transparent}
+.legend i.dotf{border-radius:50%}
+svg.chart{display:block;width:100%;height:auto;min-width:600px}
+svg.chart.sm{min-width:0}
+svg.chart text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+svg.chart .tick{font:11px var(--f-mono);fill:var(--muted)}
+svg.chart .val{font:11px var(--f-mono);fill:var(--ink-2)}
+svg.chart .val.hi{fill:var(--ink);font-weight:600}
+svg.chart .grid{stroke:var(--line);stroke-width:1}
+svg.chart .base{stroke:var(--ink-2);stroke-width:1}
+svg.chart .glabel{font-size:12.5px;fill:var(--ink)}
+.c-ours{fill:var(--gpm)} .c-lcm{fill:var(--lcm)} .c-b0{fill:var(--base)} .c-b1{fill:var(--base-2)} .c-warn{fill:var(--warn)} .c-pol{fill:var(--pol)}
+.bg-ours{background:var(--gpm)} .bg-lcm{background:var(--lcm)} .bg-b0{background:var(--base)} .bg-b1{background:var(--base-2)} .bg-pol{background:var(--pol)}
+details.raw{margin:8px 0 4px;font-size:13.5px}
+details.raw summary{cursor:pointer;color:var(--muted);font:500 12.5px var(--f-mono)}
+details.raw .tblwrap{margin:8px 0}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);font:12.5px/1.55 var(--f-body);padding:8px 10px;border-radius:6px;max-width:280px}
+.panels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.panels{grid-template-columns:minmax(0,1fr)}}
+.panels.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:640px){.panels.two{grid-template-columns:minmax(0,1fr)}}
+.panels svg{display:block;width:100%;height:auto}
+
+/* heat */
+table.heat{border-collapse:separate;border-spacing:3px;font-size:13px;min-width:700px;width:100%}
+table.heat th{font:500 11.5px/1.3 var(--f-mono);color:var(--muted);text-align:center;padding:6px 4px;white-space:nowrap}
+table.heat th.row{text-align:left;font:500 13px/1.3 var(--f-body);color:var(--ink);white-space:nowrap;padding-right:10px}
+table.heat th.ours{color:var(--gpm)}
+table.heat td{text-align:center;font:500 12.5px var(--f-mono);font-variant-numeric:tabular-nums;border-radius:4px;padding:6px 4px;color:var(--ink)}
+table.heat td.dk{color:var(--on-gpm)}
+table.heat tr.avg th.row{font-weight:700}
+table.heat tr.avg td{box-shadow:inset 0 2px 0 var(--ink-2)}
+table.heat tr.extra th.row{color:var(--ink-2)}
+table.heat tr.extra th.row::after{content:" · 附录";font:11px var(--f-mono);color:var(--muted)}
+
+details.faq{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:10px 0;max-width:50em}
+details.faq summary{cursor:pointer;padding:12px 16px;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::after{content:"+";font:500 16px var(--f-mono);color:var(--muted)}
+details.faq[open] summary::after{content:"−"}
+details.faq .a{padding:0 16px 14px;font-size:15px;line-height:1.8}
+details.faq .a p:last-child{margin:0}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0;align-items:start}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.two>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.two h4{font:500 12px/1.4 var(--f-mono);letter-spacing:.1em;margin:0 0 10px;color:var(--muted)}
+.two ul{margin:0;padding-left:18px;font-size:14.5px;line-height:1.75}
+.two li{margin-bottom:8px}
+table.cmp{min-width:900px}
+table.cmp td{font-size:13.5px}
+table.cmp th.me,table.cmp td.me{background:color-mix(in oklab,var(--gpm-soft) 55%,transparent)}
+table.cmp td.sep,table.cmp th.sep{border-left:2px dashed var(--line)}
+details.gl{background:var(--surface);border:1px solid var(--line);border-radius:10px;max-width:52em}
+details.gl summary{cursor:pointer;padding:14px 18px;font-weight:500}
+details.gl dl{margin:0;padding:0 18px 16px;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:8px 18px;font-size:14px;line-height:1.7}
+details.gl dt{font-family:var(--f-mono);font-size:13px;color:var(--ink)}
+details.gl dd{margin:0;color:var(--ink-2)}
+@media (max-width:560px){details.gl dl{grid-template-columns:minmax(0,1fr);gap:2px}details.gl dd{margin-bottom:10px}}
+footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+.vapnav-grp{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-cat{font-size:11.5px;letter-spacing:.04em;opacity:.5}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/">Harness for Robotics</a></span><span class="vapnav-links"><span class="vapnav-grp"><span class="vapnav-cat">上下文</span><a href="../../papers/activevla/">ActiveVLA</a><a href="../../papers/tic-vla/">TIC-VLA</a><a href="../../papers/ra-vla/">RA-VLA</a></span><span class="vapnav-grp"><span class="vapnav-cat">记忆</span><a href="../../papers/memoryvla/">MemoryVLA</a><a href="../../papers/optimusvla/" aria-current="page">OptimusVLA</a><a href="../../papers/soma/">SOMA</a><a href="../../papers/hime/">HiMe</a></span><span class="vapnav-grp"><span class="vapnav-cat">结构化执行</span><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/motormind/">MotorMind</a></span><span class="vapnav-grp"><span class="vapnav-cat">评估与反馈</span><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/tau0-vla/">τ₀-VLA</a></span></span></div></div>
+<!-- /vap:nav -->
+<header class="hero page">
+  <div class="hero-grid">
+    <div>
+      <p class="kicker">论文精读 · Harness for Robotics · <b>Persistent State / Memory</b></p>
+      <h1 class="title">Optimus<span class="a">V</span>L<span class="b">A</span></h1>
+      <div class="bars" aria-hidden="true"><i class="bg"></i><i class="bl"></i></div>
+      <p class="entitle">Global Prior Meets Local Consistency: Dual-Memory Augmented Vision-Language-Action Model for Efficient Robotic Manipulation</p>
+      <p class="thesis">在 π0.5 外面挂两块记忆，都接在 flow policy 的<strong>去噪起点</strong>上：<span class="g">全局先验记忆 GPM</span> 从示范库里检索同类轨迹，用它们的均值和方差代替高斯噪声当起点，并按检索相似度决定加多少噪声、走几步；<span class="l">局部一致性记忆 LCM</span> 用 Mamba 读上一个动作块，给起点加一个偏置。flow policy 和 VLM 的权重不动。LIBERO 平均成功率 98.6（π0.5 为 96.9），平均去噪步数 3.2（π0.5 为 10）。</p>
+      <ul class="meta">
+        <li><b>哈工大（深圳）· 鹏城实验室 · 深圳河套学院 · 华为诺亚方舟实验室</b></li>
+        <li><b>arXiv</b> 2602.20200v2</li>
+        <li><b>v1</b> 2026-02-22 · <b>v2</b> 2026-05-18 · CVPR 2026</li>
+        <li><a href="https://arxiv.org/abs/2602.20200" target="_blank" rel="noopener">arXiv</a> · <a href="https://cybertronagent.github.io/OptimusVLA.github.io/" target="_blank" rel="noopener">项目页</a></li>
+      </ul>
+    </div>
+    <figure class="ribbon">
+      <svg viewBox="0 0 520 318" role="img" aria-label="示意：π0.5 从各向同性噪声出发走 10 步；OptimusVLA 从检索先验加 LCM 偏置出发，走 N 步，N 由检索相似度决定">
+        <text class="hd" x="16" y="26">π0.5</text>
+        <text class="lab" x="62" y="26">起点 ε ~ 𝒩(0, I)，固定 N = 10</text>
+        <g fill="var(--base)">
+          <circle cx="30" cy="58" r="3"/><circle cx="44" cy="80" r="3"/><circle cx="22" cy="86" r="3"/><circle cx="52" cy="62" r="3"/><circle cx="36" cy="70" r="3.6" fill="var(--pol)"/><circle cx="58" cy="90" r="3"/><circle cx="18" cy="66" r="3"/>
+        </g>
+        <line x1="36" y1="70" x2="470" y2="70" stroke="var(--pol)" stroke-width="1.6"/>
+        <g fill="var(--pol)">
+          <circle class="rb-step" cx="79" cy="70" r="4"/><circle class="rb-step" cx="123" cy="70" r="4"/><circle class="rb-step" cx="166" cy="70" r="4"/><circle class="rb-step" cx="210" cy="70" r="4"/><circle class="rb-step" cx="253" cy="70" r="4"/><circle class="rb-step" cx="297" cy="70" r="4"/><circle class="rb-step" cx="340" cy="70" r="4"/><circle class="rb-step" cx="384" cy="70" r="4"/><circle class="rb-step" cx="427" cy="70" r="4"/>
+        </g>
+        <circle cx="470" cy="70" r="7" fill="none" stroke="var(--tgt)" stroke-width="2"/>
+        <text x="470" y="98" text-anchor="middle">动作块</text>
+        <line x1="16" y1="118" x2="504" y2="118" stroke="var(--line)"/>
+        <text class="hd" x="16" y="146">OptimusVLA</text>
+        <text class="lab" x="112" y="146">起点 = 检索先验 + LCM 偏置</text>
+        <path d="M20 205 C 70 160, 120 222, 222 176" fill="none" stroke="var(--gpm)" stroke-width="1.3" opacity=".75"/>
+        <path d="M20 212 C 72 170, 126 228, 222 184" fill="none" stroke="var(--gpm)" stroke-width="1.3" opacity=".75"/>
+        <path d="M20 198 C 68 152, 116 214, 222 168" fill="none" stroke="var(--gpm)" stroke-width="1.3" opacity=".75"/>
+        <rect x="118" y="160" width="44" height="62" rx="4" fill="none" stroke="var(--gpm)" stroke-dasharray="4 3"/>
+        <text x="20" y="236" style="fill:var(--gpm)">k 条检索轨迹 · 按进度 ρ_t 取窗口</text>
+        <path d="M164 190 C 230 190, 260 192, 314 192" fill="none" stroke="var(--gpm)" stroke-width="1.6" marker-end="url(#ah-g)"/>
+        <ellipse cx="330" cy="192" rx="24" ry="13" fill="var(--gpm-soft)" stroke="var(--gpm)" stroke-width="1"/>
+        <circle cx="330" cy="192" r="4.5" fill="var(--gpm)"/>
+        <text x="306" y="171" text-anchor="middle" style="fill:var(--gpm)">μ ± λ√Var</text>
+        <path d="M20 284 L40 276 L60 280 L80 270 L100 272 L118 264" fill="none" stroke="var(--lcm)" stroke-width="2"/>
+        <text x="20" y="304" style="fill:var(--lcm-ink)">上一个动作块 A_{t−1}</text>
+        <rect x="150" y="262" width="74" height="26" rx="5" fill="var(--lcm-soft)" stroke="var(--lcm)"/>
+        <text class="lab" x="187" y="280" text-anchor="middle">Mamba</text>
+        <path d="M122 268 L146 272" stroke="var(--lcm)" stroke-width="1.4" marker-end="url(#ah-l)"/>
+        <path d="M226 274 C 300 272, 350 250, 362 204" fill="none" stroke="var(--lcm)" stroke-width="1.6" marker-end="url(#ah-l)"/>
+        <text x="300" y="262" style="fill:var(--lcm-ink)">偏置 B_t</text>
+        <circle cx="366" cy="186" r="6" fill="var(--lcm)" stroke="var(--tgt)" stroke-width="1.6"/>
+        <text x="374" y="174" style="fill:var(--ink)">X_t</text>
+        <line x1="366" y1="186" x2="470" y2="190" stroke="var(--pol)" stroke-width="1.6"/>
+        <g fill="var(--pol)"><circle class="rb-step" cx="401" cy="187" r="4"/><circle class="rb-step" cx="435" cy="189" r="4"/></g>
+        <circle cx="470" cy="190" r="7" fill="none" stroke="var(--tgt)" stroke-width="2"/>
+        <text x="418" y="216" text-anchor="middle">N 由 s̄ 决定</text>
+        <text x="418" y="231" text-anchor="middle">图 6 中为 1–4</text>
+        <defs>
+          <marker id="ah-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--gpm)"/></marker>
+          <marker id="ah-l" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--lcm)"/></marker>
+        </defs>
+      </svg>
+      <figcaption>按论文 §3、附录 B 的流程画的示意，点数不是实验数据。钴蓝 = 全局先验记忆，藏红 = 局部一致性记忆。</figcaption>
+    </figure>
+  </div>
+  <div class="tldr" aria-label="一分钟版">
+    <div><h3>做了什么</h3><p><span class="g">GPM</span>：两层 MLP（Prior Head）把 VLM 前缀 token 的均值投成检索键，在 FAISS 里取 top-k 条示范轨迹，按任务进度各切出一个动作块，矩匹配成对角高斯 𝒩(μ, Var)，起点取 μ + λ·ε⊙√Var。噪声尺度 λ 和步数 N 都由加权相似度 <span class="ov">s</span> 决定。<span class="l">LCM</span>：自注意力的 Consistency Layer 加 Mamba 式的 Dynamic Awareness 模块读上一个动作块，输出与动作块同形状的偏置 B<sub>t</sub>，加到起点上。</p></div>
+    <div><h3>训练</h3><p>三阶段：先按 π0.5 的协议微调（30,000 步，batch 512）；再冻住它，只训 Prior Head（InfoNCE，1000 步）；最后冻住 GPM，只训 LCM（回归 A* − μ，1000 步）。flow policy 只在高斯起点上训练过，先验起点只在推理时换上。总参数 3.6B。</p></div>
+    <div><h3>结果</h3><p>LIBERO 平均 <b>98.6</b>（π0.5 96.9），NFE 3.2 vs 10；CALVIN ABC→D Avg. Len <b>4.45</b>（π0.5 复现 4.26）；RoboTwin 2.0 Hard 主表 8 个任务 <b>38%</b>（π0.5 29%）；真机泛化 <b>85.0</b>、长程 <b>64.0</b>（π0.5 75.0 / 51.0，后者读自图 3）。</p></div>
+    <div class="flag"><h3>最该留意的</h3><p>摘要里的“2.9× 推理加速”是真机上的 <b>NFE 之比</b>（10 / 3.4）。墙钟时间对 π0.5 是 133 → 112 ms（约 1.19×），LIBERO 上 57 → 39 ms（约 1.46×）；图 5 标的 6.5×、4.9× 是对 OpenVLA。论文没有“π0.5 直接少走几步”的对照。RoboTwin 全部 16 个任务的平均是 30%，摘要的 38% 来自主表的 8 个。</p></div>
+  </div>
+</header>
+
+<div class="page layout">
+  <nav class="toc" aria-label="目录">
+    <p>目录</p>
+    <ol>
+      <li><a href="#problem">问题</a></li>
+      <li><a href="#overview">全局与数据流</a></li>
+      <li><a href="#gpm">全局先验记忆</a></li>
+      <li><a href="#lcm">局部一致性记忆</a></li>
+      <li><a href="#train">训练</a></li>
+      <li><a href="#setup">实验设置</a></li>
+      <li><a href="#results">结果</a></li>
+      <li><a href="#insight">读懂它</a></li>
+      <li><a href="#limits">局限与疑点</a></li>
+      <li><a href="#topic">放到专题里看</a></li>
+      <li><a href="#glossary">术语表</a></li>
+    </ol>
+  </nav>
+  <main>
+    <section id="problem">
+      <p class="eyebrow">问题 · §1–2</p>
+      <h2>瓶颈在动作生成：起点太远，眼前太短</h2>
+      <div class="figrow">
+        <figure class="plate">
+          <button class="zoom" type="button" data-src="fig/teaser.png" aria-label="放大原文图 1"><img src="fig/teaser.png" width="1526" height="1550" alt="原文图 1：上为标准 VLA 与 OptimusVLA 的结构对比，中为先验与噪声起点、动作一致性示意，下为成功率与 NFE 对比柱状图" loading="lazy"></button>
+          <figcaption><b>原文 Figure 1</b>上：标准 VLA（左）与 OptimusVLA（右），后者在 policy 上方多了 GPM 和 LCM 两个输入。中上：灰色噪声点要走很长的弯路才到橙色动作点，蓝色 prior 点离得近、路径短。中下：绿色箭头示意动作之间的一致性。下：LIBERO 成功率 98.6 / 96.9 / 94.2、NFE 3.2 / 10 / 10；真机成功率 85.0 / 75.0 / 59.5、NFE 3.4 / 10 / 10（依次为本文、π0.5、π0）。</figcaption>
+        </figure>
+        <div class="prose">
+          <p>论文针对的是分层 VLA（VLM 主干 + 生成式动作头，如 π0、π0.5）。作者认为这类模型的瓶颈已经从感知转到了动作生成，具体是两条：</p>
+          <ul>
+            <li><strong>效率：先验和目标差太远。</strong>flow matching 从各向同性高斯走到结构化的动作分布，跨度大，需要多步去噪；随机起点还可能落在会生成运动学上不可行动作的区域。论文也指出了反面：如果直接拿“动作先验”当起点，多样性会塌掉，模型退化成“把输入挪到目标附近”的函数，而且先验从哪来本身没解决。</li>
+            <li><strong>鲁棒性：只看当前观测。</strong>马尔可夫式的 VLA 分不清看起来一样的不同阶段（论文的例子：没打开过的抽屉和刚关上的抽屉）；不参考已执行的轨迹，动作会抖。直接把长历史观测拼进输入，推理开销和显存都上去，而且和 VLA 单帧预训练的分布不一致（这一点引用了 MemoryVLA）。</li>
+          </ul>
+          <p>两条问题对应两块记忆：<span class="g">GPM</span> 是长期记忆，存的是训练集里的整条动作轨迹；<span class="l">LCM</span> 是工作记忆，存的是本条 episode 里刚执行过的动作。</p>
+        </div>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>两块记忆接在同一个位置</h4>
+        <p>这篇最有辨识度的设计不是“双记忆”这个说法，而是<strong>接入点</strong>：两块记忆都不进 VLM 的 token 序列，也不作为动作头的条件，而是直接改写 flow policy 的初值 X<sub>t</sub> = <span class="hat">X</span><sub>t</sub> + B<sub>t</sub>。所以它不增加上下文长度，也不需要重训 VLA，代价是只能通过“从哪里出发、走几步”来影响动作。</p>
+      </div>
+    </section>
+
+    <section id="overview">
+      <p class="eyebrow">方法 · 全局 · §3.1</p>
+      <h2>五行公式说完整条推理</h2>
+      <div class="eq"><span>E<sub>emb</sub> ← VLM(O<sub>t</sub>, ℓ),&nbsp;&nbsp; O<sub>t</sub> = {q<sub>t</sub>, I<sup>1</sup><sub>t</sub>, …, I<sup>n</sup><sub>t</sub>}</span><span class="no">(3)</span></div>
+      <div class="eq"><span class="gg">𝒫<sub>re</sub> ← GPM(z<sub>re</sub>),&nbsp;&nbsp; <span class="hat">X</span><sub>t</sub> ∈ ℝ<sup>H×A</sup> ~ 𝒫<sub>re</sub></span><span class="no">(4)</span></div>
+      <div class="eq"><span class="ll">B<sub>t</sub> ← LCM(A<sub>t−1</sub>),&nbsp;&nbsp; B<sub>t</sub> ∈ ℝ<sup>H×A</sup></span><span class="no">(5)</span></div>
+      <div class="eq"><span>X<sub>t</sub> = <span class="gg"><span class="hat">X</span><sub>t</sub></span> + <span class="ll">B<sub>t</sub></span></span><span class="no">(6)</span></div>
+      <div class="eq"><span>a<sub>t+1:t+H</sub> ← p<sub>θ</sub>(X<sub>t</sub>, N)</span><span class="no">(7)</span></div>
+      <div class="prose">
+        <p>O<sub>t</sub> 包括本体状态 q<sub>t</sub> 和多视角图像；H 是动作块长度，A 是动作维度；N 是自适应的去噪步数（NFE）。VLM 主干和 flow policy 就是 π0.5 的那两部分，论文称其为“分层 VLA 的标准组件”。注意时间约定：本文的 CFM 写法是 t = 0 为噪声、t = 1 为动作（式 1），和 π0 代码里的方向相反，但不影响下面的讨论。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/arch.jpg" aria-label="放大原文图 2"><img src="fig/arch.jpg" width="1800" height="793" alt="原文图 2：OptimusVLA 框架，左上为 Prior Head、Memory Bank 与滑动窗口，中上为 Prior-Aware Sampler，右侧为 Local Consistency Memory，下方为 VLM 主干与 Flow Policy" loading="lazy"></button>
+        <figcaption><b>原文 Figure 2</b>左上（蓝底）：VLM 输出经 Prior Head 得到查询 z<sub>re</sub>，在 Memory Bank 里取回 J<sub>1</sub>…J<sub>k</sub>，虚线框是按进度滑动的窗口。中上：Prior-Aware Sampler，图里写着 H = 10 和 λ、<span class="hat">X</span><sub>t</sub> 的公式，橙色带是采样出的先验。右侧（绿底）：Consistency Layer 读上一个动作块，Dynamic Awareness Module 是 Mamba 式结构（Linear → Conv → σ → SSM，与另一路 Linear → σ 相乘，再接 Linear），输出的偏置沿绿色虚线加到起点上。图注里把 LCM 误写成了 “LBM”。</figcaption>
+      </figure>
+      <div class="cards three">
+        <div class="card cp"><h4>VLM 主干 + flow policy</h4><dl><dt>来源</dt><dd>π0.5 的结构与训练协议，从 π0.5 权重初始化</dd><dt>输入</dt><dd>多视角图像、本体状态、语言</dd><dt>输出</dt><dd>H × A 动作块，H = 10（图 2 标注）</dd><dt>训练后</dt><dd>阶段 II、III 全程冻结</dd></dl></div>
+        <div class="card cg"><h4>全局先验记忆 GPM</h4><dl><dt>Prior Head</dt><dd>2 层 MLP，InfoNCE 训练</dd><dt>Memory Bank</dt><dd>M 个（键, 整条轨迹, 元数据），FAISS <code>IndexFlatIP</code></dd><dt>Sampler</dt><dd>矩匹配高斯 + 由 <span class="ov">s</span> 决定的 λ 与 N</dd><dt>频率</dt><dd>每个 episode 检索一次（附录 B.5）</dd></dl></div>
+        <div class="card cl"><h4>局部一致性记忆 LCM</h4><dl><dt>输入</dt><dd>上一个动作块 A<sub>t−1</sub> ∈ ℝ<sup>H×A</sup>，不看图像</dd><dt>结构</dt><dd>Consistency Layer（自注意力）+ Dynamic Awareness（Mamba）</dd><dt>输出</dt><dd>偏置 B<sub>t</sub> ∈ ℝ<sup>H×A</sup></dd><dt>目标</dt><dd>B* = A* − μ</dd></dl></div>
+      </div>
+
+      <div class="lab" id="la">
+        <div class="lab-head">
+          <h4>一次推理怎么走：从检索到起点</h4>
+          <p>流程和公式来自 §3 与附录 B；曲线是一维玩具数据，不是论文实验</p>
+        </div>
+        <div class="steps" id="la-steps" role="group" aria-label="选择步骤"></div>
+        <div class="scroll pipe"><svg id="la-pipe" viewBox="0 0 760 232" role="img" aria-label="OptimusVLA 推理数据流"></svg></div>
+        <div class="stepbox" id="la-box"></div>
+        <div class="ctrl">
+          <span class="lbl">检索情形</span>
+          <div class="seg" role="group" aria-label="检索情形" id="la-case">
+            <button type="button" data-v="hit" aria-pressed="true">同任务命中</button>
+            <button type="button" data-v="mix" aria-pressed="false">部分相似</button>
+            <button type="button" data-v="off" aria-pressed="false">检索偏离</button>
+          </div>
+          <span class="lbl">进度 ρ<sub>t</sub> 误差</span>
+          <div class="seg k" role="group" aria-label="进度误差" id="la-rho">
+            <button type="button" data-v="-0.12" aria-pressed="false">−0.12</button>
+            <button type="button" data-v="0" aria-pressed="true">0</button>
+            <button type="button" data-v="0.12" aria-pressed="false">+0.12</button>
+          </div>
+          <span class="lbl">LCM</span>
+          <div class="seg" role="group" aria-label="LCM 开关" id="la-lcm">
+            <button type="button" data-v="1" aria-pressed="true">开</button>
+            <button type="button" data-v="0" aria-pressed="false">关</button>
+          </div>
+          <span class="lbl">π0.5 噪声起点</span>
+          <div class="seg" role="group" aria-label="显示高斯起点" id="la-gauss">
+            <button type="button" data-v="1" aria-pressed="false">显示</button>
+            <button type="button" data-v="0" aria-pressed="true">隐藏</button>
+          </div>
+          <button class="btn" type="button" id="la-resample">重新采样 ε</button>
+        </div>
+        <div class="scroll chunk"><svg id="la-plot" viewBox="0 0 760 322" role="img" aria-label="一维动作块：上一块、检索块、先验均值与方差带、采样起点、LCM 偏置后的起点、真实下一块" style="min-width:560px"></svg></div>
+        <div class="readout" id="la-read"></div>
+        <p class="say" id="la-say"></p>
+      </div>
+      <div class="note">
+        <h4><span class="tag toy">玩具设定</span>交互里哪些是论文的，哪些是我们填的</h4>
+        <p>论文的：取块规则 u<sub>i</sub> = ⌊ρ<sub>t</sub>(N<sub>chunks</sub> − 1)⌋、权重 α = softmax(s/τ<sub>s</sub>)、<span class="ov">s</span> = Σα<sub>i</sub>s<sub>i</sub>、μ 和 Var 的加权矩、λ(<span class="ov">s</span>) 与 N(<span class="ov">s</span>) 两个线性映射、X<sub>t</sub> = <span class="hat">X</span><sub>t</sub> + B<sub>t</sub>。我们填的：示范轨迹的形状和长度、相似度分数、τ<sub>s</sub> = 0.1、窗口步长 Δ = 2、方差下限，以及 λ<sub>max</sub> = 1.0、λ<sub>min</sub> = 0.3、N<sub>min</sub> = 1、N<sub>max</sub> = 10（论文没给，按图 6 的数字反推，见下一节）。LCM 在这里被画成“学到了残差的 75%”，只为显示它的作用方向；它真实的预测精度论文没有报告。</p>
+      </div>
+    </section>
+
+    <section id="gpm">
+      <p class="eyebrow">方法 · 全局先验记忆 · §3.2 · 附录 B</p>
+      <h2>把“从哪里出发”变成一次检索</h2>
+      <h3 style="margin-top:0">① 离线建库</h3>
+      <div class="prose">
+        <p>对数据集里每条 episode，用（阶段 I 训好的）VLM 做一次前向，取前缀 token H<sup>(m)</sup> ∈ ℝ<sup>L×D<sub>vlm</sub></sup> 的均值 e<sup>(m)</sup>，经 Prior Head f<sub>head</sub>（2 层 MLP）投影并 L2 归一化，得到键 <span class="tl">z</span><sub>m</sub>。值是这条 episode 的<strong>整条稠密动作序列</strong> J<sup>(m)</sup>，外加长度、分块参数等元数据。所有键放进 FAISS 的 <code>IndexFlatIP</code>（内积，即归一化后的余弦相似度）。</p>
+        <p>Prior Head 用监督式 InfoNCE 训练：同一任务的 episode 互为正样本，batch 内其他任务为负样本，温度 τ<sub>c</sub> = 0.07。为保证每个锚点在 batch 里至少有一个正样本，用了 Task-Pair Batch Sampler，每个 batch 里同一任务至少两条轨迹。</p>
+      </div>
+      <h3>② 在线检索与取块</h3>
+      <div class="eq"><span>s<sub>i</sub> = ⟨<span class="tl">z</span><sub>re</sub>, <span class="tl">z</span><sub>i</sub>⟩,&nbsp;&nbsp; α<sub>i</sub> = softmax(s<sub>i</sub> / τ<sub>s</sub>),&nbsp;&nbsp; <span class="ov">s</span> = Σ<sub>i</sub> α<sub>i</sub> s<sub>i</sub> ∈ [−1, 1]</span><span class="no">(10)</span></div>
+      <div class="eq"><span>u<sub>i</sub> = ⌊ρ<sub>t</sub> · (N<sup>(i)</sup><sub>chunks</sub> − 1)⌋,&nbsp;&nbsp; C<sub>i</sub> = Resample( J<sub>i</sub>[u<sub>i</sub>Δ : u<sub>i</sub>Δ + H<sub>0</sub>] ) ∈ ℝ<sup>H×A</sup></span><span class="no">附录 B.3</span></div>
+      <div class="eq"><span>μ = Σ<sub>i</sub> α<sub>i</sub> C<sub>i</sub>,&nbsp;&nbsp; Var = Σ<sub>i</sub> α<sub>i</sub> (C<sub>i</sub> − μ)<sup>⊙2</sup>,&nbsp;&nbsp; Var ≥ σ<sup>2</sup><sub>min</sub></span><span class="no">(11)</span></div>
+      <div class="prose">
+        <p>查询 <span class="tl">z</span><sub>re</sub> 用同样方式从当前时刻的前缀 token 算出。每条检索到的轨迹按一个<strong>进度标量 ρ<sub>t</sub> ∈ [0, 1]</strong> 对齐：用长度 H<sub>0</sub>、步长 Δ 的滑动窗口切块，取第 u<sub>i</sub> 个窗口；H<sub>0</sub> ≠ H 时线性插值到 H。k 个块的加权混合用一个矩匹配的对角高斯近似。</p>
+        <p><strong>Session 级缓存</strong>（附录 B.5）：检索只在 episode 开始时做一次（或“检测到明显的任务漂移”时重做），缓存 top-k 的索引和权重；之后每一步只按 ρ<sub>t</sub> 取块、重算式 (11)，不再查 FAISS。</p>
+      </div>
+      <h3>③ 相似度决定噪声和步数</h3>
+      <div class="eq"><span>λ = λ<sub>max</sub> − ½(<span class="ov">s</span> + 1)(λ<sub>max</sub> − λ<sub>min</sub>),&nbsp;&nbsp; N = Round( N<sub>min</sub> + (1 − ½(<span class="ov">s</span> + 1))(N<sub>max</sub> − N<sub>min</sub>) )</span><span class="no">(12)(13)</span></div>
+      <div class="eq"><span class="gg"><span class="hat">X</span><sub>t</sub> = μ + λ · (ε ⊙ √Var),&nbsp;&nbsp; ε ~ 𝒩(0, I)</span><span class="no">(14)</span></div>
+      <div class="prose">
+        <p>检索越可信（<span class="ov">s</span> → 1），λ 越小（更依赖均值）、N 越少；陌生场景（论文写 <span class="ov">s</span> ≈ 0）退回更大的噪声和更多步数。论文强调保留 λ 噪声是为了不让生成退化成确定性映射，保住对新任务的泛化。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t wide">
+          <thead><tr><th>GPM 超参数</th><th>论文给的值</th><th>来源</th></tr></thead>
+          <tbody>
+            <tr><th>Prior Head</th><td>2 层 MLP；AdamW，lr 1×10⁻⁴，batch 64，τ<sub>c</sub> = 0.07，20 epoch（表 6 写 1000 步）</td><td>附录 C.2、表 6</td></tr>
+            <tr><th>检索条数 k</th><td>表 5 里 k = 8 最好；主实验用几条没有明说</td><td>表 5</td></tr>
+            <tr><th>库大小</th><td>LIBERO-Long 消融里 6500 / 1300 / 130 条</td><td>表 5</td></tr>
+            <tr><th>τ<sub>s</sub>、H<sub>0</sub>、Δ、σ<sup>2</sup><sub>min</sub></th><td>未披露</td><td>—</td></tr>
+            <tr><th>λ<sub>min</sub>、λ<sub>max</sub>、N<sub>min</sub>、N<sub>max</sub></th><td>未披露（下方由图 6 反推）</td><td>—</td></tr>
+            <tr><th>ρ<sub>t</sub> 怎么得到</th><td>只写了“维护一个进度标量”，未披露</td><td>附录 B.3</td></tr>
+            <tr><th>H</th><td>图 2 标注 H = 10，正文未写</td><td>图 2</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>从图 6 反推出的调度范围</h4>
+        <p>图 6（原文 fig7）给了 LIBERO 一条 episode 里 8 个关键帧的 <span class="ov">s</span>、λ、N。N 的 8 个值（1, 3, 4, 4, 3, 3, 3, 4）和 N<sub>min</sub> = 1、N<sub>max</sub> = 10 的式 (13) 逐个吻合（例如 <span class="ov">s</span> = 0.92 → 1.36 → 1；<span class="ov">s</span> = 0.42 → 3.61 → 4）。λ 的 6 组不同取值做线性拟合，得到 λ<sub>max</sub> ≈ 1.0、λ<sub>min</sub> ≈ 0.3。这只是按图上数字算的，论文没有写这几个超参数。</p>
+      </div>
+
+      <div class="lab" id="fb">
+        <div class="lab-head">
+          <h4>起点换了，速度场没换：二维玩具里的去噪</h4>
+          <p><span class="tag toy">解读 · 玩具模型</span>速度场按 CFM 的定义精确计算</p>
+        </div>
+        <div class="ctrl">
+          <span class="lbl">起点</span>
+          <div class="seg" role="group" aria-label="起点" id="fb-start">
+            <button type="button" data-v="gauss" aria-pressed="true">各向同性噪声（π0.5）</button>
+            <button type="button" data-v="hit" aria-pressed="false">GPM · 检索命中</button>
+            <button type="button" data-v="off" aria-pressed="false">GPM · 检索偏离</button>
+          </div>
+          <span class="lbl">步数 N</span>
+          <div class="seg k" role="group" aria-label="步数" id="fb-n">
+            <button type="button" data-v="1" aria-pressed="false">1</button>
+            <button type="button" data-v="2" aria-pressed="false">2</button>
+            <button type="button" data-v="3" aria-pressed="true">3</button>
+            <button type="button" data-v="4" aria-pressed="false">4</button>
+            <button type="button" data-v="6" aria-pressed="false">6</button>
+            <button type="button" data-v="10" aria-pressed="false">10</button>
+          </div>
+          <button class="btn" type="button" id="fb-auto">按式 (13) 取 N</button>
+        </div>
+        <div class="toy2">
+          <svg id="fb-svg" viewBox="0 0 420 372" role="img" aria-label="二维动作空间：两组可行示范、起点样本、Euler 去噪轨迹和终点"></svg>
+          <div>
+            <div class="readout" id="fb-read" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:0"></div>
+            <p class="small muted" style="margin:12px 0 4px">同一组 80 个 ε，三种起点在各个 N 下的可行比例：</p>
+            <div id="fb-table"></div>
+          </div>
+        </div>
+        <p class="say" id="fb-say"></p>
+      </div>
+      <div class="prose">
+        <p>这个玩具在做什么：二维平面代表动作空间，给定观测后“可行动作”有两簇（左侧抓、右侧抓，共 24 个示范点），两簇中间的平均位置不可行。速度场不是学出来的，而是按条件 flow matching 的定义<strong>精确计算</strong>的：源分布是 𝒩(0, I)、直线路径 x<sub>t</sub> = (1 − t)x<sub>0</sub> + t x<sub>1</sub> 时，最优速度场是 v(t, x) = (E[x<sub>1</sub> | x<sub>t</sub> = x] − x) / (1 − t)。这正是附录 B.1 所说“预训练时保持 𝒫<sub>0</sub> = 𝒩(0, I)”的 flow policy 在理想情况下会学到的东西。推理时只把起点换成 GPM 的样本，速度场保持不变，与论文的做法一致。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>“起点离目标近，步数就能少”在高斯源 flow 上不自动成立</h4>
+        <p>在 t = 0，x<sub>t</sub> 就是 x<sub>0</sub>，与 x<sub>1</sub> 独立，所以理想速度场是 v(0, x) = E[x<sub>1</sub> | c] − x：无论起点放在哪，第一步都朝<strong>条件均值</strong>走 1/N 的距离。N = 1 时输出恒等于 E[x<sub>1</sub> | c]，起点完全不起作用（图 6 的第一帧就是 N = 1）；N 稍大时，先验起点的信息才在后几步体现出来。玩具里 N = 3、4 时检索命中的先验确实减少了落在两簇之间的样本，但 N = 1、2 时两种起点都失败，检索偏离时需要更多步。</p>
+        <p>真实网络不是理想速度场：它在 t = 0 只见过高斯样本，喂进一个“已经像动作”的起点属于分布外输入，行为论文没有分析。附录也没说推理时 ODE 从哪个 t 开始积分。要判断 NFE 从 10 降到 3.2 有多少来自先验起点，需要“π0.5 用高斯起点直接走 3–4 步”的对照，论文没有做。LIBERO 这类任务给定观测后动作往往接近单峰，单峰时少步数本来就可能够用。</p>
+      </div>
+    </section>
+
+    <section id="lcm">
+      <p class="eyebrow">方法 · 局部一致性记忆 · §3.3 · 附录 C.3</p>
+      <h2>只看动作历史的工作记忆</h2>
+      <div class="eq"><span class="ll"><span class="hat">B</span><sub>t−1</sub> ← ConsistencyLayer(A<sub>t−1</sub>),&nbsp;&nbsp; A<sub>t−1</sub> = [a<sub>t−H+1</sub>, …, a<sub>t</sub>] ∈ ℝ<sup>H×A</sup></span><span class="no">(15)</span></div>
+      <div class="eq"><span class="ll">B<sub>t</sub> ← DynamicAwareness(<span class="hat">B</span><sub>t−1</sub>)</span><span class="no">(16)</span></div>
+      <div class="eq"><span>B*<sub>t</sub> = A*<sub>t</sub> − μ<sub>t</sub>,&nbsp;&nbsp; 𝓛<sub>LCM</sub> = 𝔼 ‖ B<sub>t</sub> − B*<sub>t</sub> ‖<sup>2</sup><sub>2</sub></span><span class="no">(18)(19)</span></div>
+      <div class="cards">
+        <div class="card cl"><h4>Consistency Layer：块内</h4><p>对上一个动作块的 H 个动作做自注意力，捕捉块内动作之间的依赖和约束。输出 <span class="hat">B</span><sub>t−1</sub>，形状仍是 H × A。</p></div>
+        <div class="card cl"><h4>Dynamic Awareness Module：块间</h4><p>Mamba 式结构，线性复杂度。它把每个块的表示作为一个时间步来更新内部状态，再预测下一步的偏置 B<sub>t</sub>。论文称它用来推断任务进度。层数、宽度、状态维度均未披露。</p></div>
+      </div>
+      <div class="prose">
+        <p>训练（阶段 III）时 VLM、flow policy、GPM 全部冻结。对每个时间步先用 GPM 检索、算出先验均值 μ<sub>t</sub>，再让 LCM 沿轨迹展开、回归 A*<sub>t</sub> − μ<sub>t</sub>。为了应对推理开始时没有历史的情况，训练中以概率 p<sub>cold</sub> 把 A<sub>t−1</sub> 置零（cold start），让模型只靠内部状态或输出中性偏置。p<sub>cold</sub> 的取值未披露。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>LCM 其实是一个“下一块残差预测器”</h4>
+        <p>把训练目标代回式 (6)：如果 LCM 学得完美，X<sub>t</sub> = μ + λε⊙√Var + (A*<sub>t</sub> − μ) = A*<sub>t</sub> + λε⊙√Var，也就是“正确的下一块加一点噪声”。所以 LCM 学的不是一般意义上的平滑约束，而是只凭动作历史去纠正检索均值的偏差，flow policy 此时更像一个精修器。两个细节值得注意：LCM 的输入只有 A<sub>t−1</sub>，<strong>看不到 μ<sub>t</sub> 也看不到图像</strong>，却要预测 A*<sub>t</sub> − μ<sub>t</sub>，只能靠 Mamba 状态隐式记住“检索给了什么、现在走到哪”；训练时 A<sub>t−1</sub> 取自示范（teacher forcing），部署时是自己执行出来的动作。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>“去掉 GPM、保留 LCM”这一行怎么跑的</h4>
+        <p>LCM 的回归目标定义在 GPM 均值之上（A* − μ）。表 4 里有 GPM ✗ / LCM ✓ 的配置（LIBERO-Long 93.2），但没说此时 B<sub>t</sub> 加在什么起点上、LCM 是否重新训练、目标换成了什么。</p>
+      </div>
+    </section>
+
+    <section id="train">
+      <p class="eyebrow">训练 · §3.4 · 附录 C · 表 6</p>
+      <h2>三个阶段，后两个只训小模块</h2>
+      <div class="cards three">
+        <div class="card cp"><h4>阶段 I · 分层 VLA 微调</h4><p>按 π0.5 的结构和训练协议，从 π0.5 权重初始化，在每个基准上用 CFM 训 flow policy。此时<strong>没有</strong> GPM 和 LCM，源分布就是 𝒩(0, I)。</p><p class="small muted">AdamW，lr 5×10⁻⁵，30,000 步，batch 512，warmup 比例 0.10，EMA 0.999；8 × A800。</p></div>
+        <div class="card cg"><h4>阶段 II · GPM</h4><p>VLA 全部冻结，只训 Prior Head（InfoNCE）。训完冻结 f<sub>head</sub>，离线建库。</p><p class="small muted">AdamW，lr 1×10⁻⁴，1000 步，batch 64。</p></div>
+        <div class="card cl"><h4>阶段 III · LCM</h4><p>VLM、flow policy、GPM 全部冻结，只训 LCM 回归 A* − μ，含 cold-start 置零。</p><p class="small muted">AdamW，lr 1×10⁻⁴，1000 步，batch 64。</p></div>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>表 4 最后一行就是 π0.5 本身</h4>
+        <p>消融表里 GPM、LCM 都去掉的配置：LIBERO-Long 92.4、CALVIN 4.26、真机泛化 75.0，分别与表 1 的 π0.5、表 2 的 π0.5†、图 3 的 π0.5 平均完全相同。可见阶段 I 的产物就是 π0.5 基线，OptimusVLA 的全部增益来自推理时外挂的两个小模块。这让消融很干净，也意味着这套方法原则上可以挂到任何已训好的 flow 式 VLA 上。论文在局限里把“GPM、LCM 与 flow policy 端到端联合训练”列为未来工作。</p>
+      </div>
+    </section>
+
+    <section id="setup">
+      <p class="eyebrow">实验设置 · §4.1–4.2 · 附录 D</p>
+      <h2>三个仿真基准 + 一台双臂真机</h2>
+      <div class="tblwrap">
+        <table class="t wide">
+          <thead><tr><th>平台</th><th>设置</th><th>评测量</th><th>对比方法</th></tr></thead>
+          <tbody>
+            <tr><th>LIBERO</th><td>Spatial / Object / Goal / Long 四个套件，各 10 个任务</td><td>每个套件 500 次 rollout 的平均成功率</td><td>11 个（表 1）</td></tr>
+            <tr><th>CALVIN</th><td>ABC → D：在 3 个环境训练，留出的 D 环境测试，5 个任务连做</td><td>500 次 rollout；1/5…5/5 各档成功率与 Avg. Len</td><td>10 个（表 2）</td></tr>
+            <tr><th>RoboTwin 2.0</th><td>从 50 个双臂任务中“随机选” 16 个；<em>Hard</em> 设置（杂物、光照、纹理、桌面高度随机）；Aloha-AgileX，单任务训练，每任务 50 条干净示范</td><td>每任务 100 次 rollout</td><td>6 个（表 3、表 7）</td></tr>
+            <tr><th>真机</th><td>Galaxea R1 Lite：两条 6 自由度臂 + 平行夹爪（正文称 14 自由度双臂平台；整机 23 自由度含 3 自由度躯干、6 自由度底盘）；腕部 + 第三人称相机，224 × 224</td><td>泛化任务每个 50 次（25 次变光照 + 25 次变场景）；长程任务每个 25 次；物体初始位置随机</td><td>OpenVLA、OpenVLA-OFT、π0、π0.5</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose small muted"><p>实现：从 π0.5 权重初始化，加上 GPM、LCM 后共 3.6B 参数；8 × NVIDIA A800，全局 batch 512，30,000 步，三个仿真基准学习率都是 5×10⁻⁵。推理计时用的硬件未披露。</p></div>
+      <div class="tblwrap">
+        <table class="t wide">
+          <thead><tr><th>真机任务（表 8、表 9）</th><th>内容</th><th class="num">示范</th><th class="num">rollout</th><th class="num">OptimusVLA</th></tr></thead>
+          <tbody>
+            <tr><th>place_one_fruit_on_plate</th><td>抓一个水果（香蕉、苹果、柠檬等）放到盘子上</td><td class="num">100</td><td class="num">50</td><td class="num">88</td></tr>
+            <tr><th>place_plate_on_tablecloth</th><td>抓盘子放到桌布上，盘子和桌布各有多种样式</td><td class="num">100</td><td class="num">50</td><td class="num">90</td></tr>
+            <tr><th>stand_bottle_upright</th><td>抓起水瓶并竖直放好，瓶子形状外观各异</td><td class="num">150</td><td class="num">50</td><td class="num">74</td></tr>
+            <tr><th>place_cup_on_tablecloth</th><td>抓杯子放到桌布上，杯子形状外观各异</td><td class="num">120</td><td class="num">50</td><td class="num">88</td></tr>
+            <tr><th>place_all_fruits_on_plate</th><td>把三个不同水果依次放到盘子上，每次组合随机</td><td class="num">200</td><td class="num">25</td><td class="num">64</td></tr>
+            <tr><th>place_2_fruits_in_2_position</th><td>从碗里拿一个水果放到桌布上，再从盘子里拿另一个放进碗</td><td class="num">200</td><td class="num">25</td><td class="num">60</td></tr>
+            <tr><th>place_2_obj_on_plate</th><td>依次把杯子和苹果放到盘子上</td><td class="num">250</td><td class="num">25</td><td class="num">68</td></tr>
+            <tr><th>place_blocks_on_tablecloth</th><td>把三个不同方块放到桌布上，每次组合随机</td><td class="num">300</td><td class="num">25</td><td class="num">64</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/realworld.jpg" aria-label="放大原文图 3"><img src="fig/realworld.jpg" width="1800" height="469" alt="原文图 3：上为 8 个真机任务的场景照片，下为五种方法在各任务上的成功率柱状图" loading="lazy"></button>
+        <figcaption><b>原文 Figure 3</b>左半是 4 个泛化任务，右半是 4 个长程任务；柱子从左到右依次是 OpenVLA（灰）、OpenVLA-OFT（粉）、π0（黄）、π0.5（紫）、OptimusVLA（蓝）。下面的结果部分按柱顶标注重画了这张图。</figcaption>
+      </figure>
+    </section>
+
+    <section id="results">
+      <p class="eyebrow">结果 · §4.2–4.6</p>
+      <h2>四个平台、两组消融、两张效率图</h2>
+
+      <h3 style="margin-top:0">LIBERO（表 1）</h3>
+      <div class="chartbox">
+        <h4>平均成功率与 Long 套件成功率</h4>
+        <p class="sub">实心点 = 四个套件平均，空心圈 = LIBERO-Long。横轴从 50 开始。每个套件 500 次 rollout。</p>
+        <div class="legend"><span><i class="dotf bg-ours"></i>平均（OptimusVLA）</span><span><i class="dotf bg-b0"></i>平均（其他方法）</span><span><i class="ring"></i>Long 套件</span></div>
+        <div class="scroll"><svg class="chart" id="ch-libero" viewBox="0 0 720 420"></svg></div>
+        <details class="raw" id="raw-libero"><summary><span>原表数字（表 1）</span></summary></details>
+      </div>
+      <div class="prose">
+        <p>OptimusVLA 在四个套件上都是最高，平均比 π0.5 高 1.7 个百分点，差距主要在 Long 套件（96.4 vs 92.4）。论文把 Long 上的提升归给 GPM“锚定”长程生成，并强调 NFE 是 3.2 vs 10。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>这张表里的几个对照要分开看</h4>
+        <p>π0、π0-FAST、π0.5 三行没有标 †，数字与 openpi 仓库 <code>examples/libero/README.md</code> 公布的 LIBERO 30k 步微调结果逐字相同（我们的核对：π0、π0-FAST 两行见该文件 2025-07 的版本，π0.5 见现行版本）；图 4 的 π0.5 曲线在 30,000 步处也正好落在这组数上，表 4 的“都去掉”一行同样是 92.4。MemoryVLA 一行取自它自己的论文，而 MemoryVLA 的 LIBERO 结果只用第三人称 RGB（它的表里专门用 * 标出用了腕部相机和本体状态的方法），OptimusVLA 沿用 π0.5 的多视角加本体状态输入，两者输入条件不同。</p>
+      </div>
+
+      <h3>CALVIN ABC → D（表 2）</h3>
+      <div class="chartbox">
+        <h4>平均完成长度 Avg. Len</h4>
+        <p class="sub">5 个任务连做，Avg. Len 满分 5。† 为论文复现。</p>
+        <div class="scroll"><svg class="chart" id="ch-calvin" viewBox="0 0 720 380"></svg></div>
+        <details class="raw" id="raw-calvin"><summary><span>原表数字（表 2），加一列我们算的五档之和</span></summary></details>
+      </div>
+      <div class="prose"><p>4.45 vs π0 的 3.92，即摘要里的“提升 13.5%”（相对值）；比复现的 π0.5（4.26）高 0.19。1/5 和 2/5 两档 RoboVLM 更高，3/5 以后 OptimusVLA 最高，与“长链条更稳”的说法一致。</p></div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>三行的 Avg. Len 与各档成功率对不上</h4>
+        <p>CALVIN 的 Avg. Len 按定义等于五档成功率之和（第 i 档 = 至少连续完成 i 个任务的比例）。表 2 中 8 个引用的基线都满足这一点（误差 ≤ 0.005），只有论文自己报告或复现的三行不满足：OptimusVLA 五档之和 4.434，表中写 4.45；π0.5† 4.243，写 4.26；π0 3.835，写 3.92。四舍五入解释不了这么大的差距。结论的方向不受影响，但数字本身不自洽。</p>
+      </div>
+
+      <h3>RoboTwin 2.0 Hard（表 3 主表 + 附录表 7）</h3>
+      <div class="chartbox">
+        <h4>逐任务成功率</h4>
+        <p class="sub">颜色越深越高。主表只列了 8 个任务，另外 8 个在附录。切换看平均值怎么变。</p>
+        <div class="ctrl" style="margin:4px 0 10px"><div class="seg" role="group" aria-label="任务范围" id="rt-scope"><button type="button" data-v="main" aria-pressed="false">主表 8 个</button><button type="button" data-v="all" aria-pressed="true">全部 16 个</button><button type="button" data-v="extra" aria-pressed="false">只看附录 8 个</button></div></div>
+        <div class="scroll" id="heat-rt"></div>
+        <details class="raw" id="raw-rt"><summary><span>原表数字（表 7，含排名）</span></summary></details>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>摘要的 38% 是主表 8 个任务的平均</h4>
+        <p>论文说 16 个任务是随机选的，主表放了其中 8 个，摘要和正文用的是这 8 个的平均 38%（π0.5 29%、π0 25%）。附录表 7 全部 16 个任务的平均是 <b>30%</b>（π0.5 24%、π0 23%）。只看附录那 8 个（我们按表 7 算）：OptimusVLA 22.1%，π0 21.3%，π0.5 18.3%，差距基本消失。主表选这 8 个的依据没有说明；在这 8 个里 OptimusVLA 有 6 个排第一，附录 8 个里有 4 个。</p>
+      </div>
+
+      <h3>真机（图 3）</h3>
+      <div class="chartbox">
+        <h4>8 个真机任务的成功率</h4>
+        <p class="sub">数字读自原图柱顶标注；泛化任务每个 50 次，长程任务每个 25 次。右侧两组是我们按图算的套件平均（图 1 给出的泛化平均 85.0 / 75.0 / 59.5 与之一致）。</p>
+        <div class="legend"><span><i class="bg-b1"></i>OpenVLA</span><span><i style="background:color-mix(in oklab,var(--base) 70%,var(--warn))"></i>OpenVLA-OFT</span><span><i class="bg-b0"></i>π0</span><span><i class="bg-pol"></i>π0.5</span><span><i class="bg-ours"></i>OptimusVLA</span></div>
+        <div class="scroll"><svg class="chart" id="ch-real" viewBox="0 0 900 300"></svg></div>
+        <details class="raw" id="raw-real"><summary><span>图中数字</span></summary></details>
+      </div>
+      <div class="prose"><p>泛化套件 85.0，长程套件 64.0，8 个任务都是最高。摘要里“超过 π0 42.9% 和 52.4%”是相对值，换成百分点是 +25.5 和 +22.0；对最强基线 π0.5 是 +10.0 和 +13.0 个百分点。泛化任务的提升论文归给 GPM（按多模态语义检索，对视觉干扰更稳），长程任务归给动作稳定性和双臂协调。</p></div>
+
+      <h3>消融：GPM 与 LCM（表 4）</h3>
+      <div class="chartbox">
+        <h4>四种组合在三个设置上的表现</h4>
+        <p class="sub">各面板刻度不同。最后一行（都去掉）的三个数与 π0.5 相同。括号里是论文标的<strong>相对</strong>降幅。</p>
+        <div class="panels" id="ch-abl"></div>
+        <details class="raw" id="raw-abl"><summary><span>原表数字（表 4）</span></summary></details>
+      </div>
+      <div class="prose">
+        <p>去掉 GPM 在真机泛化上掉得最多（85.0 → 77.0），去掉 LCM 在 LIBERO-Long 上掉 1.6 个点（96.4 → 94.8）。论文的措辞是去掉 GPM 导致“灾难性下降 3.8%”，这里的 3.8% 是 CALVIN Avg. Len 4.45 → 4.28 的相对变化。两者叠加的增益大于各自单独的增益（LIBERO-Long：单加 GPM +2.4，单加 LCM +0.8，都加 +4.0）。</p>
+      </div>
+
+      <h3>记忆库大小与 k（表 5）</h3>
+      <div class="chartbox">
+        <h4>LIBERO-Long 成功率，库里存多少条、检索几条</h4>
+        <p class="sub">虚线是表 4 的两个参照：不用 GPM（保留 LCM）93.2，π0.5 92.4。横轴从 90 开始。</p>
+        <div class="scroll"><svg class="chart" id="ch-mem" viewBox="0 0 720 260"></svg></div>
+        <details class="raw" id="raw-mem"><summary><span>原表数字（表 5）</span></summary></details>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>只检索 1 条反而比不用 GPM 差</h4>
+        <p>k = 1 时 92.6（库 6500 条）和 92.4（库 1300 条），都低于表 4 里不用 GPM 的 93.2，与 π0.5 持平。库里每个任务只存 1 条（130 条）但检索 8 条时是 93.6，此时 8 条里必然混着别的任务，结果反而比 k = 1 的同任务单条更好。k = 16 也会回落到 94.8。论文的解释是单条先验“太确定”、k 太大则不够具体。这说明 GPM 的好处很大程度来自对多条轨迹求平均得到的均值和方差，而不只是“找到最像的那条示范”。另外 6500 = 130 × 50、1300 = 130 × 10，正好对应 LIBERO 全部 130 个任务（含 LIBERO-90）每任务 50 / 10 条，暗示记忆库可能用到了四个评测套件训练集以外的 LIBERO-90 数据，论文没有说明库的来源。</p>
+      </div>
+
+      <h3>训练步数（图 4）</h3>
+      <div class="chartbox">
+        <h4>同一初始化下，不同训练步数的 LIBERO 成功率</h4>
+        <p class="sub">数字读自原图标注；每个面板纵轴范围不同。</p>
+        <div class="legend"><span><i class="bg-ours"></i>OptimusVLA</span><span><i class="bg-b0"></i>π0.5</span></div>
+        <div class="panels two" id="ch-curves"></div>
+        <details class="raw" id="raw-curves"><summary><span>图中数字</span></summary></details>
+      </div>
+      <div class="prose"><p>论文的读法：OptimusVLA 在 LIBERO-Goal 上 18,000 步就到 97.6，π0.5 要 26,000 步（97.8）才到相近水平，并把这归为“训练效率”。</p></div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>这张图比的不是训练效率</h4>
+        <p>按附录 C，阶段 I 就是 π0.5 的训练，flow policy 用高斯起点、没有 GPM 和 LCM；GPM、LCM 是之后在冻结的模型上各训 1000 步。所以同一步数下两条曲线的 flow policy 应当是同一份权重，差别只在推理时有没有外挂的两个模块。图 4 说明的是“对没训够的 π0.5 检查点，外挂 GPM + LCM 能补回一部分”，而不是训练本身变快了。每个中间检查点上 GPM、LCM 是否单独训练，论文没写。</p>
+      </div>
+
+      <h3>推理效率（图 5）</h3>
+      <div class="chartbox">
+        <h4>单次推理时间与 NFE</h4>
+        <p class="sub">数字读自原图。灰色标注是我们按图中数字算的对 π0.5 的比值；图里红色的 6.5×、4.9× 是对 OpenVLA。</p>
+        <div class="panels two" id="ch-eff"></div>
+        <details class="raw" id="raw-eff"><summary><span>图中数字</span></summary></details>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>“2.9× 推理加速”是 NFE 之比，不是时间之比</h4>
+        <p>正文说图 5 是和 π0.5 比，“推理时间快 6.5×、NFE 少 3.1×”。按图中数字，6.5× = 254 / 39 是对 OpenVLA；对 π0.5 是 57 / 39 ≈ 1.46×。摘要和引言的“2.9× inference speedup”等于真机 NFE 之比 10 / 3.4，真机墙钟时间对 π0.5 是 133 / 112 ≈ 1.19×。</p>
+        <p><span class="tag read">解读</span>如果把时间粗略拆成“固定开销 + N × 每步开销”并忽略 GPM、LCM 自身开销，LIBERO 上每个去噪步约 2.6 ms、固定部分约 30 ms，真机上约 3.2 ms 和 101 ms。也就是说 π0.5 的 10 步去噪在真机上只占约四分之一的时间，大头是 VLM 前缀，NFE 再降也换不来成倍的墙钟加速。</p>
+      </div>
+
+      <h3>定性结果（图 6、附录图 8）</h3>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/qual.jpg" aria-label="放大原文图 6"><img src="fig/qual.jpg" width="1800" height="875" alt="原文图 6：上为 LIBERO 拿烧烤酱任务的 8 个关键帧，标注 N、s̄ 和 λ；下为真机放苹果任务，π0.5 在相似观测间犹豫，OptimusVLA 轨迹连贯" loading="lazy"></button>
+        <figcaption><b>原文 Figure 6</b>上：LIBERO 任务 “Pick up the bbq sauce and place it in the basket”。π0.5 每帧都是 N = 10；OptimusVLA 的 8 个关键帧依次为 <span class="ov">s</span> = 0.92 / 0.63 / 0.42 / 0.42 / 0.53 / 0.53 / 0.49 / 0.40，λ = 0.32 / 0.44 / 0.51 / 0.51 / 0.47 / 0.47 / 0.48 / 0.50，N = 1 / 3 / 4 / 4 / 3 / 3 / 3 / 4。下：真机 “Place the red apple onto the plate”，π0.5 在两个相似观测（粉色圈）之间分不清苹果是否已放好；OptimusVLA 的绿色虚线表示连贯的轨迹。</figcaption>
+      </figure>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>图 6 的 <span class="ov">s</span> 在一条 episode 里一直在变</h4>
+        <p>附录 B.5 说检索只在 episode 开始时做一次，之后缓存 top-k 的索引和权重；<span class="ov">s</span> = Σα<sub>i</sub>s<sub>i</sub> 只依赖这些缓存值，按理整条 episode 不变（除非触发“任务漂移”重检索）。图 6 里 <span class="ov">s</span> 却从 0.92 变到 0.40，每帧都不同。另外第 3、4 帧（<span class="ov">s</span> = 0.42，λ = 0.51）和第 8 帧（<span class="ov">s</span> = 0.40，λ = 0.50）的方向与式 (12) 的单调递减相反，差值很小，可能只是示意数字。</p>
+        <p><span class="tag read">解读</span>键是每条 episode 一个向量，论文没说取 episode 的哪一帧；如果取开头，查询在第一帧最像（0.92）、之后场景变化导致相似度下降，正好是图上的样子。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/case-long.jpg" aria-label="放大原文附录图 8"><img src="fig/case-long.jpg" width="1800" height="1705" alt="原文附录图 8：四个真机长程任务的关键帧，每个任务上排为第三人称视角、下排为腕部视角" loading="lazy"></button>
+        <figcaption><b>原文 Figure 8</b>四个长程任务，自上而下：放全部水果、一个水果放桌布再把另一个放进碗、依次放杯子和苹果、放三个方块；每个任务上排 third（第三人称）、下排 wrist（腕部）。论文称长程任务需要“双臂操作多个物体”，但这些关键帧里看到的都是同一只手臂在动。附录说补充材料里有未剪辑的实时视频。</figcaption>
+      </figure>
+    </section>
+
+    <section id="insight">
+      <p class="eyebrow">读懂它</p>
+      <h2>这篇真正说明了什么</h2>
+      <h3 style="margin-top:0">关键 insight</h3>
+      <div class="cards">
+        <div class="card cg"><h4>1. 记忆可以接在“初值”上，不必进上下文</h4><p>GPM 和 LCM 都只改 X<sub>t</sub>，不加 token、不动 VLM 的输入分布、不改 flow policy 权重。阶段 II、III 合计 2000 步小模块训练，就在 π0.5 上拿到表 4 里 +4.0（LIBERO-Long）、+10.0（真机泛化）的增益。</p></div>
+        <div class="card cg"><h4>2. 一个标量同时调噪声和计算量</h4><p><span class="ov">s</span> 既决定 λ（多大程度相信检索均值），又决定 N（走几步）。这是一个很便宜的“置信度 → 计算预算”接口，图 6 里同一条 episode 的 N 在 1 到 4 之间变化。</p></div>
+        <div class="card cl"><h4>3. LCM 学的是“检索均值差多少”</h4><p>目标是 A* − μ，所以完美的 LCM 会把起点直接推到正确动作附近。它只看动作历史，靠 Mamba 状态跨块累积信息，这是它能区分“看起来一样的两个阶段”的唯一来源。</p></div>
+        <div class="card cp"><h4>4. 好处来自多条轨迹的统计量</h4><p>k = 1 比不用 GPM 还差，k = 8 最好，每任务只存 1 条、混入别的任务反而比单条同任务好（表 5）。GPM 更像一个“按语义加权的动作均值与方差估计器”，而不是示范回放。</p></div>
+      </div>
+      <h3>容易误解的地方</h3>
+      <div class="prose">
+        <ul>
+          <li><strong>“2.9× 加速”不是墙钟时间。</strong>那是真机 NFE 之比；对 π0.5 的实测时间比是 1.19×（真机）和 1.46×（LIBERO）。</li>
+          <li><strong>摘要里的百分比多是相对值。</strong>CALVIN +13.5%（4.45 / 3.92）、真机 +42.9% / +52.4%（对 π0），表 4 括号里的降幅也是相对值。</li>
+          <li><strong>flow policy 没有在先验起点上训练过。</strong>附录 B.1 明确说训练时 𝒫<sub>0</sub> = 𝒩(0, I)，GPM 只在推理时替换起点；这和同专题 RA-VLA 训练时就用检索均值初始化不同。</li>
+          <li><strong>“训练效率”图比的是推理时外挂模块。</strong>见上面图 4 的疑点。</li>
+          <li><strong>记忆库不是在线积累的。</strong>库是阶段 II 之后从训练数据离线建好的，部署中不增不删；论文把在线更新、遗忘列为未来工作。</li>
+        </ul>
+      </div>
+      <h3>FAQ</h3>
+      <details class="faq"><summary><span>GPM 是不是就是把最像的示范拿来回放？</span></summary><div class="a"><p>不完全是。起点是 k 条轨迹在当前进度处的加权均值加上 λ 倍的标准差噪声，之后还要经 flow policy 去噪 N 步，并叠加 LCM 偏置。表 5 也说明单条轨迹（k = 1）的效果最差。但它确实依赖训练集里有同类任务：LIBERO 评测的就是训练任务（换初始状态），库里一定有同任务轨迹；附录 A 也承认任务偏离已有经验时检索先验会误导策略。</p></div></details>
+      <details class="faq"><summary><span>NFE 从 10 降到 3.2，为什么时间只从 57 ms 降到 39 ms？</span></summary><div class="a"><p>每次推理的大头是 VLM 处理图像和语言的前缀，这部分 OptimusVLA 一点没省，还多了 Prior Head 和 LCM。按图 5 的数字粗算，LIBERO 上一个去噪步约 2.6 ms，固定部分约 30 ms；真机上分别约 3.2 ms 和 101 ms。</p></div></details>
+      <details class="faq"><summary><span>LCM 不看图像，凭什么知道苹果放没放好？</span></summary><div class="a"><p>凭动作历史。Mamba 的内部状态累积了本条 episode 执行过的所有动作块，“已经做过一次放下动作”会体现在状态里，即使两帧图像几乎一样。论文对这一点的证据只有图 6 下半的定性例子，没有专门的阶段歧义任务或定量指标。</p></div></details>
+      <details class="faq"><summary><span>CALVIN 换了环境，检索还能找到“同类”吗？</span></summary><div class="a"><p>库来自 A、B、C 三个训练环境，测试在 D。CALVIN 的任务类型在各环境间相同，所以检索返回的是别的环境里做同一类任务的轨迹。论文称这是“语义锚定”：在旧动作先验上变形而不是从头生成。增益是 4.26 → 4.45（对复现的 π0.5），表 4 中去掉 GPM 时为 4.28。</p></div></details>
+      <details class="faq"><summary><span>进度 ρ<sub>t</sub> 从哪来？LCM 不是负责推断进度吗？</span></summary><div class="a"><p>论文没有说。GPM 取块用的 ρ<sub>t</sub> 被描述为“维护的一个进度标量”，没有说明是按步数除以预期长度、还是由某个模块预测。LCM 被描述为推断任务进度，但它输出的是动作偏置，不是 ρ<sub>t</sub>。两者之间没有写明的接口。</p></div></details>
+    </section>
+
+    <section id="limits">
+      <p class="eyebrow">局限与疑点</p>
+      <h2>作者承认的，和我们读出来的</h2>
+      <div class="two">
+        <div>
+          <h4>论文自己提到的（附录 A）</h4>
+          <ul>
+            <li>GPM 的效果受记忆库的覆盖面和质量限制；当前任务或场景与库里经验差别大时，检索到的先验可能误导策略。</li>
+            <li>LCM 只建模局部、以动作为中心的一致性，且按固定长度的块工作；对需要很长时间跨度、多阶段依赖或延迟效应的任务可能不够。</li>
+            <li>未来工作：在线更新的记忆库（巩固、遗忘、带不确定性的检索）；GPM、LCM 与 flow policy 端到端联合训练。</li>
+          </ul>
+        </div>
+        <div>
+          <h4>我们读出来的</h4>
+          <ul>
+            <li><span class="tag doubt">疑点</span>“2.9× 推理加速”是 NFE 之比；图 5 的 6.5×、4.9× 是对 OpenVLA；对 π0.5 的墙钟加速为 1.46×（LIBERO）和 1.19×（真机）。</li>
+            <li><span class="tag doubt">疑点</span>缺少“π0.5 用高斯起点走 3–4 步”的对照。flow policy 只在高斯源上训练，理想速度场在 t = 0 与起点无关，N = 1 时起点不起作用；积分起始时刻未披露。</li>
+            <li><span class="tag doubt">疑点</span>RoboTwin 摘要数字 38% 来自主表 8 个任务，全部 16 个任务为 30%；附录 8 个任务上与 π0 基本持平（22.1 vs 21.3）。</li>
+            <li><span class="tag doubt">疑点</span>CALVIN 表中 OptimusVLA、π0.5†、π0 三行的 Avg. Len 不等于五档之和（4.434 / 4.243 / 3.835 vs 4.45 / 4.26 / 3.92），其余基线都一致。</li>
+            <li><span class="tag doubt">疑点</span>图 4 的“训练效率”实为推理时外挂模块对未训够检查点的补偿。</li>
+            <li><span class="tag doubt">疑点</span>Session 级缓存与图 6 中逐帧变化的 <span class="ov">s</span> 矛盾；ρ<sub>t</sub> 的来源、键取 episode 哪一帧都未披露。</li>
+            <li>“去掉 GPM、保留 LCM”的配置怎么定义 LCM 的目标和起点，未说明。</li>
+            <li>记忆库规模 6500 = 130 × 50，疑似包含 LIBERO-90，库的来源未说明。</li>
+            <li>k、τ<sub>s</sub>、λ 与 N 的范围、H<sub>0</sub>、Δ、σ<sup>2</sup><sub>min</sub>、p<sub>cold</sub>、LCM 结构尺寸、推理硬件全部未披露。</li>
+            <li>LIBERO 上与 MemoryVLA 的比较输入条件不同（后者只用第三人称 RGB）。</li>
+            <li>真机只有一个平台、8 个任务，长程任务每个 25 次；关键帧里看到的都是单臂操作。</li>
+            <li>tex 源码里留着一版被注释掉的旧摘要：RoboTwin 2.0 平均 82.6%、真机比 π0 高 12% / 14%、推理快 2.3×、CALVIN 比 π0 高 14%，与正式版差别很大，改动原因未说明。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="topic">
+      <p class="eyebrow">放到专题里看</p>
+      <h2>唯一把记忆接在“起点”上的一篇</h2>
+      <div class="prose">
+        <p>在 <a href="../../topics/robot-harness/">Harness for Robotics</a> 专题里，OptimusVLA 归在 <strong>Persistent State / Memory</strong>：它改的是“记什么”。但两块记忆的性质不同：<span class="l">LCM</span> 是真正跨步保留的状态（本条 episode 已执行动作的 Mamba 状态）；<span class="g">GPM</span> 存的是训练集里的整条轨迹，机制上更接近检索，和 Context Architecture 那一组里的 RA-VLA 最像。两者共同的特点是<strong>都不改模型看到的 token</strong>，只改 flow 从哪里出发、走几步。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t cmp">
+          <thead><tr><th></th><th class="me">OptimusVLA</th><th>MemoryVLA</th><th>SOMA</th><th>HiMe</th><th class="sep">RA-VLA</th><th>ActiveVLA</th><th>TIC-VLA</th></tr></thead>
+          <tbody>
+            <tr><th>类别</th><td class="me">Memory</td><td>Memory</td><td>Memory</td><td>Memory</td><td class="sep">Context</td><td>Context</td><td>Context</td></tr>
+            <tr><th>记住 / 看到什么</th><td class="me">训练集整条动作轨迹（GPM）；本条 episode 已执行动作块（LCM）</td><td>本条 episode 每步的 VLM 感知 token（256）与认知 token（1），最多 16 条（真机长程 256），相邻相似条目合并</td><td>场景里物体实例：DINOv3 外观特征 + VGGT 估计的 3D 框 + 类别，头部相机扫描建立，执行中门控 EMA 更新</td><td>Planner 维护的多模态键值库（图像 + 文本，如物体状态、人类偏好）和语言子目标清单，支持增、改、删</td><td class="sep">新任务 1–5 条示范切成的片段（预编码 VLM 特征 + 状态 + 动作块）</td><td>点云渲染的正交投影，主动选视角并做 3D 放大</td><td>延迟到达的 VLM KV cache + 延迟时长、自车位移元数据</td></tr>
+            <tr><th>接在哪里</th><td class="me">flow policy 的初值 X<sub>t</sub> 与步数 N</td><td>检索结果与当前 token 门控融合，作为扩散动作专家的条件</td><td>记忆 token 经交叉注意力增强 VLM 的视觉语言 token</td><td>策略外部，经语言子目标传给执行器</td><td class="sep">动作头逐层交叉注意力；并用检索动作块均值初始化 flow</td><td>VLM 的图像输入本身</td><td>动作专家交叉注意力的 KV</td></tr>
+            <tr><th>记忆跨度</th><td class="me">跨 episode（GPM）+ 本 episode（LCM）</td><td>本 episode</td><td>本 episode 的场景</td><td>整个长程任务</td><td class="sep">跨 episode（示范库）</td><td>当前时刻</td><td>几秒内的延迟</td></tr>
+            <tr><th>训练</th><td class="me">π0.5 微调后冻结；两个小模块各 1000 步</td><td>7B Prismatic 上端到端训练</td><td>VLM + DiT 动作头，以 GR00T N1.5 为主要基线；除 VLM 语言解码器外全训</td><td>只微调执行器（基于 π0.5）；Sentry、Planner 用现成 VLM 零样本</td><td class="sep">训检索器 + 微调策略；新任务免训练</td><td>PaliGemma 主干，预测热力图</td><td>InternVL3-1B；注入延迟的模仿学习 + 在线 RL</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <h3>同类（Memory）的比较</h3>
+        <ul>
+          <li><strong>和 <a href="../../papers/memoryvla/">MemoryVLA</a>：</strong>都用“工作记忆 + 长期记忆”的认知科学比喻，但内容完全不同。MemoryVLA 的长期记忆是<em>本条 episode</em> 的 VLM 特征历史，作为动作专家的条件；OptimusVLA 的长期记忆是<em>跨 episode</em> 的动作轨迹库，工作记忆只有动作。OptimusVLA 在相关工作里批评这类工作记忆“每次更新都要跑一次完整的 VLM 前向，成为吞吐瓶颈”；而 MemoryVLA 附录报告记忆模块只让延迟增加约 3.6%（RTX 4090 上 0.194 s），而且两种 VLA 本来每步都要跑一次 VLM，这条批评与 MemoryVLA 自己报告的开销对不上。OptimusVLA 表 1 里把 MemoryVLA 列为对比，输入条件不同（见结果部分）。</li>
+          <li><strong>和 <a href="../../papers/soma/">SOMA</a>：</strong>SOMA 记的是“东西在哪”（视野外物体的外观和 3D 位置），OptimusVLA 记的是“同类任务怎么动、我刚才怎么动”。SOMA 解决的是看不见目标的问题，OptimusVLA 解决的是起点太远和阶段歧义，两者没有交集，原则上可以叠加。</li>
+          <li><strong>和 <a href="../../papers/hime/">HiMe</a>：</strong>HiMe 把记忆放在策略外面，用大模型以低频维护符号化的知识（语言子目标、带文字描述的记忆条目），执行器本身无状态；OptimusVLA 把数值化的记忆直接接在动作生成器上，每次推理都参与。前者擅长“记住规则和偏好、出错后改”，后者只管运动层面的连续性。</li>
+        </ul>
+        <h3>跨类的点到为止</h3>
+        <ul>
+          <li><strong><a href="../../papers/ra-vla/">RA-VLA</a></strong> 是 GPM 最直接的参照：同样用对比学习训检索器、同样从库里取动作块，也同样把检索动作块的均值作为 flow 的初值。区别在于 RA-VLA 训练时就用这个初值（论文写它“加速训练收敛”），并把检索片段作为上下文喂给动作头；面向的是库里只有新任务几条示范的测试时适应。OptimusVLA 的库是训练集本身，flow policy 从未在先验起点上训练。</li>
+          <li><strong><a href="../../papers/activevla/">ActiveVLA</a></strong> 改的是看哪个视角、看多细；<strong><a href="../../papers/tic-vla/">TIC-VLA</a></strong> 改的是怎样看待过时的语义结果（把延迟作为显式输入）。它们都在“模型看到什么”这一侧，和 OptimusVLA 的接入点不重叠。</li>
+        </ul>
+        <h3>和（3）结构化执行、（4）评估与反馈两类</h3>
+        <ul>
+          <li><strong>和 <a href="../../papers/acot-vla/">ACoT-VLA</a>：</strong>两篇都在 π0.5 上做，LIBERO 基线同为 96.9（Long 92.4），提升也都集中在 Long：ACoT-VLA 98.5（Long 97.0），OptimusVLA 98.6（Long 96.4）。两篇都给动作头一段动作空间的先验，来源和训练方式不同：ACoT-VLA 用自己的 EAR 生成一段 15 点粗轨迹，训练时用真值未来轨迹做 teacher forcing；OptimusVLA 从训练集检索轨迹当去噪起点，flow policy 只在高斯起点上训练过。<span class="tag read">解读</span>「动作头到底有没有依赖这段先验」，两篇都没有干净的对照；同类问题里只有 RA-VLA 的 margin 损失消融（LIBERO-Goal 0.532 → 0.098）给了直接证据。</li>
+          <li><strong>和 <a href="../../papers/tau0-vla/">τ₀-VLA</a>、<a href="../../papers/motormind/">MotorMind</a>：</strong>这两篇也存执行历史，但存在高层、写成文本，记的是任务进行到哪个阶段；OptimusVLA 的 LCM 存在低层，是已执行动作块上的 Mamba 隐状态，管的是相邻动作块的连贯和进度。<span class="tag read">解读</span>两种记忆针对的时间尺度不同，原则上可以叠加。</li>
+          <li><strong>和 <a href="../../papers/tt-vla/">TT-VLA</a>：</strong>TT-VLA 的测试时 RL 只适用于离散 token 的自回归 VLA，π0.5 这类 flow 动作头不在它的适用范围内；OptimusVLA 测试时不改权重，只改 flow 的起点和步数。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="glossary">
+      <p class="eyebrow">术语表</p>
+      <h2>读这篇会遇到的词</h2>
+      <details class="gl"><summary>展开术语表</summary>
+        <dl>
+          <dt>NFE</dt><dd>Number of Function Evaluations，生成一个动作块时调用 flow policy 的次数，即 Euler 步数 N。π0、π0.5 固定为 10。</dd>
+          <dt>CFM / OT 路径</dt><dd>条件 flow matching；本文用直线路径 x<sub>t</sub> = (1 − t)x<sub>0</sub> + t x<sub>1</sub>，目标速度 x<sub>1</sub> − x<sub>0</sub>。t = 0 为噪声，t = 1 为动作。</dd>
+          <dt>GPM</dt><dd>Global Prior Memory，全局先验记忆：Prior Head + Memory Bank + Prior-Aware Sampler。</dd>
+          <dt>LCM</dt><dd>Local Consistency Memory，局部一致性记忆：Consistency Layer + Dynamic Awareness Module。图 2 图注误作 LBM。</dd>
+          <dt>Prior Head</dt><dd>2 层 MLP，把 VLM 前缀 token 的均值投影成检索键 z<sub>re</sub>。</dd>
+          <dt>Memory Bank</dt><dd>键值库：键为归一化任务嵌入，值为整条动作轨迹及元数据；用 FAISS <code>IndexFlatIP</code> 做最近邻检索。</dd>
+          <dt><span class="ov">s</span></dt><dd>检索相似度的 softmax 加权平均，取值 [−1, 1]，作为置信度控制 λ 和 N。</dd>
+          <dt>τ<sub>s</sub> / τ<sub>c</sub></dt><dd>检索加权的温度（未披露）/ InfoNCE 的温度（0.07）。</dd>
+          <dt>λ</dt><dd>起点噪声尺度：<span class="hat">X</span> = μ + λ ε⊙√Var。</dd>
+          <dt>ρ<sub>t</sub></dt><dd>任务进度标量，用来决定从每条检索轨迹的哪个窗口取动作块；来源未披露。</dd>
+          <dt>H<sub>0</sub> / Δ</dt><dd>取块滑动窗口的长度和步长；H<sub>0</sub> ≠ H 时插值。</dd>
+          <dt>Moment-matched Gaussian</dt><dd>用加权均值和对角方差把 k 个块的混合近似成一个高斯。</dd>
+          <dt>MemorySession</dt><dd>Session 级缓存：每个 episode 只检索一次，缓存 top-k 索引与权重。</dd>
+          <dt>Mamba / SSM</dt><dd>选择性状态空间模型，线性复杂度地建模长序列；LCM 用它跨动作块更新状态。</dd>
+          <dt>cold start / p<sub>cold</sub></dt><dd>训练 LCM 时以概率 p<sub>cold</sub> 把上一块动作置零，模拟 episode 开头没有历史。</dd>
+          <dt>Task-Pair Batch Sampler</dt><dd>按任务 ID 组 batch，保证每个 batch 里同一任务至少两条轨迹，使 InfoNCE 总有正样本。</dd>
+          <dt>Avg. Len</dt><dd>CALVIN 指标：5 个任务连做时平均连续完成的个数，等于五档成功率之和。</dd>
+          <dt>RoboTwin 2.0 Hard</dt><dd>带杂物、光照、纹理、桌面高度强随机化的评测设置。</dd>
+        </dl>
+      </details>
+    </section>
+  </main>
+</div>
+<footer class="page">
+  <p>图全部来自论文 arXiv 源码（v2）里的原图；表 1–9 的数字取自 tex 表格，图 3–6 的数字读自原图标注。标「解读」的是我们的判断，标「玩具」的交互用的是我们构造的数据。</p>
+</footer>
+<dialog id="lb" aria-label="放大查看"><div class="box"><img id="lb-img" alt=""></div><div class="bar"><span id="lb-cap"></span><button type="button" id="lb-close">关闭</button></div></dialog>
+<div class="tip" id="tip" hidden></div>
+<script>
+(function(){
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, text){ const e = document.createElementNS(NS, tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+  function seg(id, fn){ $$('#' + id + ' button').forEach(b => b.addEventListener('click', () => { $$('#' + id + ' button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); fn(b.dataset.v); })); }
+  function setSeg(id, v){ $$('#' + id + ' button').forEach(x => x.setAttribute('aria-pressed', x.dataset.v === String(v) ? 'true' : 'false')); }
+  function rng(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function gaussFrom(R){ return function(){ let u = 0; while (!u) u = R(); const v = R(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }; }
+
+  /* tooltip */
+  const tip = $('#tip');
+  function place(x, y){ const r = tip.getBoundingClientRect(); let l = x + 14, t = y + 14; if (l + r.width > innerWidth - 8) l = x - r.width - 14; if (t + r.height > innerHeight - 8) t = y - r.height - 14; tip.style.left = Math.max(8, l) + 'px'; tip.style.top = Math.max(8, t) + 'px'; }
+  document.addEventListener('pointerover', e => { const t = e.target.closest && e.target.closest('[data-tip]'); if (!t) return; tip.textContent = t.getAttribute('data-tip'); tip.hidden = false; place(e.clientX, e.clientY); });
+  document.addEventListener('pointermove', e => { if (tip.hidden) return; if (!(e.target.closest && e.target.closest('[data-tip]'))) { tip.hidden = true; return; } place(e.clientX, e.clientY); });
+
+  /* lightbox */
+  const lb = $('#lb');
+  $$('figure.plate .zoom').forEach(b => b.addEventListener('click', () => { $('#lb-img').src = b.dataset.src; const c = b.parentElement.querySelector('figcaption b'); $('#lb-cap').textContent = c ? c.textContent : ''; if (lb.showModal) lb.showModal(); else lb.setAttribute('open', ''); }));
+  $('#lb-close').addEventListener('click', () => lb.close());
+  lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+
+  /* toc */
+  const links = $$('.toc a');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id)); }), { rootMargin: '-35% 0px -60% 0px' });
+    $$('main section').forEach(s => io.observe(s));
+  }
+
+  function rawTable(host, head, rows){
+    const d = document.createElement('div'); d.className = 'tblwrap';
+    d.innerHTML = '<table class="t"><thead><tr>' + head.map((h, i) => '<th' + (i ? ' class="num"' : '') + '>' + h + '</th>').join('') + '</tr></thead><tbody>' +
+      rows.map(r => '<tr' + (r.best ? ' class="best"' : '') + '>' + r.cells.map((c, i) => i ? '<td class="num' + (r.flag && r.flag.indexOf(i) >= 0 ? ' flag' : '') + '">' + c + '</td>' : '<th>' + c + '</th>').join('') + '</tr>').join('') + '</tbody></table>';
+    host.appendChild(d);
+  }
+
+  /* ================= Lab A: data flow ================= */
+  const LA = (function(){
+    const pipe = $('#la-pipe');
+    const N = {
+      obs: { x: 8, y: 86, w: 90, h: 40, c: 'p', t: '观测 + 指令', s: 'O_t, ℓ' },
+      vlm: { x: 114, y: 86, w: 84, h: 40, c: 'p', t: 'VLM 主干', s: '前缀 H_t' },
+      head: { x: 114, y: 12, w: 84, h: 40, c: 'g', t: 'Prior Head', s: 'MLP → z_re' },
+      bank: { x: 216, y: 12, w: 96, h: 40, c: 'g', t: 'Memory Bank', s: 'FAISS top-k' },
+      chunk: { x: 330, y: 12, w: 96, h: 40, c: 'g', t: '按 ρ_t 取块', s: 'μ, Var' },
+      samp: { x: 444, y: 12, w: 96, h: 40, c: 'g', t: 'Sampler', s: 'λ(s̄), N(s̄)' },
+      prev: { x: 216, y: 160, w: 96, h: 40, c: 'l', t: '上一块 A_{t−1}', s: 'H × A' },
+      cons: { x: 330, y: 160, w: 96, h: 40, c: 'l', t: 'Consistency', s: '块内自注意力' },
+      mamba: { x: 444, y: 160, w: 96, h: 40, c: 'l', t: 'Mamba', s: '跨块状态 → B_t' },
+      flow: { x: 612, y: 86, w: 80, h: 40, c: 'p', t: 'Flow policy', s: '× N 步' },
+      out: { x: 702, y: 86, w: 52, h: 40, c: 'p', t: '动作块', s: 'H × A' }
+    };
+    const PX = 572, PY = 106;
+    const STEPS = [
+      { k: ['obs', 'vlm', 'head'], c: '', h: '① 编码与查询', io: '输入 O_t（多视角图像 + 本体状态）、ℓ → 输出 z̃_re（维度未披露）', p: 'VLM 输出前缀 token H<sub>t</sub> ∈ ℝ<sup>L×D<sub>vlm</sub></sup>；对 L 个 token 取均值 e<sub>t</sub>，经 Prior Head（2 层 MLP）投影后 L2 归一化，得到检索查询 <span class="tl">z</span><sub>re</sub>。建库时每条 episode 的键也是这样算的。' },
+      { k: ['bank'], c: '', h: '② 检索 top-k', io: '输入 z̃_re → 输出 k 条整轨迹 J_i 与分数 s_i、权重 α_i、置信度 s̄', p: '在 FAISS <code>IndexFlatIP</code> 里按余弦相似度取 k 条轨迹；α<sub>i</sub> = softmax(s<sub>i</sub>/τ<sub>s</sub>)，<span class="ov">s</span> = Σα<sub>i</sub>s<sub>i</sub>。检索每个 episode 只做一次，之后复用缓存的索引和权重。' },
+      { k: ['chunk'], c: '', h: '③ 对齐进度、取块', io: '输入 J_i、ρ_t → 输出 μ, Var ∈ ℝ^{H×A}', p: '每条轨迹按 u<sub>i</sub> = ⌊ρ<sub>t</sub>(N<sub>chunks</sub> − 1)⌋ 取一个长 H<sub>0</sub> 的窗口，插值成 H × A 的 C<sub>i</sub>；μ、Var 是 C<sub>i</sub> 的 α 加权均值和对角方差（有下限 σ<sup>2</sup><sub>min</sub>）。ρ<sub>t</sub> 的来源论文未披露，调“进度误差”看窗口取错时 μ 怎样错位。' },
+      { k: ['samp'], c: '', h: '④ 自适应采样', io: '输入 μ, Var, s̄ → 输出 X̂_t 与步数 N', p: 'λ = λ<sub>max</sub> − ½(<span class="ov">s</span>+1)(λ<sub>max</sub> − λ<sub>min</sub>)，N = Round(N<sub>min</sub> + (1 − ½(<span class="ov">s</span>+1))(N<sub>max</sub> − N<sub>min</sub>))，<span class="hat">X</span><sub>t</sub> = μ + λ·ε⊙√Var。' },
+      { k: ['prev', 'cons', 'mamba'], c: 'l', h: '⑤ LCM 偏置', io: '输入 A_{t−1} ∈ ℝ^{H×A} → 输出 B_t ∈ ℝ^{H×A}；X_t = X̂_t + B_t', p: '上一块先过 Consistency Layer（块内自注意力），再由 Mamba 更新跨块状态并预测 B<sub>t</sub>。训练目标是 A*<sub>t</sub> − μ<sub>t</sub>，所以它学的是“检索均值离真实下一块差多少”。LCM 看不到图像，也看不到 μ<sub>t</sub>。' },
+      { k: ['flow', 'out'], c: 'p', h: '⑥ 去噪与执行', io: '输入 X_t、N、VLM 前缀 → 输出 a_{t+1:t+H}', p: 'flow policy 以 VLM 前缀为条件，从 X<sub>t</sub> 积分 N 步得到动作块；执行后这一块成为下一次的 A<sub>t−1</sub>。π0.5 的对应做法是从 ε ~ 𝒩(0, I) 固定走 10 步。' }
+    ];
+    let step = 0;
+    function arrow(d, cls, dash){ const p = el('path', { d: d, class: 'ar ' + (cls || ''), 'marker-end': 'url(#pa-' + (cls || 'n') + ')' }); if (dash) p.setAttribute('stroke-dasharray', '4 3'); pipe.appendChild(p); }
+    function drawPipe(){
+      pipe.innerHTML = '';
+      const defs = el('defs');
+      [['n', 'var(--muted)'], ['g', 'var(--gpm)'], ['l', 'var(--lcm)']].forEach(([k, c]) => { const m = el('marker', { id: 'pa-' + k, viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }); m.appendChild(el('path', { d: 'M0 0 L10 5 L0 10 z', fill: c })); defs.appendChild(m); });
+      pipe.appendChild(defs);
+      arrow('M98 106 H112');
+      arrow('M156 86 V54', 'g');
+      arrow('M198 32 H214', 'g');
+      arrow('M312 32 H328', 'g');
+      arrow('M426 32 H442', 'g');
+      arrow('M540 32 C 562 32, ' + PX + ' 60, ' + PX + ' ' + (PY - 16), 'g');
+      arrow('M540 180 C 562 180, ' + PX + ' 150, ' + PX + ' ' + (PY + 16), 'l');
+      arrow('M312 180 H328', 'l');
+      arrow('M426 180 H442', 'l');
+      arrow('M' + (PX + 14) + ' ' + PY + ' H610');
+      arrow('M692 106 H700');
+      arrow('M198 120 C 260 142, 580 146, 650 128', '', true);
+      arrow('M728 126 V220 H264 V202', '', true);
+      pipe.appendChild(el('text', { x: 548, y: 64, class: 'mono', style: 'fill:var(--gpm)' }, 'X̂_t'));
+      pipe.appendChild(el('text', { x: 548, y: 156, class: 'mono', style: 'fill:var(--lcm-ink)' }, 'B_t'));
+      pipe.appendChild(el('text', { x: 588, y: 99, class: 'mono' }, 'X_t'));
+      pipe.appendChild(el('text', { x: 206, y: 151, class: 'mono' }, '条件：VLM 前缀'));
+      pipe.appendChild(el('text', { x: 360, y: 72, class: 'mono', style: 'fill:var(--gpm)' }, 'ρ_t ↑'));
+      pipe.appendChild(el('text', { x: 440, y: 230, class: 'mono' }, '执行后成为下一步的 A_{t−1}'));
+      pipe.appendChild(el('circle', { cx: PX, cy: PY, r: 14, fill: 'var(--bg)', stroke: 'var(--ink-2)', 'stroke-width': 1.4 }));
+      pipe.appendChild(el('text', { x: PX, y: PY + 5, 'text-anchor': 'middle', style: 'font-size:16px;fill:var(--ink)' }, '+'));
+      const on = STEPS[step].k;
+      Object.keys(N).forEach(k => {
+        const n = N[k]; const g = el('g', { class: 'node n' + n.c + (on.indexOf(k) >= 0 ? ' on' : ' dim'), tabindex: 0, role: 'button', 'aria-label': n.t });
+        g.appendChild(el('rect', { x: n.x, y: n.y, width: n.w, height: n.h, rx: 7 }));
+        g.appendChild(el('text', { x: n.x + n.w / 2, y: n.y + 17, 'text-anchor': 'middle', style: 'font-weight:500;fill:var(--ink)' }, n.t));
+        g.appendChild(el('text', { x: n.x + n.w / 2, y: n.y + 32, 'text-anchor': 'middle', class: 'mono' }, n.s));
+        const si = STEPS.findIndex(s => s.k.indexOf(k) >= 0);
+        g.addEventListener('click', () => go(si));
+        g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(si); } });
+        pipe.appendChild(g);
+      });
+    }
+    const nav = $('#la-steps');
+    STEPS.forEach((s, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = s.h; b.setAttribute('aria-pressed', i ? 'false' : 'true'); b.addEventListener('click', () => go(i)); nav.appendChild(b); });
+
+    /* toy trajectories */
+    const ss = (a, b, p) => { const x = Math.min(1, Math.max(0, (p - a) / (b - a))); return x * x * (3 - 2 * x); };
+    const profA = p => -0.9 + 1.8 * ss(0.18, 0.5, p) - 1.7 * ss(0.5, 0.82, p) + 0.08 * Math.sin(9 * p);
+    const profB = p => 0.7 - 1.3 * ss(0.1, 0.6, p) + 0.35 * Math.sin(5 * p);
+    const TS = 60, T0 = 30, H = 10, DELTA = 2, TAU = 0.1, LMAX = 1.0, LMIN = 0.3, NMIN = 1, NMAX = 10, VMIN = 0.0025;
+    const Astar = []; for (let i = 0; i < TS; i++) Astar.push(profA(i / TS) + 0.15 + 0.04 * Math.sin(i * 0.7));
+    const R0 = rng(11), G0 = gaussFrom(R0);
+    function mkDemo(prof, T, amp, off){ const J = []; for (let i = 0; i < T; i++) J.push(amp * prof(i / T) + off); return J; }
+    const same = [52, 56, 58, 62, 64, 68, 54, 66].map(T => mkDemo(profA, T, 1 + 0.09 * G0(), 0.1 * G0()));
+    const other = [55, 60, 63, 58, 66, 52, 61, 57].map(T => mkDemo(profB, T, 1 + 0.12 * G0(), 0.15 * G0()));
+    const CASES = {
+      hit: { J: same.slice(0, 8), s: [0.95, 0.94, 0.92, 0.91, 0.9, 0.89, 0.88, 0.86], name: '同任务命中', desc: '8 条都来自同一任务（长度 52–68 步、幅度和偏移各不相同）' },
+      mix: { J: same.slice(0, 4).concat(other.slice(0, 4)), s: [0.66, 0.62, 0.58, 0.55, 0.52, 0.5, 0.47, 0.45], name: '部分相似', desc: '4 条同任务、4 条另一个任务，分数接近' },
+      off: { J: other.slice(0, 8), s: [0.34, 0.31, 0.3, 0.28, 0.26, 0.25, 0.23, 0.2], name: '检索偏离', desc: '8 条都来自另一个动作形状不同的任务' }
+    };
+    let cs = 'hit', rhoErr = 0, lcmOn = true, showG = false, seed = 3;
+    const plot = $('#la-plot');
+    const X0 = 18, X1 = 41, xs = i => 60 + (i - X0) * (680 / (X1 - X0)), ys = v => 150 - v * 58;
+    function compute(){
+      const C = CASES[cs];
+      const ex = C.s.map(v => Math.exp(v / TAU)); const Z = ex.reduce((a, b) => a + b, 0); const al = ex.map(v => v / Z);
+      const sb = al.reduce((a, w, i) => a + w * C.s[i], 0);
+      const rho = T0 / (TS - H) + rhoErr;
+      const chunks = C.J.map(J => { const nc = Math.floor((J.length - H) / DELTA) + 1; const u = Math.max(0, Math.min(nc - 1, Math.floor(rho * (nc - 1)))); return J.slice(u * DELTA, u * DELTA + H); });
+      const mu = [], vr = [];
+      for (let j = 0; j < H; j++) { let m = 0; chunks.forEach((c, i) => m += al[i] * c[j]); mu.push(m); let v = 0; chunks.forEach((c, i) => v += al[i] * (c[j] - m) * (c[j] - m)); vr.push(Math.max(VMIN, v)); }
+      const lam = LMAX - (sb + 1) / 2 * (LMAX - LMIN);
+      const Nn = Math.round(NMIN + (1 - (sb + 1) / 2) * (NMAX - NMIN));
+      const R = rng(seed), G = gaussFrom(R);
+      const eps = [], epsG = [], eta = [];
+      for (let j = 0; j < H; j++) { eps.push(G()); epsG.push(G()); eta.push(G() * 0.03); }
+      const tgt = Astar.slice(T0, T0 + H), prev = Astar.slice(T0 - H, T0);
+      const xh = mu.map((m, j) => m + lam * eps[j] * Math.sqrt(vr[j]));
+      const B = mu.map((m, j) => lcmOn ? 0.75 * (tgt[j] - m) + eta[j] : 0);
+      const xt = xh.map((v, j) => v + B[j]);
+      const rms = a => Math.sqrt(a.reduce((s, v, j) => s + (v - tgt[j]) * (v - tgt[j]), 0) / H);
+      return { C, al, sb, rho, chunks, mu, vr, lam, Nn, eps, epsG, tgt, prev, xh, B, xt, eR: rms(xt), eRh: rms(xh), eRg: rms(epsG), jump: Math.abs(xt[0] - prev[H - 1]), jumpG: Math.abs(epsG[0] - prev[H - 1]) };
+    }
+    function line(pts, attrs){ return el('polyline', Object.assign({ points: pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '), fill: 'none' }, attrs)); }
+    function drawPlot(S){
+      plot.innerHTML = '';
+      const hi = [[], ['ci'], ['mu'], ['xh'], ['b', 'xt'], ['xt', 'tgt', 'g']][step];
+      const op = k => (step === 0 || hi.indexOf(k) >= 0) ? 1 : 0.22;
+      // frame
+      plot.appendChild(el('rect', { x: xs(T0 - H) - 6, y: 14, width: xs(T0 - 1) - xs(T0 - H) + 12, height: 258, rx: 6, fill: 'var(--lcm-soft)', opacity: .45 }));
+      plot.appendChild(el('rect', { x: xs(T0) - 6, y: 14, width: xs(T0 + H - 1) - xs(T0) + 12, height: 258, rx: 6, fill: 'var(--gpm-soft)', opacity: .45 }));
+      plot.appendChild(el('text', { x: xs(T0 - H), y: 30, class: 'lg', style: 'fill:var(--lcm-ink)' }, '上一块 A_{t−1}（已执行）'));
+      plot.appendChild(el('text', { x: xs(T0), y: 30, class: 'lg', style: 'fill:var(--gpm)' }, '下一块：起点 X_t 在这里生成'));
+      [-2, -1, 0, 1, 2].forEach(v => { plot.appendChild(el('line', { x1: 50, x2: 750, y1: ys(v), y2: ys(v), stroke: 'var(--line)', 'stroke-width': v ? .6 : 1 })); plot.appendChild(el('text', { x: 44, y: ys(v) + 4, 'text-anchor': 'end' }, v)); });
+      for (let i = 20; i <= 40; i += 5) plot.appendChild(el('text', { x: xs(i), y: 292, 'text-anchor': 'middle' }, 't=' + i));
+      // faint true trajectory context
+      const ctx = []; for (let i = X0; i <= X1; i++) ctx.push([xs(i), ys(Astar[i])]);
+      plot.appendChild(line(ctx, { stroke: 'var(--muted)', 'stroke-width': 1, 'stroke-dasharray': '2 4', opacity: .6 }));
+      // retrieved chunks
+      const gci = el('g', { opacity: op('ci') });
+      S.chunks.forEach((c, i) => { gci.appendChild(line(c.map((v, j) => [xs(T0 + j), ys(v)]), { stroke: 'var(--gpm)', 'stroke-width': 1.2, opacity: Math.max(.15, Math.min(1, S.al[i] * 5)), 'data-tip': '检索块 C_' + (i + 1) + '：s = ' + S.C.s[i] + '，α = ' + S.al[i].toFixed(3) })); });
+      plot.appendChild(gci);
+      // band + mu
+      const gm = el('g', { opacity: op('mu') });
+      const up = S.mu.map((m, j) => [xs(T0 + j), ys(m + S.lam * Math.sqrt(S.vr[j]) * 2)]), dn = S.mu.map((m, j) => [xs(T0 + j), ys(m - S.lam * Math.sqrt(S.vr[j]) * 2)]).reverse();
+      gm.appendChild(el('polygon', { points: up.concat(dn).map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '), fill: 'var(--gpm)', opacity: .16, 'data-tip': 'μ ± 2λ√Var（采样起点的 95% 范围）' }));
+      gm.appendChild(line(S.mu.map((m, j) => [xs(T0 + j), ys(m)]), { stroke: 'var(--gpm)', 'stroke-width': 3, 'data-tip': '先验均值 μ（α 加权）' }));
+      plot.appendChild(gm);
+      // prev chunk
+      const gp = el('g');
+      gp.appendChild(line(S.prev.map((v, j) => [xs(T0 - H + j), ys(v)]), { stroke: 'var(--lcm)', 'stroke-width': 2.6 }));
+      S.prev.forEach((v, j) => gp.appendChild(el('circle', { cx: xs(T0 - H + j), cy: ys(v), r: 3.2, fill: 'var(--lcm)', 'data-tip': '已执行动作 a_' + (T0 - H + j) + ' = ' + v.toFixed(2) })));
+      plot.appendChild(gp);
+      // target
+      const gt = el('g', { opacity: op('tgt') });
+      gt.appendChild(line(S.tgt.map((v, j) => [xs(T0 + j), ys(v)]), { stroke: 'var(--tgt)', 'stroke-width': 1.6, 'stroke-dasharray': '6 4', 'data-tip': '真实下一块 A*（玩具的示范）' }));
+      plot.appendChild(gt);
+      // gaussian
+      if (showG) {
+        const gg = el('g', { opacity: op('g') });
+        S.epsG.forEach((v, j) => { const y = Math.max(16, Math.min(272, ys(v))); gg.appendChild(el('rect', { x: xs(T0 + j) - 4, y: y - 4, width: 8, height: 8, fill: 'var(--base)', transform: 'rotate(45 ' + xs(T0 + j) + ' ' + y + ')', 'data-tip': 'π0.5 起点 ε_' + j + ' = ' + v.toFixed(2) + (y !== ys(v) ? '（超出画面）' : '') })); });
+        plot.appendChild(gg);
+      }
+      // xh
+      const gx = el('g', { opacity: op('xh') });
+      S.xh.forEach((v, j) => gx.appendChild(el('circle', { cx: xs(T0 + j), cy: ys(v), r: 4, fill: 'var(--surface)', stroke: 'var(--gpm)', 'stroke-width': 1.8, 'data-tip': 'X̂_t[' + j + '] = μ + λε√Var = ' + v.toFixed(2) })));
+      plot.appendChild(gx);
+      // B arrows + xt
+      if (lcmOn) {
+        const gb = el('g', { opacity: op('b') });
+        S.xh.forEach((v, j) => { if (Math.abs(S.B[j]) > 0.02) gb.appendChild(el('line', { x1: xs(T0 + j) + 6, x2: xs(T0 + j) + 6, y1: ys(v), y2: ys(S.xt[j]), stroke: 'var(--lcm)', 'stroke-width': 2, 'data-tip': 'LCM 偏置 B_t[' + j + '] = ' + S.B[j].toFixed(2) })); });
+        plot.appendChild(gb);
+      }
+      const gxt = el('g', { opacity: op('xt') });
+      S.xt.forEach((v, j) => gxt.appendChild(el('circle', { cx: xs(T0 + j) + (lcmOn ? 6 : 0), cy: ys(v), r: 4.6, fill: 'var(--lcm)', stroke: 'var(--tgt)', 'stroke-width': 1.4, 'data-tip': '起点 X_t[' + j + '] = ' + v.toFixed(2) })));
+      plot.appendChild(gxt);
+      // legend
+      const L = [['var(--gpm)', '检索块 / μ'], ['var(--lcm)', '起点 X_t'], ['var(--tgt)', '真实下一块（虚线）']];
+      if (showG) L.push(['var(--base)', 'π0.5 起点 ε']);
+      L.forEach((l, i) => { plot.appendChild(el('rect', { x: 60 + i * 160, y: 305, width: 10, height: 10, rx: 2, fill: l[0] })); plot.appendChild(el('text', { x: 76 + i * 160, y: 314, class: 'lg' }, l[1])); });
+    }
+    function render(){
+      const S = compute();
+      drawPipe(); drawPlot(S);
+      const st = STEPS[step];
+      const box = $('#la-box'); box.className = 'stepbox' + (st.c ? ' s' + st.c : '');
+      let extra = '';
+      if (step === 1) extra = '<p class="io">玩具：' + S.C.desc + '；s = ' + S.C.s.join(' / ') + '，τ<sub>s</sub> = 0.1 → <span class="ov">s</span> = ' + S.sb.toFixed(3) + '</p>';
+      if (step === 2) extra = '<p class="io">玩具：ρ<sub>t</sub> = ' + S.rho.toFixed(2) + '（误差 ' + (rhoErr > 0 ? '+' : '') + rhoErr + '），Δ = 2，H<sub>0</sub> = H = 10</p>';
+      if (step === 3) extra = '<p class="io">玩具：<span class="ov">s</span> = ' + S.sb.toFixed(2) + ' → λ = ' + S.lam.toFixed(2) + '，N = ' + S.Nn + '（λ∈[0.3, 1.0]，N∈[1, 10]，按图 6 反推）</p>';
+      if (step === 4) extra = '<p class="io">玩具：LCM ' + (lcmOn ? '开，B<sub>t</sub> 取残差 A* − μ 的 75% 加小噪声' : '关，B<sub>t</sub> = 0') + '</p>';
+      box.innerHTML = '<h5>' + st.h + '</h5><p>' + st.p + '</p><p class="io">' + esc(st.io) + '</p>' + extra;
+      $('#la-read').innerHTML =
+        '<div><span class="k">s̄ → λ → N</span><b>' + S.sb.toFixed(2) + ' → ' + S.lam.toFixed(2) + ' → ' + S.Nn + '</b>π0.5 固定 N = 10</div>' +
+        '<div><span class="k">起点误差 RMS</span><b>' + S.eR.toFixed(2) + '</b>' + (lcmOn ? '不加 LCM 时 ' + S.eRh.toFixed(2) : '当前未加 LCM') + '</div>' +
+        '<div><span class="k">π0.5 起点误差 RMS</span><b>' + S.eRg.toFixed(2) + '</b>ε ~ 𝒩(0, I)，同一组随机数</div>' +
+        '<div><span class="k">块边界跳变</span><b>' + S.jump.toFixed(2) + '</b>|X_t[0] − 上一块末端|，π0.5 为 ' + S.jumpG.toFixed(2) + '</div>';
+      let s = '';
+      if (cs === 'hit') s = '检索命中时 8 个块挤在一起，方差带很窄，s̄ 高，按式 (12)(13) λ 小、N = ' + S.Nn + '。';
+      if (cs === 'mix') s = '两种任务的块混在一起，μ 夹在中间、方差带变宽；s̄ 降到 ' + S.sb.toFixed(2) + '，于是 λ 变大、N = ' + S.Nn + '，起点更“散”、步数更多。';
+      if (cs === 'off') s = '检索到的是形状不同的任务，μ 偏离真实下一块；s̄ 低，λ = ' + S.lam.toFixed(2) + '、N = ' + S.Nn + '，论文的设计是用更多噪声和步数兜底。';
+      if (rhoErr !== 0) s += ' 进度估计偏了 ' + rhoErr + '，每条轨迹都取到了时间上错开的窗口，μ 整体前移或后移，块的开头和上一块的末端接不上。';
+      s += lcmOn ? ' LCM 只看上一块动作，按训练目标把起点往 A* 的方向拉（这里设为补上 75% 的残差），这是“跨步一致性”在机制上的含义。' : ' 关掉 LCM 后，起点只剩检索先验。';
+      s += ' 无论哪种情形，起点都比 π0.5 的 ε 离目标近得多；但近不等于步数可以少，见下一节的二维玩具。';
+      $('#la-say').textContent = s;
+    }
+    function go(i){ step = i; $$('button', nav).forEach((b, j) => b.setAttribute('aria-pressed', j === i ? 'true' : 'false')); render(); }
+    seg('la-case', v => { cs = v; render(); });
+    seg('la-rho', v => { rhoErr = +v; render(); });
+    seg('la-lcm', v => { lcmOn = v === '1'; render(); });
+    seg('la-gauss', v => { showG = v === '1'; render(); });
+    $('#la-resample').addEventListener('click', () => { seed = (seed * 7 + 13) % 9973; render(); });
+    render();
+  })();
+
+  /* ================= Lab B: 2D toy flow ================= */
+  (function(){
+    const R = rng(7), G = gaussFrom(R);
+    const demos = [];
+    [[-1.0, 0.6], [1.0, 0.6]].forEach(([cx, cy], m) => { for (let i = 0; i < 12; i++) { const a = -0.55 + 1.1 * i / 11; const sgn = m ? -1 : 1; demos.push([cx + sgn * 0.16 * Math.cos(a * 2.2) - sgn * 0.1 + G() * 0.02, cy + 0.34 * a + G() * 0.02]); } });
+    const MEAN = [demos.reduce((s, d) => s + d[0], 0) / demos.length, demos.reduce((s, d) => s + d[1], 0) / demos.length];
+    const feas = x => Math.min.apply(null, demos.map(d => (x[0] - d[0]) ** 2 + (x[1] - d[1]) ** 2)) < 0.15 * 0.15;
+    function vel(t, x){ let ws = demos.map(d => -(((x[0] - t * d[0]) ** 2 + (x[1] - t * d[1]) ** 2)) / (2 * (1 - t) ** 2)); const m = Math.max.apply(null, ws); ws = ws.map(w => Math.exp(w - m)); const Z = ws.reduce((a, b) => a + b, 0); let ex = 0, ey = 0; ws.forEach((w, j) => { ex += w * demos[j][0]; ey += w * demos[j][1]; }); ex /= Z; ey /= Z; return [(ex - x[0]) / (1 - t), (ey - x[1]) / (1 - t)]; }
+    function run(x0, n){ let x = x0.slice(); const path = [x.slice()]; for (let k = 0; k < n; k++) { const t = k / n, v = vel(t, x); x = [x[0] + v[0] / n, x[1] + v[1] / n]; path.push(x.slice()); } return path; }
+    const E = []; for (let i = 0; i < 80; i++) E.push([G(), G()]);
+    function prior(sel, s){
+      const tau = 0.1; let a = s.map(v => Math.exp(v / tau)); const Z = a.reduce((p, q) => p + q, 0); a = a.map(v => v / Z);
+      const sb = a.reduce((p, q, i) => p + q * s[i], 0); const mu = [0, 0]; sel.forEach((p, i) => { mu[0] += a[i] * p[0]; mu[1] += a[i] * p[1]; });
+      const vr = [0, 0]; sel.forEach((p, i) => { vr[0] += a[i] * (p[0] - mu[0]) ** 2; vr[1] += a[i] * (p[1] - mu[1]) ** 2; }); vr[0] = Math.max(vr[0], 0.0025); vr[1] = Math.max(vr[1], 0.0025);
+      const lam = 1.0 - (sb + 1) / 2 * 0.7; const n = Math.round(1 + (1 - (sb + 1) / 2) * 9); return { mu, vr, sb, lam, n, sel };
+    }
+    const hitSel = []; for (let i = 0; i < 8; i++) hitSel.push([demos[1 + i][0] + G() * 0.06 + 0.05, demos[1 + i][1] + G() * 0.06]);
+    const offSel = []; for (let i = 0; i < 8; i++) offSel.push([0.25 + G() * 0.25, -1.0 + G() * 0.2]);
+    const P = { hit: prior(hitSel, [0.95, 0.93, 0.92, 0.9, 0.9, 0.88, 0.87, 0.85]), off: prior(offSel, [0.32, 0.3, 0.28, 0.25, 0.24, 0.22, 0.2, 0.18]) };
+    function starts(kind){ if (kind === 'gauss') return E.map(e => e.slice()); const p = P[kind]; return E.map(e => [p.mu[0] + p.lam * e[0] * Math.sqrt(p.vr[0]), p.mu[1] + p.lam * e[1] * Math.sqrt(p.vr[1])]); }
+    const NS_ = [1, 2, 3, 4, 6, 10], KINDS = ['gauss', 'hit', 'off'], KN = { gauss: '各向同性噪声', hit: 'GPM · 命中', off: 'GPM · 偏离' };
+    const TABLE = {}; KINDS.forEach(k => { const S = starts(k); TABLE[k] = NS_.map(n => S.filter(x => feas(run(x, n)[n])).length / S.length); });
+    let kind = 'gauss', n = 3;
+    const svg = $('#fb-svg');
+    const sx = x => 210 + 86 * x, sy = y => 165 - 86 * y;
+    function draw(){
+      svg.innerHTML = '';
+      const defs = el('defs'), cp = el('clipPath', { id: 'fbclip' }); cp.appendChild(el('rect', { x: 0, y: 0, width: 420, height: 350, rx: 8 })); defs.appendChild(cp); svg.appendChild(defs);
+      svg.appendChild(el('rect', { x: 0, y: 0, width: 420, height: 350, fill: 'var(--bg)', rx: 8 }));
+      const root = svg; const svgc = el('g', { 'clip-path': 'url(#fbclip)' }); svg.appendChild(svgc);
+      for (let v = -2; v <= 2; v++) { svgc.appendChild(el('line', { x1: sx(v), x2: sx(v), y1: 10, y2: 340, stroke: 'var(--line)', 'stroke-width': v ? .5 : 1 })); svgc.appendChild(el('line', { x1: 10, x2: 410, y1: sy(v), y2: sy(v), stroke: 'var(--line)', 'stroke-width': v ? .5 : 1 })); }
+      svgc.appendChild(el('circle', { cx: sx(MEAN[0]), cy: sy(MEAN[1]), r: 20, fill: 'var(--warn-soft)', stroke: 'var(--warn)', 'stroke-dasharray': '3 3' }));
+      svgc.appendChild(el('text', { x: sx(MEAN[0]), y: sy(MEAN[1]) + 38, 'text-anchor': 'middle', class: 'mono', style: 'fill:var(--warn)' }, 'E[x₁|c]：不可行'));
+      demos.forEach(d => svgc.appendChild(el('circle', { cx: sx(d[0]), cy: sy(d[1]), r: 4, fill: 'var(--tgt)' })));
+      svgc.appendChild(el('text', { x: sx(-1.0), y: sy(1.22), 'text-anchor': 'middle' }, '左侧抓取（可行）'));
+      svgc.appendChild(el('text', { x: sx(1.0), y: sy(1.22), 'text-anchor': 'middle' }, '右侧抓取（可行）'));
+      if (kind !== 'gauss') { const p = P[kind]; p.sel.forEach(q => svgc.appendChild(el('rect', { x: sx(q[0]) - 3, y: sy(q[1]) - 3, width: 6, height: 6, fill: 'none', stroke: 'var(--gpm)', 'stroke-width': 1.2 }))); svgc.appendChild(el('text', { x: sx(p.mu[0]) - 14, y: sy(p.mu[1]) + 34, 'text-anchor': 'end', class: 'mono', style: 'fill:var(--gpm)' }, '检索块 □ 与 μ')); }
+      const S = starts(kind); let ok = 0, disp = 0;
+      const col = kind === 'gauss' ? 'var(--pol)' : 'var(--gpm)';
+      S.forEach(x0 => {
+        const path = run(x0, n), end = path[n]; const f = feas(end); ok += f; disp += Math.hypot(end[0] - x0[0], end[1] - x0[1]);
+        svgc.appendChild(el('polyline', { points: path.map(p => sx(p[0]).toFixed(1) + ',' + sy(p[1]).toFixed(1)).join(' '), fill: 'none', stroke: col, 'stroke-width': .8, opacity: .35 }));
+        svgc.appendChild(el('circle', { cx: sx(x0[0]), cy: sy(x0[1]), r: 1.8, fill: col, opacity: .5 }));
+        if (f) svgc.appendChild(el('circle', { cx: sx(end[0]), cy: sy(end[1]), r: 3.6, fill: col, stroke: 'var(--surface)', 'stroke-width': .8 }));
+        else { const X = sx(end[0]), Y = sy(end[1]); svgc.appendChild(el('path', { d: 'M' + (X - 4) + ' ' + (Y - 4) + ' L' + (X + 4) + ' ' + (Y + 4) + ' M' + (X - 4) + ' ' + (Y + 4) + ' L' + (X + 4) + ' ' + (Y - 4), stroke: 'var(--warn)', 'stroke-width': 1.8 })); }
+      });
+      root.appendChild(el('text', { x: 4, y: 366, class: 'mono' }, '细线 = Euler 轨迹，小点 = 起点，● = 可行终点，× = 不可行终点'));
+      const rate = ok / S.length;
+      const p = P[kind];
+      $('#fb-read').innerHTML =
+        '<div><span class="k">可行终点</span><b>' + Math.round(rate * 100) + '%</b>' + S.length + ' 个样本</div>' +
+        '<div><span class="k">步数 N</span><b>' + n + '</b>' + (kind === 'gauss' ? 'π0.5 固定为 10' : '式 (13) 给出 N = ' + p.n) + '</div>' +
+        '<div><span class="k">s̄ / λ</span><b>' + (kind === 'gauss' ? '—' : p.sb.toFixed(2) + ' / ' + p.lam.toFixed(2)) + '</b>' + (kind === 'gauss' ? '起点 ε ~ 𝒩(0, I)' : '起点 μ + λε√Var') + '</div>' +
+        '<div><span class="k">平均位移</span><b>' + (disp / S.length).toFixed(2) + '</b>起点到终点的直线距离</div>';
+      let h = '<div class="tblwrap" style="margin:0"><table class="t fbt"><thead><tr><th>起点 \\ N</th>' + NS_.map(v => '<th class="num">' + v + '</th>').join('') + '</tr></thead><tbody>';
+      KINDS.forEach(k => { h += '<tr><th>' + KN[k] + '</th>' + TABLE[k].map((v, i) => '<td class="num" style="' + (k === kind && NS_[i] === n ? 'background:var(--gpm-soft);font-weight:700' : '') + '">' + Math.round(v * 100) + '%</td>').join('') + '</tr>'; });
+      $('#fb-table').innerHTML = h + '</tbody></table></div>';
+      let s = '';
+      if (n === 1) s = 'N = 1：一步 Euler 的输出就是 x₀ + v(0, x₀) = E[x₁|c]，三种起点全部落在两簇中间的同一点。这在理想速度场下与起点无关。';
+      else if (kind === 'gauss') s = '高斯起点：步数少时一部分样本停在两簇之间，N 越大越少。这是论文所说“随机起点导致不可行样本、需要多步”的情形。';
+      else if (kind === 'hit') s = '检索命中：起点挤在左簇附近。注意第一步仍然先朝 E[x₁|c] 拉过去 1/N 的距离，所以 N = 2 时还会停在中间；N ≥ 3 后全部落进左簇，比高斯起点少用几步。代价是只会生成左侧抓取，多样性来自 λ 噪声，而这里 λ√Var 很小。';
+      else s = '检索偏离：起点在两簇下方的中线附近，s̄ 低，式 (13) 给出更多步数。步数不够时很多样本停在中间，这是论文附录 A 承认的“检索先验误导”在玩具里的样子。';
+      s += ' 数字取决于玩具的几何设定（两簇间距、源分布尺度），只用来看趋势。';
+      $('#fb-say').textContent = s;
+    }
+    seg('fb-start', v => { kind = v; draw(); });
+    seg('fb-n', v => { n = +v; draw(); });
+    $('#fb-auto').addEventListener('click', () => { n = kind === 'gauss' ? 10 : P[kind].n; setSeg('fb-n', n); draw(); });
+    draw();
+  })();
+
+  /* ================= charts ================= */
+  function dotplot(svg, rows, o){
+    const W = o.W || 720, L = o.L || 150, PR = o.PR || 600, top = 22, rh = o.rh || 30, lo = o.lo, hi = o.hi;
+    const H = top + rows.length * rh + 24; svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const x = v => L + (PR - L) * (v - lo) / (hi - lo);
+    for (let g = lo; g <= hi + 1e-9; g += o.step) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: top - 8, y2: H - 22, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: H - 6, 'text-anchor': 'middle', class: 'tick' }, +g.toFixed(2))); }
+    (o.refs || []).forEach(r => { svg.appendChild(el('line', { x1: x(r.v), x2: x(r.v), y1: top - 8, y2: H - 22, stroke: 'var(--warn)', 'stroke-dasharray': '4 3' })); svg.appendChild(el('text', { x: x(r.v) + (r.left ? -4 : 4), y: top - 10, 'text-anchor': r.left ? 'end' : 'start', class: 'tick', style: 'fill:var(--warn)' }, r.t)); });
+    (o.cols || []).forEach(c => svg.appendChild(el('text', { x: c.x, y: 12, 'text-anchor': 'end', class: 'tick' }, c.t)));
+    rows.forEach((r, i) => {
+      const y = top + i * rh + rh / 2;
+      svg.appendChild(el('text', { x: L - 10, y: y + 4, 'text-anchor': 'end', class: 'glabel', 'font-weight': r.hi ? 700 : 400 }, r.label));
+      svg.appendChild(el('line', { x1: L, x2: PR, y1: y, y2: y, stroke: 'var(--line)', 'stroke-dasharray': '1 3' }));
+      if (r.v2 != null) { svg.appendChild(el('line', { x1: x(Math.min(r.v, r.v2)), x2: x(Math.max(r.v, r.v2)), y1: y, y2: y, stroke: r.hi ? 'var(--gpm)' : 'var(--base)', 'stroke-width': 1.5, opacity: .6 })); svg.appendChild(el('circle', { cx: x(r.v2), cy: y, r: 5.5, fill: 'var(--surface)', stroke: r.hi ? 'var(--gpm)' : 'var(--base)', 'stroke-width': 2, 'data-tip': r.label + ' · ' + o.n2 + '：' + r.v2 })); }
+      svg.appendChild(el('circle', { cx: x(r.v), cy: y, r: 6, fill: r.hi ? 'var(--gpm)' : (r.c || 'var(--base)'), 'data-tip': r.label + ' · ' + o.n1 + '：' + r.v }));
+      if (o.cols) { svg.appendChild(el('text', { x: o.cols[0].x, y: y + 4, 'text-anchor': 'end', class: 'val' + (r.hi ? ' hi' : '') }, r.v)); if (o.cols[1]) svg.appendChild(el('text', { x: o.cols[1].x, y: y + 4, 'text-anchor': 'end', class: 'val' + (r.hi ? ' hi' : '') }, r.v2)); }
+      else svg.appendChild(el('text', { x: x(r.v) + 10, y: y + 4, class: 'val' + (r.hi ? ' hi' : '') }, r.v));
+    });
+  }
+  function hbars(svg, rows, o){
+    const W = 720, L = o.L || 170, R = 60, top = 14, rh = o.rh || 28, max = o.max;
+    const H = top + rows.length * rh + 26; svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const x = v => L + (W - L - R) * v / max;
+    for (let g = 0; g <= max + 1e-9; g += o.step) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: top - 4, y2: H - 22, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: H - 6, 'text-anchor': 'middle', class: 'tick' }, g)); }
+    rows.forEach((r, i) => {
+      const y = top + i * rh;
+      svg.appendChild(el('text', { x: L - 10, y: y + rh / 2 + 4, 'text-anchor': 'end', class: 'glabel', 'font-weight': r.hi ? 700 : 400 }, r.label));
+      svg.appendChild(el('rect', { x: L, y: y + 5, width: Math.max(1, x(r.v) - L), height: rh - 11, rx: 3, class: r.cls, 'data-tip': r.label + '：' + r.v }));
+      svg.appendChild(el('text', { x: x(r.v) + 6, y: y + rh / 2 + 4, class: 'val' + (r.hi ? ' hi' : '') }, r.v));
+    });
+    svg.appendChild(el('line', { x1: L, x2: L, y1: top - 4, y2: H - 22, class: 'base' }));
+  }
+
+  /* LIBERO */
+  const LIB = [
+    ['DP', 78.3, 92.5, 68.3, 50.5, 72.4], ['Octo', 78.9, 85.7, 84.6, 51.1, 75.1], ['SpatialVLA', 88.2, 89.9, 78.6, 55.5, 78.1], ['π0-FAST', 96.4, 96.8, 88.6, 60.2, 85.5],
+    ['CogACT', 97.2, 98.0, 90.2, 88.8, 93.6], ['MemoryVLA', 98.4, 98.4, 96.4, 93.4, 96.7], ['OpenVLA-OFT', 97.6, 98.4, 97.9, 94.5, 97.1], ['OpenVLA', 84.7, 88.4, 79.2, 53.7, 76.5],
+    ['UniVLA', 95.4, 98.8, 93.6, 94.0, 95.4], ['π0', 96.8, 98.8, 95.8, 85.2, 94.2], ['π0.5', 98.8, 98.2, 98.0, 92.4, 96.9], ['OptimusVLA', 99.6, 99.8, 98.4, 96.4, 98.6]
+  ];
+  dotplot($('#ch-libero'), LIB.slice().sort((a, b) => b[5] - a[5]).map(r => ({ label: r[0], v: r[5], v2: r[4], hi: r[0] === 'OptimusVLA' })), { lo: 50, hi: 100, step: 10, L: 130, PR: 590, n1: '平均', n2: 'Long', cols: [{ x: 652, t: '平均' }, { x: 712, t: 'Long' }] });
+  rawTable($('#raw-libero'), ['Method', 'Spatial', 'Object', 'Goal', 'Long', 'Avg.'], LIB.map(r => ({ cells: r, best: r[0] === 'OptimusVLA' })));
+
+  /* CALVIN */
+  const CAL = [
+    ['RoboVLM', 98.0, 93.6, 85.4, 77.8, 70.4, 4.25], ['ReconVLA', 95.6, 87.6, 76.9, 69.3, 64.1, 3.95], ['OpenVLA', 91.3, 77.8, 62.0, 52.1, 43.5, 3.27], ['UniVLA', 95.5, 85.8, 75.4, 66.9, 56.5, 3.80],
+    ['UP-VLA', 92.8, 86.5, 81.5, 76.9, 69.9, 4.08], ['RoboDual', 94.4, 82.7, 72.1, 62.4, 54.4, 3.66], ['Seer', 96.3, 91.6, 86.1, 80.3, 74.0, 4.28], ['VPP', 95.7, 91.2, 86.3, 81.0, 75.0, 4.29],
+    ['π0', 93.8, 85.0, 76.7, 68.1, 59.9, 3.92], ['π0.5†', 94.4, 88.4, 85.3, 80.1, 76.1, 4.26], ['OptimusVLA', 97.6, 93.2, 88.8, 85.7, 78.1, 4.45]
+  ];
+  hbars($('#ch-calvin'), CAL.slice().sort((a, b) => b[6] - a[6]).map(r => ({ label: r[0], v: r[6].toFixed(2), cls: r[0] === 'OptimusVLA' ? 'c-ours' : (r[0] === 'π0.5†' ? 'c-pol' : 'c-b0'), hi: r[0] === 'OptimusVLA' })).map(r => (r.v = +r.v, r)), { max: 5, step: 1, L: 130 });
+  rawTable($('#raw-calvin'), ['Method', '1/5', '2/5', '3/5', '4/5', '5/5', 'Avg. Len', '五档之和/100'], CAL.map(r => { const s = (r[1] + r[2] + r[3] + r[4] + r[5]) / 100; const bad = Math.abs(s - r[6]) > 0.006; return { cells: r.slice(0, 6).map((v, i) => i ? v.toFixed(1) : v).concat([r[6].toFixed(2), s.toFixed(3)]), best: r[0] === 'OptimusVLA', flag: bad ? [6, 7] : [] }; }));
+
+  /* RoboTwin */
+  const RT_M = ['RDT', 'ACT', 'DP', 'DP3', 'π0', 'π0.5†', 'OptimusVLA'];
+  const RT = [
+    ['Click Alarmclock', [12, 4, 5, 14, 11, 18, 31], [4, 7, 6, 3, 5, 2, 1]], ['Click Bell', [9, 3, 0, 0, 3, 28, 46], [3, 4, 5, 5, 4, 2, 1]], ['Dump Bin Bigbin', [32, 1, 0, 53, 24, 29, 35], [3, 6, 7, 1, 5, 4, 2]], ['Open Laptop', [32, 0, 0, 7, 46, 38, 48], [4, 6, 6, 5, 2, 3, 1]],
+    ['Place Bread Skillet', [1, 0, 0, 0, 1, 2, 4], [3, 4, 4, 4, 4, 2, 1]], ['Place Container Plate', [17, 1, 0, 1, 45, 30, 37], [4, 5, 6, 5, 1, 3, 2]], ['Press Stapler', [24, 6, 0, 3, 29, 36, 45], [4, 5, 7, 6, 3, 2, 1]], ['Stack Bowls Two', [30, 0, 0, 6, 41, 49, 58], [4, 6, 6, 5, 3, 2, 1]],
+    ['Beat Block Hammer', [37, 3, 0, 8, 21, 21, 26], [1, 5, 6, 4, 3, 3, 2], 1], ['Lift Pot', [9, 0, 0, 0, 36, 28, 31], [4, 5, 5, 5, 1, 3, 2], 1], ['Move Playingcard Away', [11, 0, 0, 3, 22, 25, 32], [4, 6, 6, 5, 3, 2, 1], 1], ['Open Microwave', [20, 0, 0, 22, 50, 39, 41], [5, 6, 6, 4, 1, 3, 2], 1],
+    ['Pick Diverse Bottles', [0, 0, 0, 1, 6, 6, 7], [4, 4, 4, 3, 2, 2, 1], 1], ['Turn Switch', [15, 2, 1, 8, 23, 11, 16], [3, 6, 7, 5, 1, 4, 2], 1], ['Place Object Stand', [5, 0, 0, 0, 11, 11, 13], [3, 4, 4, 4, 2, 2, 1], 1], ['Stack Blocks Two', [2, 0, 0, 0, 1, 5, 11], [3, 5, 5, 5, 4, 2, 1], 1]
+  ];
+  const RT_AVG = { main: [20, 2, 1, 11, 25, 29, 38], all: [16, 1, 1, 8, 23, 24, 30] };
+  function rtHeat(scope){
+    const rows = RT.filter(r => scope === 'all' || (scope === 'main' ? !r[3] : r[3]));
+    let avg, lab;
+    if (scope === 'extra') { avg = RT_M.map((_, j) => (rows.reduce((s, r) => s + r[1][j], 0) / rows.length).toFixed(1)); lab = '平均（我们算）'; }
+    else { avg = RT_AVG[scope]; lab = scope === 'main' ? '平均（表 3）' : '平均（表 7）'; }
+    const cell = v => { const p = Math.round(Math.min(1, v / 60) * 88); return '<td class="' + (p > 50 ? 'dk' : '') + '" style="background:color-mix(in oklab,var(--gpm) ' + p + '%,var(--surface))">' + v + '</td>'; };
+    let h = '<table class="heat"><thead><tr><th></th>' + RT_M.map(m => '<th class="' + (m === 'OptimusVLA' ? 'ours' : '') + '">' + esc(m) + '</th>').join('') + '</tr></thead><tbody>';
+    rows.forEach(r => { h += '<tr class="' + (r[3] ? 'extra' : '') + '"><th class="row">' + r[0] + '</th>' + r[1].map(cell).join('') + '</tr>'; });
+    h += '<tr class="avg"><th class="row">' + lab + '</th>' + avg.map(v => cell(v)).join('') + '</tr></tbody></table>';
+    $('#heat-rt').innerHTML = h;
+  }
+  rtHeat('all'); seg('rt-scope', rtHeat);
+  rawTable($('#raw-rt'), ['Task'].concat(RT_M.map(m => m + ' SR / RK')), RT.map(r => ({ cells: [r[0] + (r[3] ? '（附录）' : '')].concat(r[1].map((v, j) => v + '% / ' + r[2][j])) })).concat([{ cells: ['Average（16 个，表 7）'].concat(RT_AVG.all.map(v => v + '%')), best: true }, { cells: ['Average（主表 8 个，表 3）'].concat(RT_AVG.main.map(v => v + '%')) }]));
+
+  /* real world grouped bars */
+  const RW_S = [{ n: 'OpenVLA', f: 'var(--base-2)' }, { n: 'OpenVLA-OFT', f: 'color-mix(in oklab,var(--base) 70%,var(--warn))' }, { n: 'π0', f: 'var(--base)' }, { n: 'π0.5', f: 'var(--pol)' }, { n: 'OptimusVLA', f: 'var(--gpm)' }];
+  const RW = [
+    { name: '放一个水果\n到盘子', v: [34, 68, 56, 76, 88] }, { name: '盘子\n放桌布', v: [28, 80, 68, 84, 90] }, { name: '瓶子\n立起', v: [22, 44, 42, 62, 74] }, { name: '杯子\n放桌布', v: [52, 78, 72, 78, 88] },
+    { name: '全部水果\n放盘子', v: [16, 36, 44, 52, 64], sep: 1 }, { name: '两个水果\n放两处', v: [12, 36, 32, 44, 60] }, { name: '杯子和苹果\n放盘子', v: [16, 48, 44, 56, 68] }, { name: '三个方块\n放桌布', v: [12, 40, 48, 52, 64] }
+  ];
+  const avgOf = (a, b) => RW_S.map((_, j) => RW.slice(a, b).reduce((s, g) => s + g.v[j], 0) / 4);
+  const RWA = [{ name: '泛化平均\n（我们算）', v: avgOf(0, 4), sep: 2 }, { name: '长程平均\n（我们算）', v: avgOf(4, 8) }];
+  (function(){
+    const svg = $('#ch-real'), groups = RW.concat(RWA), W = 900, H = 300, L = 36, R = 6, T = 26, B = 46;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const y = v => T + (H - T - B) * (1 - v / 100);
+    for (let g = 0; g <= 100; g += 20) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g)); }
+    const gw = (W - L - R) / groups.length, bw = Math.min(15, (gw - 10) / 5);
+    groups.forEach((gr, i) => {
+      const cx = L + gw * i + gw / 2, x0 = cx - bw * 5 / 2;
+      if (gr.sep) svg.appendChild(el('line', { x1: L + gw * i, x2: L + gw * i, y1: T - 14, y2: H - 6, stroke: 'var(--ink-2)', 'stroke-dasharray': gr.sep === 2 ? '1 0' : '3 3', 'stroke-width': gr.sep === 2 ? 1.2 : 1 }));
+      gr.v.forEach((v, j) => { const yy = y(v); svg.appendChild(el('rect', { x: x0 + j * bw + .5, y: yy, width: bw - 1, height: Math.max(1, y(0) - yy), rx: 1.5, fill: RW_S[j].f, 'data-tip': gr.name.replace('\n', ' ') + ' · ' + RW_S[j].n + '：' + (+v.toFixed(1)) })); if (j === 4 || j === 3) svg.appendChild(el('text', { x: x0 + j * bw + bw / 2, y: yy - 4, 'text-anchor': 'middle', class: 'val', 'font-size': 9.5, style: j === 4 ? 'fill:var(--gpm);font-weight:600' : '' }, +v.toFixed(1))); });
+      gr.name.split('\n').forEach((w, k) => svg.appendChild(el('text', { x: cx, y: H - B + 16 + k * 13, 'text-anchor': 'middle', class: 'glabel', 'font-size': 11.5 }, w)));
+    });
+    svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(0), y2: y(0), class: 'base' }));
+    svg.appendChild(el('text', { x: L + 4, y: 12, class: 'tick' }, '泛化任务 · 每个 50 次'));
+    svg.appendChild(el('text', { x: L + gw * 4 + 4, y: 12, class: 'tick' }, '长程任务 · 每个 25 次'));
+    svg.appendChild(el('text', { x: L + gw * 8 + 4, y: 12, class: 'tick' }, '套件平均'));
+    rawTable($('#raw-real'), ['任务'].concat(RW_S.map(s => s.n)), RW.concat(RWA).map(g => ({ cells: [g.name.replace('\n', ' ')].concat(g.v.map(v => +v.toFixed(1))), best: !!g.sep && g.sep === 2 })));
+  })();
+
+  /* ablation panels */
+  const ABL = [{ l: 'GPM ✓ · LCM ✓', v: [96.4, 4.45, 85.0] }, { l: 'GPM ✗ · LCM ✓', v: [93.2, 4.28, 77.0], d: ['3.3%', '3.8%', '9.4%'] }, { l: 'GPM ✓ · LCM ✗', v: [94.8, 4.38, 79.5], d: ['1.7%', '1.6%', '6.5%'] }, { l: 'GPM ✗ · LCM ✗', v: [92.4, 4.26, 75.0], d: ['4.1%', '4.3%', '11.8%'] }];
+  const ABL_P = [{ t: 'LIBERO-Long（%）', lo: 90, hi: 98, step: 2 }, { t: 'CALVIN Avg. Len', lo: 4.2, hi: 4.5, step: .1 }, { t: '真机泛化任务（%）', lo: 70, hi: 90, step: 5 }];
+  (function(){
+    const host = $('#ch-abl');
+    ABL_P.forEach((p, k) => {
+      const W = 300, L = 104, PR = 270, top = 34, rh = 32, H = top + ABL.length * rh + 22;
+      const svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, class: 'chart sm', role: 'img', 'aria-label': p.t });
+      const x = v => L + (PR - L) * (v - p.lo) / (p.hi - p.lo);
+      svg.appendChild(el('text', { x: 4, y: 14, style: 'font-weight:700;fill:var(--ink)' }, p.t));
+      for (let g = p.lo; g <= p.hi + 1e-9; g += p.step) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: top - 10, y2: H - 20, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: H - 6, 'text-anchor': 'middle', class: 'tick' }, +g.toFixed(2))); }
+      ABL.forEach((r, i) => {
+        const y = top + i * rh + rh / 2 - 6;
+        svg.appendChild(el('text', { x: L - 8, y: y + 4, 'text-anchor': 'end', class: 'tick', style: i ? '' : 'fill:var(--ink);font-weight:600' }, r.l));
+        svg.appendChild(el('line', { x1: x(p.lo), x2: x(r.v[k]), y1: y, y2: y, stroke: i ? 'var(--base)' : 'var(--gpm)', 'stroke-width': 2 }));
+        svg.appendChild(el('circle', { cx: x(r.v[k]), cy: y, r: 5.5, fill: i ? (i === 3 ? 'var(--pol)' : 'var(--base)') : 'var(--gpm)', 'data-tip': r.l + ' · ' + p.t + '：' + r.v[k] + (r.d ? '（论文标 ↓' + r.d[k] + '）' : '') }));
+        svg.appendChild(el('text', { x: Math.min(x(r.v[k]) + 9, PR - 2), y: y + 15, 'text-anchor': x(r.v[k]) + 9 > PR - 30 ? 'end' : 'start', class: 'val' + (i ? '' : ' hi'), 'font-size': 10.5 }, (k === 1 ? r.v[k].toFixed(2) : r.v[k].toFixed(1)) + (r.d ? ' (↓' + r.d[k] + ')' : '')));
+      });
+      host.appendChild(svg);
+    });
+    rawTable($('#raw-abl'), ['GPM / LCM', 'LIBERO-Long', 'CALVIN', 'Generalization Tasks'], ABL.map((r, i) => ({ cells: [r.l].concat(r.v.map((v, k) => (k === 1 ? v.toFixed(2) : v.toFixed(1)) + (r.d ? ' (↓' + r.d[k] + ')' : ''))), best: !i })));
+  })();
+
+  /* memory size */
+  const MEM = [{ label: 'Num 6500 · k = 8', v: 96.4, hi: true }, { label: 'Num 6500 · k = 16', v: 94.8 }, { label: 'Num 6500 · k = 1', v: 92.6 }, { label: 'Num 1300 · k = 8', v: 95.2 }, { label: 'Num 1300 · k = 1', v: 92.4 }, { label: 'Num 130 · k = 8', v: 93.6 }];
+  dotplot($('#ch-mem'), MEM, { lo: 90, hi: 98, step: 1, L: 170, PR: 690, n1: 'SR', refs: [{ v: 93.2, t: '无 GPM 93.2' }, { v: 92.4, t: 'π0.5 92.4', left: true }], rh: 32 });
+  rawTable($('#raw-mem'), ['Num / k', 'SR (LIBERO-Long)'], MEM.map(m => ({ cells: [m.label, m.v.toFixed(1)], best: m.hi })));
+
+  /* training curves */
+  const STEPS_X = [6000, 10000, 14000, 18000, 22000, 26000, 30000];
+  const CUR = [
+    { n: 'LIBERO-Spatial', lo: 84, hi: 100, st: 4, o: [87.4, 94.4, 96.0, 97.0, 97.6, 98.8, 99.6], p: [85.4, 92.6, 93.8, 95.0, 96.6, 97.2, 98.8] },
+    { n: 'LIBERO-Object', lo: 88, hi: 100, st: 4, o: [91.6, 97.2, 98.4, 99.0, 99.8, 99.6, 99.8], p: [90.8, 96.6, 97.2, 97.8, 98.2, 98.0, 98.2] },
+    { n: 'LIBERO-Goal', lo: 84, hi: 100, st: 4, o: [88.4, 93.6, 96.8, 97.6, 98.0, 98.4, 98.4], p: [85.8, 89.8, 93.2, 95.8, 96.2, 97.8, 98.0] },
+    { n: 'LIBERO-Long', lo: 74, hi: 98, st: 4, o: [81.4, 83.4, 89.4, 91.0, 93.6, 94.8, 96.4], p: [76.4, 81.0, 86.4, 87.6, 89.6, 91.2, 92.4] }
+  ];
+  (function(){
+    const host = $('#ch-curves');
+    CUR.forEach(c => {
+      const W = 360, H = 220, L = 34, R = 10, T = 26, B = 30;
+      const svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, class: 'chart sm', role: 'img', 'aria-label': c.n });
+      const x = k => L + (W - L - R) * k / (STEPS_X.length - 1), y = v => T + (H - T - B) * (1 - (v - c.lo) / (c.hi - c.lo));
+      svg.appendChild(el('text', { x: L, y: 14, style: 'font-weight:700;fill:var(--ink)' }, c.n));
+      for (let g = c.lo; g <= c.hi; g += c.st) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: L - 5, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g)); }
+      STEPS_X.forEach((s, k) => { if (k % 2 === 0) svg.appendChild(el('text', { x: x(k), y: H - 10, 'text-anchor': 'middle', class: 'tick' }, (s / 1000) + 'k')); });
+      [['p', 'var(--base)', 'π0.5', 14], ['o', 'var(--gpm)', 'OptimusVLA', -8]].forEach(([key, col, nm, dy]) => {
+        svg.appendChild(el('polyline', { points: c[key].map((v, k) => x(k) + ',' + y(v)).join(' '), fill: 'none', stroke: col, 'stroke-width': 2.2, 'stroke-dasharray': key === 'p' ? '5 3' : '' }));
+        c[key].forEach((v, k) => { svg.appendChild(el('circle', { cx: x(k), cy: y(v), r: 3.4, fill: col, 'data-tip': c.n + ' · ' + nm + ' · ' + STEPS_X[k] + ' 步：' + v })); if (k === 0 || k === 3 || k === 6) svg.appendChild(el('text', { x: x(k) + (k === 0 ? 6 : 0), y: y(v) + dy, 'text-anchor': k === 6 ? 'end' : (k === 0 ? 'start' : 'middle'), class: 'val', 'font-size': 10 }, v.toFixed(1))); });
+      });
+      host.appendChild(svg);
+    });
+    rawTable($('#raw-curves'), ['套件 · 方法'].concat(STEPS_X.map(s => s / 1000 + 'k')), [].concat.apply([], CUR.map(c => [{ cells: [c.n + ' · OptimusVLA'].concat(c.o) }, { cells: [c.n + ' · π0.5'].concat(c.p) }])));
+  })();
+
+  /* efficiency */
+  const EFF = [
+    { n: 'LIBERO', t: [254, 137, 69, 57, 39], nfe: [10, 10, 3.2], max: 280 },
+    { n: '真机', t: [552, 334, 187, 133, 112], nfe: [10, 10, 3.4], max: 600 }
+  ];
+  const EM = ['OpenVLA', 'OFT', 'π0', 'π0.5', 'Optimus'];
+  (function(){
+    const host = $('#ch-eff');
+    EFF.forEach(e => {
+      const W = 380, H = 250, T = 40, B = 40, L = 10;
+      const svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, class: 'chart sm', role: 'img', 'aria-label': e.n + ' 推理时间与 NFE' });
+      svg.appendChild(el('text', { x: 6, y: 16, style: 'font-weight:700;fill:var(--ink)' }, e.n));
+      svg.appendChild(el('text', { x: 6, y: 32, class: 'tick' }, '推理时间（ms）'));
+      svg.appendChild(el('text', { x: 268, y: 32, class: 'tick' }, 'NFE'));
+      const y = v => T + (H - T - B) * (1 - v / e.max), y2 = v => T + (H - T - B) * (1 - v / 11);
+      const bw = 40;
+      e.t.forEach((v, j) => { const x = L + j * (bw + 6); const yy = y(v); svg.appendChild(el('rect', { x: x, y: yy, width: bw, height: y(0) - yy, rx: 2, class: j === 4 ? 'c-ours' : (j === 3 ? 'c-pol' : 'c-b1'), 'data-tip': e.n + ' · ' + EM[j] + '：' + v + ' ms' })); svg.appendChild(el('text', { x: x + bw / 2, y: yy - 4, 'text-anchor': 'middle', class: 'val' + (j === 4 ? ' hi' : '') }, v)); svg.appendChild(el('text', { x: x + bw / 2, y: H - B + 14, 'text-anchor': 'middle', class: 'tick', 'font-size': 9.5 }, EM[j])); });
+      ['π0', 'π0.5', 'Optimus'].forEach((m, j) => { const x = 262 + j * 40, v = e.nfe[j], yy = y2(v); svg.appendChild(el('rect', { x: x, y: yy, width: 30, height: y2(0) - yy, rx: 2, class: j === 2 ? 'c-ours' : (j === 1 ? 'c-pol' : 'c-b0'), 'data-tip': e.n + ' · ' + m + ' NFE：' + v })); svg.appendChild(el('text', { x: x + 15, y: yy - 4, 'text-anchor': 'middle', class: 'val' + (j === 2 ? ' hi' : '') }, v)); svg.appendChild(el('text', { x: x + 15, y: H - B + 14, 'text-anchor': 'middle', class: 'tick', 'font-size': 9 }, m)); });
+      svg.appendChild(el('line', { x1: 4, x2: 236, y1: y(0), y2: y(0), class: 'base' }));
+      svg.appendChild(el('line', { x1: 262, x2: 376, y1: y2(0), y2: y2(0), class: 'base' }));
+      const r1 = (e.t[3] / e.t[4]).toFixed(2), r0 = (e.t[0] / e.t[4]).toFixed(1), rn = (e.nfe[1] / e.nfe[2]).toFixed(1);
+      svg.appendChild(el('text', { x: 6, y: H - 6, class: 'tick' }, '对 π0.5：' + e.t[3] + ' / ' + e.t[4] + ' ≈ ' + r1 + '×　对 OpenVLA：≈ ' + r0 + '×　NFE：' + rn + '×'));
+      host.appendChild(svg);
+    });
+    rawTable($('#raw-eff'), ['设置', 'OpenVLA ms', 'OpenVLA-OFT ms', 'π0 ms', 'π0.5 ms', 'OptimusVLA ms', 'π0 NFE', 'π0.5 NFE', 'OptimusVLA NFE'], EFF.map(e => ({ cells: [e.n].concat(e.t, e.nfe) })));
+  })();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1412 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>HiMe 精读</title>
+<meta name="description" content="HiMe: Hierarchical Embodied Memory for Long-Horizon VLA Control 中文精读：π0.5 执行、Qwen3-VL-8B 哨兵、GPT-4o 规划的三层记忆框架，多频率时间轴交互、增改删记忆协议、WidowX 三个长程任务的结果与疑点。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Spline+Sans+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#EEEDE8; --surface:#F9F8F5; --surface-2:#E3E1DA; --ink:#1A1C21; --ink-2:#3A3E47; --muted:#62666F; --line:#D2D0C8;
+  --exe:#4A6079; --exe-soft:#DCE3EB;
+  --sen:#0D7A70; --sen-soft:#D2EAE6;
+  --pla:#843F7D; --pla-soft:#F0DEEC; --pla-2:#C391BC;
+  --hum:#A87A1E; --hum-soft:#F3E6C8;
+  --warn:#B0392A; --warn-soft:#F6DCD5;
+  --base:#8F8D86; --base-2:#C4C1B8;
+  --plate:#FFFFFF; --focus:#843F7D; --on-accent:#FFFFFF;
+  --f-display:"Familjen Grotesk","Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"Spline Sans Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#111317; --surface:#181B20; --surface-2:#23272E; --ink:#E6E7EA; --ink-2:#BEC2CA; --muted:#8D929C; --line:#2F343C;
+    --exe:#93A9C4; --exe-soft:#1D2633;
+    --sen:#46C0B2; --sen-soft:#102D2A;
+    --pla:#D58FCD; --pla-soft:#341F33; --pla-2:#8E5A88;
+    --hum:#DDB45A; --hum-soft:#3A2F14;
+    --warn:#F08E78; --warn-soft:#3B1F1A;
+    --base:#7E7C75; --base-2:#56544E;
+    --plate:#F2F1EE; --focus:#D58FCD; --on-accent:#141218;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#111317; --surface:#181B20; --surface-2:#23272E; --ink:#E6E7EA; --ink-2:#BEC2CA; --muted:#8D929C; --line:#2F343C;
+  --exe:#93A9C4; --exe-soft:#1D2633;
+  --sen:#46C0B2; --sen-soft:#102D2A;
+  --pla:#D58FCD; --pla-soft:#341F33; --pla-2:#8E5A88;
+  --hum:#DDB45A; --hum-soft:#3A2F14;
+  --warn:#F08E78; --warn-soft:#3B1F1A;
+  --base:#7E7C75; --base-2:#56544E;
+  --plate:#F2F1EE; --focus:#D58FCD; --on-accent:#141218;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:var(--pla);text-underline-offset:3px;text-decoration-thickness:1px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+strong{font-weight:700}
+em{font-style:normal;background:linear-gradient(transparent 62%,var(--pla-soft) 62%)}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+sub,sup{font-size:.72em;line-height:0}
+.page{max-width:1200px;margin:0 auto;padding-inline:24px}
+@media (max-width:560px){.page{padding-inline:16px}}
+
+/* hero */
+.hero{padding-block:44px 24px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;align-items:center}
+@media (max-width:900px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+.kicker{font:500 12px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--pla);margin:0 0 14px}
+h1.title{font-family:var(--f-display);font-weight:700;font-size:clamp(3.4rem,2rem + 6.4vw,6.8rem);line-height:.92;letter-spacing:-.035em;margin:0}
+h1.title .hi{color:var(--pla)}
+.strata{display:flex;flex-direction:column;gap:4px;margin:16px 0 0;width:min(280px,70%)}
+.strata i{display:block;height:5px;border-radius:3px}
+.strata i:nth-child(1){background:var(--pla);width:38%}
+.strata i:nth-child(2){background:var(--sen);width:66%}
+.strata i:nth-child(3){background:var(--exe);width:100%}
+.entitle{font-family:var(--f-display);font-weight:500;font-size:clamp(1rem,.9rem + .4vw,1.2rem);line-height:1.45;color:var(--ink-2);margin:16px 0 0}
+.thesis{font-size:clamp(1.06rem,1rem + .35vw,1.24rem);line-height:1.78;margin:18px 0 0;max-width:36em}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin:20px 0 0;padding:0;list-style:none;font:13px/1.6 var(--f-mono);color:var(--muted)}
+.meta b{color:var(--ink-2);font-weight:500}
+.ribbon{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.ribbon svg{display:block;width:100%;height:auto}
+.ribbon svg text{font-family:var(--f-mono);fill:var(--muted);font-size:12px}
+.ribbon svg .lab{font-family:var(--f-body);font-size:13px;fill:var(--ink-2)}
+.ribbon svg .hd{font-family:var(--f-display);font-weight:700;font-size:15px}
+.ribbon figcaption{font:12px/1.6 var(--f-mono);color:var(--muted);margin-top:8px}
+@media (prefers-reduced-motion:no-preference){
+  .rb-pulse{animation:pulse 2.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+  @keyframes pulse{0%,100%{opacity:.45}45%{opacity:1}}
+}
+.tldr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:32px}
+@media (max-width:760px){.tldr{grid-template-columns:minmax(0,1fr)}}
+.tldr>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.tldr h3{font:500 12px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.tldr p{margin:0;font-size:15px;line-height:1.75}
+.tldr .flag h3{color:var(--warn)}
+
+/* layout */
+.layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:52px;padding-block:20px 80px}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr);gap:0}}
+.toc{position:sticky;top:20px;align-self:start;font-size:14px;line-height:1.5}
+.toc p{font:500 11px/1.4 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.toc li a{display:block;padding:5px 0 5px 14px;margin-left:-1px;border-left:2px solid transparent;color:var(--muted);text-decoration:none}
+.toc li a:hover{color:var(--ink)}
+.toc li a.on{color:var(--ink);border-left-color:var(--pla);font-weight:500}
+@media (max-width:1000px){
+  .toc{position:static;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .toc p{display:none}
+  .toc ol{display:flex;gap:6px;border:0;white-space:nowrap;padding-bottom:6px}
+  .toc li a{border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin:0;background:var(--surface)}
+  .toc li a.on{border-color:var(--pla)}
+}
+main{min-width:0}
+section{padding-top:56px;scroll-margin-top:12px}
+section:first-child{padding-top:8px}
+.eyebrow{font:500 12px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--pla);margin:0 0 8px;display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:"";display:inline-block;width:18px;height:11px;background:linear-gradient(var(--pla) 0 3px,transparent 3px 4px,var(--sen) 4px 7px,transparent 7px 8px,var(--exe) 8px 11px)}
+h2{font-family:var(--f-display);font-weight:700;font-size:clamp(1.4rem,1.1rem + 1.1vw,1.95rem);line-height:1.3;letter-spacing:-.01em;margin:0 0 18px}
+h3{font-family:var(--f-display);font-weight:700;font-size:1.08rem;line-height:1.45;margin:36px 0 10px}
+p{margin:0 0 14px}
+.prose{max-width:44em}
+.prose li{margin-bottom:6px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.tag{display:inline-block;font:500 11px/1 var(--f-mono);letter-spacing:.04em;padding:4px 6px 3px;border-radius:4px;vertical-align:2px;margin-right:6px;white-space:nowrap}
+.tag.read{border:1px dashed var(--ink-2);color:var(--ink-2)}
+.tag.doubt{background:var(--warn-soft);color:var(--warn)}
+.note{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 18px;margin:18px 0;max-width:46em}
+.note>:last-child{margin-bottom:0}
+.note h4{font:500 12.5px/1.5 var(--f-mono);letter-spacing:.04em;margin:0 0 6px;color:var(--muted)}
+.note.doubt{border-color:color-mix(in oklab,var(--warn) 35%,var(--line));background:color-mix(in oklab,var(--warn-soft) 55%,var(--surface))}
+.note.doubt h4{color:var(--warn)}
+.eq{font-family:"Times New Roman",Georgia,"Noto Serif SC",serif;font-size:1.08rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:12px 0;overflow-x:auto;white-space:nowrap;display:flex;justify-content:space-between;gap:24px;max-width:46em}
+.eq .no{font:12px var(--f-mono);color:var(--muted);align-self:center}
+pre.code{font:12.5px/1.65 var(--f-mono);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:10px 0;overflow-x:auto;color:var(--ink-2);white-space:pre}
+pre.code b{color:var(--pla);font-weight:500}
+
+figure.plate{margin:22px 0}
+figure.plate .zoom{display:block;width:100%;padding:10px;background:var(--plate);border:1px solid var(--line);border-radius:8px;cursor:zoom-in}
+figure.plate img{display:block;width:100%;height:auto}
+figure.plate figcaption{font-size:14px;line-height:1.7;color:var(--ink-2);margin-top:10px;max-width:52em}
+figure.plate figcaption b{font:500 12px var(--f-mono);letter-spacing:.04em;color:var(--muted);margin-right:8px}
+figure.narrow{max-width:620px}
+dialog#lb{border:0;padding:0;background:transparent;max-width:min(96vw,1800px);width:96vw}
+dialog#lb::backdrop{background:rgba(10,10,14,.84)}
+dialog#lb .box{background:var(--plate);border-radius:8px;padding:10px;max-height:88vh;overflow:auto}
+dialog#lb img{display:block;width:100%;height:auto}
+dialog#lb .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#ECEBE7;font-size:14px;padding:8px 2px 0}
+dialog#lb button{font:500 13px var(--f-mono);background:#ECEBE7;color:#1A1C21;border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
+
+.tblwrap{overflow-x:auto;margin:16px 0;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;font-size:14px;line-height:1.6;min-width:100%}
+table.t th,table.t td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.t thead th{font:500 12px/1.4 var(--f-mono);letter-spacing:.03em;color:var(--muted);border-bottom:1.5px solid var(--ink-2);white-space:nowrap}
+table.t tbody th{font-weight:500;white-space:nowrap;color:var(--ink-2)}
+table.t .num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t tr.best td,table.t tr.best th{font-weight:700}
+table.t td.wrap{min-width:200px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+.dot.e{background:var(--exe)} .dot.s{background:var(--sen)} .dot.p{background:var(--pla)}
+
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.cards.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:900px){.cards.three{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.cards{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card h4{font-family:var(--f-display);font-weight:700;font-size:1rem;line-height:1.45;margin:0 0 8px}
+.card p{font-size:14.5px;line-height:1.75;margin:0 0 8px}
+.card p:last-child{margin:0}
+.card.e{border-top:3px solid var(--exe)} .card.s{border-top:3px solid var(--sen)} .card.p{border-top:3px solid var(--pla)}
+.card dl{display:grid;grid-template-columns:52px minmax(0,1fr);gap:4px 10px;margin:0;font-size:13.5px;line-height:1.65}
+.card dt{color:var(--muted)} .card dd{margin:0}
+
+/* lab */
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin:22px 0}
+.lab-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 16px;margin-bottom:12px}
+.lab-head h4{font-family:var(--f-display);font-weight:700;font-size:1.05rem;margin:0}
+.lab-head p{margin:0;font-size:13px;color:var(--muted)}
+.ctrl{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-end;margin:0 0 12px}
+.ctl{display:flex;flex-direction:column;gap:5px}
+.ctl>span{font:500 11px/1.3 var(--f-mono);letter-spacing:.05em;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--bg);flex-wrap:wrap}
+.seg button{font:500 13px/1.2 var(--f-body);border:0;background:transparent;color:var(--muted);padding:8px 11px;cursor:pointer;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tl svg{display:block;width:100%;height:auto;min-width:720px;touch-action:none}
+.tl text{font-family:var(--f-body);font-size:11.5px;fill:var(--ink-2)}
+.tl .mono{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.tl .hd{font-family:var(--f-display);font-weight:700;font-size:13px;fill:var(--ink)}
+.tl .on{fill:var(--ink)}
+.tl-bar{display:flex;align-items:center;gap:12px;margin:10px 0 6px;flex-wrap:wrap}
+.tl-bar input[type=range]{flex:1 1 220px;accent-color:var(--pla);min-width:0}
+.tl-bar button{font:500 13px var(--f-body);border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:7px;padding:7px 14px;cursor:pointer;min-height:34px}
+.tl-bar .clock{font:500 12.5px var(--f-mono);color:var(--ink-2);white-space:nowrap}
+.tl-cap{font:500 11.5px/1.4 var(--f-mono);color:var(--muted);margin:14px 0 4px}
+.tl-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--ink-2);margin:6px 0 0}
+.tl-legend i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:5px;vertical-align:-2px}
+.tl-legend i.c{border-radius:50%}
+.tl-read{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+@media (max-width:820px){.tl-read{grid-template-columns:minmax(0,1fr)}}
+.lay{background:var(--bg);border:1px solid var(--line);border-top:3px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13.5px;line-height:1.6}
+.lay.p{border-top-color:var(--pla)} .lay.s{border-top-color:var(--sen)} .lay.e{border-top-color:var(--exe)}
+.lay h5{font-family:var(--f-display);font-weight:700;font-size:.95rem;margin:0 0 2px;display:flex;justify-content:space-between;gap:8px}
+.lay h5 small{font:500 11px var(--f-mono);color:var(--muted);font-weight:400;text-align:right}
+.lay .st{font:500 12px var(--f-mono);display:inline-block;padding:2px 6px;border-radius:4px;margin:4px 0}
+.st.run{background:var(--exe-soft);color:var(--exe)} .st.idle{background:var(--surface-2);color:var(--muted)}
+.st.think{background:var(--pla-soft);color:var(--pla)} .st.ok{background:var(--sen-soft);color:var(--sen)} .st.bad{background:var(--warn-soft);color:var(--warn)}
+.lay p{margin:0 0 4px}
+.lay code{font-size:12px;color:var(--ink)}
+.mem{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:10px;margin-top:10px}
+@media (max-width:820px){.mem{grid-template-columns:minmax(0,1fr)}}
+.mem>div{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.mem h5{font:500 11.5px/1.4 var(--f-mono);letter-spacing:.05em;color:var(--muted);margin:0 0 6px}
+.plan{list-style:none;margin:0;padding:0;font:12.5px/1.55 var(--f-mono)}
+.plan li{padding:3px 0;color:var(--ink-2)}
+.plan li b{font-weight:500;display:inline-block;min-width:76px}
+.plan li.done{color:var(--muted)} .plan li.done b{color:var(--muted)}
+.plan li.current b,.plan li.current{color:var(--sen)}
+.plan li.current{font-weight:500}
+.recs{display:grid;gap:0}
+.rec{display:grid;grid-template-columns:30px minmax(0,1fr);gap:4px 8px;padding:6px 4px;border-top:1px dashed var(--line);font-size:13px;line-height:1.55;border-radius:4px}
+.rec:first-child{border-top:0}
+.rec .id{font:500 12px var(--f-mono);color:var(--muted)}
+.chip{display:inline-block;font:500 10.5px/1.5 var(--f-mono);background:var(--pla-soft);color:var(--pla);border-radius:4px;padding:0 5px;margin:0 4px 2px 0}
+.chip.img{background:var(--exe-soft);color:var(--exe)}
+.rec.past .tx{color:var(--muted)}
+.rec.fresh{background:color-mix(in oklab,var(--pla-soft) 70%,transparent)}
+.op{font:500 10.5px var(--f-mono);color:var(--on-accent);background:var(--pla);border-radius:3px;padding:0 4px;margin-left:4px;vertical-align:1px}
+.ops{font:12px/1.6 var(--f-mono);color:var(--ink-2);margin:8px 0 0;padding-top:6px;border-top:1px solid var(--line)}
+.say{font-size:14px;line-height:1.75;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:10px 0 0}
+.counters{display:flex;flex-wrap:wrap;gap:6px 18px;font:12.5px/1.5 var(--f-mono);color:var(--muted);margin-top:10px}
+.counters b{color:var(--ink);font-weight:500}
+
+/* charts */
+.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 16px 10px;margin:18px 0}
+.chartbox h4{font-family:var(--f-display);font-weight:700;font-size:1rem;margin:0 0 2px}
+.chartbox .sub{font-size:13px;color:var(--muted);margin:0 0 10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink-2);margin:0 0 6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+svg.chart{display:block;width:100%;height:auto;min-width:620px}
+svg.chart.sm{min-width:480px;max-width:640px}
+svg.chart text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+svg.chart .tick{font:11px var(--f-mono);fill:var(--muted)}
+svg.chart .val{font:11px var(--f-mono);fill:var(--ink-2)}
+svg.chart .val.hi{fill:var(--ink);font-weight:500}
+svg.chart .grid{stroke:var(--line);stroke-width:1}
+svg.chart .base{stroke:var(--ink-2);stroke-width:1}
+svg.chart .glabel{font-size:12.5px;fill:var(--ink)}
+svg.chart .ptitle{font-family:var(--f-display);font-weight:700;font-size:12.5px;fill:var(--ink)}
+.c-pla{fill:var(--pla)} .c-pla2{fill:var(--pla-2)} .c-sen{fill:var(--sen)} .c-exe{fill:var(--exe)} .c-hum{fill:var(--hum)} .c-b0{fill:var(--base)} .c-b1{fill:var(--base-2)} .c-warn{fill:var(--warn)}
+.bg-pla{background:var(--pla)} .bg-pla2{background:var(--pla-2)} .bg-sen{background:var(--sen)} .bg-exe{background:var(--exe)} .bg-hum{background:var(--hum)} .bg-b0{background:var(--base)} .bg-b1{background:var(--base-2)} .bg-warn{background:var(--warn)}
+details.raw{margin:8px 0 4px;font-size:13.5px}
+details.raw summary{cursor:pointer;color:var(--muted);font:500 12.5px var(--f-mono)}
+details.raw .tblwrap{margin:8px 0}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);font:12.5px/1.55 var(--f-body);padding:8px 10px;border-radius:6px;max-width:300px}
+
+details.faq{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:10px 0;max-width:50em}
+details.faq summary{cursor:pointer;padding:12px 16px;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::after{content:"+";font:500 16px var(--f-mono);color:var(--muted)}
+details.faq[open] summary::after{content:"−"}
+details.faq .a{padding:0 16px 14px;font-size:15px;line-height:1.8}
+details.faq .a p:last-child{margin:0}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0;align-items:start}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.two>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.two h4{font:500 12px/1.4 var(--f-mono);letter-spacing:.08em;margin:0 0 10px;color:var(--muted)}
+.two ul{margin:0;padding-left:18px;font-size:14.5px;line-height:1.75}
+.two li{margin-bottom:8px}
+table.cmp{min-width:880px}
+table.cmp td{font-size:13.5px}
+table.cmp th.me,table.cmp td.me{background:color-mix(in oklab,var(--pla-soft) 55%,transparent)}
+details.gl{background:var(--surface);border:1px solid var(--line);border-radius:10px;max-width:52em}
+details.gl summary{cursor:pointer;padding:14px 18px;font-weight:500}
+details.gl dl{margin:0;padding:0 18px 16px;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:8px 18px;font-size:14px;line-height:1.7}
+details.gl dt{font-family:var(--f-mono);font-size:13px;color:var(--ink)}
+details.gl dd{margin:0;color:var(--ink-2)}
+@media (max-width:560px){details.gl dl{grid-template-columns:minmax(0,1fr);gap:2px}details.gl dd{margin-bottom:10px}}
+footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+.vapnav-grp{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-cat{font-size:11.5px;letter-spacing:.04em;opacity:.5}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/">Harness for Robotics</a></span><span class="vapnav-links"><span class="vapnav-grp"><span class="vapnav-cat">上下文</span><a href="../../papers/activevla/">ActiveVLA</a><a href="../../papers/tic-vla/">TIC-VLA</a><a href="../../papers/ra-vla/">RA-VLA</a></span><span class="vapnav-grp"><span class="vapnav-cat">记忆</span><a href="../../papers/memoryvla/">MemoryVLA</a><a href="../../papers/optimusvla/">OptimusVLA</a><a href="../../papers/soma/">SOMA</a><a href="../../papers/hime/" aria-current="page">HiMe</a></span><span class="vapnav-grp"><span class="vapnav-cat">结构化执行</span><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/motormind/">MotorMind</a></span><span class="vapnav-grp"><span class="vapnav-cat">评估与反馈</span><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/tau0-vla/">τ₀-VLA</a></span></span></div></div>
+<!-- /vap:nav -->
+<header class="hero page">
+  <div class="hero-grid">
+    <div>
+      <p class="kicker">论文精读 · Harness for Robotics · Persistent State / Memory</p>
+      <h1 class="title"><span class="hi">Hi</span>Me</h1>
+      <div class="strata" aria-hidden="true"><i></i><i></i><i></i></div>
+      <p class="entitle">Hierarchical Embodied Memory for Long-Horizon Vision-Language-Action Control</p>
+      <p class="thesis">不往 VLA 里塞记忆，而是把记忆和推理<strong>按频率拆给三个模型</strong>：π0.5 每 0.5 秒出一个动作块，只看当前画面和一句子目标；Qwen3-VL-8B 每 10 个执行步看一眼最近 8 帧，只回答「当前子任务做完没有」；它说做完了，GPT-4o 才被叫醒，去增、改、删一个图文记忆库，并重写子任务计划。</p>
+      <ul class="meta">
+        <li><b>复旦大学 · 上海创智学院 · 华东师范大学</b></li>
+        <li><b>arXiv</b> 2607.03449v1</li>
+        <li><b>v1</b> 2026-07-03</li>
+        <li><a href="https://arxiv.org/abs/2607.03449" target="_blank" rel="noopener">arXiv</a> · <a href="https://github.com/HappyWaterXP/HiMe" target="_blank" rel="noopener">代码</a></li>
+      </ul>
+    </div>
+    <figure class="ribbon">
+      <svg viewBox="0 0 420 300" role="img" aria-label="三层频率示意：Executor 每 0.5 秒推理一次，Sentry 每秒查询一次，第 13 秒 Sentry 判定完成后 Planner 被唤醒并下发新子目标">
+        <defs>
+          <marker id="rbA" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="var(--sen)"/></marker>
+          <marker id="rbB" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="var(--pla)"/></marker>
+        </defs>
+        <rect x="0" y="16" width="420" height="70" rx="6" fill="var(--pla-soft)"/>
+        <rect x="0" y="92" width="420" height="70" rx="6" fill="var(--sen-soft)"/>
+        <rect x="0" y="168" width="420" height="70" rx="6" fill="var(--exe-soft)"/>
+        <text class="hd" x="10" y="36" style="fill:var(--pla)">Planner</text><text x="76" y="36">GPT-4o · 子任务切换时</text>
+        <text class="hd" x="10" y="112" style="fill:var(--sen)">Sentry</text><text x="68" y="112">Qwen3-VL-8B · 每 ~1 s</text>
+        <text class="hd" x="10" y="188" style="fill:var(--exe)">Executor</text><text x="84" y="188">π0.5 · 2 Hz 推理</text>
+        <g id="rb-exe"></g><g id="rb-sen"></g>
+        <rect x="16" y="50" width="20" height="26" rx="4" fill="var(--pla)"/>
+        <rect x="270" y="50" width="20" height="26" rx="4" fill="var(--pla)" class="rb-pulse"/>
+        <path d="M270 134 L270 80" stroke="var(--sen)" stroke-width="1.6" marker-end="url(#rbA)" fill="none"/>
+        <path d="M290 63 C 312 63, 298 150, 298 194" stroke="var(--pla)" stroke-width="1.6" fill="none" stroke-dasharray="4 3" marker-end="url(#rbB)"/>
+        <text class="lab" x="298" y="58">done → 唤醒</text>
+        <text class="lab" x="306" y="190">新子目标 τ</text>
+        <line x1="16" y1="252" x2="406" y2="252" stroke="var(--line)"/>
+        <text x="16" y="268" text-anchor="middle">0 s</text><text x="113.5" y="268" text-anchor="middle">5</text><text x="211" y="268" text-anchor="middle">10</text><text x="308.5" y="268" text-anchor="middle">15</text><text x="398" y="268" text-anchor="middle">20 s</text>
+        <text x="16" y="292">子任务 A → 13 s 判 done → 子任务 B</text>
+      </svg>
+      <figcaption>按 §4.1 的频率画的 20 秒示意（Sentry 间隔取「10 个动作步 = 1 s」的读法），不是实验日志。下方第 3 节可以拖动看一整个任务。</figcaption>
+    </figure>
+  </div>
+  <div class="tldr" aria-label="一分钟版">
+    <div><h3>做了什么</h3><p>三层：<b>Executor</b>（π0.5，瞬时记忆，只看当前观测）、<b>Sentry</b>（Qwen3-VL-8B，工作记忆，最近 8 帧的滑窗）、<b>Planner</b>（GPT-4o，情景记忆：一个图文键值库，加一张带 done / current / pending 状态的子任务表）。Planner 用 QUERY / CREATE / UPDATE / DELETE 的 XML 操作读写记忆。只有 Executor 要训练，用了 60 条示范。</p></div>
+    <div><h3>怎么比</h3><p>WidowX-250 单臂夹爪，第三人称 + 腕部两路 RGB。三个长程任务（Object Search、Counting、Rearrangement，各 6–7 个子任务、约 1035–1450 个动作步），每任务每方法 20 次。所有对照共用同一个 Executor 和同一个 Planner 骨干，只改 Planner 拿到什么记忆、什么时候被叫醒。</p></div>
+    <div><h3>结果</h3><p>平均任务进度：HiMe <b>90</b>，去掉 Sentry 68，FIFO 式 Flat Memory（类 MemER）65，无记忆的 Transient Memory（类 Hi Robot）14；人工给子任务的上限 94。每个子任务的 Planner 调用 1.4–2.6 次，Flat Memory 4.8–6.2 次。</p></div>
+    <div class="flag"><h3>最该留意的</h3><p>「90%」是完成子任务的比例，不是整任务成功率。Sentry 召回只有约 35%，靠一个间隔没写的定时兜底才不会卡住。GPT-4o 单次调用中位 38.59 秒，比一个子任务的平均执行时长（我们按附录算约 17–24 秒）还长，论文没有报告整任务耗时。</p></div>
+  </div>
+</header>
+
+<div class="page layout">
+  <nav class="toc" aria-label="目录">
+    <p>目录</p>
+    <ol>
+      <li><a href="#problem">问题</a></li>
+      <li><a href="#overview">三层结构</a></li>
+      <li><a href="#timeline">时间轴</a></li>
+      <li><a href="#memory">记忆读写</a></li>
+      <li><a href="#setup">实验设置</a></li>
+      <li><a href="#results">结果</a></li>
+      <li><a href="#insight">读懂它</a></li>
+      <li><a href="#limits">局限与疑点</a></li>
+      <li><a href="#topic">放到专题里看</a></li>
+      <li><a href="#glossary">术语表</a></li>
+    </ol>
+  </nav>
+  <main>
+    <section id="problem">
+      <p class="eyebrow">问题 · §1</p>
+      <h2>VLA 只看当下，能记事的大模型又太慢</h2>
+      <div class="prose">
+        <p>主流 VLA 按马尔可夫假设建模 p(a<sub>t</sub> | o<sub>t</sub>, l)：动作只取决于当前观测和指令。长程任务里，决定下一步的信息常常已经不在画面里：盒子里装了什么（看过一眼就盖回去了）、碗里已经放了几勺、桌上的玩具原来摆在哪。论文把这类任务称为 non-Markovian。</p>
+        <p>作者认为现有两条路线各有硬伤：</p>
+        <ul>
+          <li><strong>训练式记忆</strong>：给 VLA 加历史 token、辅助损失或记忆库（引言举的是 SAM2Act 等，相关工作把 MemoryVLA 也归在这类策略层记忆里）。受上下文窗口限制，跨几百步优化长程因果依赖也很难。</li>
+          <li><strong>让大 VLM 当记忆容器</strong>：由 LVLM 存取历史轨迹（MemER）。可实时控制就要低延迟，能部署的 VLM 规模就有上限；模型越小，世界知识和零样本能力越弱。</li>
+        </ul>
+        <p>论文把这对矛盾叫作 <strong>frequency-competence paradox</strong>（正文另一处写作 frequency-capability paradox）：推理强的模型慢到进不了控制回路，快到能进控制回路的模型推理又不够。它的突破口是一句观察：<em>大部分记忆操作本身不需要高级推理，也不需要广泛的泛化</em>。「这个子任务做完没有」只需一个中等 VLM 看几帧就能判断；真正需要大模型的「记什么、改什么、下一步做什么」只在子任务切换时才发生。于是按时间尺度分层，让最贵的模型调用得最少。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/teaser.jpg" aria-label="放大原文图 1"><img src="fig/teaser.jpg" width="1800" height="600" alt="原文图 1：左为找 Alice 玩具的示例，记忆随子任务更新；右为三层记忆与三个模块的对应关系" loading="lazy"></button>
+        <figcaption><b>原文 Figure 1</b>左：用户说「找到 Alice 所有的玩具」。机器人先存下文本记忆「Alice 的玩具是鸭子」和视觉记忆「1 号箱是空的」；用户把鸭子放进 1 号箱后，视觉记忆被<strong>更新</strong>为「1 号箱里有鸭子」。底部的工作记忆只记「子任务 1 完成」「子任务 2 完成」这类进度。右：三种记忆各对应一个模块，Planner（大 VLM，慢思考）读写情景记忆，Sentry（小 VLM，快思考）管工作记忆，Executor（VLA）只用瞬时记忆。</figcaption>
+      </figure>
+      <div class="prose">
+        <p>论文还认为，光有静态的分层不够。真实的人机交互有两个特点：一是<strong>多模态信息丰富</strong>，指令里带着纯视觉轨迹抓不到的约束和偏好，比如「那个红杯子是 Alice 的」；二是<strong>高度动态</strong>，任务目标和环境状态都会变。只会追加的记忆会堆积过时、互相冲突的条目，所以记忆要能 Add、Update、Delete。</p>
+      </div>
+      <div class="chartbox">
+        <h4>频率阶梯：每一层多久动一次</h4>
+        <p class="sub">对数时间轴。圆点为 P50，横线延伸到 P99，竖短线是 P90。控制、推理、Sentry 间隔来自 §4.1；Planner 延迟来自附录表 11；子任务平均时长是我们按附录表 4 的总动作步数 ÷ 子任务数 ÷ 10 Hz 算的。</p>
+        <div class="scroll"><svg class="chart" id="ch-ladder" viewBox="0 0 760 300"></svg></div>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>悖论是被「错开」了，不是被消除了</h4>
+        <p>HiMe 没有让 GPT-4o 变快，而是让它的调用频率对齐到子任务的时间尺度。但附录表 11 显示，GPT-4o 单次调用中位 38.59 秒，比一个子任务的平均执行时长（17.1–24.2 秒）还长；换成本地 Qwen3-VL-30B 也要 6.83 秒，约占一个子任务的三到四成。所以「慢」被推到了子任务交接点上。交接时机器人是停下等新子目标，还是继续做别的，论文没有说。</p>
+      </div>
+    </section>
+
+    <section id="overview">
+      <p class="eyebrow">方法 · 三层结构 · §3.1–3.4</p>
+      <h2>三个模型，四种记忆</h2>
+      <div class="prose">
+        <p>问题设定：时域 T ≫ 1 的部分可观测序列决策。理想情况下第 t 步的最优动作依赖完整历史 h<sub>t</sub> = (o<sub>0</sub>, a<sub>0</sub>, …, o<sub>t</sub>)，但连续处理 h<sub>t</sub> 算不动，所以用一个分层策略 π(a<sub>t</sub> | o<sub>0:t</sub>, l) 来近似。三层从「不带记忆的执行层」到「长程推理层」，<strong>逐层用频率换上下文容量</strong>。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/arch.png" aria-label="放大原文图 2"><img src="fig/arch.png" width="1772" height="945" alt="原文图 2：HiMe 架构，Executor、Sentry、Planner 三行，右侧为情景记忆的上下文记忆和过程记忆" loading="lazy"></button>
+        <figcaption><b>原文 Figure 2</b>从上往下看三行。Executor 行：子目标 + 当前图像 → 动作。Sentry 行：最近若干帧 → Done / Active，同时把观测写进 Buffer。Planner 行：从 Buffer 里<strong>均匀采样 8 帧</strong>（注意不是最近 8 帧）→ Reasoning → Query → 检索到的记忆 → 记忆编辑（Add / Update / Delete）→ Planning。右侧情景记忆分两块：上下文记忆（图文节点，如「Alice likes …」「Toys should be placed …」）和过程记忆（带 [DONE] / [ACTIVE] / [PENDING] 的子任务表）。虚线回路把新计划交回 Sentry 继续监视。</figcaption>
+      </figure>
+      <div class="cards three">
+        <div class="card e"><h4><span class="dot e"></span>Executor π<sub>e</sub></h4><dl><dt>模型</dt><dd>π0.5，从 DROID 检查点微调</dd><dt>频率</dt><dd>推理 2 Hz；每次预测 10 个动作（10 Hz），开环执行前 5 个</dd><dt>读</dt><dd>第三人称 + 腕部两路 RGB，末端位姿与夹爪状态，子目标 τ<sub>t</sub></dd><dt>记忆</dt><dd>瞬时记忆 𝒯<sub>t</sub> = o<sub>t</sub>，自身无状态</dd><dt>训练</dt><dd>60 条示范微调，唯一需要训练的一层</dd></dl></div>
+        <div class="card s"><h4><span class="dot s"></span>Sentry π<sub>s</sub></h4><dl><dt>模型</dt><dd>Qwen3-VL-8B，本地 1×H100，vLLM，temperature 0.6</dd><dt>频率</dt><dd>§4.1：每 10 个执行步查询一次；§3.4：n<sub>m</sub> = 5（单位都没写清，见第 3 节）</dd><dt>读</dt><dd>工作记忆 𝒲<sub>t</sub>（h<sub>s</sub> = 8 帧，每帧是腕部 | 第三人称的拼图）+ 当前计划表</dd><dt>输出</dt><dd><code>&lt;status&gt;done / not_done&lt;/status&gt;</code>，即门控 u<sub>t</sub></dd><dt>训练</dt><dd>零样本，靠提示词</dd></dl></div>
+        <div class="card p"><h4><span class="dot p"></span>Planner π<sub>p</sub></h4><dl><dt>模型</dt><dd>GPT-4o（OpenAI API）；附录换成 Qwen3-VL-30B（2×H100）</dd><dt>频率</dt><dd>事件触发：u<sub>t</sub> = 1 时调用；另有固定间隔兜底，间隔未披露</dd><dt>读</dt><dd>指令 l、子任务期间的 8 帧、检索出的记忆、当前计划</dd><dt>写</dt><dd>上下文记忆（CRUD）+ 过程记忆（计划表）</dd><dt>训练</dt><dd>零样本，靠提示词</dd></dl></div>
+      </div>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>记忆</th><th>谁管</th><th>存什么</th><th>寿命</th><th>形式</th></tr></thead>
+          <tbody>
+            <tr><th><span class="dot e"></span>瞬时 𝒯<sub>t</sub></th><td>Executor</td><td>当前观测 o<sub>t</sub></td><td>一步</td><td>原始图像 + 本体状态</td></tr>
+            <tr><th><span class="dot s"></span>工作 𝒲<sub>t</sub></th><td>Sentry</td><td>最近 h<sub>s</sub> = 8 帧观测</td><td>滑窗</td><td>原始帧，不加工；用于判断子目标是否完成、是否突然失败</td></tr>
+            <tr><th><span class="dot p"></span>情景 · 上下文 𝓔<sup>c</sup></th><td>Planner</td><td>物体状态变化、空间约束、用户偏好</td><td>整个任务，不设上限</td><td>多模态键值库：tags + 文字 + 图像路径；按文本键检索</td></tr>
+            <tr><th><span class="dot p"></span>情景 · 过程 𝓔<sup>p</sup></th><td>Planner</td><td>有序的语言子目标列表</td><td>整个任务</td><td>纯文本，每行带 done / current / pending</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose"><p>四个公式把三层串起来。Executor 在给定子目标 τ<sub>t</sub> 时假设<strong>局部马尔可夫</strong>：</p></div>
+      <div class="eq"><span>a<sub>t</sub> ~ π<sub>e</sub>( a<sub>t</sub> | o<sub>t</sub>, τ<sub>t</sub> )</span><span class="no">(1)</span></div>
+      <div class="prose"><p>Sentry 是一个只在 t ≡ 0 (mod n<sub>m</sub>) 时开口的门控：</p></div>
+      <div class="eq"><span>u<sub>t</sub> = 𝐈[ π<sub>s</sub>(𝒲<sub>t</sub>, τ<sub>t</sub>) &gt; δ ]　若 t ≡ 0 (mod n<sub>m</sub>)；否则 u<sub>t</sub> = 0</span><span class="no">(2)</span></div>
+      <div class="prose"><p>u<sub>t</sub> = 0 时直接跳过高层推理，情景记忆原样保留 𝓔<sub>t+1</sub> ← 𝓔<sub>t</sub>。u<sub>t</sub> = 1 是一次「交接」，表示当前子目标完成或已失效，Planner 分两步更新：</p></div>
+      <div class="eq"><span>q<sub>t</sub> = f<sub>enc</sub>( l, 𝒲<sub>t</sub> ),　ℳ<sub>ret</sub> = TopK( 𝓔<sup>c</sup><sub>t</sub>, q<sub>t</sub> )</span><span class="no">(3)</span></div>
+      <div class="eq"><span>( 𝓔<sup>c</sup><sub>t+1</sub>, 𝓔<sup>p</sup><sub>t+1</sub> ) ← π<sub>p</sub>( l, 𝒲<sub>t</sub>, ℳ<sub>ret</sub>, 𝓔<sup>p</sup><sub>t</sub> )</span><span class="no">(4)</span></div>
+      <div class="prose">
+        <p>上下文记忆的更新由三种显式操作完成：<b>Add</b> 插入新观察到的事实或用户偏好，<b>Update</b> 修订过时条目，<b>Delete</b> 删掉陈旧或冲突的信息。同时 Planner 合成新的计划 𝓔<sup>p</sup><sub>t+1</sub>，从中取出下一个活动子目标 τ<sub>t+1</sub> 交给 Executor。</p>
+        <p class="small muted">实现（§3.4）：检索后端是向量数据库，用 OpenAI text-embedding-3 编码文本查询，多模态条目和它们的 caption 嵌入一起存，按余弦相似度检索；K 未披露。h<sub>s</sub> = 8，n<sub>m</sub> = 5。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>记忆只以一句话的形式到达动作模型</h4>
+        <p>π0.5 不读任何历史，所有记忆都被压缩进子目标 τ<sub>t</sub> 这一句话（例如「place the toy duck in left box」）。所以 HiMe 解决的是「下一步该做什么」依赖历史的情况（箱子里有什么、数到第几份、东西原来在哪），而不是「这个动作该怎么做」依赖历史的情况，例如按钮按下前后外观几乎一样（MemoryVLA 的 Push Buttons 例子）。后者在 HiMe 里只能靠 Sentry 判断子任务是否完成来间接处理。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>公式和实现有两处对不上</h4>
+        <p>① 式 (2) 写的是「分数超过阈值 δ」，但附录的 Sentry 提示词要求模型直接输出 <code>done</code> 或 <code>not_done</code> 的 XML 标签，temperature 设为 0.6。分数从哪来、δ 取多少都没写。② 式 (3)(4) 里 Planner 用的是 𝒲<sub>t</sub>，即最近 h<sub>s</sub> 帧；图 2 和 §4.3 却说 Planner 拿到的是整个子任务期间<strong>均匀采样</strong>的 8 帧，并用这一点解释 HiMe 与 HiMe w/o Sentry 的差距。缓冲区按什么帧率存帧也没写。</p>
+      </div>
+    </section>
+
+    <section id="timeline">
+      <p class="eyebrow">交互 · 多频率时间轴</p>
+      <h2>拖动时间，看谁在什么时候读写哪种记忆</h2>
+      <div class="prose">
+        <p>下面按论文给的频率模拟一次 Object Search（流程取自原文图 3：先检查左、中、右三个箱子，再把玩具鸭、零食放进对应的箱子，最后按用户偏好把毛绒玩具拿到桌上）。附录表 4 写这个任务有 6 个子任务、约 1450 个动作步。<strong>各子任务的时长和记忆条目的具体内容是我们编的示意</strong>，字段格式按附录的 Planner 提示词；频率、窗口、调用延迟、召回率是论文数字。</p>
+      </div>
+      <div class="lab" id="tl-lab">
+        <div class="lab-head"><h4>一次 Object Search 里的三层触发</h4><p>频率 §3.4、§4.1 · 召回率 图 7 · 延迟 表 11 · 调用次数 表 2</p></div>
+        <div class="ctrl">
+          <div class="ctl"><span>Planner 何时被叫醒</span><div class="seg" role="group" aria-label="触发方式" id="tl-mode"><button type="button" data-v="sentry" aria-pressed="true">Sentry 门控 · HiMe</button><button type="button" data-v="periodic" aria-pressed="false">固定间隔 · w/o Sentry</button></div></div>
+          <div class="ctl"><span>Sentry 判定</span><div class="seg" role="group" aria-label="Sentry 判定质量" id="tl-rec"><button type="button" data-v="ideal" aria-pressed="true">理想</button><button type="button" data-v="real" aria-pressed="false">召回 ≈35%（图 7）</button></div></div>
+          <div class="ctl"><span>Sentry 查询间隔（论文写法有三种读法）</span><div class="seg" role="group" aria-label="Sentry 查询间隔" id="tl-q"><button type="button" data-v="10" aria-pressed="true">1 s · 10 个动作步</button><button type="button" data-v="5" aria-pressed="false">0.5 s · n<sub>m</sub>=5 步</button><button type="button" data-v="50" aria-pressed="false">5 s · 10 次推理</button></div></div>
+          <div class="ctl"><span>Planner 单次延迟</span><div class="seg" role="group" aria-label="Planner 延迟" id="tl-lat"><button type="button" data-v="0" aria-pressed="true">不计</button><button type="button" data-v="6.83" aria-pressed="false">Qwen3-VL-30B 6.83 s</button><button type="button" data-v="38.59" aria-pressed="false">GPT-4o 38.59 s</button></div></div>
+        </div>
+        <div class="scroll tl"><svg id="tl-over" viewBox="0 0 900 238" role="img" aria-label="整个任务的三层时间轴，可点击或拖动设置时间"></svg></div>
+        <div class="tl-legend" id="tl-legend">
+          <span><i style="background:var(--exe)"></i>Executor 推理（每 0.5 s 一次）</span>
+          <span><i class="c" style="background:color-mix(in oklab,var(--sen) 45%,transparent)"></i>Sentry：not_done</span>
+          <span><i class="c" style="background:var(--sen)"></i>done</span>
+          <span><i class="c" style="border:2px solid var(--warn)"></i>漏检</span>
+          <span><i class="c" style="background:var(--warn)"></i>误报</span>
+          <span><i style="background:var(--pla)"></i>Planner 调用</span>
+          <span><i class="c" style="background:var(--pla);width:8px;height:8px"></i>该次调用读取的 8 帧</span>
+          <span><i style="background:repeating-linear-gradient(45deg,var(--warn) 0 2px,transparent 2px 5px)"></i>已完成但未检出</span>
+          <span><i style="background:repeating-linear-gradient(45deg,var(--muted) 0 2px,transparent 2px 5px)"></i>等 Planner（假设机器人停住）</span>
+        </div>
+        <div class="tl-bar">
+          <button type="button" id="tl-play" aria-label="播放或暂停">▶ 播放</button>
+          <input type="range" id="tl-t" min="0" max="1000" value="0" step="1" aria-label="时间">
+          <span class="clock" id="tl-clock"></span>
+        </div>
+        <p class="tl-cap">放大：光标前后 8 秒。方块 = 一个 10 Hz 动作步，三角 = 一次 Executor 推理；实线括号 = 本次预测里执行的 5 步，虚线 = 预测了但丢弃的 5 步</p>
+        <div class="scroll tl"><svg id="tl-zoom" viewBox="0 0 900 182" role="img" aria-label="光标附近 8 秒的放大视图"></svg></div>
+        <div class="tl-read" id="tl-read"></div>
+        <div class="mem">
+          <div><h5>过程记忆 𝓔<sup>p</sup> · 计划表</h5><ul class="plan" id="tl-plan"></ul></div>
+          <div><h5>上下文记忆 𝓔<sup>c</sup> · 记录（示意）</h5><div class="recs" id="tl-recs"></div><div class="ops" id="tl-ops"></div></div>
+        </div>
+        <p class="say" id="tl-say"></p>
+        <div class="counters" id="tl-count"></div>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>理想情况下每个子任务只该叫一次 Planner</h4>
+        <p>如果 Sentry 每次都准时报 done，6 个子任务加上开头一次初始规划，共 7 次调用，平均每子任务约 1.17 次。表 2 里 HiMe 的实测是 1.8、2.6、1.4 次。多出来的调用可能来自 Sentry 误报、定时兜底，或用户新指令触发的重规划，论文没有拆分。切到「固定间隔」模式可以看到 Flat Memory 一类做法为什么调用多：Planner 不管进度，按时被叫醒，大部分调用的结论只是「保持当前子任务」。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>Sentry 到底多久看一次</h4>
+        <p>§3.4 写「monitoring interval n<sub>m</sub> = 5」，§4.1 写「Sentry is queried after every 10 execution steps of π<sub>e</sub>」。前者没给单位；后者的「执行步」既可以理解为 10 Hz 的动作步（每 1 秒一次），也可以理解为 Executor 的推理次数（每 5 秒一次）。上面的切换把三种读法都画了出来，召回率低时差别很明显：间隔 5 秒、连续漏检 3 次，就是 15 秒的空转。</p>
+      </div>
+    </section>
+
+    <section id="memory">
+      <p class="eyebrow">方法 · 记忆怎么写 · 附录提示词</p>
+      <h2>一条记忆长什么样，Planner 怎么改它</h2>
+      <div class="prose">
+        <p>情景记忆的读写完全靠提示词约束 GPT-4o 输出结构化 XML。附录给出了 Sentry 和 Planner 两段完整提示词，要点如下。</p>
+      </div>
+      <div class="two">
+        <div>
+          <h4>PLANNER 提示词</h4>
+          <ul>
+            <li><strong>记录字段</strong>：<code>id</code>、<code>tags</code>、<code>data</code>（type, value）、<code>image_path</code>。每条 2–5 个 tag，分三类：物体（<code>toy_duck</code>、<code>left_box</code>）、位置（<code>table</code>、<code>inside_left_box</code>）、用户偏好（<code>user</code>、<code>lily</code>、<code>likes</code>）。</li>
+            <li><strong>两轮交互</strong>：第 1 轮只能发 QUERY，计划表必须为空；第 2 轮根据查询结果发 CREATE / UPDATE / DELETE，并输出最终计划表。</li>
+            <li><strong>证据规则</strong>：记忆只能来自用户明确说过的话或直接的视觉证据；不许编造记忆，信息不够时优先安排一个 inspect 子任务。</li>
+            <li><strong>状态变了怎么办</strong>：CREATE 一条新记录，再 UPDATE 旧记录把它标成「过去」。UPDATE 本身只用于纠正或细化、不改变时间含义；DELETE 要少用，只删重复或错误。</li>
+            <li><strong>计划表</strong>：每行一个子任务，<code>[done]</code> / <code>[current]</code>（只有一个）/ <code>[pending]</code>，可在括号里附一句目的。动作只有两种写法：<code>inspect …</code>，或 <code>pick up &lt;object&gt; &lt;source&gt; and place it to &lt;target&gt;</code>。</li>
+            <li><strong>查询策略</strong>：优先按 tag 查，每次只查一个 tag。</li>
+          </ul>
+        </div>
+        <div>
+          <h4>SENTRY 提示词</h4>
+          <ul>
+            <li><strong>角色</strong>：EXECUTION OBSERVER，唯一的工作是判断<em>当前</em>子任务是否完成。</li>
+            <li><strong>输入</strong>：计划表（带 done / current / pending）+ 最近若干帧拼图，每张左半是腕部相机，右半是第三人称。</li>
+            <li><strong>判定规则按原语写死</strong>：Inspect 在机械臂位于箱子上方或伸进箱子、腕部画面能看到箱内物品和黑色箱底时算完成；Pick &amp; Place 在物体已在目标处松开，或机械臂在箱子上方且能看到黑色箱底时算完成；Reset 在机械臂回到 home 姿态时算完成。</li>
+            <li><strong>场地配合</strong>：箱子内底衬了黑色背景，专门为了提高检测对比度。</li>
+            <li><strong>输出</strong>：只能是 <code>&lt;status&gt;done&lt;/status&gt;</code> 或 <code>not_done</code>。</li>
+          </ul>
+        </div>
+      </div>
+      <div class="prose"><p>按提示词格式写出的一次第 2 轮输出大致如下（内容是我们按原文图 3 编的示意，字段和标签结构取自附录；图 3 里的子任务写法更简短，如 place the toy duck in left box，这里按提示词规定的格式写）：</p></div>
+<pre class="code"><b>&lt;memory_operations&gt;</b>
+  &lt;operation&gt;&lt;type&gt;UPDATE&lt;/type&gt;&lt;id&gt;3&lt;/id&gt;&lt;tags&gt;middle_box&lt;/tags&gt;
+    &lt;text&gt;(past) middle box was empty&lt;/text&gt;&lt;reason&gt;user just put a toy into it&lt;/reason&gt;&lt;/operation&gt;
+  &lt;operation&gt;&lt;type&gt;CREATE&lt;/type&gt;&lt;tags&gt;middle_box, plush_toy&lt;/tags&gt;
+    &lt;text&gt;a plush toy is inside the middle box&lt;/text&gt;&lt;image_path&gt;5&lt;/image_path&gt;
+    &lt;reason&gt;new object observed in frame 5&lt;/reason&gt;&lt;/operation&gt;
+<b>&lt;/memory_operations&gt;</b>
+<b>&lt;plan_list&gt;</b>
+[done] inspect left box
+[done] inspect middle box
+[done] inspect right box
+[done] pick up toy duck table and place it to left box
+[current] pick up snack table and place it to right box
+[pending] pick up plush toy middle box and place it to table (Lucy likes plush toys)
+<b>&lt;/plan_list&gt;</b></pre>
+      <div class="note">
+        <h4><span class="tag read">解读</span>「Update」其实是「打墓碑」，这解释了消融里差距为什么小</h4>
+        <p>论文正文说的是 Add / Update / Delete，提示词里对应 CREATE / UPDATE / DELETE，外加 QUERY。按提示词的规则，状态变化时不覆盖旧记录，而是新建一条、把旧的标成过去；DELETE 只删重复和错误。所以 HiMe 的记忆实际上接近一份<strong>带时间标记的追加日志</strong>。消融里的 No Management 只支持 Add 和 Retrieve，把所有观测都追加进去；它和 HiMe 的差别在于没有「过去」标记、也不做取舍，平均只差 4 分（86 vs 90）。和 FIFO 的差距（68 vs 90）才是大头，也就是「别丢早期信息」比「把记忆整理干净」更重要。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>inspect 把「获取记忆」变成了一个动作</h4>
+        <p>提示词明确要求「不许编造记忆，信息不够就先规划一个 inspect 步骤」，inspect 也是 Sentry 判定规则里写明的三个原语之一。这样，记忆的写入不只发生在「碰巧看到」的时候，而是由 Planner 主动安排机器人去看。这和同专题 SOMA 用可动头部相机先扫描再建记忆、ActiveVLA 主动选视角是同一类思路，只是 HiMe 把它放在了子任务这一层。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>检索到底靠向量还是靠 tag</h4>
+        <p>§3.4 说检索用 text-embedding-3 嵌入 caption、按余弦相似度取 TopK；提示词却要求「优先按 tag 查询，每次查一个 tag」。两者怎么配合、K 取多少、tag 查询是精确匹配还是也走嵌入，都没有交代。</p>
+      </div>
+    </section>
+
+    <section id="setup">
+      <p class="eyebrow">实验设置 · §4.1–4.2 · 附录 A–B</p>
+      <h2>一台 WidowX，三个长程任务，每格 20 次</h2>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>项目</th><th>设置</th></tr></thead>
+          <tbody>
+            <tr><th>平台</th><td>WidowX-250（§4.1 写作 WidowX-250s）+ 平行夹爪；前置 Intel RealSense D435 第三人称相机 + 腕部相机；ROS 集成</td></tr>
+            <tr><th>控制</th><td>控制回路 10 Hz；Executor 2 Hz 推理，每次预测 10 个动作，开环执行 5 个</td></tr>
+            <tr><th>Executor 训练</th><td>π0.5 DROID 检查点 → OpenPI 标准配方微调；共 60 条示范（50 条常规 + 10 条 corner case），主从遥操作采集；AdamW（β 0.9 / 0.999，weight decay 0.1），梯度裁剪 1.0，cosine 衰减，warmup 10k 步，峰值学习率 5×10⁻⁵，batch 256，EMA 0.999，30k 步，动作长度 10</td></tr>
+            <tr><th>数据处理</th><td>两路 RGB 以 25 Hz 采集，缩放到 224×224，时间下采样到 10 Hz，转成 LeRobot 格式</td></tr>
+            <tr><th>Sentry / Planner</th><td>Sentry：Qwen3-VL-8B，1×H100，vLLM，temperature 0.6，max model len 8192。Planner：GPT-4o（API）；补充实验 Qwen3-VL-30B，2×H100，temperature 0.6，max model len 16384</td></tr>
+            <tr><th>试验</th><td>每任务每方法 20 次</td></tr>
+            <tr><th>指标</th><td><b>Task Progress</b>：完成的子任务占比（正文和图注称「success rate」）；<b>API Calls</b>：平均每个子任务的 Planner 调用次数；<b>Memory Hit</b>：Planner 被调用时所需信息是否在记忆里</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>三个任务</h3>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>任务</th><th>设置</th><th>考的记忆能力</th><th class="num">子任务</th><th class="num">动作步</th></tr></thead>
+          <tbody>
+            <tr><th>Object Search</th><td class="wrap">三个看不见内部的箱子 + 桌上的物品。先检查箱子推断内容，再按内容归置物品；执行中用户往箱子里加新玩具；最后结合偏好取出正确物品</td><td class="wrap">部分可观测下靠主动检查形成记忆；环境变化时持续更新</td><td class="num">6</td><td class="num">~1450</td></tr>
+            <tr><th>Counting</th><td class="wrap">几盘食材 + 一张写着配比的菜谱。先读菜谱，按用户要的份数多轮取料；之后用户提出新偏好（换一种豆子），要结合记住的菜谱给出定制配料</td><td class="wrap">持久的语义记忆；跨多轮的累计进度跟踪</td><td class="num">7</td><td class="num">~1200</td></tr>
+            <tr><th>Rearrangement</th><td class="wrap">先把桌上散落的玩具收进箱子清洗，过一段时间再放回原处；用户的摆放偏好事先给出</td><td class="wrap">长时保持原始空间布局；执行过程中的一致性</td><td class="num">6</td><td class="num">~1035</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose small muted"><p>三个任务都额外加入了用户偏好约束（偏爱的物品、不喜欢的食材、摆放规则）。数字来自附录表 3、表 4。</p></div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/tasks.jpg" aria-label="放大原文图 3"><img src="fig/tasks.jpg" width="1800" height="1391" alt="原文图 3：三个任务的用户指令、子任务序列和机器人观测" loading="lazy"></button>
+        <figcaption><b>原文 Figure 3</b>三行分别是 Counting、Object Search、Rearrangement。每行上方是两段用户指令，蓝底标出需要写进<strong>文本记忆</strong>的信息（如「David prefers mung beans to red beans」「Lucy likes plush toys」「the toy bread should be next to the toy croissant」）。中间是子任务序列，灰框是不需要记忆的步骤，绿框是需要记忆才能做对的步骤。下方是腕部（上）和第三人称（下）观测。Object Search 行中段标出了「Update Memory」和「Human Add Obj.」：用户在执行途中往箱子里放了新物体。</figcaption>
+      </figure>
+      <h3>六个对照（表 1）</h3>
+      <div class="prose"><p>所有设置固定同一个 Executor 和同一个 Planner 骨干，只改 Planner 拿到的<strong>记忆上下文</strong>和<strong>被调用的频率</strong>。</p></div>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>设置</th><th>触发</th><th>Planner 的记忆</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><th>Transient Memory</th><td>定时</td><td>当前观测</td><td class="wrap">按固定间隔 n<sub>m</sub> 调用无记忆的 Planner，代表 Hi Robot 一类分层 VLA</td></tr>
+            <tr><th>Transient Memory w/ Sentry</th><td>Sentry</td><td>当前观测</td><td class="wrap">加 Sentry 门控，Planner 仍无记忆；考察门控本身带来的规划稳定性</td></tr>
+            <tr><th>Flat Memory</th><td>定时</td><td>最近帧 + FIFO</td><td class="wrap">最近 8 帧 + 一个它自己挑过的历史关键帧 FIFO 队列，类似 MemER</td></tr>
+            <tr><th>HiMe w/o Sentry</th><td>定时</td><td>最近帧 + 关键帧</td><td class="wrap">完整记忆设计，去掉 Sentry，按固定频率调用</td></tr>
+            <tr class="best"><th>HiMe</th><td>Sentry</td><td>最近帧 + 关键帧</td><td class="wrap">完整方法</td></tr>
+            <tr><th>Human High-level</th><td>Sentry</td><td>人工</td><td class="wrap">每一步由人给出正确子任务，是固定 Executor 能力下的上限</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <figure class="plate narrow">
+        <button class="zoom" type="button" data-src="fig/setup.jpg" aria-label="放大原文图 8"><img src="fig/setup.jpg" width="1126" height="953" alt="原文图 8：WidowX 机械臂、RealSense 相机、三个收纳箱和实验物品" loading="lazy"></button>
+        <figcaption><b>原文 Figure 8</b>真机布置：前方是 WidowX 机械臂，右上是 RealSense D435，中间三个白色收纳箱，左下是实验物品（毛绒玩具、玩具鸭、零食包、豆子盘）和一张菜谱纸。</figcaption>
+      </figure>
+      <div class="note">
+        <h4><span class="tag read">解读</span>对照是「同骨架换配置」，不是复现原方法</h4>
+        <p>「类 Hi Robot」「类 MemER」都是作者用同一个 π0.5 + GPT-4o 搭出来的变体，没有用原论文的模型和训练。这让比较更干净（只差记忆和触发），但不能读成「HiMe 胜过 Hi Robot / MemER」。另外，Flat Memory 与 HiMe 同时在触发方式和记忆结构两处不同。</p>
+      </div>
+    </section>
+
+    <section id="results">
+      <p class="eyebrow">结果 · §4.3–5 · 附录 C</p>
+      <h2>主结果、效率、两组消融和三个附录实验</h2>
+      <h3>主结果（图 4）</h3>
+      <div class="chartbox">
+        <h4>任务进度（%），每任务每方法 20 次</h4>
+        <p class="sub">数字读自原图柱顶标注。「平均」是三个任务的算术平均；原图在平均栏上画的误差线与三个任务之间的标准差吻合，不是试验间的置信区间。</p>
+        <div class="legend" id="lg-main"></div>
+        <div class="scroll"><svg class="chart" id="ch-main" viewBox="0 0 760 300"></svg></div>
+        <details class="raw" id="raw-main"><summary>原图数字（图 4）</summary></details>
+      </div>
+      <div class="prose">
+        <p>论文从这张图读出两点。<strong>Sentry 本身就有用</strong>：即使 Planner 没有记忆，加上 Sentry 平均也从 14 升到 26，因为没有 Sentry 时 Planner 逐帧重新评估，对瞬时视觉噪声过敏，频繁在子任务之间来回切换。<strong>记忆是必需的</strong>：Object Search 上两个无记忆设置都是 0；Counting 上即使有 Sentry 也只有 23，数过的东西一离开视野就忘了。Flat Memory 虽然存了历史，FIFO 窗口很快被冗余帧冲掉，只有 65。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>把 90 分拆开看，大头来自 Sentry 这一行</h4>
+        <p>按平均分逐级比较：Transient → 加 Sentry <b>+12</b>；Flat Memory → HiMe w/o Sentry（换成结构化记忆，仍是定时触发）只 <b>+3</b>，Rearrangement 上反而 73 → 66；HiMe w/o Sentry → HiMe <b>+22</b>；HiMe → 人工上限还差 <b>4</b>。也就是说，在定时触发下，结构化记忆和 FIFO 几乎打平，真正拉开差距的是「什么时候叫 Planner，叫的时候给它看什么」。而论文自己也承认，HiMe 与 HiMe w/o Sentry 的差距「很大程度上」来自 Planner 输入从最近帧变成了整个子任务的均匀采样（§4.3），这个消融同时拿掉了触发时机和观测质量两件事。</p>
+      </div>
+
+      <h3>调用次数与记忆命中（表 2）</h3>
+      <div class="chartbox">
+        <h4>HiMe vs Flat Memory</h4>
+        <p class="sub">API Call：平均每个子任务的 Planner 请求次数，越少越好。Memory Hit：需要记忆的子任务里，所需信息在记忆中的比例。数字逐字取自 tex 表 2。</p>
+        <div class="legend"><span><i class="bg-pla"></i>HiMe（Sentry ✓ · 记忆管理 ✓ · 不限容量）</span><span><i class="bg-b0"></i>Flat Memory（✗ · ✗ · 最近 8 帧）</span></div>
+        <div class="scroll"><svg class="chart" id="ch-t2" viewBox="0 0 760 250"></svg></div>
+        <details class="raw" id="raw-t2"><summary>原表数字（表 2）</summary></details>
+      </div>
+      <div class="prose">
+        <p>论文说 HiMe 把 API 调用减少约 3 倍（Object Search 5.4 → 1.8），原因有二：Sentry 把 Planner 从「逐步」调用变成「子任务级」调用；记忆不设上限，不会因 FIFO 遗忘而需要重新探索，Memory Hit 68% → 94%。按表中数字算，三个任务的倍数分别是 <b>3.0×</b>、<b>1.8×</b>、<b>4.4×</b>。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>「更低延迟」只有调用次数作代理</h4>
+        <p>§5 Q3 的标题是「为什么 HiMe 延迟更低、调用更少」，正文的论证是「VLM 推理主导延迟，调用少就执行得快」。但全文没有报告任何一个任务的端到端耗时。附录表 11 只给了单次 Planner 调用的延迟，GPT-4o 中位 38.59 秒。表 2 也只比了 HiMe 和 Flat Memory 两行，HiMe w/o Sentry 的调用次数没有给，所以「Sentry 省了多少调用」无法单独读出。</p>
+      </div>
+
+      <h3>记忆用什么模态（图 5）</h3>
+      <div class="chartbox">
+        <h4>只存图 / 只存文字 / 图文交织</h4>
+        <p class="sub">数字读自原图柱顶标注。原图纵轴从 50 起画，这里从 0 起画。</p>
+        <div class="legend"><span><i class="bg-b0"></i>Only image</span><span><i class="bg-b1"></i>Only text</span><span><i class="bg-pla"></i>HiMe（图文）</span></div>
+        <div class="scroll"><svg class="chart" id="ch-mod" viewBox="0 0 760 280"></svg></div>
+        <details class="raw" id="raw-mod"><summary>原图数字（图 5）</summary></details>
+      </div>
+      <div class="prose"><p>两种单模态各有所长：Object Search 需要空间定位和细粒度识别，只存图 86 &gt; 只存文字 74（文字是有损压缩，最初漏看的物体无法再从原图找回）；Counting 需要语义和逻辑，只存文字 91 &gt; 只存图 78。图文结合在三个任务上都最高，但在 Counting（92 vs 91）和 Rearrangement（87 vs 84）上领先很小。</p></div>
+
+      <h3>记忆要不要管理（图 6、附录表 9）</h3>
+      <div class="chartbox">
+        <h4>FIFO / 只增不改 / 增改删</h4>
+        <p class="sub">FIFO：上限 8 条，满了丢最早的。No Management：只支持 Add 和 Retrieve，所有观测都留着。数字读自原图柱顶标注。</p>
+        <div class="legend"><span><i class="bg-b1"></i>FIFO（8 条）</span><span><i class="bg-b0"></i>No Management</span><span><i class="bg-pla"></i>HiMe</span></div>
+        <div class="scroll"><svg class="chart" id="ch-man" viewBox="0 0 760 280"></svg></div>
+        <details class="raw" id="raw-man"><summary>原图数字（图 6）</summary></details>
+      </div>
+      <div class="prose"><p>FIFO 最差（平均 68），说明早期上下文很关键，例如一开始看到的物体位置。No Management 保留全部历史，平均 86，比 HiMe 低 4 分，论文归因于冗余和不一致：过时的状态（物体原来的位置）和当前状态同时在库里，查询时会干扰 Planner。</p></div>
+      <div class="chartbox">
+        <h4>同样只给 8 条容量时（附录表 9，Rearrangement）</h4>
+        <p class="sub">主实验里 HiMe 不限容量，FIFO 限 8 条，两者不对等；附录补了一个同样限 8 条的主动管理版本。</p>
+        <div class="scroll"><svg class="chart" id="ch-t9" viewBox="0 0 720 150"></svg></div>
+        <details class="raw" id="raw-t9"><summary>原表数字（表 9）</summary></details>
+      </div>
+      <div class="prose"><p>限容量后主动管理从 87.0 掉到 80.0，但仍比同容量的 FIFO（64.0）高 16 分，说明增改删的收益不只是「容量更大」。</p></div>
+
+      <h3>Sentry 看几帧（图 7）</h3>
+      <div class="chartbox">
+        <h4>窗口长度 vs 判「完成」的精确率和召回率</h4>
+        <p class="sub">以子任务 done 为正类。原图只画了曲线和阴影带、没有数字标注，这里的点是读图的约值；正文写精确率约 76% → 约 82%，召回率约 22% → 约 35%。</p>
+        <div class="legend"><span><i class="bg-hum"></i>Precision</span><span><i class="bg-exe"></i>Recall</span></div>
+        <div class="scroll"><svg class="chart sm" id="ch-sen" viewBox="0 0 560 250"></svg></div>
+      </div>
+      <div class="prose"><p>窗口从 1 帧加到 8 帧，两个指标都上升：单帧分不清「暂停」和「真的完成」。更值得看的是精确率和召回率之间的大落差，论文称之为 Sentry 的「保守」本性：除非非常确定，否则倾向于判「没做完」。这能避免过早切换，但带来「漏信号」问题，机器人可能做过头或陷入死循环，所以作者加了<strong>固定间隔的 Planner 兜底</strong>，保证即使 Sentry 一直不触发，循环最终也会被打断。</p></div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>召回 35% 时，到底是谁在叫醒 Planner</h4>
+        <p>如果每次查询独立、召回 35%，一个已完成的子任务平均要查约 2.9 次才被检出。兜底间隔没有披露，兜底触发和 Sentry 触发各占多少也没有统计。所以主实验里的「HiMe」实际是「Sentry + 定时兜底」的混合体，而「HiMe w/o Sentry」是纯定时。Sentry 用 temperature 0.6 采样输出二值判断，也意味着判定本身带随机性。</p>
+      </div>
+
+      <h3>附录：换成开源 Planner（图 9，Rearrangement）</h3>
+      <div class="chartbox">
+        <h4>Planner = Qwen3-VL-30B 时的三组对比</h4>
+        <p class="sub">数字读自原图柱顶标注；柱子顺序与图例相反，按颜色核对过。</p>
+        <div class="scroll"><svg class="chart" id="ch-f9" viewBox="0 0 760 260"></svg></div>
+        <details class="raw" id="raw-f9"><summary>原图数字（图 9）</summary></details>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>附录说「趋势一致」，但有两处是反的</h4>
+        <p>(c) 记忆消融里 <b>FIFO 70.0 &gt; No Management 63.3</b>，而主实验 Rearrangement 上是 FIFO 64 &lt; No Management 80，正文还据此得出「早期上下文很关键」的结论。(a) 里 Transient Memory 与加 Sentry 的版本都是 25.0（主实验 Rearrangement 是 23 → 56），HiMe w/o Sentry 与 Flat Memory 都是 48.3。HiMe 仍然最高（83.3，GPT-4o 版是 87），但「Sentry 本身就有用」「FIFO 遗忘有害」这两条在开源 Planner 下没有复现。</p>
+      </div>
+
+      <h3>附录：任务再拉长（表 10）</h3>
+      <div class="chartbox">
+        <h4>多轮 Object Search：每轮换一次箱子内容</h4>
+        <p class="sub">轮数越多，子任务越多，记忆条数越多。数字逐字取自 tex 表 10。</p>
+        <div class="scroll"><svg class="chart sm" id="ch-t10" viewBox="0 0 560 240"></svg></div>
+        <details class="raw" id="raw-t10"><summary>原表数字（表 10）</summary></details>
+      </div>
+      <div class="prose"><p>三轮时任务进度掉到 66.7%。作者的结论是：长程任务的主要挑战不只是存更多信息，而是在环境变化时保持记忆正确、及时更新。这与 §5 Q3 里「HiMe 维护无限的结构化记忆，避免了遗忘」的说法形成对照：不遗忘不等于不出错。</p></div>
+
+      <h3>附录：Planner 延迟（表 11）</h3>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>模型</th><th class="num">P50 (s)</th><th class="num">P90 (s)</th><th class="num">P99 (s)</th><th class="num">平均输出 token</th></tr></thead>
+          <tbody>
+            <tr><th>GPT-4o (API)</th><td class="num">38.59</td><td class="num">49.30</td><td class="num">57.28</td><td class="num">517.9</td></tr>
+            <tr><th>Qwen3-VL-30B (local)</th><td class="num">6.83</td><td class="num">7.93</td><td class="num">8.65</td><td class="num">532.8</td></tr>
+            <tr><th>Qwen3-VL-8B (local)</th><td class="num">6.10</td><td class="num">7.08</td><td class="num">11.34</td><td class="num">399.0</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose"><p>每次调用包括检索和「生成计划 + 更新记忆」两个阶段，统计的是完整调用的端到端延迟。作者认为差别主要来自部署方式（远程 API vs 本地服务），而不是 token 数。注意表中的 Qwen3-VL-8B 是<strong>当 Planner 用</strong>时的延迟；Sentry 虽是同一个模型，它的单次判定延迟没有报告。</p></div>
+    </section>
+
+    <section id="insight">
+      <p class="eyebrow">读懂它</p>
+      <h2>这篇真正说明了什么</h2>
+      <h3 style="margin-top:0">关键 insight</h3>
+      <div class="cards">
+        <div class="card"><h4>1. 大模型的问题常常是「什么时候问」，而不是「问什么」</h4><p>Transient Memory 的 Planner 没有记忆，只因为逐帧被问，就会在子任务之间来回跳；加一个只会说 done / not_done 的门控，平均从 14 到 26。HiMe w/o Sentry 到 HiMe 又涨 22 分。这些增益都不来自更强的推理，而来自让推理只在该推理的时候发生。</p></div>
+        <div class="card"><h4>2. 中间层的任务被刻意设计得很窄</h4><p>Sentry 只判一件事，判定规则按 inspect、pick &amp; place、reset 三个原语写死在提示词里，场地还专门给箱底加了黑色衬底。这是「大部分记忆操作不需要高级推理」这句话的工程落点：把高频的那一层压到足够简单，8B 模型才扛得住。</p></div>
+        <div class="card"><h4>3. 别丢比整理干净更重要</h4><p>FIFO 68 → 只增不改 86 → 增改删 90。保留早期信息贡献了 18 分，整理贡献 4 分。限容量时整理才显出更大作用（80 vs 64）。</p></div>
+        <div class="card"><h4>4. 图和文字各管一类信息</h4><p>空间、识别类信息丢了文字也找不回，靠图；偏好、配比、顺序这类信息从像素里临时抽很难，靠文字。HiMe 每条记录同时带 tags、文字和图像路径，三个任务都最好，只是在偏语义的任务上图像的增益很小。</p></div>
+      </div>
+      <h3>容易误解的地方</h3>
+      <div class="prose">
+        <ul>
+          <li><strong>「90% 成功率」是任务进度。</strong>附录表 5 定义 Task Progress 为完成子任务的比例。摘要、结论和图 4 图注都写成 success rate。全部 6 个子任务都完成的试验占多少，论文没有报告。</li>
+          <li><strong>Sentry 不是记忆本身。</strong>工作记忆是一个原始帧的滑窗，Sentry 是读这个滑窗的 VLM。它不总结、不存语义，只输出二值判断，并把帧写进缓冲区供 Planner 采样。</li>
+          <li><strong>「API 调用减少约 3 倍」只对 Flat Memory。</strong>三个任务分别是 3.0×、1.8×、4.4×；Flat Memory 与 HiMe 在触发方式和记忆结构上同时不同。</li>
+          <li><strong>「弥合与人类的差距」指的是人给子任务的上限。</strong>Human High-level 是人替代 Planner 逐步给出正确子任务，Executor 不变，所以 94 是这个 Executor 的天花板，不是人类亲手操作的表现。</li>
+          <li><strong>「自我纠正知识」没有单独的定量实验。</strong>摘要说 HiMe 能按人类偏好自我纠正内部知识，这体现在任务设计里（用户中途加物体、改偏好），没有专门的评测或案例统计。</li>
+        </ul>
+      </div>
+      <h3>FAQ</h3>
+      <details class="faq"><summary>Executor 怎么知道该做什么？</summary><div class="a"><p>它只接收计划表里 <code>[current]</code> 那一行作为子目标 τ<sub>t</sub>，例如 <code>inspect left box</code> 或 <code>pick up snack table and place it to right box</code>。提示词把动作限定为 inspect 和 pick-and-place 两种写法，Sentry 的判定规则里还有一个 reset。Executor 用 60 条示范微调，论文没有说明这 60 条在三个任务、各原语之间怎么分配。</p></div></details>
+      <details class="faq"><summary>Planner 思考的几十秒里，机器人在干什么？</summary><div class="a"><p>论文没有说明。附录只写「Planner 只在需要时调用，所以推理延迟与高频控制回路是解耦的」。可是 Sentry 报 done 之后，Executor 需要新的子目标才能继续，按常理只能停下等，或者继续执行已经完成的旧子目标。同专题的 TIC-VLA 正面处理了这个问题：慢模型异步运行，动作策略从不等待，并把延迟作为输入显式告诉策略。</p></div></details>
+      <details class="faq"><summary>用户的新指令是怎么进入系统的？</summary><div class="a"><p>引言写「当 Sentry 检测到显著状态变化或用户意图修订时，Planner 主动更新知识库」，但 Sentry 提示词只判断当前子任务是否完成，不处理语言输入。新指令具体通过什么通道、在什么时刻送给 Planner，论文没有交代。</p></div></details>
+      <details class="faq"><summary>为什么 Counting 上加了 Sentry 也只有 23？</summary><div class="a"><p>Counting 要按菜谱和份数多轮取料，需要记住已经取了多少。没有记忆的 Planner 在一轮取料之后看不到累计数量，只能按当前画面猜。Sentry 让切换更稳，但补不上这类持久状态，这正是论文用来说明「记忆是必需的」的例子。</p></div></details>
+      <details class="faq"><summary>换成开源 Planner 掉多少？</summary><div class="a"><p>只在 Rearrangement 上测过：Qwen3-VL-30B 版 HiMe 83.3，GPT-4o 版 87。单次调用从 38.59 秒降到 6.83 秒。但同一组附录实验里，几条消融的方向和主实验不一致（见结果部分的疑点）。</p></div></details>
+    </section>
+
+    <section id="limits">
+      <p class="eyebrow">局限与疑点</p>
+      <h2>作者承认的，和我们读出来的</h2>
+      <div class="two">
+        <div>
+          <h4>论文自己提到的</h4>
+          <ul>
+            <li>只在真机任务上评测，没有配套的标准仿真基准，受控比较和基准级可复现性受限。</li>
+            <li>任务主要依赖 pick-and-place 这类简单原语，更多样、更灵巧的技能还需验证。</li>
+            <li>虽有记忆规模和开源 Planner 的补充分析，但没有充分刻画超长时域、更大环境、长期部署下的表现。</li>
+            <li>Sentry 召回低，可能做过头或陷入循环，因此需要定时兜底（§5 Q4）。</li>
+            <li>任务越长性能越低，三轮 Object Search 掉到 66.7%（附录表 10）。</li>
+          </ul>
+        </div>
+        <div>
+          <h4>我们读出来的</h4>
+          <ul>
+            <li><span class="tag doubt">疑点</span>Sentry 召回约 35%，兜底间隔和两种触发各自的占比都没报告，「Sentry 门控」的贡献无法与定时兜底分开。</li>
+            <li><span class="tag doubt">疑点</span>GPT-4o 单次调用中位 38.59 秒，长于一个子任务的平均执行时长；没有任何整任务耗时数据，「延迟更低」只用调用次数代理。</li>
+            <li><span class="tag doubt">疑点</span>附录换 Qwen3-VL-30B 后 FIFO（70.0）高于 No Management（63.3），Transient 加不加 Sentry 都是 25.0，与正文结论相反，附录却写「趋势一致」。</li>
+            <li><span class="tag doubt">疑点</span>HiMe w/o Sentry 同时去掉了触发时机和「整段子任务均匀采样 8 帧」的输入，消融把两件事混在一起。</li>
+            <li><span class="tag doubt">疑点</span>Sentry 间隔有 n<sub>m</sub> = 5 与「每 10 个执行步」两种写法，单位不明；𝒲<sub>t</sub> 的公式（最近 8 帧）与图 2（均匀采样 8 帧）不一致；式 (2) 的阈值 δ 与二值文本输出对不上。</li>
+            <li>指标名不统一：正文称 success rate，附录定义为子任务完成比例；平均栏的误差线是任务间标准差，没有试验级的方差或置信区间。</li>
+            <li>Memory Hit 的判定方式（谁来判断「所需信息在不在记忆里」）没有说明。</li>
+            <li>检索在 §3.4 是嵌入向量 + TopK，在提示词里是逐个 tag 查询，K 未披露。</li>
+            <li>对照组是同骨架变体，不是 Hi Robot、MemER 原方法；Executor 只用 60 条示范，三个任务各分多少没写。</li>
+            <li>单一平台、单臂夹爪、三个自建任务，每格 20 次；代码已开源，但任务场地和物品需要自己搭。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="topic">
+      <p class="eyebrow">放到专题里看</p>
+      <h2>记忆放在策略之外，以文字和图片的形式</h2>
+      <div class="prose">
+        <p>在 <a href="../../topics/robot-harness/">Harness for Robotics 专题</a>里，HiMe 属于 <strong>Persistent State / Memory</strong> 一类，改的是「记什么」。它和同类三篇最大的不同在于：记忆完全在策略模型<strong>之外</strong>，是一个人能直接读懂的外部数据库（tags + 文字 + 图像路径），由一个通用大模型通过显式的增改删来维护，并且只在子任务切换时写入。动作模型本身不读任何历史，只拿到一句子目标。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t cmp">
+          <thead><tr><th></th><th class="me">HiMe</th><th><a href="../../papers/memoryvla/">MemoryVLA</a></th><th><a href="../../papers/optimusvla/">OptimusVLA</a></th><th><a href="../../papers/soma/">SOMA</a></th></tr></thead>
+          <tbody>
+            <tr><th>记住什么</th><td class="me">箱子里有什么、东西放到了哪、用户偏好、子任务进度</td><td>每一步的感知细节和认知语义</td><td>相似任务的整条轨迹（全局先验）+ 刚执行过的动作块（局部一致性）</td><td>场景中每个物体的外观特征和 3D 位置</td></tr>
+            <tr><th>记忆形式</th><td class="me">外部键值库，可读的文字 + 图像路径 + tags；外加文本计划表</td><td>潜变量：每条 256 个感知 token + 1 个认知 token</td><td>任务嵌入 → 轨迹的检索库；Mamba 隐状态</td><td>物体级记忆 token（DINOv3 特征 + 3D 框位置编码）</td></tr>
+            <tr><th>怎么影响动作</th><td class="me">只通过一句语言子目标 τ<sub>t</sub></td><td>交叉注意力检索 + 门控融合，条件化扩散动作头</td><td>替换流匹配的初始噪声；加性一致性偏置</td><td>VL token 交叉注意力检索，注入 DiT</td></tr>
+            <tr><th>何时写、怎么改</th><td class="me">子任务切换时；LLM 显式 CREATE / UPDATE / DELETE</td><td>每步写入；超过容量就合并相邻最相似的两条</td><td>检索库离线建好；一致性记忆每块更新</td><td>扫描时建图，之后每步 EMA 更新；新物体追加，未匹配的保留</td></tr>
+            <tr><th>训练</th><td class="me">记忆部分零样本（提示词），只微调 π0.5 执行层</td><td>端到端训练（7B Prismatic + DiT）</td><td>三阶段训练（π0.5 式 VLA → InfoNCE 先验头 → 一致性模块）</td><td>端到端训练（冻结语言解码器）</td></tr>
+            <tr><th>时间粒度</th><td class="me">子任务级，十几到几十秒一次</td><td>每次推理</td><td>每次推理</td><td>每次推理</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>和 MemoryVLA：</strong>两篇都借了认知科学的「工作记忆 / 情景记忆」说法，HiMe 在相关工作里把 MemoryVLA 归为「策略层的检索式记忆库」。MemoryVLA 的情景记忆是网络内部的 token，每步检索、每步写回、端到端训练；HiMe 的情景记忆是外部数据库，只在交接点由 GPT-4o 改写。真机实验两篇都用了 WidowX 和前置 RealSense D435。</li>
+          <li><strong>和 OptimusVLA：</strong>OptimusVLA 的全局先验记忆检索的是<em>别的</em>相似任务的轨迹，用来缩短去噪路径；局部一致性记忆只看上一个动作块。它解决的是「动作生成怎么更快更稳」，HiMe 解决的是「下一步做哪个子任务」，两者几乎不重叠，原则上可以叠加：HiMe 的 Executor 换成 OptimusVLA 即可。</li>
+          <li><strong>和 SOMA：</strong>最接近的一对。两者都是物体中心的记忆，都要先主动观察（SOMA 转头扫描，HiMe 规划 inspect 子任务）再建记忆。SOMA 的记忆是几何化的潜变量，擅长「东西在哪」；它在局限里承认记忆只到物体级，分不清抽屉开 / 关这类语义状态变化，扩展到房间尺度还需要跨空间、时间尺度的分层记忆。HiMe 的记忆是语义化的文字和图片，擅长「东西是谁的、状态变了没有」，但没有任何 3D 几何。</li>
+          <li><strong>和 Context Architecture 一类：</strong><a href="../../papers/tic-vla/">TIC-VLA</a> 面对的是同一个「慢推理 vs 快控制」的矛盾，但做法相反：慢模型（InternVL3-1B）持续异步运行，动作策略从不等待，并把推理延迟和自身位移作为输入告诉策略；HiMe 用事件门控减少慢模型的调用，却没有说明慢调用期间怎么办。<a href="../../papers/ra-vla/">RA-VLA</a> 也做检索，检索的是专家示范片段，用来适应新任务，HiMe 检索的是本次任务里自己记下的事实。<a href="../../papers/activevla/">ActiveVLA</a> 主动选视角和放大，决定这一步「看什么」；HiMe 的 inspect 子任务是同一思路在任务层面的版本，决定「先去看什么、再记下来」。</li>
+          <li><strong>和（3）结构化执行、（4）评估与反馈两类：</strong><a href="../../papers/motormind/">MotorMind</a> 和 <a href="../../papers/tau0-vla/">τ₀-VLA</a> 也在高层维护执行记忆，交给执行层的只是一条子任务或一个动作批次，三篇的调度各不相同：HiMe 由 Sentry 判 done 事件触发 Planner；τ₀ 的高层约每 1 s 异步刷新子任务缓存（低层约 30 Hz），置信度低时才做世界模型搜索；MotorMind 主线串行，Memory Manager 在后台把逐动作日志压成便条，不阻塞执行。三篇都卡在「子任务做完没有」上：HiMe 的 Sentry 判 done 召回约 35%；MotorMind 诊断里通用 VLM 的完成判断只有 47.5–82.5%（二分类），扰动设定下 9% 的回合错误宣布完成；τ₀ 则专门用「记忆滞后 / 超前 / 未察觉的失败」三类扰动样本训练记忆纠错。<span class="tag read">解读</span>τ₀ 承诺的记忆消融没有给出结果，HiMe 在同一层级骨架下比了无记忆和 FIFO 记忆，在「记忆本身贡献多少」上证据更直接。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="glossary">
+      <p class="eyebrow">术语表</p>
+      <h2>读这篇会遇到的词</h2>
+      <details class="gl"><summary>展开术语表</summary>
+        <dl>
+          <dt>non-Markovian</dt><dd>最优动作依赖已经看不到的过去信息，不能只凭当前观测决定。</dd>
+          <dt>frequency-competence paradox</dt><dd>论文的说法：推理强的模型太慢，进不了实时控制；够快的模型推理能力不足。</dd>
+          <dt>Executor π<sub>e</sub></dt><dd>执行层，π0.5 微调而来，输入当前观测和子目标，输出动作块。</dd>
+          <dt>Sentry π<sub>s</sub></dt><dd>哨兵层，Qwen3-VL-8B，按固定间隔看最近几帧，判断当前子任务是否完成，决定要不要叫醒 Planner。</dd>
+          <dt>Planner π<sub>p</sub></dt><dd>规划层，GPT-4o，读写情景记忆并重写计划表。</dd>
+          <dt>瞬时记忆 𝒯<sub>t</sub></dt><dd>Transient memory，只有当前观测 o<sub>t</sub>。</dd>
+          <dt>工作记忆 𝒲<sub>t</sub></dt><dd>Working memory，最近 h<sub>s</sub> = 8 帧的原始观测滑窗。</dd>
+          <dt>情景记忆 𝓔<sub>t</sub></dt><dd>Episodic memory，持久存储，分上下文记忆 𝓔<sup>c</sup>（图文键值库）和过程记忆 𝓔<sup>p</sup>（子任务计划表）。</dd>
+          <dt>u<sub>t</sub> / δ / n<sub>m</sub> / h<sub>s</sub></dt><dd>Sentry 的门控输出 / 判定阈值 / 查询间隔（取 5）/ 工作记忆窗口长度（取 8）。</dd>
+          <dt>handover</dt><dd>u<sub>t</sub> = 1 的交接事件，表示当前子目标完成或失效，触发 Planner。</dd>
+          <dt>CRUD</dt><dd>提示词里的 QUERY / CREATE / UPDATE / DELETE 四种记忆操作，正文称 Add / Update / Delete。</dd>
+          <dt>Task Progress</dt><dd>完成子任务的比例，本文的主指标（正文称 success rate）。</dd>
+          <dt>API Calls</dt><dd>平均每个子任务的 Planner 调用次数。</dd>
+          <dt>Memory Hit</dt><dd>Planner 被调用时，所需信息存在于记忆中的比例。</dd>
+          <dt>Flat Memory</dt><dd>对照组：定时调用的 Planner + 最近 8 帧 + 历史关键帧 FIFO 队列，类似 MemER。</dd>
+          <dt>Transient Memory</dt><dd>对照组：定时调用、只看当前观测的无记忆 Planner，类似 Hi Robot。</dd>
+          <dt>Human High-level</dt><dd>由人逐步给出正确子任务，衡量固定 Executor 能力下的上限。</dd>
+          <dt>open-loop 执行</dt><dd>预测出 10 个动作后不再看新观测，直接执行前 5 个。</dd>
+        </dl>
+      </details>
+    </section>
+  </main>
+</div>
+<footer class="page">
+  <p>图 1、2、3、8 来自论文 arXiv 源码（v1）里的原图；表 1–4、9–11 的数字取自 tex 表格，图 4–7、9 的数字读自原图柱顶标注（图 7 无标注，为读图约值）。第 3 节时间轴的子任务时长和记忆条目是示意。标「解读」的是我们的判断。</p>
+</footer>
+<dialog id="lb" aria-label="放大查看"><div class="box"><img id="lb-img" alt=""></div><div class="bar"><span id="lb-cap"></span><button type="button" id="lb-close">关闭</button></div></dialog>
+<div class="tip" id="tip" hidden></div>
+<script>
+(function(){
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, text){ const e = document.createElementNS(NS, tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+  function esc(s){ return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  /* tooltip */
+  const tip = $('#tip');
+  function place(x, y){ const r = tip.getBoundingClientRect(); let l = x + 14, t = y + 14; if (l + r.width > innerWidth - 8) l = x - r.width - 14; if (t + r.height > innerHeight - 8) t = y - r.height - 14; tip.style.left = Math.max(8, l) + 'px'; tip.style.top = Math.max(8, t) + 'px'; }
+  document.addEventListener('pointerover', e => { const t = e.target.closest && e.target.closest('[data-tip]'); if (!t) return; tip.textContent = t.getAttribute('data-tip'); tip.hidden = false; place(e.clientX, e.clientY); });
+  document.addEventListener('pointermove', e => { if (tip.hidden) return; if (!(e.target.closest && e.target.closest('[data-tip]'))) { tip.hidden = true; return; } place(e.clientX, e.clientY); });
+
+  /* lightbox */
+  const lb = $('#lb');
+  $$('figure.plate .zoom').forEach(b => b.addEventListener('click', () => { $('#lb-img').src = b.dataset.src; const c = b.parentElement.querySelector('figcaption b'); $('#lb-cap').textContent = c ? c.textContent : ''; if (lb.showModal) lb.showModal(); else lb.setAttribute('open', ''); }));
+  $('#lb-close').addEventListener('click', () => lb.close());
+  lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+
+  /* toc */
+  const links = $$('.toc a');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id)); }), { rootMargin: '-35% 0px -60% 0px' });
+    $$('main section').forEach(s => io.observe(s));
+  }
+
+  /* hero ribbon ticks */
+  (function(){
+    const ge = $('#rb-exe'), gs = $('#rb-sen'); const x = s => 16 + 19.5 * s;
+    for (let i = 0; i < 40; i++) { const s = i * 0.5; ge.appendChild(el('line', { x1: x(s), x2: x(s), y1: 204, y2: 228, stroke: 'var(--exe)', 'stroke-width': 2, opacity: .8 })); }
+    for (let s = 1; s <= 19; s++) { const done = s === 13; gs.appendChild(el('circle', { cx: x(s), cy: 140, r: done ? 6 : 3.2, fill: done ? 'var(--sen)' : 'color-mix(in oklab,var(--sen) 45%,transparent)' })); }
+  })();
+
+  function rawTable(host, head, rows){
+    const d = document.createElement('div'); d.className = 'tblwrap';
+    d.innerHTML = '<table class="t"><thead><tr>' + head.map((h, i) => '<th' + (i ? ' class="num"' : '') + '>' + h + '</th>').join('') + '</tr></thead><tbody>' +
+      rows.map(r => '<tr' + (r.best ? ' class="best"' : '') + '>' + r.cells.map((c, i) => i ? '<td class="num">' + c + '</td>' : '<th>' + c + '</th>').join('') + '</tr>').join('') + '</tbody></table>';
+    host.appendChild(d);
+  }
+  function fmt(v){ return (typeof v === 'number' && !Number.isInteger(v)) ? String(v) : String(v); }
+
+  /* vertical grouped bars */
+  function vbars(svg, groups, series, opt){
+    opt = opt || {}; const W = opt.W || 760, H = opt.H || 280, L = 40, R = 10, T = 22, B = 44, max = opt.max || 100, step = opt.step || 20;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const y = v => T + (H - T - B) * (1 - v / max);
+    const n = groups.length, gw = (W - L - R) / n, bw = Math.min(opt.bw || 22, (gw - 14) / series.length);
+    groups.forEach((g, i) => { if (g.shade) svg.appendChild(el('rect', { x: L + gw * i + 2, y: T - 14, width: gw - 4, height: H - B - T + 14, fill: 'var(--surface-2)', opacity: .7, rx: 4 })); });
+    for (let v = 0; v <= max + 1e-9; v += step) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, v)); }
+    groups.forEach((g, i) => {
+      const cx = L + gw * i + gw / 2, x0 = cx - bw * series.length / 2;
+      series.forEach((s, j) => {
+        const v = g.vals[j]; if (v == null) return; const yy = y(v);
+        svg.appendChild(el('rect', { x: x0 + j * bw + 1, y: yy, width: bw - 2, height: Math.max(1, y(0) - yy), rx: 2, class: s.cls, 'data-tip': g.name.replace('\n', ' ') + ' · ' + s.name + '：' + fmt(v) }));
+        svg.appendChild(el('text', { x: x0 + j * bw + bw / 2, y: yy - 4, 'text-anchor': 'middle', class: 'val' + (s.hi ? ' hi' : ''), 'font-size': 10 }, fmt(v)));
+      });
+      g.name.split('\n').forEach((w, k) => svg.appendChild(el('text', { x: cx, y: H - B + 17 + k * 14, 'text-anchor': 'middle', class: 'glabel', 'font-size': 12 }, w)));
+    });
+    svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(0), y2: y(0), class: 'base' }));
+  }
+
+  /* horizontal bars */
+  function hbars(svg, rows, opt){
+    opt = opt || {}; const W = opt.W || 720, L = opt.left || 220, R = 56, top = 10, rh = opt.rh || 30, max = opt.max || 100, step = opt.step || 20;
+    const H = top + rows.length * rh + 26; svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const x = v => L + (W - L - R) * v / max;
+    for (let g = 0; g <= max; g += step) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: top - 4, y2: H - 22, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: H - 6, 'text-anchor': 'middle', class: 'tick' }, g)); }
+    rows.forEach((r, i) => {
+      const yy = top + i * rh;
+      svg.appendChild(el('text', { x: L - 10, y: yy + rh / 2 + 4, 'text-anchor': 'end', class: 'glabel', 'font-weight': r.hi ? 700 : 400 }, r.label));
+      svg.appendChild(el('rect', { x: L, y: yy + 5, width: Math.max(1, x(r.v) - L), height: rh - 12, rx: 3, class: r.cls, 'data-tip': r.label + '：' + fmt(r.v) }));
+      svg.appendChild(el('text', { x: x(r.v) + 6, y: yy + rh / 2 + 4, class: 'val' + (r.hi ? ' hi' : '') }, r.v.toFixed ? (opt.dec ? r.v.toFixed(opt.dec) : fmt(r.v)) : r.v));
+    });
+    svg.appendChild(el('line', { x1: L, x2: L, y1: top - 4, y2: H - 22, class: 'base' }));
+  }
+
+  /* ---------- ladder ---------- */
+  (function(){
+    const svg = $('#ch-ladder'); const W = 760, H = 300, X0 = 250, X1 = 735, lo = Math.log10(0.05), hi = Math.log10(100);
+    const x = v => X0 + (X1 - X0) * (Math.log10(v) - lo) / (hi - lo);
+    const rows = [
+      { n: 'Executor 控制步 · 10 Hz', c: 'var(--exe)', p: 0.1, lab: '0.1 s' },
+      { n: 'Executor 推理 · 2 Hz', c: 'var(--exe)', p: 0.5, lab: '0.5 s' },
+      { n: 'Sentry 查询间隔（§4.1）', c: 'var(--sen)', p: 1, lab: '≈1 s · 单次判定延迟未披露' },
+      { n: '子任务平均执行时长（解读）', c: 'var(--ink-2)', r: [17.1, 24.2], lab: '17.1–24.2 s' },
+      { n: 'Planner · Qwen3-VL-8B 本地', c: 'var(--pla)', p: 6.10, p90: 7.08, p99: 11.34, lab: 'P50 6.10 · P99 11.34 s' },
+      { n: 'Planner · Qwen3-VL-30B 本地', c: 'var(--pla)', p: 6.83, p90: 7.93, p99: 8.65, lab: 'P50 6.83 · P99 8.65 s' },
+      { n: 'Planner · GPT-4o API（主实验）', c: 'var(--pla)', p: 38.59, p90: 49.30, p99: 57.28, lab: 'P50 38.59 · P99 57.28 s' }
+    ];
+    const T = 18, rh = 36;
+    [0.1, 1, 10, 100].forEach(v => { svg.appendChild(el('line', { x1: x(v), x2: x(v), y1: T - 6, y2: T + rows.length * rh, class: 'grid' })); svg.appendChild(el('text', { x: x(v), y: T + rows.length * rh + 16, 'text-anchor': 'middle', class: 'tick' }, v + ' s')); });
+    [0.5, 5, 50].forEach(v => svg.appendChild(el('line', { x1: x(v), x2: x(v), y1: T - 6, y2: T + rows.length * rh, class: 'grid', 'stroke-dasharray': '2 3' })));
+    rows.forEach((r, i) => {
+      const yy = T + i * rh + rh / 2;
+      svg.appendChild(el('text', { x: X0 - 12, y: yy + 4, 'text-anchor': 'end', class: 'glabel' }, r.n));
+      if (r.r) {
+        svg.appendChild(el('rect', { x: x(r.r[0]), y: yy - 6, width: x(r.r[1]) - x(r.r[0]), height: 12, rx: 3, fill: r.c, opacity: .55, 'data-tip': '附录表 4：1450/6、1200/7、1035/6 步，按 10 Hz 换算' }));
+        svg.appendChild(el('text', { x: x(r.r[0]) - 8, y: yy + 4, 'text-anchor': 'end', class: 'val' }, r.lab));
+        return;
+      }
+      if (r.p99) {
+        svg.appendChild(el('line', { x1: x(r.p), x2: x(r.p99), y1: yy, y2: yy, stroke: r.c, 'stroke-width': 2 }));
+        svg.appendChild(el('line', { x1: x(r.p90), x2: x(r.p90), y1: yy - 5, y2: yy + 5, stroke: r.c, 'stroke-width': 2 }));
+        svg.appendChild(el('line', { x1: x(r.p99), x2: x(r.p99), y1: yy - 7, y2: yy + 7, stroke: r.c, 'stroke-width': 2 }));
+      }
+      svg.appendChild(el('circle', { cx: x(r.p), cy: yy, r: 6, fill: r.c, 'data-tip': r.n + (r.p99 ? '：P50 ' + r.p.toFixed(2) + ' s，P90 ' + r.p90.toFixed(2) + ' s，P99 ' + r.p99.toFixed(2) + ' s（表 11）' : '：' + r.lab) }));
+      const lab = r.lab || ('P50 ' + r.p + ' · P99 ' + r.p99 + ' s');
+      const right = x(r.p99 || r.p) + 10; const toLeft = right > X1 - 120;
+      svg.appendChild(el('text', { x: toLeft ? x(r.p) - 10 : right, y: yy + 4, 'text-anchor': toLeft ? 'end' : 'start', class: 'val' }, lab));
+    });
+  })();
+
+  /* ---------- result data ---------- */
+  const TASKS = ['Object Search', 'Counting', 'Rearrangement'];
+  const MAIN = [
+    { n: 'Transient Memory', v: [0, 18, 23], avg: 14, cls: 'c-b1', bg: 'bg-b1' },
+    { n: 'Transient Memory w/ Sentry', v: [0, 23, 56], avg: 26, cls: 'c-sen', bg: 'bg-sen' },
+    { n: 'Flat Memory', v: [64, 58, 73], avg: 65, cls: 'c-b0', bg: 'bg-b0' },
+    { n: 'HiMe w/o Sentry', v: [66, 71, 66], avg: 68, cls: 'c-pla2', bg: 'bg-pla2' },
+    { n: 'HiMe', v: [92, 92, 87], avg: 90, cls: 'c-pla', bg: 'bg-pla', hi: true },
+    { n: 'Human High-level', v: [94, 96, 92], avg: 94, cls: 'c-hum', bg: 'bg-hum' }
+  ];
+  $('#lg-main').innerHTML = MAIN.map(m => '<span><i class="' + m.bg + '"></i>' + esc(m.n) + '</span>').join('');
+  function groupsOf(M){ return TASKS.map((t, i) => ({ name: t, vals: M.map(m => m.v[i]) })).concat([{ name: '平均', vals: M.map(m => m.avg), shade: true }]); }
+  vbars($('#ch-main'), groupsOf(MAIN), MAIN.map(m => ({ name: m.n, cls: m.cls, hi: m.hi })), { H: 300, bw: 18 });
+  rawTable($('#raw-main'), ['Method'].concat(TASKS, ['Average']), MAIN.map(m => ({ cells: [m.n].concat(m.v, [m.avg]), best: m.hi })));
+
+  const MOD = [
+    { n: 'Only image', v: [86, 78, 76], avg: 80, cls: 'c-b0' },
+    { n: 'Only text', v: [74, 91, 84], avg: 83, cls: 'c-b1' },
+    { n: 'HiMe（图文）', v: [92, 92, 87], avg: 90, cls: 'c-pla', hi: true }
+  ];
+  vbars($('#ch-mod'), groupsOf(MOD), MOD.map(m => ({ name: m.n, cls: m.cls, hi: m.hi })), { H: 280, bw: 26 });
+  rawTable($('#raw-mod'), ['Memory'].concat(TASKS, ['Average']), MOD.map(m => ({ cells: [m.n].concat(m.v, [m.avg]), best: m.hi })));
+
+  const MAN = [
+    { n: 'FIFO（8 条）', v: [67, 73, 64], avg: 68, cls: 'c-b1' },
+    { n: 'No Management', v: [90, 89, 80], avg: 86, cls: 'c-b0' },
+    { n: 'HiMe（增改删）', v: [92, 92, 87], avg: 90, cls: 'c-pla', hi: true }
+  ];
+  vbars($('#ch-man'), groupsOf(MAN), MAN.map(m => ({ name: m.n, cls: m.cls, hi: m.hi })), { H: 280, bw: 26 });
+  rawTable($('#raw-man'), ['Management'].concat(TASKS, ['Average']), MAN.map(m => ({ cells: [m.n].concat(m.v, [m.avg]), best: m.hi })));
+
+  const T9 = [
+    { label: 'Unlimited Active · 不限容量', v: 87.0, cls: 'c-pla', hi: true },
+    { label: 'Limited Active · 8 条', v: 80.0, cls: 'c-pla2' },
+    { label: 'FIFO (Limited) · 8 条', v: 64.0, cls: 'c-b1' }
+  ];
+  hbars($('#ch-t9'), T9, { left: 210, dec: 1 });
+  rawTable($('#raw-t9'), ['Method', 'Memory Budget', 'Task Progress (%)'], [{ cells: ['Unlimited Active Management', 'Unbounded', '87.0'], best: true }, { cells: ['Limited Active Management', 'Fixed (8 entries)', '80.0'] }, { cells: ['FIFO (Limited)', 'Fixed (8 entries)', '64.0'] }]);
+
+  /* table 2: three panels */
+  (function(){
+    const svg = $('#ch-t2'); const W = 760, H = 250, L = 112, gap = 22, pw = (W - L - 2 * gap - 8) / 3, T = 30, rh = 62;
+    const D = { api: { h: [1.8, 2.6, 1.4], f: [5.4, 4.8, 6.2], max: 7, title: 'API Call / 子任务 ↓', suf: '' }, hit: { h: [94, 98, 92], f: [68, 61, 76], max: 100, title: 'Memory Hit ↑', suf: '%' }, prog: { h: [92, 92, 87], f: [64, 58, 73], max: 100, title: 'Avg. Progress ↑', suf: '%' } };
+    ['api', 'hit', 'prog'].forEach((k, p) => {
+      const d = D[k], x0 = L + p * (pw + gap), x = v => x0 + (pw - 34) * v / d.max;
+      svg.appendChild(el('text', { x: x0, y: 16, class: 'ptitle' }, d.title));
+      svg.appendChild(el('line', { x1: x0, x2: x0, y1: T - 4, y2: T + 3 * rh - 8, class: 'base' }));
+      TASKS.forEach((t, i) => {
+        const yy = T + i * rh;
+        if (p === 0) svg.appendChild(el('text', { x: L - 12, y: yy + 28, 'text-anchor': 'end', class: 'glabel' }, t));
+        [['h', 'c-pla', 'HiMe'], ['f', 'c-b0', 'Flat Memory']].forEach((s, j) => {
+          const v = d[s[0]][i], by = yy + 6 + j * 22;
+          svg.appendChild(el('rect', { x: x0, y: by, width: Math.max(1, x(v) - x0), height: 16, rx: 2, class: s[1], 'data-tip': t + ' · ' + s[2] + ' · ' + d.title + '：' + v + d.suf }));
+          svg.appendChild(el('text', { x: x(v) + 5, y: by + 12, class: 'val' + (j ? '' : ' hi') }, v + d.suf));
+        });
+      });
+    });
+    rawTable($('#raw-t2'), ['Method', 'Sentry', 'Mem. Mgmt', 'Mem. Size', 'OS API', 'OS Hit', 'OS Prog', 'Cnt API', 'Cnt Hit', 'Cnt Prog', 'Rearr API', 'Rearr Hit', 'Rearr Prog'], [
+      { cells: ['HiMe (Ours)', '✓', '✓', 'infinite', '1.8', '94%', '92%', '2.6', '98%', '92%', '1.4', '92%', '87%'], best: true },
+      { cells: ['Flat Memory', '×', '×', 'recent 8', '5.4', '68%', '64%', '4.8', '61%', '58%', '6.2', '76%', '73%'] }
+    ]);
+  })();
+
+  /* sentry window */
+  (function(){
+    const svg = $('#ch-sen'); const W = 560, H = 250, L = 46, R = 120, T = 16, B = 40;
+    const xs = [1, 4, 8], P = [76, 80, 83], Rc = [22, 31, 35];
+    const x = i => L + (W - L - R) * i / 2, y = v => T + (H - T - B) * (1 - v / 100);
+    for (let v = 0; v <= 100; v += 20) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, v)); }
+    xs.forEach((v, i) => svg.appendChild(el('text', { x: x(i), y: H - B + 18, 'text-anchor': 'middle', class: 'tick' }, v + ' 帧')));
+    [[P, 'var(--hum)', 'Precision'], [Rc, 'var(--exe)', 'Recall']].forEach((s, j) => {
+      svg.appendChild(el('polyline', { points: s[0].map((v, i) => x(i) + ',' + y(v)).join(' '), fill: 'none', stroke: s[1], 'stroke-width': 2.4 }));
+      s[0].forEach((v, i) => { svg.appendChild(el('circle', { cx: x(i), cy: y(v), r: 4.5, fill: s[1], 'data-tip': s[2] + ' @ ' + xs[i] + ' 帧：约 ' + v + '%（读图）' })); svg.appendChild(el('text', { x: x(i), y: y(v) - 9, 'text-anchor': 'middle', class: 'val' }, '≈' + v)); });
+      svg.appendChild(el('text', { x: x(2) + 12, y: y(s[0][2]) + 4, class: 'glabel' }, s[2]));
+    });
+    svg.appendChild(el('line', { x1: x(2), x2: x(2), y1: y(83), y2: y(35), stroke: 'var(--warn)', 'stroke-dasharray': '3 3' }));
+    svg.appendChild(el('text', { x: x(2) + 12, y: y(59), class: 'val', style: 'fill:var(--warn)' }, '落差 ≈48 点'));
+  })();
+
+  /* fig 9 panels */
+  (function(){
+    const svg = $('#ch-f9'); const W = 760, H = 260, T = 30, B = 52, gap = 26;
+    const P = [
+      { t: '(a) 主对比', bars: [['Transient\nw/ Sentry', 25.0, 'c-sen'], ['Transient', 25.0, 'c-b1'], ['Flat', 48.3, 'c-b0'], ['HiMe w/o\nSentry', 48.3, 'c-pla2'], ['HiMe', 83.3, 'c-pla']] },
+      { t: '(b) 模态', bars: [['Only\nimage', 58.3, 'c-b0'], ['Only\ntext', 65.0, 'c-b1'], ['HiMe', 83.3, 'c-pla']] },
+      { t: '(c) 记忆管理', bars: [['FIFO', 70.0, 'c-b1'], ['No\nManagement', 63.3, 'c-b0'], ['HiMe', 83.3, 'c-pla']] }
+    ];
+    const total = 11, unit = (W - 40 - gap * 2) / total; let cx = 40;
+    const y = v => T + (H - T - B) * (1 - v / 100);
+    for (let v = 0; v <= 100; v += 20) { svg.appendChild(el('line', { x1: 36, x2: W - 6, y1: y(v), y2: y(v), class: 'grid' })); svg.appendChild(el('text', { x: 30, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, v)); }
+    P.forEach(p => {
+      const w = unit * p.bars.length;
+      svg.appendChild(el('text', { x: cx + 4, y: 16, class: 'ptitle' }, p.t));
+      p.bars.forEach((b, i) => {
+        const bx = cx + i * unit + unit * .18, bw = unit * .64, yy = y(b[1]);
+        svg.appendChild(el('rect', { x: bx, y: yy, width: bw, height: y(0) - yy, rx: 2, class: b[2], 'data-tip': p.t + ' · ' + b[0].replace('\n', ' ') + '：' + b[1].toFixed(1) }));
+        svg.appendChild(el('text', { x: bx + bw / 2, y: yy - 4, 'text-anchor': 'middle', class: 'val' + (b[0] === 'HiMe' ? ' hi' : '') }, b[1].toFixed(1)));
+        b[0].split('\n').forEach((s, k) => svg.appendChild(el('text', { x: bx + bw / 2, y: H - B + 16 + k * 13, 'text-anchor': 'middle', class: 'glabel', 'font-size': 11 }, s)));
+      });
+      cx += w + gap;
+    });
+    svg.appendChild(el('line', { x1: 36, x2: W - 6, y1: y(0), y2: y(0), class: 'base' }));
+    rawTable($('#raw-f9'), ['面板 · 设置', 'Task Progress (%)'], [].concat.apply([], P.map(p => p.bars.map(b => ({ cells: [p.t + ' · ' + b[0].replace('\n', ' '), b[1].toFixed(1)], best: b[0] === 'HiMe' })))));
+  })();
+
+  /* table 10 */
+  (function(){
+    const svg = $('#ch-t10'); const W = 560, H = 240, L = 46, R = 16, T = 22, B = 50;
+    const D = [[1, 4, 5.5, 92.5], [2, 8, 9.9, 76.3], [3, 12, 14.0, 66.7]];
+    const y = v => T + (H - T - B) * (1 - v / 100), gw = (W - L - R) / 3;
+    for (let v = 0; v <= 100; v += 20) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, v)); }
+    D.forEach((d, i) => {
+      const cx = L + gw * i + gw / 2, bw = 54, yy = y(d[3]);
+      svg.appendChild(el('rect', { x: cx - bw / 2, y: yy, width: bw, height: y(0) - yy, rx: 3, class: i ? 'c-pla2' : 'c-pla', 'data-tip': d[0] + ' 轮：' + d[1] + ' 个子任务，记忆 ' + d[2] + ' 条，任务进度 ' + d[3] + '%' }));
+      svg.appendChild(el('text', { x: cx, y: yy - 6, 'text-anchor': 'middle', class: 'val hi' }, d[3] + '%'));
+      svg.appendChild(el('text', { x: cx, y: H - B + 17, 'text-anchor': 'middle', class: 'glabel' }, d[0] + ' 轮 · ' + d[1] + ' 个子任务'));
+      svg.appendChild(el('text', { x: cx, y: H - B + 33, 'text-anchor': 'middle', class: 'tick' }, '记忆 ' + d[2].toFixed(1) + ' 条'));
+    });
+    svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(0), y2: y(0), class: 'base' }));
+    rawTable($('#raw-t10'), ['Rounds', 'Subtasks', 'Memory Size', 'Task Progress (%)'], D.map(d => ({ cells: [d[0], d[1], d[2].toFixed(1), d[3].toFixed(1)] })));
+  })();
+
+  /* ---------- timeline lab ---------- */
+  (function(){
+    const ST = [
+      { tau: 'inspect left box', zh: '检查左箱', dur: 210 },
+      { tau: 'inspect middle box', zh: '检查中箱', dur: 190 },
+      { tau: 'inspect right box', zh: '检查右箱', dur: 200 },
+      { tau: 'place the toy duck in left box', zh: '玩具鸭放进左箱', dur: 290 },
+      { tau: 'place the snack in right box', zh: '零食放进右箱', dur: 270 },
+      { tau: 'place the toys on table', zh: '毛绒玩具放到桌上', dur: 290 }
+    ];
+    const MISS = [2, 1, 3, 2, 3, 1];
+    const PERIOD = 4.5;
+    const REC = {
+      1: { tags: ['user', 'lucy', 'likes'], text: 'Lucy 喜欢毛绒玩具', img: false },
+      2: { tags: ['left_box', 'toys'], text: '左箱里装的是玩具', img: true },
+      3: { tags: ['middle_box'], text: '中箱是空的', img: true },
+      4: { tags: ['right_box', 'snack'], text: '右箱里装的是零食', img: true },
+      5: { tags: ['toy_duck', 'left_box'], text: '玩具鸭已放进左箱', img: true },
+      6: { tags: ['middle_box', 'plush_toy'], text: '中箱里有用户新放进的毛绒玩具', img: true },
+      7: { tags: ['snack', 'right_box'], text: '零食已放进右箱', img: true }
+    };
+    const P_INS = ['inspect left box', 'inspect middle box', 'inspect right box'];
+    const MS = [
+      { ops: [['QUERY', 'lucy → 无结果'], ['CREATE', 1]], plan: [['current', P_INS[0]], ['pending', P_INS[1]], ['pending', P_INS[2]], ['pending', 'place the toy duck（目标箱待查）'], ['pending', 'place the snack（目标箱待查）']] },
+      { ops: [['CREATE', 2]], plan: [['done', P_INS[0]], ['current', P_INS[1]], ['pending', P_INS[2]], ['pending', 'place the toy duck（目标箱待查）'], ['pending', 'place the snack（目标箱待查）']] },
+      { ops: [['CREATE', 3]], plan: [['done', P_INS[0]], ['done', P_INS[1]], ['current', P_INS[2]], ['pending', 'place the toy duck（目标箱待查）'], ['pending', 'place the snack（目标箱待查）']] },
+      { ops: [['QUERY', 'lucy → #1'], ['CREATE', 4]], plan: [['done', P_INS[0]], ['done', P_INS[1]], ['done', P_INS[2]], ['current', 'place the toy duck in left box'], ['pending', 'place the snack in right box'], ['pending', 'place the toys on table（Lucy 喜欢毛绒玩具，来源待查）']] },
+      { ops: [['CREATE', 5], ['UPDATE', 3, '（过去）中箱是空的'], ['CREATE', 6]], plan: [['done', P_INS[0]], ['done', P_INS[1]], ['done', P_INS[2]], ['done', 'place the toy duck in left box'], ['current', 'place the snack in right box'], ['pending', 'place the toys on table（取中箱的新毛绒玩具）']] },
+      { ops: [['CREATE', 7], ['QUERY', 'plush_toy → #6']], plan: [['done', P_INS[0]], ['done', P_INS[1]], ['done', P_INS[2]], ['done', 'place the toy duck in left box'], ['done', 'place the snack in right box'], ['current', 'place the toys on table']] },
+      { ops: [], plan: [['done', P_INS[0]], ['done', P_INS[1]], ['done', P_INS[2]], ['done', 'place the toy duck in left box'], ['done', 'place the snack in right box'], ['done', 'place the toys on table']] }
+    ];
+    const svgO = $('#tl-over'), svgZ = $('#tl-zoom'), range = $('#tl-t');
+    const X0 = 152, X1 = 890;
+    let mode = 'sentry', recall = false, L = 0, senStep = 10, W = 0, M = null, playing = false, raf = 0, last = 0;
+    const r3 = v => Math.round(v * 1000) / 1000;
+
+    function build(){
+      const q = r3(senStep * 0.1);
+      const calls = [{ e: 0, kind: 'init', ms: 0, sub: -1 }];
+      const subs = []; let cur = 0;
+      if (mode === 'sentry') {
+        for (let i = 0; i < ST.length; i++) {
+          const s = cur, d = r3(s + ST[i].dur / 10);
+          const g = r3(Math.ceil(d / q - 1e-6) * q);
+          const det = r3(g + (recall ? MISS[i] : 0) * q);
+          let fp = null;
+          if (recall && i === 4) { fp = r3(Math.max(Math.ceil((s + 0.01) / q), Math.round((s + ST[i].dur / 10 * 0.45) / q)) * q); calls.push({ e: fp, kind: 'fp', sub: i }); }
+          calls.push({ e: det, kind: 'done', ms: i + 1, sub: i });
+          subs.push({ i, s, d, det, fp }); cur = det;
+        }
+      } else {
+        let k = 1;
+        for (let i = 0; i < ST.length; i++) {
+          const s = cur, d = r3(s + ST[i].dur / 10);
+          while (k * PERIOD < d - 1e-6) { calls.push({ e: r3(k * PERIOD), kind: 'periodic', sub: i }); k++; }
+          const det = r3(k * PERIOD); k++;
+          calls.push({ e: det, kind: 'advance', ms: i + 1, sub: i });
+          subs.push({ i, s, d, det, fp: null }); cur = det;
+        }
+      }
+      calls.sort((a, b) => a.e - b.e);
+      calls.forEach((c, k) => { c.k = k; c.ws = r3(c.e + k * L); c.we = r3(c.ws + L); });
+      const end = cur, Tw = r3(end + calls.length * L);
+      const qs = [];
+      if (mode === 'sentry') {
+        for (let j = 1; j * q <= end + 1e-6; j++) {
+          const g = r3(j * q);
+          const sb = subs.find(x => g > x.s + 1e-6 && g <= x.det + 1e-6) || subs[subs.length - 1];
+          let res;
+          if (sb.fp != null && Math.abs(g - sb.fp) < 1e-6) res = 'fp';
+          else if (g < sb.d - 1e-6) res = 'nd';
+          else if (g < sb.det - 1e-6) res = 'miss';
+          else res = 'done';
+          qs.push({ e: g, res, sub: sb.i });
+        }
+      }
+      const add = r3(subs[3].s + ST[3].dur / 10 * 0.4);
+      M = { calls, subs, end, Tw, qs, q, add };
+    }
+    const nBefore = e => M.calls.filter(c => c.e < e - 1e-6).length;
+    const nUpTo = e => M.calls.filter(c => c.e <= e + 1e-6).length;
+    const wB = e => e + L * nBefore(e);
+    const wA = e => e + L * nUpTo(e);
+    function locate(w){
+      for (const c of M.calls) if (L > 0 && w >= c.ws - 1e-9 && w < c.we - 1e-9) return { e: c.e, call: c };
+      const n = M.calls.filter(c => c.we <= w + 1e-9).length;
+      return { e: Math.min(M.end, w - L * n), call: null };
+    }
+    function state(w){
+      const loc = locate(w), e = loc.e;
+      const lastCall = M.calls.filter(c => c.ws <= w + 1e-9).pop();
+      let ms = 0; M.calls.forEach(c => { if (c.ms != null && c.ws <= w + 1e-9) ms = Math.max(ms, c.ms); });
+      const finished = ms === ST.length && !loc.call;
+      let sub = M.subs.find(x => e >= x.s - 1e-9 && e < x.det - 1e-9);
+      if (!sub) sub = M.subs[M.subs.length - 1];
+      const phase = finished ? 'end' : loc.call ? 'call' : (e >= sub.d - 1e-9 ? 'undet' : 'active');
+      const callsSoFar = M.calls.filter(c => c.ws <= w + 1e-9).length;
+      const qsSoFar = M.qs.filter(qq => wB(qq.e) <= w + 1e-9);
+      return { w, e, loc, lastCall, ms, sub, phase, finished, callsSoFar, qsSoFar };
+    }
+
+    function defs(svg){
+      const d = el('defs');
+      [['hW', 'var(--warn)'], ['hG', 'var(--muted)']].forEach(p => { const pt = el('pattern', { id: p[0] + svg.id, width: 6, height: 6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }); pt.appendChild(el('rect', { width: 6, height: 6, fill: 'transparent' })); pt.appendChild(el('line', { x1: 0, y1: 0, x2: 0, y2: 6, stroke: p[1], 'stroke-width': 2, opacity: .7 })); d.appendChild(pt); });
+      svg.appendChild(d);
+    }
+    const RY = { usr: [6, 30], pla: [34, 72], sen: [78, 116], exe: [122, 160], sub: [166, 198] };
+    function rowLabels(svg, rows, sen){
+      rows.forEach(r => {
+        svg.appendChild(el('rect', { x: X0, y: r.y[0], width: X1 - X0, height: r.y[1] - r.y[0], rx: 4, fill: r.bg, opacity: r.dim ? .45 : 1 }));
+        svg.appendChild(el('text', { x: 8, y: r.y[0] + 16, class: 'hd', style: 'fill:' + r.c }, r.n));
+        if (r.s) svg.appendChild(el('text', { x: 8, y: r.y[0] + 30, class: 'mono' }, r.s));
+      });
+    }
+    function drawOver(st){
+      const svg = svgO; svg.innerHTML = ''; defs(svg);
+      const x = w => X0 + (X1 - X0) * w / M.Tw;
+      const qtxt = senStep === 10 ? '每 1 s' : senStep === 5 ? '每 0.5 s' : '每 5 s';
+      rowLabels(svg, [
+        { y: RY.pla, n: 'Planner', s: (L === 6.83 ? 'Qwen3-VL-30B' : 'GPT-4o') + (mode === 'sentry' ? ' · 事件' : ' · 定时'), c: 'var(--pla)', bg: 'var(--pla-soft)' },
+        { y: RY.sen, n: 'Sentry', s: mode === 'sentry' ? 'Qwen3-VL-8B · ' + qtxt : '本模式关闭', c: 'var(--sen)', bg: 'var(--sen-soft)', dim: mode !== 'sentry' },
+        { y: RY.exe, n: 'Executor', s: 'π0.5 · 2 Hz', c: 'var(--exe)', bg: 'var(--exe-soft)' }
+      ]);
+      svg.appendChild(el('text', { x: 8, y: RY.sub[0] + 20, class: 'mono' }, '子任务'));
+      svg.appendChild(el('text', { x: 8, y: RY.usr[0] + 17, class: 'mono' }, '用户'));
+      // axis
+      const cand = [5, 10, 20, 30, 60, 120, 300]; const stp = cand.find(c => M.Tw / c <= 9) || 600;
+      for (let t = 0; t <= M.Tw + 1e-6; t += stp) { svg.appendChild(el('line', { x1: x(t), x2: x(t), y1: RY.sub[1] + 2, y2: RY.sub[1] + 7, stroke: 'var(--muted)' })); svg.appendChild(el('text', { x: x(t), y: RY.sub[1] + 20, 'text-anchor': 'middle', class: 'mono' }, t + ' s')); }
+      // subtask band
+      M.subs.forEach((sb, i) => {
+        const a = x(wA(sb.s)), b = x(wB(sb.d)), c = x(wB(sb.det));
+        svg.appendChild(el('rect', { x: a, y: RY.sub[0], width: Math.max(1, b - a), height: RY.sub[1] - RY.sub[0], rx: 3, fill: i % 2 ? 'color-mix(in oklab,var(--exe) 22%,var(--surface))' : 'color-mix(in oklab,var(--exe) 34%,var(--surface))', 'data-tip': (i + 1) + '. ' + ST[i].tau + '（' + ST[i].zh + '，示意 ' + ST[i].dur + ' 个动作步）' }));
+        if (b - a > 54) svg.appendChild(el('text', { x: (a + b) / 2, y: RY.sub[0] + 20, 'text-anchor': 'middle', class: 'on', 'font-size': 11 }, (i + 1) + ' ' + ST[i].zh));
+        if (c - b > .5) svg.appendChild(el('rect', { x: b, y: RY.sub[0], width: c - b, height: RY.sub[1] - RY.sub[0], fill: 'url(#hW' + svg.id + ')', stroke: 'var(--warn)', 'stroke-width': .8, 'data-tip': '「' + ST[i].zh + '」已完成，但还没被检出，Executor 仍按旧子目标执行' }));
+      });
+      // pauses
+      if (L > 0) M.calls.forEach(c => {
+        svg.appendChild(el('rect', { x: x(c.ws), y: RY.exe[0], width: Math.max(1, x(c.we) - x(c.ws)), height: RY.sub[1] - RY.exe[0], fill: 'url(#hG' + svg.id + ')', opacity: .8, 'data-tip': '等待 Planner 第 ' + (c.k + 1) + ' 次调用返回（' + L + ' s，表 11 P50）；论文没说这段时间机器人是否停下' }));
+      });
+      // executor ticks
+      for (let e = 0; e < M.end - 1e-6; e = r3(e + 0.5)) { const xx = x(wA(e)); svg.appendChild(el('line', { x1: xx, x2: xx, y1: RY.exe[0] + 18, y2: RY.exe[1] - 5, stroke: 'var(--exe)', 'stroke-width': 1, opacity: .55 })); }
+      // sentry
+      M.qs.forEach(qq => {
+        const xx = x(wB(qq.e)), cy = (RY.sen[0] + RY.sen[1]) / 2 + 6;
+        const a = { nd: { r: 2.2, fill: 'color-mix(in oklab,var(--sen) 45%,transparent)' }, done: { r: 5, fill: 'var(--sen)' }, miss: { r: 3.6, fill: 'var(--surface)', stroke: 'var(--warn)', 'stroke-width': 1.6 }, fp: { r: 5, fill: 'var(--warn)' } }[qq.res];
+        const tipT = { nd: 'not_done', done: 'done → 唤醒 Planner', miss: '漏检：子任务其实已完成，Sentry 仍答 not_done', fp: '误报：子任务没完成，Sentry 答 done' }[qq.res];
+        svg.appendChild(el('circle', Object.assign({ cx: xx, cy, 'data-tip': 'Sentry @ 执行 ' + qq.e.toFixed(1) + ' s：' + tipT }, a)));
+      });
+      // planner
+      M.calls.forEach(c => {
+        const xx = x(c.ws), wd = Math.max(4, x(c.we) - x(c.ws));
+        const fill = c.kind === 'periodic' ? 'var(--pla-2)' : 'var(--pla)';
+        const why = { init: '初始规划（指令 1）', done: 'Sentry 报 done', fp: 'Sentry 误报（示意）', periodic: '定时调用，计划不变', advance: '定时调用，发现子任务已完成' }[c.kind];
+        svg.appendChild(el('rect', { x: xx, y: RY.pla[0] + 20, width: wd, height: RY.pla[1] - RY.pla[0] - 25, rx: 2, fill, stroke: c.kind === 'fp' ? 'var(--warn)' : 'none', 'stroke-width': 1.5, 'data-tip': 'Planner 第 ' + (c.k + 1) + ' 次：' + why }));
+      });
+      // user events
+      const ev = [{ w: 0, t: '指令 1：Lucy likes plush toys. Inspect the boxes, collect the toy duck and snack into the box.' }];
+      const c3 = M.calls.find(c => c.ms === 3); if (c3) ev.push({ w: c3.ws, t: '指令 2：Lucy will come to visit, prepare something she likes.' });
+      ev.push({ w: wA(M.add), t: '用户往中箱放进一个毛绒玩具（图 3「Human Add Obj.」，时刻为示意）', alt: true });
+      ev.forEach(v => { const xx = x(v.w); svg.appendChild(el('path', { d: 'M' + xx + ' ' + (RY.usr[0] + 6) + ' l6 7 l-6 7 l-6 -7 z', fill: v.alt ? 'var(--hum)' : 'var(--ink-2)', 'data-tip': v.t })); });
+      // frames used by the latest planner call
+      const lc = st.lastCall;
+      if (lc && lc.kind !== 'init') {
+        const sb = M.subs[lc.sub]; let pts = [];
+        if (lc.kind === 'periodic' || lc.kind === 'advance') pts = Array.from({ length: 8 }, (_, j) => r3(lc.e - 0.1 * (7 - j)));
+        else pts = Array.from({ length: 8 }, (_, j) => sb.s + (j + 0.5) / 8 * (lc.e - sb.s));
+        pts.forEach(p => svg.appendChild(el('circle', { cx: x(wB(p)), cy: RY.exe[0] + 9, r: 3.2, fill: 'var(--pla)', stroke: 'var(--surface)', 'stroke-width': 1, 'data-tip': lc.kind === 'periodic' || lc.kind === 'advance' ? '定时模式：Planner 看最近 8 帧' : 'Sentry 模式：Planner 看本子任务期间均匀采样的 8 帧（图 2）' })));
+      }
+      // cursor
+      const cx = x(st.w);
+      svg.appendChild(el('line', { x1: cx, x2: cx, y1: 4, y2: RY.sub[1] + 2, stroke: 'var(--ink)', 'stroke-width': 1.6 }));
+      svg.appendChild(el('path', { d: 'M' + (cx - 6) + ' 2 h12 l-6 7 z', fill: 'var(--ink)' }));
+    }
+    function drawZoom(st){
+      const svg = svgZ; svg.innerHTML = ''; defs(svg);
+      const Z = 8; const w0 = Math.max(0, Math.min(st.w - Z / 2, M.Tw - Z)), w1 = w0 + Z;
+      const x = w => X0 + (X1 - X0) * (w - w0) / Z;
+      const ZR = { pla: [8, 42], sen: [48, 82], exe: [88, 150] };
+      rowLabels(svg, [
+        { y: ZR.pla, n: 'Planner', c: 'var(--pla)', bg: 'var(--pla-soft)' },
+        { y: ZR.sen, n: 'Sentry', s: mode === 'sentry' ? '𝒲ₜ = 最近 8 帧' : '关闭', c: 'var(--sen)', bg: 'var(--sen-soft)', dim: mode !== 'sentry' },
+        { y: ZR.exe, n: 'Executor', s: '10 Hz 动作步', c: 'var(--exe)', bg: 'var(--exe-soft)' }
+      ]);
+      for (let t = Math.ceil(w0); t <= w1 + 1e-6; t++) { svg.appendChild(el('line', { x1: x(t), x2: x(t), y1: ZR.exe[1] + 2, y2: ZR.exe[1] + 7, stroke: 'var(--muted)' })); svg.appendChild(el('text', { x: x(t), y: ZR.exe[1] + 20, 'text-anchor': 'middle', class: 'mono' }, (Math.round(t * 10) / 10) + ' s')); }
+      const clip = el('clipPath', { id: 'zc' }); clip.appendChild(el('rect', { x: X0, y: 0, width: X1 - X0, height: 182 })); svg.firstChild.appendChild(clip);
+      const g = el('g', { 'clip-path': 'url(#zc)' }); svg.appendChild(g);
+      const eNow = st.loc.e, executing = st.phase === 'active' || st.phase === 'undet';
+      const e0 = Math.max(0, Math.floor(locate(w0).e * 10) / 10 - 0.1), e1 = Math.min(M.end, locate(w1).e + 0.1);
+      const cw = (X1 - X0) / (Z * 10);
+      const lastInf = Math.floor(eNow / 0.5 + 1e-6) * 0.5;
+      for (let e = e0; e < e1 - 1e-6; e = r3(e + 0.1)) {
+        const xs = x(wA(e)); if (xs > X1 || xs + cw < X0) continue;
+        const ws = wA(e); const past = ws + 0.1 <= st.w + 1e-9; const inChunk = executing && e >= lastInf - 1e-6 && e < lastInf + 0.5 - 1e-6;
+        g.appendChild(el('rect', { x: xs + 1, y: ZR.exe[0] + 17, width: Math.max(1, cw - 2), height: 14, rx: 1.5, fill: 'var(--exe)', opacity: inChunk ? .95 : past ? .5 : .16 }));
+      }
+      for (let e = Math.ceil(e0 / 0.5) * 0.5; e < e1 - 1e-6; e = r3(e + 0.5)) {
+        const xx = x(wA(e));
+        g.appendChild(el('path', { d: 'M' + xx + ' ' + (ZR.exe[0] + 4) + ' l5 9 h-10 z', fill: 'var(--exe)', 'data-tip': 'Executor 推理 @ 执行 ' + e.toFixed(1) + ' s：读当前两张图 + τ，预测 10 个动作，执行前 5 个' }));
+      }
+      if (executing) {
+        const a = x(wA(lastInf)), b = x(wA(lastInf) + 0.5), c = x(wA(lastInf) + 1.0), yb = ZR.exe[0] + 34;
+        g.appendChild(el('path', { d: 'M' + a + ' ' + yb + ' v4 H' + b + ' v-4', fill: 'none', stroke: 'var(--ink)', 'stroke-width': 1.2 }));
+        g.appendChild(el('path', { d: 'M' + b + ' ' + (yb + 4) + ' H' + c + ' v-4', fill: 'none', stroke: 'var(--muted)', 'stroke-width': 1.2, 'stroke-dasharray': '3 2' }));
+        g.appendChild(el('text', { x: (a + b) / 2, y: ZR.exe[0] + 53, 'text-anchor': 'middle', class: 'mono', style: 'fill:var(--ink)' }, '执行'));
+        g.appendChild(el('text', { x: (b + c) / 2, y: ZR.exe[0] + 53, 'text-anchor': 'middle', class: 'mono' }, '丢弃'));
+      }
+      if (L > 0) M.calls.forEach(c => { if (c.we < w0 || c.ws > w1) return; g.appendChild(el('rect', { x: x(c.ws), y: ZR.exe[0], width: x(c.we) - x(c.ws), height: ZR.exe[1] - ZR.exe[0], fill: 'url(#hG' + svg.id + ')' })); if (x(c.we) - x(c.ws) > 80) g.appendChild(el('text', { x: (Math.max(x(c.ws), X0) + Math.min(x(c.we), X1)) / 2, y: ZR.exe[0] + 28, 'text-anchor': 'middle', class: 'mono', style: 'fill:var(--ink)' }, '等 Planner（假设停住）')); });
+      if (mode === 'sentry') {
+        const qv = M.qs.filter(qq => wB(qq.e) >= w0 - 1 && wB(qq.e) <= w1 + 1);
+        const lastQ = M.qs.filter(qq => wB(qq.e) <= st.w + 1e-9).pop();
+        qv.forEach(qq => {
+          const xx = x(wB(qq.e)), cy = ZR.sen[0] + 21;
+          const a = { nd: { r: 4, fill: 'color-mix(in oklab,var(--sen) 45%,transparent)' }, done: { r: 6, fill: 'var(--sen)' }, miss: { r: 5, fill: 'var(--surface)', stroke: 'var(--warn)', 'stroke-width': 2 }, fp: { r: 6, fill: 'var(--warn)' } }[qq.res];
+          g.appendChild(el('circle', Object.assign({ cx: xx, cy }, a)));
+          const lab = { nd: 'not_done', done: 'done', miss: 'not_done（漏检）', fp: 'done（误报）' }[qq.res];
+          if (lastQ && qq === lastQ) {
+            const a0 = x(wB(qq.e - 0.8));
+            g.appendChild(el('path', { d: 'M' + a0 + ' ' + (ZR.sen[1] - 3) + ' v-5 H' + xx + ' v5', fill: 'none', stroke: 'var(--sen)', 'stroke-width': 1.4 })); g.appendChild(el('text', { x: a0 - 4, y: ZR.sen[1] - 1, 'text-anchor': 'end', class: 'mono' }, '读最近 8 帧'));
+            g.appendChild(el('text', { x: xx + 8, y: ZR.sen[0] + 11, class: 'mono', style: 'fill:' + (qq.res === 'miss' || qq.res === 'fp' ? 'var(--warn)' : 'var(--ink)') }, lab));
+          }
+        });
+      }
+      M.calls.forEach(c => {
+        if (c.we < w0 - 0.5 || c.ws > w1) return;
+        const a = x(c.ws), wd = Math.max(5, x(c.we) - a);
+        g.appendChild(el('rect', { x: a, y: ZR.pla[0] + 8, width: wd, height: 20, rx: 3, fill: c.kind === 'periodic' ? 'var(--pla-2)' : 'var(--pla)' }));
+        g.appendChild(el('text', { x: Math.max(a, X0) + wd + 6 > X1 - 60 ? a - 6 : Math.max(a, X0) + Math.min(wd, 400) + 6, y: ZR.pla[0] + 22, 'text-anchor': Math.max(a, X0) + wd + 6 > X1 - 60 ? 'end' : 'start', class: 'mono', style: 'fill:var(--ink)' }, '第 ' + (c.k + 1) + ' 次调用'));
+      });
+      const cx = x(st.w);
+      svg.appendChild(el('line', { x1: cx, x2: cx, y1: 4, y2: ZR.exe[1] + 2, stroke: 'var(--ink)', 'stroke-width': 1.6 }));
+    }
+    function memAt(ms){
+      const recs = {}; let fresh = {};
+      for (let m = 0; m <= ms; m++) {
+        const f = {};
+        MS[m].ops.forEach(o => { if (o[0] === 'CREATE') { recs[o[1]] = Object.assign({ past: false }, REC[o[1]]); f[o[1]] = 'CREATE'; } else if (o[0] === 'UPDATE') { recs[o[1]] = Object.assign({}, recs[o[1]], { text: o[2], past: true }); f[o[1]] = 'UPDATE'; } });
+        fresh = f;
+      }
+      return { recs, fresh };
+    }
+    function render(){
+      const st = state(W);
+      drawOver(st); drawZoom(st);
+      const fmtS = v => v.toFixed(1) + ' s';
+      $('#tl-clock').textContent = '墙钟 ' + fmtS(W) + ' / ' + fmtS(M.Tw) + ' · 执行 ' + fmtS(st.e);
+      range.value = Math.round(1000 * W / M.Tw);
+      const tau = st.finished ? '—' : (st.phase === 'call' && L > 0 && st.loc.call.kind !== 'fp' && st.loc.call.kind !== 'periodic') ? '（等 Planner 返回）' : ST[st.sub.i].tau;
+      // executor card
+      let eSt, eTxt;
+      if (st.finished) { eSt = '<span class="st idle">已结束</span>'; eTxt = '六个子任务都已完成。'; }
+      else if (st.phase === 'call' && L > 0) { eSt = '<span class="st idle">等待新子目标</span>'; eTxt = '论文没说 Planner 思考时 Executor 做什么，这里按停住画。'; }
+      else { const inf = Math.floor(st.e / 0.5 + 1e-6) + 1, k = Math.floor((st.e % 0.5) / 0.1 + 1e-6) + 1; eSt = '<span class="st run">执行中</span>'; eTxt = '第 ' + inf + ' 次推理，块内第 ' + Math.min(5, k) + ' / 5 步。' + (st.phase === 'undet' ? '<br><span style="color:var(--warn)">子任务其实已完成，仍在执行旧 τ。</span>' : ''); }
+      // sentry card
+      let sHtml;
+      if (mode !== 'sentry') sHtml = '<span class="st idle">关闭</span><p>HiMe w/o Sentry：没有完成判定，Planner 按固定间隔被叫醒。</p>';
+      else {
+        const lq = st.qsSoFar[st.qsSoFar.length - 1];
+        const resTxt = !lq ? '<span class="st idle">尚未查询</span>' : lq.res === 'done' ? '<span class="st ok">done</span>' : lq.res === 'nd' ? '<span class="st idle">not_done</span>' : lq.res === 'miss' ? '<span class="st bad">not_done · 漏检</span>' : '<span class="st bad">done · 误报</span>';
+        const nextQ = M.qs.find(qq => wB(qq.e) > W + 1e-9);
+        sHtml = resTxt + '<p>上次查询：' + (lq ? '执行 ' + lq.e.toFixed(1) + ' s' : '—') + '；' + (nextQ && !st.finished ? '下次在墙钟 ' + wB(nextQ.e).toFixed(1) + ' s' : '不再查询') + '</p><p class="muted small" style="font-size:12.5px">读：最近 8 帧拼图 + 计划表 → 只输出 done / not_done</p>';
+      }
+      // planner card
+      const lc = st.lastCall; const why = lc ? { init: '初始规划', done: 'Sentry 报 done', fp: 'Sentry 误报', periodic: '定时，计划不变', advance: '定时，推进计划' }[lc.kind] : '';
+      const thinking = st.loc.call && L > 0;
+      const pHtml = (thinking ? '<span class="st think">思考中 ' + (W - st.loc.call.ws).toFixed(1) + ' / ' + L + ' s</span>' : '<span class="st idle">休眠</span>') + '<p>已调用 <b>' + st.callsSoFar + '</b> 次；最近一次：' + why + '</p><p class="muted small" style="font-size:12.5px">每次两轮：先只发 QUERY，再发 CREATE / UPDATE / DELETE 并输出计划表</p>';
+      $('#tl-read').innerHTML =
+        '<div class="lay p"><h5>Planner<small>情景记忆 · ' + (L === 6.83 ? 'Qwen3-VL-30B' : 'GPT-4o') + '</small></h5>' + pHtml + '</div>' +
+        '<div class="lay s"><h5>Sentry<small>工作记忆 · ' + (senStep === 10 ? '每 1 s' : senStep === 5 ? '每 0.5 s' : '每 5 s') + '</small></h5>' + sHtml + '</div>' +
+        '<div class="lay e"><h5>Executor<small>瞬时记忆 · 2 Hz</small></h5>' + eSt + '<p>τ<sub>t</sub> = <code>' + esc(tau) + '</code></p><p>' + eTxt + '</p></div>';
+      // memory
+      const mm = memAt(st.ms);
+      $('#tl-plan').innerHTML = MS[st.ms].plan.map(p => '<li class="' + p[0] + '"><b>[' + p[0] + ']</b>' + esc(p[1]) + '</li>').join('');
+      const ids = Object.keys(mm.recs).map(Number).sort((a, b) => a - b);
+      $('#tl-recs').innerHTML = ids.length ? ids.map(id => { const r = mm.recs[id], f = mm.fresh[id]; return '<div class="rec' + (r.past ? ' past' : '') + (f ? ' fresh' : '') + '"><span class="id">#' + id + '</span><div><div>' + r.tags.map(t => '<span class="chip">' + esc(t) + '</span>').join('') + (r.img ? '<span class="chip img">image</span>' : '') + (f ? '<span class="op">' + f + '</span>' : '') + '</div><div class="tx">' + esc(r.text) + '</div></div></div>'; }).join('') : '<p class="muted small" style="margin:0">（空）</p>';
+      const lastMsCall = M.calls.filter(c => c.ms != null && c.ws <= W + 1e-9).pop();
+      const opsTxt = MS[st.ms].ops.map(o => o[0] === 'QUERY' ? 'QUERY ' + o[1] : o[0] + ' #' + o[1]).join(' · ');
+      $('#tl-ops').innerHTML = (lastMsCall ? '第 ' + (lastMsCall.k + 1) + ' 次调用的操作：' : '') + (opsTxt || '无记忆改动，计划全部 [done]');
+      // say
+      $('#tl-say').innerHTML = say(st);
+      const doneSubs = st.finished ? ST.length : st.sub.i;
+      $('#tl-count').innerHTML = '<span>Planner 调用 <b>' + st.callsSoFar + '</b></span><span>已完成子任务 <b>' + doneSubs + '</b></span>' + (doneSubs ? '<span>每子任务 <b>' + (st.callsSoFar / doneSubs).toFixed(2) + '</b> 次</span>' : '') + (mode === 'sentry' ? '<span>Sentry 查询 <b>' + st.qsSoFar.length + '</b></span>' : '') + '<span>Executor 推理 <b>' + Math.min(Math.ceil(st.e / 0.5 + 1e-6), Math.ceil(M.end / 0.5)) + '</b></span><span>表 2 · Object Search：HiMe 1.8 次 / Flat 5.4 次</span>';
+    }
+    function say(st){
+      const lat = L > 0 ? '这次调用按 ' + L + ' s 画（表 11 的 P50）。论文没说这段时间机器人是否停下，这里按停下画。' : '';
+      if (st.finished) {
+        const c = M.calls.length;
+        return '六个子任务全部 <code>[done]</code>，任务结束。这一遍共调用 Planner <b>' + c + '</b> 次（含开头的初始规划），平均每子任务 ' + (c / ST.length).toFixed(2) + ' 次' + (L > 0 ? '；墙钟 ' + M.Tw.toFixed(0) + ' s，其中纯执行 ' + M.end.toFixed(0) + ' s，其余都在等 Planner' : '') + '。';
+      }
+      const c = st.loc.call || (L === 0 && st.lastCall && Math.abs(st.lastCall.ws - st.w) < M.Tw / 400 ? st.lastCall : null);
+      if (c) {
+        const t = {
+          init: '收到指令 1。Planner 先 QUERY「lucy」，记忆为空；再 CREATE 一条用户偏好，并把指令拆成计划表，第一行 <code>[current]</code> 作为 τ 下发。',
+          done: 'Sentry 报 done，u<sub>t</sub> = 1，Planner 被唤醒。第 1 轮只发 QUERY；第 2 轮按检索结果做 CREATE / UPDATE / DELETE，输出新计划表，新的 <code>[current]</code> 作为 τ 下发。它看的是本子任务期间均匀采样的 8 帧（图 2）。',
+          fp: 'Sentry 误报 done（图 7 精确率约 82%，即约 18% 的 done 是错的）。Planner 看过 8 帧后保持 <code>[current]</code> 不变，这次调用白花了。（示意）',
+          periodic: '定时到点，Planner 不管子任务进度被叫醒，看最近 8 帧，复核后保持 <code>[current]</code>。表 2 里 Flat Memory 平均每个子任务被叫 4.8–6.2 次。',
+          advance: '定时到点，这次 Planner 看到子任务已完成，推进计划并更新记忆。'
+        }[c.kind];
+        return t + (c.ms === 3 ? ' 同时收到指令 2，Planner 查到 #1「Lucy 喜欢毛绒玩具」，追加最后一个子任务。' : '') + (c.ms === 4 ? ' 采样帧里能看到用户往中箱放了毛绒玩具：按提示词规则，先 UPDATE #3 标成过去，再 CREATE #6。' : '') + ' ' + lat;
+      }
+      if (st.phase === 'undet') {
+        return mode === 'sentry'
+          ? '物理上「' + ST[st.sub.i].zh + '」已经完成，但 Sentry 还没报 done。图 7：8 帧窗口下召回约 35%，Sentry 倾向于判「没做完」。这段时间 Executor 仍按旧 τ 执行，论文说可能做过头甚至死循环，所以另设了固定间隔的 Planner 兜底（间隔未披露，这里没画）。'
+          : '子任务已经完成，但下一次定时调用还没到，Executor 仍按旧 τ 执行。';
+      }
+      let s = mode === 'sentry'
+        ? 'Executor 只拿当前两张图和 τ = <code>' + esc(ST[st.sub.i].tau) + '</code> 出动作，不读任何历史。Sentry 每 ' + M.q + ' s 看最近 8 帧判一次；答 not_done 时什么都不改，情景记忆原样保留（𝓔<sub>t+1</sub> ← 𝓔<sub>t</sub>），Planner 保持休眠。'
+        : 'Executor 照常执行。没有 Sentry 时，Planner 每约 4.5 s 被定时叫醒一次（间隔按表 2 中 Flat Memory 的 5.4 次 / 子任务反推），看到的是最近 8 帧，而不是整个子任务的均匀采样。';
+      if (st.sub.i === 3 && st.e >= M.add - 1e-6) s += ' 用户刚往中箱放了一个毛绒玩具（图 3「Human Add Obj.」）。如果这件事发生在子任务中段，只看最近 8 帧的 Planner 可能看不到；论文用这一点解释去掉 Sentry 后的掉分（§4.3），但没有给逐例日志。';
+      return s;
+    }
+    function rebuild(keep){ const f = M ? W / M.Tw : 0; build(); W = keep ? Math.min(M.Tw, f * M.Tw) : 0; render(); }
+    function bindSeg(id, fn){ $$('#' + id + ' button').forEach(b => b.addEventListener('click', () => { $$('#' + id + ' button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); fn(b.dataset.v); rebuild(true); })); }
+    bindSeg('tl-mode', v => { mode = v; $$('#tl-rec button, #tl-q button').forEach(b => { b.disabled = v !== 'sentry'; b.style.opacity = v !== 'sentry' ? .45 : 1; }); });
+    bindSeg('tl-rec', v => { recall = v === 'real'; });
+    bindSeg('tl-q', v => { senStep = +v; });
+    bindSeg('tl-lat', v => { L = +v; });
+    range.addEventListener('input', () => { W = M.Tw * range.value / 1000; render(); });
+    function fromPointer(ev){ const r = svgO.getBoundingClientRect(); const vx = (ev.clientX - r.left) * 900 / r.width; W = Math.max(0, Math.min(M.Tw, (vx - X0) / (X1 - X0) * M.Tw)); render(); }
+    let drag = false;
+    svgO.addEventListener('pointerdown', ev => { drag = true; svgO.setPointerCapture(ev.pointerId); fromPointer(ev); });
+    svgO.addEventListener('pointermove', ev => { if (drag) fromPointer(ev); });
+    svgO.addEventListener('pointerup', () => { drag = false; });
+    svgO.addEventListener('pointercancel', () => { drag = false; });
+    const btn = $('#tl-play');
+    function step(ts){ if (!playing) return; const dt = last ? (ts - last) / 1000 : 0; last = ts; W += dt * M.Tw / 32; if (W >= M.Tw) { W = M.Tw; playing = false; btn.textContent = '▶ 播放'; } render(); if (playing) raf = requestAnimationFrame(step); }
+    btn.addEventListener('click', () => { if (playing) { playing = false; btn.textContent = '▶ 播放'; cancelAnimationFrame(raf); return; } if (W >= M.Tw - 1e-6) W = 0; playing = true; last = 0; btn.textContent = '❚❚ 暂停'; raf = requestAnimationFrame(step); });
+    build(); W = 12.5; render();
+  })();
+})();
+</script>
+</body>
+</html>

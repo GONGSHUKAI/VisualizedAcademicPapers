@@ -10,6 +10,10 @@ What it does, in order:
   5. Regenerates the paper list in README.md between the catalog:start / catalog:end markers.
   6. Checks that every local file a page references (fig/..., relative links) exists.
 
+A topic may list "categories" ([{id, title, short, summary}]); a paper in it then names one with
+"category". Papers are grouped by category (in the listed order) on the home page, in README and
+in the navigation strip. Topics without categories render as a flat, date-sorted list.
+
 Run from anywhere:  python3 tools/build.py
 It only rewrites a file when its content changes, so re-running is safe.
 """
@@ -50,6 +54,8 @@ NAV_STYLE = """<!-- vap:nav-style -->
 .vapnav a[aria-current="page"]{opacity:1;font-weight:700}
 .vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
 .vapnav-sep{opacity:.4}
+.vapnav-grp{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-cat{font-size:11.5px;letter-spacing:.04em;opacity:.5}
 </style>
 <!-- /vap:nav-style -->"""
 
@@ -78,6 +84,11 @@ def load_catalog():
         for t in p.get("topics", []):
             if t not in topics:
                 problems.append(f"catalog: {p['slug']} uses unknown topic {t}")
+        cat_ids = {c["id"] for t in p.get("topics", []) if t in topics for c in topics[t].get("categories", [])}
+        if p.get("category") and p["category"] not in cat_ids:
+            problems.append(f"catalog: {p['slug']} uses unknown category {p['category']}")
+        if cat_ids and not p.get("category"):
+            problems.append(f"catalog: {p['slug']} is in a topic with categories but has no category")
         if not os.path.isfile(os.path.join(ROOT, "papers", p["slug"], "index.html")):
             problems.append(f"missing page: papers/{p['slug']}/index.html")
     on_disk = set()
@@ -94,6 +105,18 @@ def papers_in(cat, topic_id):
     return sorted(ps, key=lambda p: (p.get("date", ""), p["title"].lower()))
 
 
+def grouped(cat, topics, topic_id):
+    """[(category dict or None, papers)] in the topic's category order; flat list if it has none."""
+    ps = papers_in(cat, topic_id)
+    cats = topics[topic_id].get("categories") or []
+    if not cats:
+        return [(None, ps)]
+    out = [(c, [p for p in ps if p.get("category") == c["id"]]) for c in cats]
+    known = {c["id"] for c in cats}
+    rest = [p for p in ps if p.get("category") not in known]
+    return [(c, g) for c, g in out if g] + ([(None, rest)] if rest else [])
+
+
 def nav_html(cat, topics, topic_id=None, current_slug=None):
     """Nav strip for a page two levels deep (papers/<slug>/ or topics/<id>/)."""
     crumb = ['<a href="../../">全部论文</a>']
@@ -103,9 +126,16 @@ def nav_html(cat, topics, topic_id=None, current_slug=None):
         cur = ' aria-current="page"' if current_slug is None else ""
         crumb.append('<span class="vapnav-sep" aria-hidden="true">/</span>')
         crumb.append(f'<a href="../../{esc(t["page"])}"{cur}>{esc(t["title"])}</a>')
-        for p in papers_in(cat, topic_id):
-            cur = ' aria-current="page"' if p["slug"] == current_slug else ""
-            links.append(f'<a href="../../papers/{esc(p["slug"])}/"{cur}>{esc(p["title"])}</a>')
+        for c, ps in grouped(cat, topics, topic_id):
+            items = []
+            for p in ps:
+                cur = ' aria-current="page"' if p["slug"] == current_slug else ""
+                items.append(f'<a href="../../papers/{esc(p["slug"])}/"{cur}>{esc(p["title"])}</a>')
+            if c is None:
+                links.extend(items)
+            else:
+                label = f'<span class="vapnav-cat">{esc(c.get("short") or c["title"])}</span>'
+                links.append(f'<span class="vapnav-grp">{label}{"".join(items)}</span>')
     return (
         "<!-- vap:nav -->\n"
         '<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in">'
@@ -211,6 +241,22 @@ def paper_row(p):
     )
 
 
+def topic_lists(cat, topics, topic_id):
+    out = []
+    for c, ps in grouped(cat, topics, topic_id):
+        rows = "".join(paper_row(p) for p in ps)
+        if c is None:
+            out.append(f'<ul class="papers">{rows}</ul>')
+            continue
+        summary = f'<p class="csum">{esc(c["summary"])}</p>' if c.get("summary") else ""
+        out.append(
+            f'<div class="cat" id="{esc(topic_id)}-{esc(c["id"])}">'
+            f'<h3 class="chead">{esc(c["title"])}<span class="tcount">{len(ps)} 篇</span></h3>{summary}'
+            f'<ul class="papers">{rows}</ul></div>'
+        )
+    return "".join(out)
+
+
 def build_home(cat, topics):
     blocks = []
     for t in cat.get("topics", []):
@@ -224,7 +270,7 @@ def build_home(cat, topics):
             f'<h2><a href="{esc(t["page"])}">{esc(t["title"])}</a><span class="tcount">{len(ps)} 篇</span></h2>'
             f'<p class="tsum">{esc(t.get("summary", ""))}</p></div>'
             f'<a class="tgo" href="{esc(t["page"])}">专题对照 →</a></div>'
-            f'<ul class="papers">{"".join(paper_row(p) for p in ps)}</ul></section>'
+            f'{topic_lists(cat, topics, t["id"])}</section>'
         )
     loose = sorted((p for p in cat["papers"] if not p.get("topics")),
                    key=lambda p: (p.get("date", ""), p["title"].lower()))
@@ -249,7 +295,7 @@ def build_home(cat, topics):
 README_RE = re.compile(r"(<!-- catalog:start -->\n).*?(<!-- catalog:end -->)", re.S)
 
 
-def build_readme(cat):
+def build_readme(cat, topics):
     """Regenerate the paper list in README.md between the catalog markers."""
     path = os.path.join(ROOT, "README.md")
     if not os.path.isfile(path):
@@ -267,10 +313,15 @@ def build_readme(cat):
         path_str = " / ".join(t.get("path", []))
         lines.append(f'### {t["title"]}（{path_str}）\n')
         lines.append(f'[专题对照页]({site}{t["page"]})\n')
-        for p in ps:
-            ax = f' · arXiv [{p["arxiv"]}](https://arxiv.org/abs/{p["arxiv"]})' if p.get("arxiv") else ""
-            lines.append(f'- [{p["title"]}]({site}papers/{p["slug"]}/) · {p.get("date", "")}{ax} — {p.get("summary", "")}')
-        lines.append("")
+        for c, group in grouped(cat, topics, t["id"]):
+            if c is not None:
+                lines.append(f'#### {c["title"]}\n')
+                if c.get("summary"):
+                    lines.append(f'{c["summary"]}\n')
+            for p in group:
+                ax = f' · arXiv [{p["arxiv"]}](https://arxiv.org/abs/{p["arxiv"]})' if p.get("arxiv") else ""
+                lines.append(f'- [{p["title"]}]({site}papers/{p["slug"]}/) · {p.get("date", "")}{ax} — {p.get("summary", "")}')
+            lines.append("")
     loose = [p for p in cat["papers"] if not p.get("topics")]
     if loose:
         lines.append("### 未归入专题\n")
@@ -287,7 +338,7 @@ def main():
     changed = build_pages(cat, topics)
     if build_home(cat, topics):
         changed.append("index.html")
-    if build_readme(cat):
+    if build_readme(cat, topics):
         changed.append("README.md")
     for path, text in to_check:
         check_refs(path, text)

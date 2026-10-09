@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="icon" href="data:,">
-<title>Harness for Robotics</title>
-<meta name="description" content="Harness for Robotics 专题：结构化执行（ACoT-VLA、MotorMind）与评估反馈（TT-VLA、τ0-VLA）四篇论文的中文精读索引与横向对照。">
+<title>Harness for Robotics · 十一篇精读</title>
+<meta name="description" content="Harness for Robotics 专题：上下文架构、持久状态与记忆、结构化执行、评估与反馈四类，共 11 篇论文的中文精读索引与横向对照。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
@@ -13,7 +13,7 @@
 :root{
   color-scheme:light;
   --bg:#F1EFEA; --surface:#FBFAF7; --ink:#1D1B18; --ink-2:#47433D; --muted:#706A61;
-  --rule:#D8D3CA; --rule-2:#C2BBAF; --accent:#7A4A1C; --accent-soft:#EFE1D0; --se:#2E6A88; --se-soft:#D8E7EF; --ef:#A2541E; --ef-soft:#F5E1D2; --warn:#9A3A2A;
+  --rule:#D8D3CA; --rule-2:#C2BBAF; --accent:#7A4A1C; --accent-soft:#EFE1D0; --se:#2E6A88; --se-soft:#D8E7EF; --ef:#A2541E; --ef-soft:#F5E1D2; --cx:#3B7537; --cx-soft:#DDEBD8; --me:#7A4790; --me-soft:#ECDFF2; --warn:#9A3A2A;
   --f-disp:"Schibsted Grotesk","Noto Sans SC",system-ui,sans-serif;
   --f-body:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
@@ -23,13 +23,13 @@
   :root:not([data-theme="light"]){
     color-scheme:dark;
     --bg:#141311; --surface:#1C1A17; --ink:#ECE8E1; --ink-2:#C2BCB2; --muted:#958E84;
-    --rule:#302D28; --rule-2:#423E37; --accent:#E0A46C; --accent-soft:#3A2919; --se:#79B6D4; --se-soft:#17303C; --ef:#EE9A60; --ef-soft:#3C2416; --warn:#EE8C78;
+    --rule:#302D28; --rule-2:#423E37; --accent:#E0A46C; --accent-soft:#3A2919; --se:#79B6D4; --se-soft:#17303C; --ef:#EE9A60; --ef-soft:#3C2416; --cx:#8DC487; --cx-soft:#1D2E1B; --me:#C59CDA; --me-soft:#2D2035; --warn:#EE8C78;
   }
 }
 :root[data-theme="dark"]{
   color-scheme:dark;
   --bg:#141311; --surface:#1C1A17; --ink:#ECE8E1; --ink-2:#C2BCB2; --muted:#958E84;
-  --rule:#302D28; --rule-2:#423E37; --accent:#E0A46C; --accent-soft:#3A2919; --se:#79B6D4; --se-soft:#17303C; --ef:#EE9A60; --ef-soft:#3C2416; --warn:#EE8C78;
+  --rule:#302D28; --rule-2:#423E37; --accent:#E0A46C; --accent-soft:#3A2919; --se:#79B6D4; --se-soft:#17303C; --ef:#EE9A60; --ef-soft:#3C2416; --cx:#8DC487; --cx-soft:#1D2E1B; --me:#C59CDA; --me-soft:#2D2035; --warn:#EE8C78;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -54,7 +54,7 @@ h2{font:700 24px/1.3 var(--f-disp);margin:0 0 6px;text-wrap:balance}
 .cats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 @media (max-width:760px){.cats{grid-template-columns:1fr}}
 .cat{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:20px 22px}
-.cat.se{border-top:4px solid var(--se)} .cat.ef{border-top:4px solid var(--ef)}
+.cat.se{border-top:4px solid var(--se)} .cat.ef{border-top:4px solid var(--ef)} .cat.cx{border-top:4px solid var(--cx)} .cat.me{border-top:4px solid var(--me)}
 .cat .no{font:500 12px var(--f-mono);color:var(--muted)}
 .cat h3{font:700 20px/1.3 var(--f-disp);margin:4px 0 8px}
 .cat p{margin:0 0 12px;color:var(--ink-2);font-size:15px}
@@ -68,39 +68,59 @@ h2{font:700 24px/1.3 var(--f-disp);margin:0 0 6px;text-wrap:balance}
 .map text{font-family:var(--f-body);font-size:12.5px;fill:var(--ink-2)}
 .map .m{font-family:var(--f-mono);font-size:11px;fill:var(--muted)}
 .map .n{font-family:var(--f-disp);font-weight:700;font-size:14px;fill:var(--ink)}
-/* strip */
-.strip-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px}
-.strip{display:grid;grid-template-columns:repeat(4,minmax(210px,1fr));position:relative;min-width:880px}
-.strip::before{content:"";position:absolute;left:0;right:14px;top:9px;height:2px;background:linear-gradient(90deg,var(--rule-2),var(--accent))}
-.strip::after{content:"";position:absolute;right:0;top:4px;border-left:14px solid var(--accent);border-top:6px solid transparent;border-bottom:6px solid transparent}
-.step{position:relative;padding:32px 18px 0 0}
-.step::before{content:"";position:absolute;left:0;top:4px;width:12px;height:12px;border-radius:50%;background:var(--bg);border:2px solid var(--accent)}
-.step .d{font:500 12px/1.4 var(--f-mono);color:var(--muted)}
-.step .n{font:700 18px/1.3 var(--f-disp);margin:6px 0 2px}
-.step .n a{color:var(--ink);text-decoration:none}
-.step .n a:hover{color:var(--accent);text-decoration:underline}
-.step .route{font:500 11.5px/1.5 var(--f-mono);letter-spacing:.03em}
-.step .route.se{color:var(--se)} .step .route.ef{color:var(--ef)}
-.step .role{font-weight:700;color:var(--accent);margin:10px 0 4px;font-size:15px}
-.step p{margin:0;color:var(--ink-2);font-size:14.5px;line-height:1.7}
-@media (max-width:760px){
-  .strip{grid-template-columns:1fr;padding-left:26px;min-width:0}
-  .strip::before{left:5px;right:auto;top:6px;bottom:14px;width:2px;height:auto;background:linear-gradient(180deg,var(--rule-2),var(--accent))}
-  .strip::after{left:-1px;right:auto;top:auto;bottom:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:14px solid var(--accent);border-bottom:0}
-  .step{padding:0 0 28px}
-  .step::before{left:-26px;top:5px}
-}
+/* timeline */
+.tl{list-style:none;margin:0;padding:0 0 0 28px;position:relative}
+.tl::before{content:"";position:absolute;left:6px;top:22px;bottom:22px;width:2px;background:linear-gradient(180deg,var(--rule-2),var(--accent))}
+.tl li{position:relative;display:grid;grid-template-columns:150px 200px minmax(0,1fr);gap:2px 24px;padding:16px 0;border-top:1px solid var(--rule)}
+.tl li:first-child{border-top:0}
+.tl li::before{content:"";position:absolute;left:-28px;top:22px;width:14px;height:14px;border-radius:50%;background:var(--bg);border:3px solid var(--accent)}
+.tl li.cx::before{border-color:var(--cx)} .tl li.me::before{border-color:var(--me)} .tl li.se::before{border-color:var(--se)} .tl li.ef::before{border-color:var(--ef)}
+.tl .d{font:500 12.5px/1.6 var(--f-mono);color:var(--muted);padding-top:2px}
+.tl .n{font:700 18px/1.3 var(--f-disp)}
+.tl .n a{color:var(--ink);text-decoration:none}
+.tl .n a:hover{color:var(--accent);text-decoration:underline}
+.tl .route{font:500 11.5px/1.5 var(--f-mono);letter-spacing:.03em;margin-top:2px}
+.route.cx{color:var(--cx)} .route.me{color:var(--me)} .route.se{color:var(--se)} .route.ef{color:var(--ef)}
+.tl .role{font-weight:700;color:var(--ink);font-size:15px;line-height:1.5;margin:0 0 2px}
+.tl p{margin:0;color:var(--ink-2);font-size:14.5px;line-height:1.7}
+@media (max-width:760px){.tl li{grid-template-columns:1fr;gap:2px}}
+/* lanes: where (1)(2) plug into the policy */
+.lane-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--rule);border-radius:6px;background:var(--surface)}
+.lane{display:grid;grid-template-columns:118px repeat(5,minmax(0,1fr));min-width:960px}
+.lane>div{border-bottom:1px solid var(--rule);padding:10px 8px;position:relative}
+.lane .hd{background:var(--bg);font:700 13.5px/1.35 var(--f-disp);color:var(--ink);padding:12px 10px}
+.lane .hd small{display:block;font:400 11px/1.5 var(--f-mono);color:var(--muted);margin-top:2px}
+.lane .hd:not(:first-child):not(:last-child)::after{content:"→";position:absolute;right:-7px;top:12px;color:var(--rule-2);font:400 14px var(--f-mono);z-index:1}
+.lane .grp{grid-column:1/-1;font:600 12.5px/1.4 var(--f-mono);letter-spacing:.03em;padding:9px 10px;background:var(--bg)}
+.lane .grp.cx{color:var(--cx)} .lane .grp.me{color:var(--me)}
+.lane .rl{font:700 15px/1.3 var(--f-disp);padding-left:12px;border-left:4px solid var(--cx)}
+.lane .rl,.lane .hd:first-child{position:sticky;left:0;z-index:2;background:var(--surface)}
+.lane .hd:first-child{background:var(--bg)}
+.lane .grp{position:sticky;left:0}
+.lane .rl.me{border-left-color:var(--me)}
+.lane .rl a{color:var(--ink);text-decoration:none}
+.lane .rl a:hover{color:var(--accent);text-decoration:underline}
+.lane .rl small{display:block;font:400 11px/1.5 var(--f-mono);color:var(--muted);margin-top:4px}
+.lane .e::before{content:"";position:absolute;left:10px;right:10px;top:50%;border-top:1px dashed var(--rule-2)}
+.lane .k{display:block;font-size:13px;line-height:1.55;color:var(--ink);padding:7px 9px;border-radius:4px;background:var(--cx-soft);border:1px solid color-mix(in srgb,var(--cx) 40%,transparent)}
+.lane .k.me{background:var(--me-soft);border-color:color-mix(in srgb,var(--me) 40%,transparent)}
+.lane .k.quiet{background:transparent;border-style:dashed;color:var(--ink-2)}
+.lane-note{margin:14px 0 0;color:var(--ink-2);font-size:14.5px;max-width:52em}
 /* entries */
 .entry{display:grid;grid-template-columns:200px minmax(0,1fr);gap:8px 32px;padding-block:30px;border-top:1px solid var(--rule)}
-.entry:first-child{border-top:0;padding-top:4px}
+.entry:first-child,.grp-h+.entry{border-top:0;padding-top:12px}
 .meta{font:400 13px/1.7 var(--f-mono);color:var(--muted)}
 .meta b{display:block;font:500 13px/1.5 var(--f-mono);color:var(--ink-2);margin-bottom:4px}
 .meta a{color:var(--muted)}
 .meta .cl{display:inline-block;margin-top:6px;font-size:11.5px;border-radius:3px;padding:0 6px}
-.meta .cl.se{background:var(--se-soft);color:var(--se)} .meta .cl.ef{background:var(--ef-soft);color:var(--ef)}
-.entry h3{font:700 26px/1.2 var(--f-disp);margin:0}
-.entry h3 a{color:var(--ink);text-decoration:none}
-.entry h3 a:hover{color:var(--accent)}
+.meta .cl.se{background:var(--se-soft);color:var(--se)} .meta .cl.ef{background:var(--ef-soft);color:var(--ef)} .meta .cl.cx{background:var(--cx-soft);color:var(--cx)} .meta .cl.me{background:var(--me-soft);color:var(--me)}
+.entry h4{font:700 26px/1.2 var(--f-disp);margin:0}
+.entry h4 a{color:var(--ink);text-decoration:none}
+.entry h4 a:hover{color:var(--accent)}
+.grp-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font:700 19px/1.35 var(--f-disp);margin:36px 0 2px;padding-top:14px;border-top:2px solid var(--rule-2)}
+.grp-h:first-child{margin-top:8px}
+.grp-h.cx{border-top-color:var(--cx)} .grp-h.me{border-top-color:var(--me)} .grp-h.se{border-top-color:var(--se)} .grp-h.ef{border-top-color:var(--ef)}
+.grp-h small{font:500 12.5px var(--f-mono);color:var(--muted)}
 .orig{margin:4px 0 16px;color:var(--muted);font-size:14px;line-height:1.55}
 dl.facts{display:grid;grid-template-columns:3.2em minmax(0,1fr);gap:8px 14px;margin:0}
 dl.facts dt{font:500 13px/1.85 var(--f-body);color:var(--muted);letter-spacing:.04em}
@@ -118,11 +138,13 @@ thead th{font:700 15px/1.3 var(--f-disp);color:var(--ink);background:var(--bg)}
 thead th a{color:inherit;text-decoration:none}
 thead th a:hover{color:var(--accent);text-decoration:underline}
 thead th small{display:block;font:500 11.5px var(--f-mono);margin-top:3px}
-thead th small.se{color:var(--se)} thead th small.ef{color:var(--ef)}
+thead th small.se{color:var(--se)} thead th small.ef{color:var(--ef)} thead th small.cx{color:var(--cx)} thead th small.me{color:var(--me)}
 tbody th{font:500 13px/1.65 var(--f-body);color:var(--muted);white-space:nowrap;width:8.5em}
 td{color:var(--ink-2)}
 footer{padding-block:28px 56px;border-top:1px solid var(--rule);color:var(--muted);font-size:13.5px;line-height:1.75}
 footer p{margin:0 0 8px;max-width:60em}
+.tbl.wide table{min-width:1500px;table-layout:fixed}
+.tbl.wide thead th:first-child{width:7.5em}
 </style>
 <!-- vap:nav-style -->
 <style>
@@ -134,25 +156,48 @@ footer p{margin:0 0 8px;max-width:60em}
 .vapnav a[aria-current="page"]{opacity:1;font-weight:700}
 .vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
 .vapnav-sep{opacity:.4}
+.vapnav-grp{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-cat{font-size:11.5px;letter-spacing:.04em;opacity:.5}
 </style>
 <!-- /vap:nav-style -->
 </head>
 <body>
 <!-- vap:nav -->
-<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/" aria-current="page">Harness for Robotics</a></span><span class="vapnav-links"><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/tau0-vla/">τ₀-VLA</a><a href="../../papers/motormind/">MotorMind</a></span></div></div>
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/" aria-current="page">Harness for Robotics</a></span><span class="vapnav-links"><span class="vapnav-grp"><span class="vapnav-cat">上下文</span><a href="../../papers/activevla/">ActiveVLA</a><a href="../../papers/tic-vla/">TIC-VLA</a><a href="../../papers/ra-vla/">RA-VLA</a></span><span class="vapnav-grp"><span class="vapnav-cat">记忆</span><a href="../../papers/memoryvla/">MemoryVLA</a><a href="../../papers/optimusvla/">OptimusVLA</a><a href="../../papers/soma/">SOMA</a><a href="../../papers/hime/">HiMe</a></span><span class="vapnav-grp"><span class="vapnav-cat">结构化执行</span><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/motormind/">MotorMind</a></span><span class="vapnav-grp"><span class="vapnav-cat">评估与反馈</span><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/tau0-vla/">τ₀-VLA</a></span></span></div></div>
 <!-- /vap:nav -->
 <div class="wrap">
 <header class="top">
-  <div class="eyebrow">Harness for Robotics · 4 papers</div>
+  <div class="eyebrow">Harness for Robotics · 11 papers</div>
   <h1>Harness for Robotics</h1>
-  <p class="lede">Harness 指包在模型外面（或模型内部）的那层执行框架：任务怎么拆、拆完以什么接口交给下一层、执行时用什么信号判断对错、判断之后改什么。本专题按这个视角读机器人基础模型的论文。</p>
-  <p class="lede">本页目前收录其中两类，共四篇：<strong>结构化执行</strong>（ACoT-VLA、MotorMind）与<strong>评估与反馈</strong>（TT-VLA、τ₀-VLA）。每篇有单独的精读页，下面是两类的定义、四篇的位置、索引和横向对照。</p>
+  <p class="lede">Harness 指包在模型外面（或模型内部）的那层执行框架：每一步让模型看到什么、跨步记住什么、任务怎么拆、拆完以什么接口交给下一层、执行时用什么信号判断对错、判断之后改什么。本专题按这个视角读机器人基础模型的论文。</p>
+  <p class="lede">本页按四类收录 11 篇：<strong>（1）上下文架构</strong>（ActiveVLA、TIC-VLA、RA-VLA）、<strong>（2）持久状态与记忆</strong>（MemoryVLA、OptimusVLA、SOMA、HiMe）、<strong>（3）结构化执行</strong>（ACoT-VLA、MotorMind）、<strong>（4）评估与反馈</strong>（TT-VLA、τ₀-VLA）。每篇有单独的精读页，下面是四类的定义、各篇的位置、索引和横向对照。</p>
 </header>
 
 <section id="cats" aria-labelledby="h-cats">
-  <h2 id="h-cats">两类 harness</h2>
-  <p class="sub">分类按专题定义，每篇归入一类；τ₀-VLA 与 MotorMind 其实两类都沾，归类取它们的主要贡献。</p>
+  <h2 id="h-cats">四类 harness</h2>
+  <p class="sub">分类按专题定义，每篇归入一类，归类取它们的主要贡献。有几篇跨类：SOMA 的记忆要靠一次主动扫描才建得起来，和（1）的「看哪里」耦合；OptimusVLA 的全局记忆其实是跨回合的轨迹检索，机制上接近 RA-VLA；τ₀-VLA 与 MotorMind 都带执行记忆，也沾（2）。</p>
   <div class="cats">
+    <div class="cat cx">
+      <div class="no">（1）</div>
+      <h3>上下文架构 Context Architecture</h3>
+      <p>设计模型每次决策时看到什么、以什么形式看到，包括检索、视觉选择、时序对齐等。</p>
+      <ul>
+        <li><a href="../../papers/activevla/">ActiveVLA</a>：视觉选择。在已重建的点云上挑虚拟视点、放大，决定 VLM 看哪几张图。</li>
+        <li><a href="../../papers/tic-vla/">TIC-VLA</a>：时序对齐。慢 VLM 的结果带着「多旧了、期间走了多远」交给快控制器。</li>
+        <li><a href="../../papers/ra-vla/">RA-VLA</a>：检索。按动作阶段从新任务示范里取片段，喂进动作头。</li>
+      </ul>
+    </div>
+    <div class="cat me">
+      <div class="no">（2）</div>
+      <h3>持久状态与记忆 Persistent State / Memory</h3>
+      <p>在多步任务中持续保存任务状态、空间状态和执行历史，使当前动作不只依赖于当前 observation。</p>
+      <ul>
+        <li><a href="../../papers/memoryvla/">MemoryVLA</a>：执行历史。VLM 与动作头之间按时间累积的特征记忆库。</li>
+        <li><a href="../../papers/optimusvla/">OptimusVLA</a>：执行历史与跨回合先验。检索来的轨迹和已执行的动作块都接在去噪起点上。</li>
+        <li><a href="../../papers/soma/">SOMA</a>：空间状态。视野外的物体写成带 3D 框的物体 token。</li>
+        <li><a href="../../papers/hime/">HiMe</a>：任务状态。策略之外的图文记忆和子任务计划表，由大模型增改删。</li>
+      </ul>
+    </div>
     <div class="cat se">
       <div class="no">（3）</div>
       <h3>结构化执行 Structured Execution</h3>
@@ -174,8 +219,66 @@ footer p{margin:0 0 8px;max-width:60em}
   </div>
 </section>
 
+<section id="lanes" aria-labelledby="h-lanes">
+  <h2 id="h-lanes">（1）（2）七篇接在策略的哪里<span class="tag-interp">解读</span></h2>
+  <p class="sub">每行一篇，每列是一次决策从观测到动作经过的一段；有色块的格子是这篇改动的地方，虚线表示原样经过，虚线框表示这一段的运行方式变了、内容没变。按各篇精读页整理，表格可左右滑动。</p>
+  <div class="lane-scroll"><div class="lane" role="table" aria-label="七篇论文改动策略的位置">
+      <div class="hd"><small>论文 · 状态跨度</small></div>
+      <div class="hd">观测怎么来<small>相机 / 点云 / 视角</small></div>
+      <div class="hd">VLM 输入<small>图像与语言</small></div>
+      <div class="hd">VLM 与动作头之间<small>特征、记忆、检索</small></div>
+      <div class="hd">动作头<small>条件、去噪起点</small></div>
+      <div class="hd">策略之外<small>外部模块与库</small></div>
+      <div class="grp cx">（1）Context Architecture</div>
+      <div class="rl cx"><a href="../../papers/activevla/">ActiveVLA</a><small>单个关键帧 · 不存状态</small></div>
+      <div><span class="k">标定 RGB-D 拼成点云；在点云上重渲染 3 个虚拟视点，最佳视点再放大 4 倍（物理相机不动）</span></div>
+      <div><span class="k">精阶段 VLM 只看选出的虚拟视图；粗阶段先在正交投影上找关键点 p<sub>f</sub></span></div>
+      <div class="e" aria-label="不改动"></div>
+      <div class="e" aria-label="不改动"></div>
+      <div><span class="k">选视角、放大都是无参数的几何模块</span></div>
+      <div class="rl cx"><a href="../../papers/tic-vla/">TIC-VLA</a><small>只留最近一次推理</small></div>
+      <div class="e" aria-label="不改动"></div>
+      <div><span class="k quiet">VLM 后台异步运行，仿真约 0.5 Hz</span></div>
+      <div><span class="k">最近一次推理的 KV cache + 这段语义有多旧（Δt）+ 期间自身位移（Δp）</span></div>
+      <div><span class="k">10 Hz 动作专家每层交叉注意力读当前帧和上面三样；训练时注入 Δt ~ U(0,10) s</span></div>
+      <div class="e" aria-label="不改动"></div>
+      <div class="rl cx"><a href="../../papers/ra-vla/">RA-VLA</a><small>跨回合的静态示范库</small></div>
+      <div class="e" aria-label="不改动"></div>
+      <div class="e" aria-label="不改动"></div>
+      <div><span class="k">检索器读 LLM 之前的图文 token，按动作阶段取 top-K 示范片段</span></div>
+      <div><span class="k">DiT 8 个交叉注意力层每层拼 1 段检索特征；去噪起点换成检索动作均值；margin 损失逼它读</span></div>
+      <div><span class="k">新任务的 3–4 条示范切成片段，冻结 VLM 离线预编码</span></div>
+      <div class="grp me">（2）Persistent State / Memory</div>
+      <div class="rl me"><a href="../../papers/memoryvla/">MemoryVLA</a><small>回合内累积 · 容量封顶</small></div>
+      <div class="e" aria-label="不改动"></div>
+      <div class="e" aria-label="不改动"></div>
+      <div><span class="k me">感知（256 token / 步）与认知（1 token / 步）记忆库：cross-attention 检索、门控融合、写回；满了合并相邻最相似的一对</span></div>
+      <div><span class="k me">DiT 动作头读融合后的 token</span></div>
+      <div class="e" aria-label="不改动"></div>
+      <div class="rl me"><a href="../../papers/optimusvla/">OptimusVLA</a><small>跨回合轨迹库 + 回合内动作历史</small></div>
+      <div class="e" aria-label="不改动"></div>
+      <div class="e" aria-label="不改动"></div>
+      <div class="e" aria-label="不改动"></div>
+      <div><span class="k me">去噪起点 = 检索轨迹块的均值与方差 + Mamba 读已执行动作块给出的偏置；相似度决定噪声尺度和步数</span></div>
+      <div><span class="k me">离线轨迹库（FAISS 检索，每回合一次）</span></div>
+      <div class="rl me"><a href="../../papers/soma/">SOMA</a><small>回合内持续刷新 · 不删除</small></div>
+      <div><span class="k me">目标不可见时，头部相机按固定轨迹扫一圈</span></div>
+      <div class="e" aria-label="不改动"></div>
+      <div><span class="k me">物体记忆 token（DINOv3 外观 + VGGT 3D 框），VL token 交叉注意力读出；门控 EMA 刷新</span></div>
+      <div><span class="k me">读出结果作为 DiT 的额外全局上下文</span></div>
+      <div><span class="k me">YOLO-World / DINOv3 / VGGT 冻结感知栈</span></div>
+      <div class="rl me"><a href="../../papers/hime/">HiMe</a><small>回合内 · 子任务级更新</small></div>
+      <div class="e" aria-label="不改动"></div>
+      <div><span class="k me">π0.5 的指令换成计划表里当前那一句子目标</span></div>
+      <div class="e" aria-label="不改动"></div>
+      <div class="e" aria-label="不改动"></div>
+      <div><span class="k me">Sentry（Qwen3-VL-8B）看最近 8 帧判子任务是否完成；判完成才唤醒 Planner（GPT-4o）增改删图文记忆与计划表</span></div>
+  </div></div>
+  <p class="lane-note">最密的是「VLM 与动作头之间」和「动作头」两列：七篇里有五篇不改 VLM 看到的输入，新信息直接进动作头的条件或去噪起点。只有 ActiveVLA 改 VLM 看到的图像，只有 HiMe 改 VLM 收到的指令。（3）类的 <a href="../../papers/acot-vla/">ACoT-VLA</a> 也是这个位置：它的参考轨迹和隐式先验都从 VLM 的 KV 里取，再由动作头读。</p>
+</section>
+
 <section id="map" aria-labelledby="h-map">
-  <h2 id="h-map">四篇在两条轴上的位置<span class="tag-interp">解读</span></h2>
+  <h2 id="h-map">（3）（4）四篇在两条轴上的位置<span class="tag-interp">解读</span></h2>
   <p class="sub">横轴：中间接口离电机指令有多近；纵轴：评价信号作用在执行之前还是之后。位置是我们的归纳，不是论文的说法。窄屏下可左右滑动。</p>
   <div class="map"><div class="map-scroll">
     <svg viewBox="0 0 900 380" role="img" aria-label="四篇论文在接口粒度与评价时机两条轴上的位置">
@@ -219,47 +322,124 @@ footer p{margin:0 0 8px;max-width:60em}
 
 <section id="line" aria-labelledby="h-line">
   <h2 id="h-line">按时间排<span class="tag-interp">解读</span></h2>
-  <p class="sub">按 arXiv 首版时间排序，窄屏下竖排。</p>
-  <div class="strip-scroll"><div class="strip">
-    <div class="step">
-      <div class="d">2026-01 · 2601.06748</div>
-      <div class="n"><a href="../../papers/tt-vla/">TT-VLA</a></div>
-      <div class="route ef">评估与反馈 · 执行后</div>
-      <div class="role">评价信号变成梯度</div>
-      <p>VLAC 进度差分做奖励，无价值 PPO 每 8 步更新 LoRA，每回合重置。</p>
-    </div>
-    <div class="step">
-      <div class="d">2026-01 · 2601.11404</div>
-      <div class="n"><a href="../../papers/acot-vla/">ACoT-VLA</a></div>
-      <div class="route se">结构化执行 · 模型内部</div>
-      <div class="role">中间接口是动作草稿</div>
-      <p>EAR 先去噪出一段 15 点粗轨迹，IAR 抽隐式先验，动作头读两者再生成。</p>
-    </div>
-    <div class="step">
-      <div class="d">2026-08 · 2608.16885</div>
-      <div class="n"><a href="../../papers/tau0-vla/">τ₀-VLA</a></div>
-      <div class="route ef">评估与反馈 · 执行前</div>
-      <div class="role">评价发生在承诺之前</div>
-      <p>带执行记忆的高层；不确定时做世界模型引导的子任务束搜索。</p>
-    </div>
-    <div class="step">
-      <div class="d">2026-09 · 2609.38078</div>
-      <div class="n"><a href="../../papers/motormind/">MotorMind</a></div>
-      <div class="route se">结构化执行 · 模型外部</div>
-      <div class="role">整个 harness 不训练</div>
-      <p>冻结通用 VLM 分饰五个角色，输出参数化中层动作，监控异步并行。</p>
-    </div>
-  </div></div>
+  <p class="sub">按 arXiv 首版时间排序，同月按编号。圆点颜色对应四类。</p>
+  <ol class="tl">
+    <li class="me"><div class="d">2025-08 · 2508.19236</div><div><div class="n"><a href="../../papers/memoryvla/">MemoryVLA</a></div><div class="route me">（2）记忆 · 执行历史</div></div><div><p class="role">记忆是 VLM 与动作头之间的特征库</p><p>每步存 256 个感知 token 和 1 个认知 token，检索后门控融合；库满合并相邻最相似的两条。</p></div></li>
+    <li class="ef"><div class="d">2026-01 · 2601.06748</div><div><div class="n"><a href="../../papers/tt-vla/">TT-VLA</a></div><div class="route ef">（4）评估与反馈 · 执行后</div></div><div><p class="role">评价信号变成梯度</p><p>VLAC 进度差分做奖励，无价值 PPO 每 8 步更新 LoRA，每回合重置。</p></div></li>
+    <li class="cx"><div class="d">2026-01 · 2601.08325</div><div><div class="n"><a href="../../papers/activevla/">ActiveVLA</a></div><div class="route cx">（1）上下文 · 视觉选择</div></div><div><p class="role">上下文是「从哪个视点看」</p><p>在已重建的点云上挑 3 个虚拟视点并放大 4 倍，精阶段 VLM 只看这些图。</p></div></li>
+    <li class="se"><div class="d">2026-01 · 2601.11404</div><div><div class="n"><a href="../../papers/acot-vla/">ACoT-VLA</a></div><div class="route se">（3）结构化执行 · 模型内部</div></div><div><p class="role">中间接口是动作草稿</p><p>EAR 先去噪出一段 15 点粗轨迹，IAR 抽隐式先验，动作头读两者再生成。</p></div></li>
+    <li class="cx"><div class="d">2026-02 · 2602.02459</div><div><div class="n"><a href="../../papers/tic-vla/">TIC-VLA</a></div><div class="route cx">（1）上下文 · 时序对齐</div></div><div><p class="role">上下文带上时间戳</p><p>动作专家读慢 VLM 上一次推理的 KV，外加这段语义有多旧（Δt）、期间走了多远（Δp）。</p></div></li>
+    <li class="me"><div class="d">2026-02 · 2602.20200</div><div><div class="n"><a href="../../papers/optimusvla/">OptimusVLA</a></div><div class="route me">（2）记忆 · 先验与动作历史</div></div><div><p class="role">记忆接在去噪起点上</p><p>检索同类示范轨迹代替高斯噪声，Mamba 读已执行的动作块再加偏置，步数随相似度变。</p></div></li>
+    <li class="me"><div class="d">2026-05 · 2605.22283</div><div><div class="n"><a href="../../papers/soma/">SOMA</a></div><div class="route me">（2）记忆 · 空间状态</div></div><div><p class="role">记忆是一张物体地图</p><p>头部相机扫一圈，把视野外的物体写成带 3D 框的 token，操作中门控刷新。</p></div></li>
+    <li class="me"><div class="d">2026-07 · 2607.03449</div><div><div class="n"><a href="../../papers/hime/">HiMe</a></div><div class="route me">（2）记忆 · 任务状态</div></div><div><p class="role">记忆放在策略外面，用语言管理</p><p>GPT-4o 只在子任务交接时增改删图文记忆，π0.5 只拿到一句子目标。</p></div></li>
+    <li class="ef"><div class="d">2026-08 · 2608.16885</div><div><div class="n"><a href="../../papers/tau0-vla/">τ₀-VLA</a></div><div class="route ef">（4）评估与反馈 · 执行前</div></div><div><p class="role">评价发生在承诺之前</p><p>带执行记忆的高层；不确定时做世界模型引导的子任务束搜索。</p></div></li>
+    <li class="cx"><div class="d">2026-08 · 2608.25585</div><div><div class="n"><a href="../../papers/ra-vla/">RA-VLA</a></div><div class="route cx">（1）上下文 · 检索</div></div><div><p class="role">上下文是检索来的示范片段</p><p>按动作阶段检索新任务示范，动作头每层读一段，margin 损失逼它真的读。</p></div></li>
+    <li class="se"><div class="d">2026-09 · 2609.38078</div><div><div class="n"><a href="../../papers/motormind/">MotorMind</a></div><div class="route se">（3）结构化执行 · 模型外部</div></div><div><p class="role">整个 harness 不训练</p><p>冻结通用 VLM 分饰五个角色，输出参数化中层动作，监控异步并行。</p></div></li>
+  </ol>
 </section>
 
 <section id="papers" aria-labelledby="h-papers">
-  <h2 id="h-papers">四篇</h2>
+  <h2 id="h-papers">十一篇</h2>
   <p class="sub">每篇给出做法、主要结果和最大的疑点。数字取自各论文 arXiv 源码里的 tex 表格或矢量图的文字层。</p>
   <div class="entries">
+    <h3 class="grp-h cx">（1）上下文架构 Context Architecture<small>3 篇</small></h3>
+    <article class="entry">
+      <div class="meta"><b>2026-01</b><a href="https://arxiv.org/abs/2601.08325" target="_blank" rel="noopener">arXiv 2601.08325</a><br>复旦、上海创智学院、南洋理工<br><span class="cl cx">上下文架构</span></div>
+      <div>
+        <h4><a href="../../papers/activevla/">ActiveVLA</a></h4>
+        <p class="orig">Injecting Active Perception into Vision-Language-Action Models for Precise 3D Robotic Manipulation</p>
+        <dl class="facts">
+          <dt>做法</dt><dd>沿用 BridgeVLA（PaliGemma）的「2D 热图 → 3D」框架做两遍：粗阶段在三张正交投影上找关键 3D 点 p<sub>f</sub>；再在以 p<sub>f</sub> 为球心的测地球面上，按可见性、距离、多样性的 Z 分数挑 3 个虚拟视点，对最佳视点把视场角缩小 4 倍再渲染一张，精阶段只看这些图。选视角和放大都没有可学习参数，物理相机不动。</dd>
+          <dt>结果</dt><dd>RLBench 18 任务平均 <span class="num">91.8</span>（BridgeVLA <span class="num">88.2</span>），COLOSSEUM <span class="num">65.9</span>（<span class="num">64.0</span>），GemBench <span class="num">51.3</span>（<span class="num">50.0</span>）。消融里两个模块合计 <span class="num">+2.3</span>~<span class="num">+4.2</span> 个点，推理时间约翻倍（RLBench <span class="num">0.26</span> → <span class="num">0.53</span> s）。</dd>
+          <dt>疑点</dt><dd class="doubt">按正文公式，候选都在同一球面上，距离项和多样性项对每个候选都是常数，排序只剩二值的可见性。只选 1 个主动视图（<span class="num">82.2</span>）反而低于固定视图（<span class="num">87.6</span>）。真机平台、COLOSSEUM 分项、真机总成功率在正文和附录里各有两套说法。</dd>
+        </dl>
+        <a class="go" href="../../papers/activevla/">读 ActiveVLA 精读 →</a>
+      </div>
+    </article>
+    <article class="entry">
+      <div class="meta"><b>2026-02</b><a href="https://arxiv.org/abs/2602.02459" target="_blank" rel="noopener">arXiv 2602.02459</a><br>UCLA<br><span class="cl cx">上下文架构</span></div>
+      <div>
+        <h4><a href="../../papers/tic-vla/">TIC-VLA</a></h4>
+        <p class="orig">A Think-in-Control Vision-Language-Action Model for Robot Navigation in Dynamic Environments</p>
+        <dl class="facts">
+          <dt>做法</dt><dd>慢 VLM（InternVL3-1B，看 t−Δt 时刻往前 9 s 的 4 帧，生成推理文本和 3 个航点）在后台异步运行；10 Hz 的 6 层交叉注意力动作专家读当前帧、速度、VLM 最后一层 KV cache，外加延迟 Δt 和这段时间的自身位移 Δp。三阶段训练：VLM SFT → 动作专家模仿学习，人为注入 Δt ~ U(0,10) s → 仿真里 PPO，VLM 真异步运行。</dd>
+          <dt>结果</dt><dd>DynaNav 85 条 SR <span class="num">55.29</span>（最强语言导航基线 MobileVLA <span class="num">32.94</span>，点目标的 NavDP <span class="num">54.12</span>）。同样的 KV 接口，不建模延迟 <span class="num">30.59</span>、建模后 <span class="num">47.06</span>（均未做 RL）。Unitree Go2 真机 4 个任务各 5 次，<span class="num">0.75</span>–<span class="num">0.85</span>。</dd>
+          <dt>疑点</dt><dd class="doubt">模仿学习时的 KV 由 GPT-5 标注的推理文本算出（标注时看过未来画面），部署时换成 VLM 自己生成的文本。「有效延迟」前后两处定义不同。85 条测试只跑一个种子，和 NavDP 只差 1 条。</dd>
+        </dl>
+        <a class="go" href="../../papers/tic-vla/">读 TIC-VLA 精读 →</a>
+      </div>
+    </article>
+    <article class="entry">
+      <div class="meta"><b>2026-08</b><a href="https://arxiv.org/abs/2608.25585" target="_blank" rel="noopener">arXiv 2608.25585</a><br>POSTECH<br><span class="cl cx">上下文架构</span></div>
+      <div>
+        <h4><a href="../../papers/ra-vla/">RA-VLA</a></h4>
+        <p class="orig">Retrieval-Augmented VLA for Test-Time Adaptation</p>
+        <dl class="facts">
+          <dt>做法</dt><dd>GR00T N1.5 外挂检索：新任务的 3–4 条示范切成片段（某一时刻的观测 + 其后 16 步动作），由冻结 VLM 离线预编码。检索器用 DTW 对齐的动作序列定义正样本做对比学习，按「动作阶段」而不是画面相似度取片段；动作头 8 个交叉注意力层每层拼一段检索特征，去噪起点换成检索动作的均值，再用 margin 损失逼动作头读检索结果。新任务不更新权重。</dd>
+          <dt>结果</dt><dd>LIBERO 留出套件平均 <span class="num">0.3845</span>（RICL<sub>R</sub> <span class="num">0.2085</span>、RAEA <span class="num">0.1235</span>，都换上了本文的检索器）；UR5e 4 任务留一法 <span class="num">0.5625</span>（<span class="num">0.3542</span>）。K = 8 时单个动作块 <span class="num">0.055</span> s，RAEA <span class="num">0.157</span> s。</dd>
+          <dt>疑点</dt><dd class="doubt">LIBERO-Goal 上去掉 margin 损失只剩 <span class="num">0.098</span>、换回现成检索器只剩 <span class="num">0.102</span>，都回到 RAEA（<span class="num">0.104</span>）的水平。去噪起点这一项没有消融。附录「10<sup>7</sup> 个键检索 0.18 ms」按显存带宽算不通。UR5e 合并后 27/48 对 17/48，Fisher 检验 p ≈ 0.065。</dd>
+        </dl>
+        <a class="go" href="../../papers/ra-vla/">读 RA-VLA 精读 →</a>
+      </div>
+    </article>
+    <h3 class="grp-h me">（2）持久状态与记忆 Persistent State / Memory<small>4 篇</small></h3>
+    <article class="entry">
+      <div class="meta"><b>2025-08</b><a href="https://arxiv.org/abs/2508.19236" target="_blank" rel="noopener">arXiv 2508.19236</a><br>清华、Dexmal、旷视等<br><span class="cl me">持久状态与记忆</span></div>
+      <div>
+        <h4><a href="../../papers/memoryvla/">MemoryVLA</a></h4>
+        <p class="orig">Perceptual-Cognitive Memory in Vision-Language-Action Models for Robotic Manipulation</p>
+        <dl class="facts">
+          <dt>做法</dt><dd>CogACT 骨架（7B Prismatic VLM + 约 300M DiT 动作头）中间插一个感知-认知记忆库：每步存 256 个感知 token 和 1 个认知 token（LLaMA 在 EOS 处的隐状态），当前 token 作 query 对记忆做 cross-attention 检索，经 sigmoid 门与当前 token 融合后送动作头并写回。每条流最多 L 条（16 或 256），满了合并相邻最相似的一对。输入只有单帧第三人称 RGB。</dd>
+          <dt>结果</dt><dd>SimplerEnv-Bridge <span class="num">71.9</span>（复测的 CogACT-Large <span class="num">57.3</span>），Fractal <span class="num">72.7</span>（<span class="num">68.1</span>），LIBERO <span class="num">96.5</span>（<span class="num">93.2</span>），Mikasa-Robo <span class="num">41.2</span>；真机时序任务 <span class="num">83</span>（CogACT <span class="num">57</span>）。RTX 4090 单次推理 <span class="num">0.194</span> s，基线 <span class="num">0.187</span> s。</dd>
+          <dt>疑点</dt><dd class="doubt">没有「同一套训练、只去掉记忆」的对照。仿真报的是在测试基准上最好的那个验证步，基线是单个发布权重。正文说 Mikasa 上「每个任务都最好」，表里有两个任务不是。</dd>
+        </dl>
+        <a class="go" href="../../papers/memoryvla/">读 MemoryVLA 精读 →</a>
+      </div>
+    </article>
+    <article class="entry">
+      <div class="meta"><b>2026-02</b><a href="https://arxiv.org/abs/2602.20200" target="_blank" rel="noopener">arXiv 2602.20200</a><br>哈工大（深圳）、鹏城实验室、华为诺亚等<br><span class="cl me">持久状态与记忆</span></div>
+      <div>
+        <h4><a href="../../papers/optimusvla/">OptimusVLA</a></h4>
+        <p class="orig">Global Prior Meets Local Consistency: Dual-Memory Augmented Vision-Language-Action Model for Efficient Robotic Manipulation</p>
+        <dl class="facts">
+          <dt>做法</dt><dd>冻结的 π0.5 外挂两块记忆，都接在 flow 的去噪起点上。GPM 按 VLM 前缀检索训练集里的同类轨迹，按任务进度各切一个动作块，矩匹配成对角高斯来代替 𝒩(0, I)，相似度同时决定噪声尺度和去噪步数；LCM 用 Mamba 读本回合已执行的动作块，输出一个偏置加到起点上。VLM 输入和动作头条件都不变。</dd>
+          <dt>结果</dt><dd>LIBERO 平均 <span class="num">98.6</span>（π0.5 <span class="num">96.9</span>），LIBERO-Long <span class="num">96.4</span>（<span class="num">92.4</span>）；CALVIN Avg. Len <span class="num">4.45</span>（π0.5† <span class="num">4.26</span>）；RoboTwin 2.0 Hard 主表 8 任务 <span class="num">38%</span>（<span class="num">29%</span>）。NFE <span class="num">3.2</span> 对 <span class="num">10</span>，LIBERO 单次推理 <span class="num">39</span> ms 对 <span class="num">57</span> ms。</dd>
+          <dt>疑点</dt><dd class="doubt">摘要的「2.9× 推理加速」是真机 NFE 之比，对 π0.5 的实测时间比是 <span class="num">1.46×</span>（LIBERO）和 <span class="num">1.19×</span>（真机）。flow policy 只在高斯起点上训练过，没有「高斯起点直接走 3–4 步」的对照。RoboTwin 全部 16 个任务是 <span class="num">30%</span>。</dd>
+        </dl>
+        <a class="go" href="../../papers/optimusvla/">读 OptimusVLA 精读 →</a>
+      </div>
+    </article>
+    <article class="entry">
+      <div class="meta"><b>2026-05</b><a href="https://arxiv.org/abs/2605.22283" target="_blank" rel="noopener">arXiv 2605.22283</a><br>港科大（广州）、AI²Robotics、港科大<br><span class="cl me">持久状态与记忆</span></div>
+      <div>
+        <h4><a href="../../papers/soma/">SOMA</a></h4>
+        <p class="orig">Spatial Memory for Out-of-Vision Manipulation in Vision-Language-Action</p>
+        <dl class="facts">
+          <dt>做法</dt><dd>GR00T N1.5 式 VLA 外挂物体级空间记忆：目标不可见时，可动头部按固定轨迹扫一圈，YOLO-World 检测、DINOv3 取外观、VGGT 算 3D 框，每个物体压成一个 384 维 token；操作中用头部画面做 α = g·s 的门控 EMA 刷新，VL token 对全部记忆做交叉注意力，结果作为 DiT 的额外上下文。</dd>
+          <dt>结果</dt><dd>5 个视野外真机抓放任务各 20 回合，各阶段平均成功率 <span class="num">28.3%</span>（按图 4 算，GR00T N1.5 <span class="num">18.3%</span>）。RoboCasa GR1（目标全可见）用全部数据时 <span class="num">49.3</span> 对 <span class="num">45.9</span>。在线推理约 <span class="num">1.58</span> s / 动作块（GR00T N1.5 约 <span class="num">1.30</span> s）。</dd>
+          <dt>疑点</dt><dd class="doubt">表 2 有几个数用「20 回合 × 阶段平均」算不出来。GR1 消融的增益几乎全来自「容器交互」一类。行为指标的定义和正文的解读对不上。记忆条目不带时间戳，被挪走的物体会留下陈旧条目，论文承认但没有实验。</dd>
+        </dl>
+        <a class="go" href="../../papers/soma/">读 SOMA 精读 →</a>
+      </div>
+    </article>
+    <article class="entry">
+      <div class="meta"><b>2026-07</b><a href="https://arxiv.org/abs/2607.03449" target="_blank" rel="noopener">arXiv 2607.03449</a><br>复旦、上海创智学院、华东师大<br><span class="cl me">持久状态与记忆</span></div>
+      <div>
+        <h4><a href="../../papers/hime/">HiMe</a></h4>
+        <p class="orig">Hierarchical Embodied Memory for Long-Horizon Vision-Language-Action Control</p>
+        <dl class="facts">
+          <dt>做法</dt><dd>三层、三种频率：Executor（π0.5，推理 2 Hz）只看当前画面和一句子目标；Sentry（Qwen3-VL-8B）每 10 个执行步看一眼最近 8 帧，判当前子任务是否完成；判完成才唤醒 Planner（GPT-4o），它用 QUERY / CREATE / UPDATE / DELETE 增改删一个图文键值记忆库，并重写子任务计划表。只有 Executor 需要训练（60 条示范）。</dd>
+          <dt>结果</dt><dd>WidowX-250 三个长程任务（各 20 次），平均任务进度 <span class="num">90</span>；去掉 Sentry <span class="num">68</span>，FIFO 式 Flat Memory <span class="num">65</span>，无记忆 <span class="num">14</span>。每个子任务 Planner 调用 <span class="num">1.4</span>–<span class="num">2.6</span> 次（Flat Memory <span class="num">4.8</span>–<span class="num">6.2</span> 次）。</dd>
+          <dt>疑点</dt><dd class="doubt">「90」是子任务完成比例，不是整任务成功率。Sentry 判完成的召回约 <span class="num">35%</span>，靠一个间隔没写的定时兜底。GPT-4o 单次调用中位 <span class="num">38.59</span> s，比一个子任务的平均执行时长还长，全文没有整任务耗时。换成 Qwen3-VL-30B 后有两条结论与正文相反。</dd>
+        </dl>
+        <a class="go" href="../../papers/hime/">读 HiMe 精读 →</a>
+      </div>
+    </article>
+    <h3 class="grp-h se">（3）结构化执行 Structured Execution<small>2 篇</small></h3>
     <article class="entry">
       <div class="meta"><b>2026-01</b><a href="https://arxiv.org/abs/2601.11404" target="_blank" rel="noopener">arXiv 2601.11404</a><br>北航、智元 AgiBot<br><span class="cl se">结构化执行</span></div>
       <div>
-        <h3><a href="../../papers/acot-vla/">ACoT-VLA</a></h3>
+        <h4><a href="../../papers/acot-vla/">ACoT-VLA</a></h4>
         <p class="orig">Action Chain-of-Thought for Vision-Language-Action Models</p>
         <dl class="facts">
           <dt>做法</dt><dd>π0.5 上加三块：EAR（18 层、约 300M，读 VLM 逐层 KV，用 flow matching 生成步长 2、15 点的参考轨迹）、IAR（每层 1 个 query，在降到 128 维的 KV 上抽隐式先验）、AGP（加噪动作当 query 交叉注意力读两路）。训练时参考轨迹用真值（teacher forcing）。</dd>
@@ -272,7 +452,7 @@ footer p{margin:0 0 8px;max-width:60em}
     <article class="entry">
       <div class="meta"><b>2026-09</b><a href="https://arxiv.org/abs/2609.38078" target="_blank" rel="noopener">arXiv 2609.38078</a><br>UIUC<br><span class="cl se">结构化执行</span></div>
       <div>
-        <h3><a href="../../papers/motormind/">MotorMind</a></h3>
+        <h4><a href="../../papers/motormind/">MotorMind</a></h4>
         <p class="orig">Scaffolding General Vision Language Models for Zero-Shot Robot Manipulation</p>
         <dl class="facts">
           <dt>做法</dt><dd>冻结的 Qwen3.8-Flash-Next 分饰 Planner、Executor、Monitor、Verifier、Memory（附录共 8 份提示词）。Executor 输出基座坐标系下带毫米/角度的 move / rotate / gripper 批次，确定性控制器执行；Monitor 后台并行、只能喊停；Memory 后台写便条。</dd>
@@ -282,10 +462,11 @@ footer p{margin:0 0 8px;max-width:60em}
         <a class="go" href="../../papers/motormind/">读 MotorMind 精读 →</a>
       </div>
     </article>
+    <h3 class="grp-h ef">（4）评估与反馈 Evaluation &amp; Feedback<small>2 篇</small></h3>
     <article class="entry">
       <div class="meta"><b>2026-01</b><a href="https://arxiv.org/abs/2601.06748" target="_blank" rel="noopener">arXiv 2601.06748</a><br>UMKC、港科大（广州）、Meta AI 等<br><span class="cl ef">评估与反馈</span></div>
       <div>
-        <h3><a href="../../papers/tt-vla/">TT-VLA</a></h3>
+        <h4><a href="../../papers/tt-vla/">TT-VLA</a></h4>
         <p class="orig">On-the-Fly VLA Adaptation via Test-Time Reinforcement Learning</p>
         <dl class="facts">
           <dt>做法</dt><dd>冻结的 VLAC 每步估计任务进度，奖励 r = p<sub>t</sub> − p<sub>t−1</sub>；PPO 去掉价值项和熵项，γ = λ = 0，优势即奖励；每 8 步更新一次 LoRA，每个回合开始重置权重。只适用于离散 token 的 VLA。</dd>
@@ -298,7 +479,7 @@ footer p{margin:0 0 8px;max-width:60em}
     <article class="entry">
       <div class="meta"><b>2026-08</b><a href="https://arxiv.org/abs/2608.16885" target="_blank" rel="noopener">arXiv 2608.16885</a><br>智元 Agibot Finch、上海创智学院、港中文<br><span class="cl ef">评估与反馈</span></div>
       <div>
-        <h3><a href="../../papers/tau0-vla/">τ₀-VLA</a></h3>
+        <h4><a href="../../papers/tau0-vla/">τ₀-VLA</a></h4>
         <p class="orig">a Hierarchical Robot Foundation Model with World-Model-Guided Test-Time Computation</p>
         <dl class="facts">
           <dt>做法</dt><dd>高层：Qwen3.5-9B 微调的提议模型更新执行记忆并提出子任务；token 置信度低时做束搜索，Step1X-Edit 初始化的世界模型想象子任务完成的画面，五档价值模型打分，反思模型综合提交。低层：Qwen3.5-2B + MoT，40 维统一动作空间，40,115 小时数据。</dd>
@@ -311,8 +492,36 @@ footer p{margin:0 0 8px;max-width:60em}
   </div>
 </section>
 
+<section id="compare12" aria-labelledby="h-compare12">
+  <h2 id="h-compare12">横向对照 · （1）（2）</h2>
+  <p class="sub">表格可左右滑动。速度各篇的口径不同（每次推理、每个动作块、每次大模型调用），不能横向直接比。细节以各篇精读页为准。</p>
+  <div class="tbl wide">
+    <table>
+      <thead>
+        <tr><th scope="col"></th>
+          <th scope="col"><a href="../../papers/activevla/">ActiveVLA</a><small class="cx">上下文 · 视觉选择</small></th>
+          <th scope="col"><a href="../../papers/tic-vla/">TIC-VLA</a><small class="cx">上下文 · 时序对齐</small></th>
+          <th scope="col"><a href="../../papers/ra-vla/">RA-VLA</a><small class="cx">上下文 · 检索</small></th>
+          <th scope="col"><a href="../../papers/memoryvla/">MemoryVLA</a><small class="me">记忆 · 执行历史</small></th>
+          <th scope="col"><a href="../../papers/optimusvla/">OptimusVLA</a><small class="me">记忆 · 先验与动作历史</small></th>
+          <th scope="col"><a href="../../papers/soma/">SOMA</a><small class="me">记忆 · 空间状态</small></th>
+          <th scope="col"><a href="../../papers/hime/">HiMe</a><small class="me">记忆 · 任务状态</small></th></tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">改的是什么</th><td>VLM 看到的图像：从哪个虚拟视点看、放大多少</td><td>动作专家拿到的语义是哪一刻的，并附上 Δt、Δp</td><td>动作头额外读到的检索示范片段；去噪起点</td><td>跨步的特征记忆（感知 256 token + 认知 1 token / 步）</td><td>示范轨迹库（跨回合）+ 已执行动作块（回合内）</td><td>物体级空间记忆（外观 + 3D 框，每个物体 1 个 token）</td><td>图文键值记忆库 + 子任务计划表（人可读）</td></tr>
+        <tr><th scope="row">接入位置</th><td>两遍 VLM 之间：粗阶段热图给出 p<sub>f</sub> → 选视点重渲染 → 精阶段输入</td><td>动作专家每层交叉注意力的 K/V</td><td>DiT 动作头 8 个交叉注意力层 + flow 起点</td><td>VLM 之后、DiT 动作头之前</td><td>flow policy 的去噪起点和步数</td><td>VLM 输出与 DiT 之间，读出后注入 DiT</td><td>策略之外，经子目标文本进入 π0.5</td></tr>
+        <tr><th scope="row">状态跨度</th><td>单个关键帧，不存状态</td><td>只保留最近一次推理，完成即覆盖</td><td>跨回合的静态示范库，回合内无状态</td><td>单个回合内累积，容量 L 封顶</td><td>跨回合轨迹库 + 回合内动作历史</td><td>单个回合内，扫描后持续刷新、不删除</td><td>单个回合内，按子任务更新</td></tr>
+        <tr><th scope="row">要训练什么</th><td>微调 VLM（BridgeVLA 预训练权重）；选视角无参数</td><td>三阶段：VLM SFT、动作专家模仿学习、PPO</td><td>检索器 + 动作头；新任务免训练</td><td>端到端微调，只有动作损失</td><td>π0.5 冻结，训 Prior Head 和 LCM（各 1000 步）</td><td>除语言解码器外全部微调；感知栈冻结</td><td>只训 Executor（60 条示范）；Sentry、Planner 零样本</td></tr>
+        <tr><th scope="row">基座</th><td>BridgeVLA（PaliGemma）</td><td>InternVL3-1B + 动作专家</td><td>GR00T N1.5</td><td>CogACT 骨架（7B Prismatic VLM + DiT）</td><td>π0.5</td><td>GR00T N1.5（论文称为真机 baseline，架构一致）</td><td>π0.5 + Qwen3-VL-8B + GPT-4o</td></tr>
+        <tr><th scope="row">速度</th><td>H100 每次推理 0.26 → 0.53 s（RLBench，固定视图 → 完整）</td><td>A6000：动作 32.70 ms，VLM 1681.66 ms</td><td>A100 单个动作块 0.055 s（K = 8）</td><td>RTX 4090 0.194 s（基线 0.187 s）</td><td>LIBERO 39 ms（π0.5 57 ms），NFE 3.2 对 10</td><td>RTX 4090 约 1.58 s / 动作块（GR00T N1.5 约 1.30 s）</td><td>GPT-4o 单次调用中位 38.59 s；整任务耗时未披露</td></tr>
+        <tr><th scope="row">评测</th><td>RLBench、COLOSSEUM、GemBench；真机 4 个遮挡任务（次数未披露）</td><td>DynaNav 85 条（单种子）；Go2 真机 4 任务 × 5 次</td><td>LIBERO 留出套件（每任务 50 次）；UR5e 4 任务 × 12 次</td><td>SimplerEnv、LIBERO、Mikasa-Robo；真机 12 任务</td><td>LIBERO、CALVIN、RoboTwin 2.0；Galaxea R1 Lite 真机</td><td>真机 5 任务 × 20 回合；RoboCasa GR1、SimplerEnv</td><td>WidowX 真机 3 任务 × 20 次</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
 <section id="compare" aria-labelledby="h-compare">
-  <h2 id="h-compare">横向对照</h2>
+  <h2 id="h-compare">横向对照 · （3）（4）</h2>
   <p class="sub">表格可左右滑动。细节以各篇精读页为准。</p>
   <div class="tbl">
     <table>
@@ -339,8 +548,54 @@ footer p{margin:0 0 8px;max-width:60em}
   </div>
 </section>
 
+<section id="threads12" aria-labelledby="h-threads12">
+  <h2 id="h-threads12">（1）（2）里的线索<span class="tag-interp">解读</span></h2>
+  <p class="sub">按各篇精读页整理，数字取自各论文的 tex 表格。</p>
+  <div class="cats">
+    <div class="cat">
+      <h3>看不见的东西：换个视角，还是记下来？</h3>
+      <p><a href="../../papers/activevla/">ActiveVLA</a> 在已经重建的点云上重渲染虚拟视点，物理相机不动，能看到的上限是已经拍到的点；<a href="../../papers/soma/">SOMA</a> 真的转动头部相机扫一圈，把视野外的物体写进记忆。前者每个关键帧重新选、不留状态；后者扫描一次、之后靠门控刷新，代价是被挪走的物体会留下陈旧条目（论文承认，没有实验）。</p>
+    </div>
+    <div class="cat">
+      <h3>记忆存成什么？</h3>
+      <p><a href="../../papers/memoryvla/">MemoryVLA</a> 存特征 token，按时间排、满了合并；<a href="../../papers/optimusvla/">OptimusVLA</a> 存动作，一边是跨回合的轨迹库，一边是本回合已执行的动作块；SOMA 存物体 token，按物体索引、不带时间戳；<a href="../../papers/hime/">HiMe</a> 存人可读的图文记录，由大模型增改删。前三篇的记忆在策略的一次前向里被读，HiMe 的记忆只经一句子目标进入 π0.5。</p>
+    </div>
+    <div class="cat">
+      <h3>记忆本身贡献多少，证据不齐</h3>
+      <p>MemoryVLA 没有「同一套训练、只去掉记忆」的对照，只能和复测的 CogACT 比；SOMA 在 GR1 上的消融增益几乎全来自「容器交互」一类；OptimusVLA 去掉 GPM / LCM 后 LIBERO-Long 从 <span class="num">96.4</span> 降到 <span class="num">93.2</span> / <span class="num">94.8</span>；HiMe 在同一层级骨架下比了无记忆（<span class="num">14</span>）和 FIFO 式记忆（<span class="num">65</span>），对 <span class="num">90</span>，四篇里最直接。</p>
+    </div>
+    <div class="cat">
+      <h3>加上 harness 的代价</h3>
+      <p>ActiveVLA 每次推理约翻倍（RLBench <span class="num">0.26</span> → <span class="num">0.53</span> s）；SOMA 每个动作块 <span class="num">1.30</span> → <span class="num">1.58</span> s；MemoryVLA <span class="num">0.187</span> → <span class="num">0.194</span> s；OptimusVLA 反而更快（<span class="num">57</span> → <span class="num">39</span> ms），因为去噪步数从 10 降到 3.2；HiMe 的 GPT-4o 单次调用中位 <span class="num">38.59</span> s，整任务耗时没有报告。各篇计时口径不同，只能各自和自己的基线比。</p>
+    </div>
+  </div>
+</section>
+
+<section id="threads-x" aria-labelledby="h-threads-x">
+  <h2 id="h-threads-x">跨类的线索<span class="tag-interp">解读</span></h2>
+  <p class="sub">（1）（2）的七篇和（3）（4）的四篇放在一起看。</p>
+  <div class="cats">
+    <div class="cat">
+      <h3>「子任务做完没有」是共同的薄弱点</h3>
+      <p>HiMe 的 Sentry 判完成，精确率约 <span class="num">82%</span>、召回约 <span class="num">35%</span>（正文数字，对应原文图 7）；<a href="../../papers/motormind/">MotorMind</a> 的诊断里六个通用 VLM 判完成只有 <span class="num">47.5</span>–<span class="num">82.5%</span>（二分类），扰动设定下 <span class="num">9%</span> 的回合错误宣布完成；<a href="../../papers/tau0-vla/">τ₀-VLA</a> 不测判别器，而是用记忆滞后、超前、未察觉失败三类扰动样本训练纠错。下面「评价器本身可靠吗」一条说（3）（4）三篇都没评估评价器，HiMe 是在自己任务上量过的一篇。</p>
+    </div>
+    <div class="cat">
+      <h3>异步分层里，只有 TIC-VLA 告诉低层上下文有多旧</h3>
+      <p>τ₀-VLA 的低层读约每 1 s 刷新的子任务缓存，搜索没算完时按旧子任务执行；HiMe 等 GPT-4o 的那几十秒里机器人怎么办没有写；MotorMind 主线串行。<a href="../../papers/tic-vla/">TIC-VLA</a> 的「同一个 KV 接口，不建模延迟 <span class="num">30.59</span>、建模后 <span class="num">47.06</span>」是 11 篇里唯一直接说明延迟要显式建模的对照。</p>
+    </div>
+    <div class="cat">
+      <h3>给动作头一段动作先验，怎么逼它读？</h3>
+      <p><a href="../../papers/ra-vla/">RA-VLA</a> 读别人同一动作阶段的动作块，并用它们的均值当去噪起点；OptimusVLA 用检索到的训练集轨迹当起点；<a href="../../papers/acot-vla/">ACoT-VLA</a> 读自己的 EAR 生成的 15 点粗轨迹。逼动作头读的办法分别是 margin 损失（去掉后 LIBERO-Goal <span class="num">0.532</span> → <span class="num">0.098</span>）、只在推理时换起点（flow 只在高斯起点上训练过）、teacher forcing。ACoT-VLA 和 OptimusVLA 用同一个 π0.5 基线（LIBERO <span class="num">96.9</span>，Long <span class="num">92.4</span>），提升都集中在 Long。</p>
+    </div>
+    <div class="cat">
+      <h3>「测试时适应」至少有三种意思</h3>
+      <p>RA-VLA 不改权重，往库里放新任务的几条示范，每个动作块检索一次；<a href="../../papers/tt-vla/">TT-VLA</a> 在回合内每 8 步更新一次 LoRA，下个回合重置；τ₀-VLA 把测试时的算力花在子任务搜索上。TT-VLA 只适用于离散 token 的自回归 VLA，（1）（2）类七篇的动作头都不在它的适用范围内。</p>
+    </div>
+  </div>
+</section>
+
 <section id="threads" aria-labelledby="h-threads">
-  <h2 id="h-threads">几条跨论文的线索<span class="tag-interp">解读</span></h2>
+  <h2 id="h-threads">（3）（4）里的线索<span class="tag-interp">解读</span></h2>
   <div class="cats">
     <div class="cat">
       <h3>语言子任务够不够细？</h3>
@@ -363,7 +618,8 @@ footer p{margin:0 0 8px;max-width:60em}
 
 <footer>
   <p>图全部来自各论文 arXiv 源码里的原图，数字按源码里的 tex 表格核对。各页中标「解读」的内容是我们的判断，和论文的主张分开写。</p>
-  <p>专题按「Harness for Robotics」的分类组织，本页收录第（3）类「结构化执行」和第（4）类「评估与反馈」。</p>
+  <p>专题按「Harness for Robotics」的四类组织：（1）上下文架构、（2）持久状态与记忆、（3）结构化执行、（4）评估与反馈。</p>
+  <p>（1）（2）的七篇是并行精读的，各页「放到专题里看」一节里对同批论文的描述取自对方原文的引言和方法，对（3）（4）四篇的描述取自它们的精读页。细节以各论文自己的精读页为准。</p>
 </footer>
 </div>
 </body>

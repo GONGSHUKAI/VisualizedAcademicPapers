@@ -1,0 +1,1277 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>RA-VLA 精读</title>
+<meta name="description" content="RA-VLA: Retrieval-Augmented VLA for Test-Time Adaptation 中文精读：DTW 监督的行为对齐检索器、逐层拼一段的 pairwise grounding、对抗行为惯性的 margin 损失，LIBERO 留出套件与 UR5e 留出任务上的结果和疑点。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,800&family=Space+Mono:wght@400;700&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F3EEE3; --surface:#FBF8F1; --surface-2:#EAE3D4; --ink:#1B2333; --ink-2:#3B4455; --muted:#6C6A62; --line:#D8CFBD;
+  --blue:#1F4E79; --blue-2:#7C9BBD; --blue-soft:#DCE5EF; --on-blue:#FFFFFF;
+  --red:#BF3F2A; --red-soft:#F5DCD3; --on-red:#FFFFFF;
+  --ochre:#A8741A; --ochre-soft:#F0E2C4;
+  --base:#9B9384; --base-2:#C6BEAF;
+  --rule:rgba(31,78,121,.10); --margin:rgba(191,63,42,.45);
+  --plate:#FFFFFF; --focus:#1F4E79;
+  --f-display:"Fraunces","Noto Serif SC","Songti SC","STSong",Georgia,serif;
+  --f-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"Space Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#11151E; --surface:#191E29; --surface-2:#232A37; --ink:#ECE6D8; --ink-2:#C9C2B3; --muted:#9A9486; --line:#2E3543;
+    --blue:#8FB5E3; --blue-2:#56708F; --blue-soft:#1C2A3C; --on-blue:#0E1420;
+    --red:#F08A70; --red-soft:#3A221C; --on-red:#1B1010;
+    --ochre:#DDAA55; --ochre-soft:#342915;
+    --base:#7F796E; --base-2:#4F4B45;
+    --rule:rgba(143,181,227,.07); --margin:rgba(240,138,112,.40);
+    --plate:#F1EEE8; --focus:#8FB5E3;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#11151E; --surface:#191E29; --surface-2:#232A37; --ink:#ECE6D8; --ink-2:#C9C2B3; --muted:#9A9486; --line:#2E3543;
+  --blue:#8FB5E3; --blue-2:#56708F; --blue-soft:#1C2A3C; --on-blue:#0E1420;
+  --red:#F08A70; --red-soft:#3A221C; --on-red:#1B1010;
+  --ochre:#DDAA55; --ochre-soft:#342915;
+  --base:#7F796E; --base-2:#4F4B45;
+  --rule:rgba(143,181,227,.07); --margin:rgba(240,138,112,.40);
+  --plate:#F1EEE8; --focus:#8FB5E3;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:var(--blue);text-underline-offset:3px;text-decoration-thickness:1px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+strong{font-weight:700}
+em{font-style:normal;background:linear-gradient(transparent 64%,var(--red-soft) 64%)}
+code,.mono{font-family:var(--f-mono);font-size:.86em}
+sub,sup{font-size:.72em;line-height:0}
+.page{max-width:1200px;margin:0 auto;padding-inline:24px}
+@media (max-width:560px){.page{padding-inline:16px}}
+
+/* hero */
+.hero{padding-block:44px 24px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:40px;align-items:center}
+@media (max-width:900px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+.kicker{font:400 12px/1.5 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--red);margin:0 0 14px}
+h1.title{font-family:var(--f-display);font-weight:800;font-size:clamp(3.4rem,2rem + 6.4vw,6.8rem);line-height:.92;letter-spacing:-.025em;margin:0;font-variation-settings:"opsz" 144}
+h1.title .dash{color:var(--red)}
+.entitle{font-family:var(--f-display);font-weight:500;font-style:italic;font-size:clamp(1rem,.9rem + .45vw,1.22rem);line-height:1.45;color:var(--ink-2);margin:14px 0 0}
+.thesis{font-size:clamp(1.06rem,1rem + .4vw,1.26rem);line-height:1.78;margin:20px 0 0;max-width:34em}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin:20px 0 0;padding:0;list-style:none;font:12.5px/1.6 var(--f-mono);color:var(--muted)}
+.meta b{color:var(--ink-2);font-weight:700}
+.drawer{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.drawer svg{display:block;width:100%;height:auto}
+.drawer svg text{font-family:var(--f-mono);fill:var(--ink-2);font-size:13px}
+.drawer svg .t-s{font-size:12px;fill:var(--muted)}
+.drawer svg .pk{fill:#2A2F3A}
+.drawer svg .t-h{font-family:var(--f-display);font-weight:700;font-size:16px;fill:var(--ink)}
+.drawer figcaption{font:11.5px/1.6 var(--f-mono);color:var(--muted);margin-top:8px}
+.dr-card{fill:var(--plate);stroke:var(--line);stroke-width:1.2}
+.dr-rule{stroke:var(--rule);stroke-width:1}
+.dr-margin{stroke:var(--margin);stroke-width:1.2}
+.dr-tab{fill:var(--surface-2);stroke:var(--line)}
+.dr-body{fill:var(--surface-2);stroke:var(--ink-2);stroke-width:1.2}
+.dr-hot .dr-card{stroke:var(--red);stroke-width:1.8}
+.dr-hot .dr-tab{fill:var(--red);stroke:var(--red)}
+.dr-arrow{fill:none;stroke:var(--blue);stroke-width:1.8}
+@media (prefers-reduced-motion:no-preference){
+  .dr-hot{animation:lift 3.2s ease-in-out infinite}
+  @keyframes lift{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+  .dr-dash{stroke-dasharray:5 5;animation:flow 1.6s linear infinite}
+  @keyframes flow{to{stroke-dashoffset:-20}}
+}
+.tldr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:34px}
+@media (max-width:760px){.tldr{grid-template-columns:minmax(0,1fr)}}
+.idx{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 18px 22px;
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 26.5px,var(--rule) 26.5px,var(--rule) 27.5px);background-position:0 40px}
+.idx::before{content:"";position:absolute;left:0;right:0;top:38px;border-top:1.5px solid var(--margin)}
+.idx::after{content:"";position:absolute;left:50%;bottom:6px;width:9px;height:9px;margin-left:-4.5px;border-radius:50%;background:var(--bg);border:1px solid var(--line)}
+.idx h3{font:700 11.5px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--blue);margin:0 0 16px;height:16px}
+.idx p{margin:0;font-size:15px;line-height:1.8}
+.idx.flag h3{color:var(--red)}
+
+/* layout */
+.layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:52px;padding-block:20px 80px}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr);gap:0}}
+.toc{position:sticky;top:20px;align-self:start;font-size:14px;line-height:1.5}
+.toc p{font:400 11px/1.4 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.toc li a{display:block;padding:5px 0 5px 14px;margin-left:-1px;border-left:2px solid transparent;color:var(--muted);text-decoration:none}
+.toc li a:hover{color:var(--ink)}
+.toc li a.on{color:var(--ink);border-left-color:var(--red);font-weight:500}
+@media (max-width:1000px){
+  .toc{position:static;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .toc p{display:none}
+  .toc ol{display:flex;gap:6px;border:0;white-space:nowrap;padding-bottom:6px}
+  .toc li a{border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin:0;background:var(--surface)}
+  .toc li a.on{border-color:var(--red)}
+}
+main{min-width:0}
+section{padding-top:58px;scroll-margin-top:12px}
+section:first-child{padding-top:8px}
+.eyebrow{display:inline-block;font:400 11.5px/1.4 var(--f-mono);letter-spacing:.08em;color:var(--blue);margin:0 0 10px;padding:3px 8px;border:1px solid var(--blue-2);border-radius:3px;background:var(--surface)}
+h2{font-family:var(--f-display);font-weight:700;font-size:clamp(1.4rem,1.1rem + 1.15vw,2rem);line-height:1.3;letter-spacing:-.005em;margin:0 0 18px}
+h3{font-family:var(--f-display);font-weight:700;font-size:1.1rem;line-height:1.45;margin:38px 0 10px}
+p{margin:0 0 14px}
+.prose{max-width:44em}
+.prose li{margin-bottom:6px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.tag{display:inline-block;font:400 11px/1 var(--f-mono);letter-spacing:.04em;padding:4px 6px 3px;border-radius:3px;vertical-align:2px;margin-right:6px;white-space:nowrap}
+.tag.read{border:1px dashed var(--ink-2);color:var(--ink-2)}
+.tag.doubt{background:var(--red-soft);color:var(--red)}
+.tag.nd{background:var(--surface-2);color:var(--muted)}
+.note{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:14px 18px;margin:18px 0;max-width:46em}
+.note>:last-child{margin-bottom:0}
+.note h4{font:700 12px/1.5 var(--f-mono);letter-spacing:.04em;margin:0 0 6px;color:var(--muted)}
+.note.doubt{border-color:color-mix(in oklab,var(--red) 35%,var(--line));background:color-mix(in oklab,var(--red-soft) 55%,var(--surface))}
+.note.doubt h4{color:var(--red)}
+.eq{font-family:"Times New Roman",Georgia,"Noto Serif SC",serif;font-size:1.08rem;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--blue);border-radius:6px;padding:12px 16px;margin:14px 0;overflow-x:auto;white-space:nowrap;display:flex;justify-content:space-between;gap:24px;max-width:46em}
+.eq .no{font:12px var(--f-mono);color:var(--muted);align-self:center}
+
+figure.plate{margin:22px 0}
+figure.plate .zoom{display:block;width:100%;padding:10px;background:var(--plate);border:1px solid var(--line);border-radius:6px;cursor:zoom-in}
+figure.plate img{display:block;width:100%;height:auto}
+figure.plate.narrow{max-width:620px}
+figure.plate figcaption{font-size:14px;line-height:1.75;color:var(--ink-2);margin-top:10px;max-width:52em}
+figure.plate figcaption b{font:700 11.5px var(--f-mono);letter-spacing:.04em;color:var(--red);margin-right:8px}
+dialog#lb{border:0;padding:0;background:transparent;max-width:min(96vw,1800px);width:96vw}
+dialog#lb::backdrop{background:rgba(10,12,18,.86)}
+dialog#lb .box{background:var(--plate);border-radius:6px;padding:10px;max-height:88vh;overflow:auto}
+dialog#lb img{display:block;width:100%;height:auto}
+dialog#lb .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#EEE8DE;font-size:14px;padding:8px 2px 0}
+dialog#lb button{font:700 12px var(--f-mono);background:#EEE8DE;color:#1B2333;border:0;border-radius:4px;padding:6px 12px;cursor:pointer}
+
+.tblwrap{overflow-x:auto;margin:16px 0;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;font-size:14px;line-height:1.6;min-width:100%}
+table.t th,table.t td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.t thead th{font:700 11.5px/1.4 var(--f-mono);letter-spacing:.02em;color:var(--muted);border-bottom:1.5px solid var(--ink-2);white-space:nowrap}
+table.t tbody th{font-weight:500;white-space:nowrap;color:var(--ink-2)}
+table.t .num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap;font-size:13px}
+table.t tr.best td,table.t tr.best th{font-weight:700}
+table.t tr.grp th{font:700 11.5px var(--f-mono);color:var(--blue);background:var(--surface-2);letter-spacing:.04em}
+
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.cards.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:860px){.cards.three{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.cards{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px}
+.card h4{font-family:var(--f-display);font-weight:700;font-size:1rem;line-height:1.45;margin:0 0 8px}
+.card p{font-size:14.5px;line-height:1.75;margin:0 0 8px}
+.card p:last-child{margin:0}
+.card.b{border-top:3px solid var(--blue)} .card.r{border-top:3px solid var(--red)} .card.o{border-top:3px solid var(--ochre)}
+.card dl{display:grid;grid-template-columns:76px minmax(0,1fr);gap:4px 10px;margin:0;font-size:13.5px;line-height:1.65}
+.card dt{color:var(--muted);font-family:var(--f-mono);font-size:12px;padding-top:1px}
+.card dd{margin:0}
+
+/* lab */
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;margin:22px 0}
+.lab-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 16px;margin-bottom:12px}
+.lab-head h4{font-family:var(--f-display);font-weight:700;font-size:1.08rem;margin:0}
+.lab-head p{margin:0;font:12px/1.5 var(--f-mono);color:var(--muted)}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:0 0 12px;font-size:14px}
+.ctrl .lbl{font:400 12px var(--f-mono);color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--bg);flex-wrap:wrap}
+.seg button{font:500 13px/1 var(--f-body);border:0;background:transparent;color:var(--muted);padding:8px 12px;cursor:pointer;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg.k button{font-family:var(--f-mono);min-width:36px;padding:8px 10px}
+.lab svg{display:block;width:100%;height:auto}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.say{font-size:14.5px;line-height:1.8;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin:12px 0 0}
+.say b{font-weight:700}
+#gal-cap b:first-child{font:700 11.5px var(--f-mono);color:var(--red);margin-right:8px}
+.readout{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+@media (max-width:640px){.readout{grid-template-columns:minmax(0,1fr)}}
+.readout>div{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:13.5px;line-height:1.6}
+.readout b{font-family:var(--f-mono);font-weight:700;font-size:17px;color:var(--ink);display:block}
+.readout .k{font:400 11px var(--f-mono);letter-spacing:.04em;color:var(--muted)}
+
+/* flow stepper */
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 16px;padding:0;list-style:none;counter-reset:st}
+@media (max-width:700px){.steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.steps button{width:100%;text-align:left;font:500 13.5px/1.35 var(--f-body);color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 10px 9px 38px;cursor:pointer;position:relative;min-height:52px}
+.steps button::before{content:attr(data-n);position:absolute;left:10px;top:9px;width:20px;height:20px;border-radius:50%;border:1px solid var(--line);font:700 11px/19px var(--f-mono);text-align:center;color:var(--muted);background:var(--surface)}
+.steps button[aria-pressed="true"]{color:var(--ink);border-color:var(--blue);background:var(--blue-soft)}
+.steps button[aria-pressed="true"]::before{background:var(--blue);border-color:var(--blue);color:var(--on-blue)}
+.steps button.done::before{border-color:var(--blue);color:var(--blue)}
+.pane-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:18px;align-items:start}
+@media (max-width:820px){.pane-grid{grid-template-columns:minmax(0,1fr)}}
+.fr{background-image:url(fig/retrieval.jpg);background-repeat:no-repeat;border-radius:4px;border:1px solid var(--line);width:100%}
+.qcard .fr{max-width:340px;margin:0 auto}
+.qcard{background:var(--plate);border:1px solid var(--line);border-radius:6px;padding:10px;position:relative}
+.qcard .ins{font:400 12.5px/1.55 var(--f-mono);color:#2a2f3a;margin:8px 0 0;padding:8px 10px;border-top:1.5px solid rgba(191,63,42,.45);background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 19px,rgba(31,78,121,.12) 19px,rgba(31,78,121,.12) 20px)}
+.qcard .cap{font:400 11px var(--f-mono);color:#6C6A62;margin:6px 0 0}
+@media (max-width:600px){svg.flow-svg{min-width:500px}}
+.flow-svg text{font-family:var(--f-body);font-size:13px;fill:var(--ink-2)}
+.flow-svg .mono{font-family:var(--f-mono);font-size:11.5px;fill:var(--muted)}
+.flow-svg .hd{font-family:var(--f-display);font-weight:700;font-size:14px;fill:var(--ink)}
+.flow-svg .bx{fill:var(--bg);stroke:var(--line);stroke-width:1.2}
+.flow-svg .bx.fz{stroke-dasharray:4 3}
+.flow-svg .bx.hot{fill:var(--blue-soft);stroke:var(--blue);stroke-width:1.6}
+.flow-svg .ln{stroke:var(--ink-2);stroke-width:1.3;fill:none}
+.flow-svg .ln.hot{stroke:var(--blue);stroke-width:2}
+.rets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:start}
+@media (max-width:640px){.rets{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ret{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px;cursor:pointer;text-align:left;font:inherit;color:inherit}
+.ret[aria-pressed="true"]{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-soft)}
+.ret.q{cursor:default;border-style:dashed}
+.ret h5{font:700 11.5px/1.4 var(--f-mono);margin:0 0 6px;color:var(--ink-2)}
+.ret .v{font:700 12px var(--f-mono);margin-top:6px;display:flex;justify-content:space-between;gap:6px}
+.ret .ok{color:var(--blue)} .ret .no{color:var(--red)}
+.tally{display:flex;flex-wrap:wrap;gap:6px 14px;font:400 12.5px var(--f-mono);color:var(--muted);margin-top:10px}
+.tally b{color:var(--ink)}
+.kvbar{display:grid;grid-template-columns:120px minmax(0,1fr);gap:6px 10px;align-items:center;font-size:13px;margin-top:12px}
+.kvbar .trk{display:flex;gap:2px;flex-wrap:wrap}
+.kvbar .trk i{display:inline-block;height:16px;border-radius:2px}
+.mbars{display:grid;gap:6px;margin-top:6px}
+.mbar{display:grid;grid-template-columns:150px minmax(0,1fr) 128px;gap:8px;align-items:center;font-size:13px}
+@media (max-width:520px){.mbar{grid-template-columns:104px minmax(0,1fr) 112px;font-size:12px}}
+.mbar .tr{height:14px;background:var(--surface-2);border-radius:2px;position:relative;overflow:hidden}
+.mbar .tr i{position:absolute;inset:0 auto 0 0;border-radius:2px}
+.mbar .v{font:400 12px var(--f-mono);text-align:right}
+input[type=range]{width:100%;accent-color:var(--blue)}
+.nav-btns{display:flex;justify-content:space-between;gap:10px;margin-top:14px}
+.nav-btns button{font:700 12px var(--f-mono);background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:8px 14px;cursor:pointer}
+.nav-btns button:disabled{opacity:.4;cursor:default}
+
+/* charts */
+.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 16px 10px;margin:18px 0}
+.chartbox h4{font-family:var(--f-display);font-weight:700;font-size:1rem;margin:0 0 2px}
+.chartbox .sub{font-size:13px;color:var(--muted);margin:0 0 10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink-2);margin:0 0 6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.legend i.ring{background:transparent!important;border:1.5px solid var(--ink-2)}
+svg.chart{display:block;width:100%;height:auto;min-width:640px}
+svg.chart.sm{min-width:520px}
+svg.chart text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+svg.chart .tick{font:10.5px var(--f-mono);fill:var(--muted)}
+svg.chart .val{font:10.5px var(--f-mono);fill:var(--ink-2)}
+svg.chart .val.hi{fill:var(--ink);font-weight:700}
+svg.chart .grid{stroke:var(--line);stroke-width:1}
+svg.chart .base{stroke:var(--ink-2);stroke-width:1}
+svg.chart .glabel{font-size:12.5px;fill:var(--ink)}
+svg.chart .gh{font:700 11px var(--f-mono);fill:var(--blue);letter-spacing:.04em}
+.c-ours{fill:var(--blue)} .c-aa{fill:var(--blue-2)} .c-ots{fill:var(--ochre)} .c-b0{fill:var(--base)} .c-b1{fill:var(--base-2)} .c-warn{fill:var(--red)}
+.bg-ours{background:var(--blue)} .bg-aa{background:var(--blue-2)} .bg-ots{background:var(--ochre)} .bg-b0{background:var(--base)} .bg-b1{background:var(--base-2)} .bg-warn{background:var(--red)}
+details.raw{margin:8px 0 4px;font-size:13.5px}
+details.raw summary{cursor:pointer;color:var(--muted);font:400 12px var(--f-mono)}
+details.raw .tblwrap{margin:8px 0}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);font:12.5px/1.55 var(--f-body);padding:8px 10px;border-radius:5px;max-width:280px}
+table.heat{border-collapse:separate;border-spacing:3px;font-size:13px;min-width:640px;width:100%}
+table.heat th{font:400 11px/1.3 var(--f-mono);color:var(--muted);text-align:center;padding:6px 4px;white-space:nowrap}
+table.heat th.row{text-align:left;font:500 13px/1.3 var(--f-body);color:var(--ink);white-space:nowrap;padding-right:10px}
+table.heat th.grp{text-align:left;font:700 11px var(--f-mono);color:var(--blue);padding-top:10px}
+table.heat td{text-align:center;font:400 12.5px var(--f-mono);font-variant-numeric:tabular-nums;border-radius:3px;padding:7px 4px;color:var(--ink)}
+table.heat td.dk{color:var(--on-blue)}
+table.heat tr.me th.row{color:var(--blue);font-weight:700}
+
+/* gallery */
+.gal-nav{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.gal-nav button{font:500 13px/1.2 var(--f-body);border:1px solid var(--line);background:var(--bg);color:var(--ink-2);border-radius:999px;padding:6px 12px;cursor:pointer}
+.gal-nav button[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:var(--on-blue)}
+.gal-img{display:block;width:100%;padding:8px;background:var(--plate);border:1px solid var(--line);border-radius:6px;cursor:zoom-in}
+.gal-img img{display:block;width:100%;height:auto}
+
+details.faq{background:var(--surface);border:1px solid var(--line);border-radius:8px;margin:10px 0;max-width:50em}
+details.faq summary{cursor:pointer;padding:12px 16px;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::after{content:"+";font:700 16px var(--f-mono);color:var(--muted)}
+details.faq[open] summary::after{content:"−"}
+details.faq .a{padding:0 16px 14px;font-size:15px;line-height:1.8}
+details.faq .a p:last-child{margin:0}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0;align-items:start}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.two>div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px}
+.two h4{font:700 12px/1.4 var(--f-mono);letter-spacing:.06em;margin:0 0 10px;color:var(--muted)}
+.two ul{margin:0;padding-left:18px;font-size:14.5px;line-height:1.75}
+.two li{margin-bottom:8px}
+table.cmp{min-width:1080px}
+table.cmp td{font-size:13px;line-height:1.6}
+table.cmp th.me,table.cmp td.me{background:color-mix(in oklab,var(--blue-soft) 60%,transparent)}
+table.cmp thead th a{color:inherit}
+details.gl{background:var(--surface);border:1px solid var(--line);border-radius:8px;max-width:52em}
+details.gl summary{cursor:pointer;padding:14px 18px;font-weight:500}
+details.gl dl{margin:0;padding:0 18px 16px;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:8px 18px;font-size:14px;line-height:1.7}
+details.gl dt{font-family:var(--f-mono);font-size:12.5px;color:var(--ink)}
+details.gl dd{margin:0;color:var(--ink-2)}
+@media (max-width:560px){details.gl dl{grid-template-columns:minmax(0,1fr);gap:2px}details.gl dd{margin-bottom:10px}}
+footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+.vapnav-grp{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-cat{font-size:11.5px;letter-spacing:.04em;opacity:.5}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/">Harness for Robotics</a></span><span class="vapnav-links"><span class="vapnav-grp"><span class="vapnav-cat">上下文</span><a href="../../papers/activevla/">ActiveVLA</a><a href="../../papers/tic-vla/">TIC-VLA</a><a href="../../papers/ra-vla/" aria-current="page">RA-VLA</a></span><span class="vapnav-grp"><span class="vapnav-cat">记忆</span><a href="../../papers/memoryvla/">MemoryVLA</a><a href="../../papers/optimusvla/">OptimusVLA</a><a href="../../papers/soma/">SOMA</a><a href="../../papers/hime/">HiMe</a></span><span class="vapnav-grp"><span class="vapnav-cat">结构化执行</span><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/motormind/">MotorMind</a></span><span class="vapnav-grp"><span class="vapnav-cat">评估与反馈</span><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/tau0-vla/">τ₀-VLA</a></span></span></div></div>
+<!-- /vap:nav -->
+<header class="hero page">
+  <div class="hero-grid">
+    <div>
+      <p class="kicker">论文精读 · Harness for Robotics · Context Architecture</p>
+      <h1 class="title">RA<span class="dash">-</span>VLA</h1>
+      <p class="entitle">Retrieval-Augmented VLA for Test-Time Adaptation</p>
+      <p class="thesis">给 VLA 配一个装着新任务示范片段的<strong>卡片目录</strong>：每生成一个动作块，先用一个学过「动作阶段」的检索器找出最对应的专家片段，把它预先算好的特征拼进动作头的交叉注意力，再用一个 margin 损失逼动作头真的去读这张卡片。新任务不更新权重，LIBERO 留出套件平均成功率 0.3845（最强基线 0.2085），UR5e 留出任务 0.5625（0.3542）。</p>
+      <ul class="meta">
+        <li><b>POSTECH</b> 计算机系 · AI 研究生院</li>
+        <li><b>arXiv</b> 2608.25585v2 [cs.RO]</li>
+        <li><b>v1</b> 2026-08-26 · <b>v2</b> 2026-10-07</li>
+        <li><b>ICML 2026</b></li>
+        <li><a href="https://arxiv.org/abs/2608.25585" target="_blank" rel="noopener">arXiv</a></li>
+      </ul>
+    </div>
+    <figure class="drawer">
+      <svg viewBox="0 0 540 340" role="img" aria-label="示意：查询卡片通过余弦相似度在示范缓冲区里找到最相关的片段卡片，卡片里的特征送进动作头">
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--blue)"/></marker></defs>
+        <g transform="translate(14 30) rotate(-3)">
+          <rect class="dr-card" width="170" height="112" rx="4"/>
+          <line class="dr-margin" x1="0" y1="30" x2="170" y2="30"/>
+          <line class="dr-rule" x1="0" y1="54" x2="170" y2="54"/><line class="dr-rule" x1="0" y1="78" x2="170" y2="78"/><line class="dr-rule" x1="0" y1="102" x2="170" y2="102"/>
+          <text x="12" y="21" class="pk" style="font-weight:700;fill:#BF3F2A">QUERY</text>
+          <text x="12" y="48" class="pk">V_t · L</text>
+          <text x="12" y="72" class="pk">R(·) → 池化</text>
+          <text x="12" y="96" class="pk" style="fill:#1F4E79;font-weight:700">z ∈ ℝ⁵¹²</text>
+        </g>
+        <path class="dr-arrow dr-dash" d="M150 150 C 190 176, 214 150, 244 128" marker-end="url(#ah)"/>
+        <text x="18" y="176" class="t-s">余弦相似度 · top-K</text>
+        <text x="18" y="194" class="t-s">按「动作阶段」排序</text>
+        <g>
+          <g transform="translate(254 150)"><rect class="dr-tab" x="200" y="-12" width="44" height="14" rx="3"/><rect class="dr-card" width="262" height="70" rx="3"/></g>
+          <g transform="translate(246 162)"><rect class="dr-tab" x="20" y="-12" width="44" height="14" rx="3"/><rect class="dr-card" width="262" height="70" rx="3"/></g>
+          <g transform="translate(238 174)"><rect class="dr-tab" x="150" y="-12" width="44" height="14" rx="3"/><rect class="dr-card" width="262" height="70" rx="3"/></g>
+          <g transform="translate(228 192)"><rect class="dr-tab" x="60" y="-12" width="44" height="14" rx="3"/><rect class="dr-card" width="262" height="70" rx="3"/></g>
+          <g transform="translate(220 204)"><rect class="dr-tab" x="180" y="-12" width="44" height="14" rx="3"/><rect class="dr-card" width="262" height="70" rx="3"/></g>
+        </g>
+        <g class="dr-hot">
+          <g transform="translate(248 52)">
+            <rect class="dr-tab" x="112" y="-15" width="62" height="17" rx="3"/>
+            <text x="143" y="-2" text-anchor="middle" style="font-size:11.5px;font-weight:700;fill:var(--on-red)">top-1</text>
+            <rect class="dr-card" width="272" height="124" rx="4"/>
+            <line class="dr-margin" x1="0" y1="30" x2="272" y2="30"/>
+            <line class="dr-rule" x1="0" y1="54" x2="272" y2="54"/><line class="dr-rule" x1="0" y1="78" x2="272" y2="78"/><line class="dr-rule" x1="0" y1="102" x2="272" y2="102"/>
+            <text x="12" y="21" class="pk" style="font-weight:700">片段 (V′, L′, s′, A′)</text>
+            <text x="12" y="48" class="pk">键 z′ · 1 KB · 检索用</text>
+            <text x="12" y="72" class="pk">值 H′ · 2 MB · 离线预编码</text>
+            <text x="12" y="96" class="pk">值 s′, A′ · 16 步动作块</text>
+          </g>
+        </g>
+        <rect class="dr-body" x="206" y="230" width="318" height="96" rx="4"/>
+        <rect x="318" y="248" width="94" height="30" rx="2" fill="var(--plate)" stroke="var(--ink-2)"/>
+        <text x="365" y="268" text-anchor="middle" class="pk" style="font-weight:700">BUFFER 𝓑</text>
+        <path d="M340 296 q25 18 50 0" fill="none" stroke="var(--ink-2)" stroke-width="2.4"/>
+        <text x="216" y="318" class="t-s">新任务 1–5 条示范 · h = 16 · s = 4</text>
+        <path class="dr-arrow" d="M512 70 C 530 52, 528 34, 508 24" marker-end="url(#ah)"/>
+        <text x="500" y="20" text-anchor="end" style="fill:var(--blue);font-weight:700">送进动作头</text>
+      </svg>
+      <figcaption>示意，不是实验数据。卡片字段和存储量来自 §4.1 与附录 B：每段一个检索键 z′，值是冻结 VLM 预先算好的特征 H′ 和状态、动作块。</figcaption>
+    </figure>
+  </div>
+  <div class="tldr" aria-label="一分钟版">
+    <div class="idx"><h3>做了什么</h3><p>在 GR00T N1.5 外面加一层检索：示范切成片段（一个时刻的观测 + 其后 16 步动作），冻结 VLM 离线编码成卡片。检索器是 2 层 Transformer，用 <b>DTW 对齐的动作序列</b>定义正样本做对比学习，测试时只看图和指令。动作头每层交叉注意力只拼<b>一段</b>检索结果，去噪起点换成检索片段动作块的均值。</p></div>
+    <div class="idx"><h3>怎么评</h3><p>严格留出：LIBERO 用 3 个套件训练、第 4 个套件全新，每个留出任务给 3 条示范，每任务 50 次；UR5e 4 个真机任务留一法，给 4 条示范，每任务 12 次。基线 RAEA、RICL 都在同一个 GR00T N1.5 上复现，并且也换上了本文的检索器。</p></div>
+    <div class="idx"><h3>结果</h3><p>LIBERO 平均 <b>0.3845</b>，RICL<sub>R</sub> 0.2085，RAEA 0.1235（均用本文检索器）。UR5e 平均 <b>0.5625</b>（27/48），RICL<sub>R</sub> 0.3542。K = 8 时单个动作块 0.055 s，RAEA / RICL 0.157 / 0.156 s。</p></div>
+    <div class="idx flag"><h3>最该留意的</h3><p>LIBERO-Goal 上去掉 margin 损失只剩 0.098，换回现成检索器只剩 0.102，都跌回 RAEA（0.104）水平：两样缺一样就没有增益。去噪起点直接用检索动作这一项没有消融。附录里「10<sup>7</sup> 个键检索 0.18 ms」和 A100 显存带宽对不上。</p></div>
+  </div>
+</header>
+
+<div class="page layout">
+  <nav class="toc" aria-label="目录">
+    <p>目录</p>
+    <ol>
+      <li><a href="#problem">问题</a></li>
+      <li><a href="#overview">全局</a></li>
+      <li><a href="#flow">一次检索走一遍</a></li>
+      <li><a href="#retriever">行为对齐检索</a></li>
+      <li><a href="#grounding">上下文接地生成</a></li>
+      <li><a href="#setup">实验设置</a></li>
+      <li><a href="#results">结果</a></li>
+      <li><a href="#insight">读懂它</a></li>
+      <li><a href="#limits">局限与疑点</a></li>
+      <li><a href="#topic">放到专题里看</a></li>
+      <li><a href="#glossary">术语表</a></li>
+    </ol>
+  </nav>
+  <main>
+    <section id="problem">
+      <p class="eyebrow">§1 · 问题</p>
+      <h2>示范给了，策略却不照着做</h2>
+      <div class="prose">
+        <p>VLA 碰到训练分布外的新任务，往往退回训练时熟悉的动作，或者乱动。重新微调要采数据、要算力。<strong>In-Context Imitation Learning（ICIL）</strong>的思路是不改权重，在推理时把几条专家示范塞给策略当提示，让它照着做。论文认为现有 ICIL 框架卡在一个<strong>适应瓶颈（adaptation bottleneck）</strong>上，由三件事叠成：</p>
+        <ul>
+          <li><strong>检索看表面。</strong>现成的视觉表征按「画面像不像」找示范。LIBERO-Goal 的 10 个任务共用同一个场景，看上去最像的片段很可能是另一个任务的。图 1(a) 里，指令是「turn on the stove」，检索回来的是夹碗的片段。</li>
+          <li><strong>行为惯性（behavioral inertia）。</strong>即使给了相关示范，策略也不按它调整，继续执行预训练里的「夹碗」先验（图 1(b) 上）。直接拿检索到的动作来用，又补不上示范场景和当前场景的差别，动作不准（图 1(b) 下）。</li>
+          <li><strong>延迟随片段数上涨。</strong>把示范拼进多模态提示，LLM 的序列随检索片段数 K 线性变长（图 1(c)）。</li>
+        </ul>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/intro.jpg" aria-label="放大原文图 1"><img src="fig/intro.jpg" width="1491" height="1219" alt="原文图 1：现有 ICIL 的适应瓶颈，(a) 检索到功能无关的片段，(b) 忽略上下文或表面模仿，(c) 延迟随检索数上升" loading="lazy"></button>
+        <figcaption><b>原文 Figure 1</b>(a) 当前观测是「turn on the stove」，现成检索器返回的两个片段画面很像，但做的是夹碗，标为 Functional irrelevance。(b) 上排：忽略上下文、按记忆夹碗；下排：给了相关上下文仍然失败，只是表面模仿、精度低。(c) 推理时间随检索片段数 k 增长，红色为现有 ICIL（图注说画的是 RICL，其他基线趋势相同），蓝色为 RA-VLA，虚线是不带上下文的 VLA。</figcaption>
+      </figure>
+      <div class="prose">
+        <p>对应的三处改动：用 <strong>behavioral alignment loss</strong> 训练检索器，按动作相似度而不是画面相似度组织嵌入空间；用 <strong>contextual adherence loss</strong> 打破行为惯性；把每个片段当作独立编码单元离线缓存，让延迟几乎不随 K 增长。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>「training-free」只指新任务</h4>
+        <p>标题和摘要说的免训练适应，是指遇到留出任务时只往 buffer 里放示范、不更新权重。在此之前，检索器和动作头都要在训练任务上训练（VLM 冻结），这一步论文称为「赋予策略 in-context 适应能力」。训练任务和评测任务严格分开。</p>
+      </div>
+    </section>
+
+    <section id="overview">
+      <p class="eyebrow">§2 · 方法 · 全局 · §3–4.1</p>
+      <h2>一个目录、一个检索器、一个会读卡片的动作头</h2>
+      <div class="prose">
+        <p>基座是 flow matching 的 GR00T N1.5：VLM f<sub>φ</sub> 把双视角 RGB <b>V</b><sub>t</sub> 和指令 L 编码成 <b>H</b><sub>t</sub>，动作头 g<sub>ψ</sub> 是一个 DiT，以 <b>H</b><sub>t</sub> 和本体状态 <b>s</b><sub>t</sub> 为条件，回归向量场 <b>F</b><sub>t</sub> = <b>A</b><sub>t</sub> − <b>A</b><sub>t</sub><sup>(0)</sup>，用 Euler 步把起点推到动作块 <b>A</b><sub>t</sub> ∈ ℝ<sup>h×c</sup>：</p>
+      </div>
+      <div class="eq"><span><b>A</b><sub>t</sub><sup>(k+Δk)</sup> = <b>A</b><sub>t</sub><sup>(k)</sup> + Δk · g<sub>ψ</sub>(<b>H</b><sub>t</sub>, <b>s</b><sub>t</sub>, <b>A</b><sub>t</sub><sup>(k)</sup>, k),&nbsp;&nbsp; k ∈ [0, 1]</span><span class="no">(2)</span></div>
+      <div class="prose"><p>RA-VLA 在动作头的条件里多加一项检索到的专家片段集合 𝓗<sub>ret</sub>：</p></div>
+      <div class="eq"><span><b>F</b><sub>t</sub> = g<sub>ψ</sub>(<b>H</b><sub>t</sub>, 𝓗<sub>ret</sub>, <b>s</b><sub>t</sub>, <b>A</b><sub>t</sub><sup>(k)</sup>, k),&nbsp;&nbsp; 𝓗<sub>ret</sub> = { <b>H</b><sub>ret</sub><sup>(1)</sup>, …, <b>H</b><sub>ret</sub><sup>(K)</sup> }</span><span class="no">(3)</span></div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/arch.jpg" aria-label="放大原文图 2"><img src="fig/arch.jpg" width="1800" height="991" alt="原文图 2：RA-VLA 总览，buffer、检索器、冻结 VLM 与动作解码器" loading="lazy"></button>
+        <figcaption><b>原文 Figure 2</b>右下：当前观测经冻结的 Vision Encoder 和 Text Tokenizer 得到输入 token，一路进冻结的 VLM，一路进可训练的 Retriever（火焰图标）。左下：Buffer 里每个 Segment 带一张图、一句指令和动作 [Δx, Δθ, ΔGrip]，下面那排小方块是它预先算好的 token（蓝绿为图文特征，米色为动作）。左上：第 1 到第 k 个检索片段分别和当前观测 token 拼接（⊕），送进动作解码器不同层的 Cross-Attention。右上：动作解码器（可训练）输入状态和加噪动作，输出去噪后的动作。</figcaption>
+      </figure>
+      <div class="cards three">
+        <div class="card o"><h4>① 上下文缓冲区 𝓑</h4><dl><dt>切片</dt><dd>示范按窗长 h、步长 s 切成片段 (<b>V</b>′, L′, <b>s</b>′, <b>A</b>′)，在 t ∈ {1, 1+s, 1+2s, …} 处各取一个观测和其后 h 步动作块</dd><dt>参数</dt><dd>h = 16，s = 4</dd><dt>存什么</dt><dd>键 <b>z</b>′（检索用）；值 (<b>H</b>′, <b>s</b>′, <b>A</b>′)，<b>H</b>′ = f<sub>φ</sub>(<b>V</b>′, L′) 由冻结 VLM 离线算好；状态和动作用单独的线性编码器</dd><dt>大小</dt><dd>每段：1 KB 键、2 MB 特征、1 KB 动作块（附录 B）</dd></dl></div>
+        <div class="card b"><h4>② 检索编码器 R(·)</h4><dl><dt>结构</dt><dd>2 层 Transformer 编码器，hidden 512，8 头，FFN 1024</dd><dt>输入</dt><dd>送进 LLM 之前的多模态 token：视觉编码器的图像嵌入 + 文本 token 嵌入</dd><dt>输出</dt><dd>平均池化成 <b>z</b>（512 维），与所有键算余弦相似度取 top-K</dd><dt>训练</dt><dd>behavioral alignment loss，τ = 0.01</dd></dl></div>
+        <div class="card r"><h4>③ 接地的动作生成</h4><dl><dt>注入</dt><dd>pairwise grounding：8 个交叉注意力层，每层的 K/V = 当前观测特征 + <b>一段</b>检索特征</dd><dt>分配</dt><dd>K 段按相关度分到各层，最相关的放最高层（附录表 5）</dd><dt>起点</dt><dd><b>A</b><sub>t</sub><sup>(0)</sup> 取检索片段动作块的经验均值，不从标准正态采样</dd><dt>训练</dt><dd>𝓛<sub>rel</sub> + λ𝓛<sub>adhere</sub>，λ = 0.1，margin m = 0.01</dd></dl></div>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>「片段」不是视频</h4>
+        <p>按附录 B 的定义，一个片段是<strong>某一时刻</strong>的观测（双视角图像）、指令、本体状态，加上从这一时刻起的 16 步动作块。它和策略自己的输入输出完全同构：「在这个画面下，专家接下来 16 步做了什么」。所以 buffer 本质上是一张「观测 → 动作块」的查找表，检索器负责找到和当前时刻处在同一动作阶段的那一行。</p>
+      </div>
+    </section>
+
+    <section id="flow">
+      <p class="eyebrow">§3 · 交互 · 一次检索走一遍</p>
+      <h2>从当前观测到一个动作块，四步</h2>
+      <div class="prose"><p>下面用原文图 4 的真实例子走一遍：查询轨迹是「Pick up the bowl in the top drawer of cabinet and place it on the plate」，被检索的源轨迹是另一个拿碗放盘子的任务。第 ② 步里三个检索器返回的画面和勾叉都直接取自原图。</p></div>
+      <div class="lab" id="flow-lab">
+        <div class="lab-head"><h4>检索 → 拼接 → 去噪 → 训练时的 margin</h4><p>机制来自 §4 与附录 B；画面来自原文 Figure 4</p></div>
+        <ol class="steps" id="fl-steps">
+          <li><button type="button" data-s="0" data-n="1" aria-pressed="true">当前观测与指令</button></li>
+          <li><button type="button" data-s="1" data-n="2" aria-pressed="false">怎样检索</button></li>
+          <li><button type="button" data-s="2" data-n="3" aria-pressed="false">片段怎样进动作头</button></li>
+          <li><button type="button" data-s="3" data-n="4" aria-pressed="false">怎样克服行为惯性</button></li>
+        </ol>
+        <div class="ctrl" id="fl-segctrl">
+          <span class="lbl">查询片段（原图上排从左到右）</span>
+          <div class="seg k" role="group" aria-label="选择查询片段" id="fl-seg"></div>
+        </div>
+
+        <div class="pane" data-p="0">
+          <div class="pane-grid">
+            <div class="qcard">
+              <div class="fr" id="fl-q0" role="img" aria-label="查询片段画面"></div>
+              <p class="ins">Pick up the bowl in the top drawer of cabinet and place it on the plate</p>
+              <p class="cap" id="fl-q0cap"></p>
+            </div>
+            <div class="scroll"><svg class="flow-svg" id="fl-svg0" viewBox="0 0 520 360" role="img" aria-label="当前观测的编码路径：输入 token 分成检索和 VLM 两路"></svg></div>
+          </div>
+          <p class="say">检索只用<b>观测和指令</b>，不看动作，因为当前时刻接下来的动作正是要预测的东西。图像嵌入和文本 token 嵌入在进入 LLM 之前就被分出一路，交给只有 2 层的检索编码器，所以检索不需要等 VLM 跑完。另一路照常经过冻结的 VLM 得到 <b>H</b><sub>t</sub>，第 ③ 步会用到。token 的具体数量论文没有给。</p>
+        </div>
+
+        <div class="pane" data-p="1" hidden>
+          <div class="ctrl"><span class="lbl">检索器（点卡片切换）</span></div>
+          <div class="rets" id="fl-rets"></div>
+          <div class="tally" id="fl-tally"></div>
+          <p class="say" id="fl-say1"></p>
+        </div>
+
+        <div class="pane" data-p="2" hidden>
+          <div class="ctrl">
+            <span class="lbl">检索片段数 K</span>
+            <div class="seg k" role="group" aria-label="选择 K" id="fl-k"></div>
+          </div>
+          <div class="scroll" style="max-width:760px"><svg class="flow-svg" id="fl-svg2" viewBox="0 0 600 430" role="img" aria-label="K 段检索结果分配到动作头 8 个交叉注意力层"></svg></div>
+          <div class="kvbar" id="fl-kv"></div>
+          <p class="say" id="fl-say2"></p>
+        </div>
+
+        <div class="pane" data-p="3" hidden>
+          <div class="pane-grid">
+            <div>
+              <div class="cards" style="margin:0 0 10px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)">
+                <div class="card b" style="padding:12px 14px"><h4 style="font-size:.92rem">检索到的片段 𝓗<sub>ret</sub></h4><p class="small">同一组 (<b>H</b><sub>t</sub>, <b>s</b><sub>t</sub>, <b>A</b><sup>(k)</sup>, k) 前向一次，对目标向量场算 MSE → 𝓛<sub>rel</sub></p></div>
+                <div class="card r" style="padding:12px 14px"><h4 style="font-size:.92rem">随机片段 𝓗<sub>rand</sub></h4><p class="small">换成随机采样的片段再前向一次 → 𝓛<sub>irrel</sub>；多模态特征复用，训练开销小</p></div>
+              </div>
+              <label class="lbl" for="fl-gap" style="font:400 12px var(--f-mono);color:var(--muted)">拖动：两次 MSE 之差 Δ = 𝓛<sub>irrel</sub> − 𝓛<sub>rel</sub></label>
+              <input type="range" id="fl-gap" min="-0.01" max="0.03" step="0.001" value="0">
+              <div class="readout" id="fl-read3"></div>
+            </div>
+            <div class="scroll"><svg class="chart sm" id="fl-svg3" viewBox="0 0 520 250" role="img" aria-label="contextual adherence loss 的合页函数"></svg></div>
+          </div>
+          <h5 style="font:700 12px var(--f-mono);color:var(--muted);margin:14px 0 4px">表 3 · 条长 = S<sub>ctx</sub>（换成随机上下文后输出变了多少）· 右侧数字 = S<sub>ctx</sub> / LIBERO-Goal 成功率</h5>
+          <div class="mbars" id="fl-sctx"></div>
+          <p class="say" id="fl-say3"></p>
+        </div>
+
+        <div class="nav-btns"><button type="button" id="fl-prev">← 上一步</button><button type="button" id="fl-next">下一步 →</button></div>
+      </div>
+    </section>
+
+    <section id="retriever">
+      <p class="eyebrow">§4 · 方法 · 行为对齐检索 · §4.2 · 附录 B</p>
+      <h2>用动作定义正样本，学一个只看画面的检索器</h2>
+      <div class="prose">
+        <p><strong>正样本从哪来。</strong>随机抽同一任务的两条示范，对它们的<strong>动作序列</strong>做 Dynamic Time Warping：在 L2 距离的累计匹配代价最小的意义下，求出一条索引对 (i, j) 组成的弯曲路径。路径上的片段对 (<b>V</b><sub>i</sub>, L, <b>s</b><sub>i</sub>, <b>A</b><sub>i</sub>) 与 (<b>V</b>′<sub>j</sub>, L′, <b>s</b>′<sub>j</sub>, <b>A</b>′<sub>j</sub>) 当正样本，不在路径上的当负样本。DTW 的非线性弯曲同时容忍时间上的快慢和空间上的平移，所以对齐出来的是「做到同一步」，和画面像不像无关。</p>
+        <p><strong>怎么学。</strong>测试时拿不到当前的动作序列，所以检索编码器只吃观测，去逼近这个由动作定义的对齐。损失是 SimCLR 式的对比损失：</p>
+      </div>
+      <div class="eq"><span>𝓛<sub>align</sub> = − Σ<sub>(i,j)∈𝒫</sub> log &nbsp;exp(sim(<b>z</b><sub>i</sub>, <b>z</b><sub>j</sub>)/τ) ⁄ Σ<sub>k∈{j}∪𝒩<sub>i</sub></sub> exp(sim(<b>z</b><sub>i</sub>, <b>z</b><sub>k</sub>)/τ)</span><span class="no">(4)</span></div>
+      <div class="prose"><p>sim 是余弦相似度，τ = 0.01。𝒫 是 DTW 路径上的正样本对；𝒩<sub>i</sub> 是 batch 里所有其他片段，包括同一对示范里没对齐上的片段和其他任务的片段。论文的主张是：这样学到的是动作轮廓，不局限于训练任务，所以能泛化到留出任务。</p></div>
+
+      <div class="lab" id="dtw-lab">
+        <div class="lab-head"><h4>DTW 怎样给出正负样本</h4><p>示意：合成的一维曲线，不是论文数据</p></div>
+        <div class="ctrl">
+          <span class="lbl">示范 A 的片段序号</span>
+          <input type="range" id="dtw-i" min="0" max="23" step="1" value="6" style="max-width:320px" aria-label="选择示范 A 的片段">
+          <span class="mono" id="dtw-iv"></span>
+        </div>
+        <div class="scroll"><svg class="chart" id="dtw-svg" viewBox="0 0 700 270"></svg></div>
+        <p class="say" id="dtw-say"></p>
+      </div>
+
+      <figure class="plate narrow">
+        <button class="zoom" type="button" data-src="fig/retrieval.jpg" aria-label="放大原文图 4"><img src="fig/retrieval.jpg" width="1208" height="1800" alt="原文图 4：查询轨迹与源轨迹的逐段对齐，SigLIP 2、Eagle 2 与本文检索器的检索结果" loading="lazy"></button>
+        <figcaption><b>原文 Figure 4</b>上：查询轨迹（Query）与源轨迹（Source），蓝色箭头标 Pick up 阶段，绿色标 Place 阶段。下：对查询轨迹的每一段，三个检索器各自在源轨迹里找最相关的一段，勾叉表示阶段是否对得上。ViT（SigLIP 2）5 段错 3 段，第 1 段把拿起阶段对到了后面的搬运阶段；VLM（Eagle 2）错后 2 段；本文检索器 5 段全对。上面交互的第 ② 步就是这张图的逐段拆开。</figcaption>
+      </figure>
+      <div class="note">
+        <h4><span class="tag read">解读</span>为什么 LIBERO-Goal 上换检索器的收益最大</h4>
+        <p>LIBERO-Goal 的 10 个任务共用一个场景，只是目标不同。按画面检索，任何任务的片段都「很像」；要区分只能靠指令和动作阶段。表 1 里，现成 SigLIP 2 检索器下三个基线在 Goal 上只有 0.008–0.106，换成本文检索器后 RICL<sub>R</sub> 到 0.206；RA-VLA 自己换回现成检索器只剩 0.102（§4.4 正文），用本文检索器是 0.532。</p>
+      </div>
+    </section>
+
+    <section id="grounding">
+      <p class="eyebrow">§5 · 方法 · 上下文接地生成 · §4.1、§4.3 · 附录 B</p>
+      <h2>每层只读一张卡片，再罚「读不读都一样」</h2>
+      <h3 style="margin-top:0">Pairwise grounding：K 段分到 8 层</h3>
+      <div class="prose">
+        <p>RAEA 一类方法把 K 段示范和当前观测一起拼进 VLM 的提示，LLM 序列跟着 K 变长。RA-VLA 的 VLM 只编码当前观测；检索片段的特征是离线算好的，到动作头里才出现，而且<strong>每个交叉注意力层只拼一段</strong>：K/V = [当前观测特征 <b>H</b><sub>t</sub> ; 一段检索特征 <b>H</b><sub>ret</sub><sup>(i)</sup>]。K 段按相关度从低层到高层排开，最相关的放在最高层做细调。分配表是人工定的：</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t" style="min-width:420px;max-width:560px">
+          <thead><tr><th>K</th><th>8 个交叉注意力层分到的片段（第 1 层 → 第 8 层，数字 = 相关度排名）</th></tr></thead>
+          <tbody id="assign-tb"></tbody>
+        </table>
+      </div>
+      <p class="small muted">原文附录 Table 5。目前实现只覆盖 K ≤ 8；作者提到可以按去噪步动态调整分配，但没有实现。默认设置 K = 1，即 8 层都读同一段。</p>
+
+      <h3>去噪起点：检索动作的均值</h3>
+      <div class="prose">
+        <p>§4.3 末尾的 Remark：常规 flow matching 从标准正态采样 <b>A</b><sub>t</sub><sup>(0)</sup>，RA-VLA 改成<strong>检索片段动作块的经验均值</strong>。论文说这个「informed behavioral prior」加快训练收敛，并显著稳定了新任务上的去噪。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>K = 1 时，动作头是在「修改」一段专家动作</h4>
+        <p>默认 K = 1，均值就是那一段的动作块本身。向量场 <b>F</b><sub>t</sub> = <b>A</b><sub>t</sub> − <b>A</b><sub>t</sub><sup>(0)</sup> 于是变成「从专家动作到当前该做的动作」的残差，4 个 Euler 步走完这段残差。这和 RICL<sub>R</sub> 直接把检索动作按权重混进输出是同一个方向，只是 RA-VLA 让网络学怎么改。论文没有单独消融这一项，也没说是否在均值上再加噪声。</p>
+      </div>
+
+      <h3>Contextual adherence loss</h3>
+      <div class="prose">
+        <p>论文对行为惯性的诊断是：在训练分布内，当前观测本身就足以把行为克隆损失压低，模型没有动力去学「查询和上下文的交互」。于是每个训练迭代算两次 MSE，一次用检索器找来的片段，一次换成随机片段：</p>
+      </div>
+      <div class="eq"><span>𝓛<sub>rel</sub> = ‖ <b>F</b><sub>t</sub> − g<sub>ψ</sub>(<b>H</b><sub>t</sub>, 𝓗<sub>ret</sub>, …) ‖²,&nbsp;&nbsp; 𝓛<sub>irrel</sub> = ‖ <b>F</b><sub>t</sub> − g<sub>ψ</sub>(<b>H</b><sub>t</sub>, 𝓗<sub>rand</sub>, …) ‖²</span><span class="no">(5)</span></div>
+      <div class="eq"><span>𝓛<sub>adhere</sub> = max(0, m − (𝓛<sub>irrel</sub> − 𝓛<sub>rel</sub>)),&nbsp;&nbsp; 𝓛<sub>overall</sub> = 𝓛<sub>rel</sub> + λ𝓛<sub>adhere</sub></span><span class="no">(6)(7)</span></div>
+      <div class="prose">
+        <p>如果动作头无视上下文，两次 MSE 几乎相等，差值小于 m 就被罚。m = 0.01，λ = 0.1。推理时只走 𝓛<sub>rel</sub> 那条路径，所以<strong>没有推理开销</strong>。附录 B 提到作者先试过约束比值 𝓛<sub>irrel</sub> / 𝓛<sub>rel</sub> 的版本：MSE 收敛到接近 0 时比值数值不稳、差距信号消失，所以改用差值。附录 A 把这条思路和 NLP 里的 contrastive decoding、固定权重的「有/无上下文」损失做了对比，认为固定权重提供不了贯穿训练全程的区分信号。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/adhere.jpg" aria-label="放大原文图 10"><img src="fig/adhere.jpg" width="1800" height="1562" alt="原文图 10：有无 contextual adherence loss 的 rollout 对比" loading="lazy"></button>
+        <figcaption><b>原文 Figure 10</b>两组 LIBERO 任务，上行 RA-VLA 成功，下行去掉 𝓛<sub>adhere</sub> 失败。(a) Put both moka pots on the stove：去掉后机械臂没有去拿摩卡壶，而是伸向炉子，图注归为退回预训练先验。(b) Put the bowl on the stove：去掉后机械臂大幅扭动、偏离目标，图注归为 erratic actions。</figcaption>
+      </figure>
+    </section>
+
+    <section id="setup">
+      <p class="eyebrow">§6 · 实验设置 · §5.1 · 附录 C–E</p>
+      <h2>训练任务和评测任务完全不重叠</h2>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>项目</th><th>LIBERO（仿真）</th><th>UR5e（真机）</th></tr></thead>
+          <tbody>
+            <tr><th>任务</th><td>Spatial / Object / Goal / Long 4 个套件，各 10 个任务，每任务 50 条示范</td><td>Stack Box（小盒叠到大盒上）、Throw Trash（垃圾扔进红桶）、Close Drawer（关抽屉）、Press Pedal（踩踏板开垃圾桶）；每任务 GELLO 遥操作采 30 条</td></tr>
+            <tr><th>留出方式</th><td>3 个套件训练，第 4 个套件整套留出</td><td>留一法：3 个任务训练，1 个留出；训练时额外混入 LIBERO 数据</td></tr>
+            <tr><th>buffer</th><td>每个留出任务 3 条示范</td><td>每个留出任务 4 条示范</td></tr>
+            <tr><th>试验次数</th><td>每任务 50 次，报套件平均</td><td>每任务 12 次，报子目标和整体成功率</td></tr>
+            <tr><th>扰动</th><td>论文未单独说明</td><td>目标物和干扰物位置、机器人初始本体状态每次略有扰动</td></tr>
+            <tr><th>硬件</th><td>—</td><td>UR5e + Robotiq 2F-85；两台 RealSense D435（第三人称 + 腕部）；10 Hz 同步采集与执行（ur_rtde）；训练和推理都在单张 A100，控制器通过网络向推理服务取动作</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>方法</th><th>怎么用示范</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><th>Vanilla VLA</th><td>不用</td><td>只在训练任务上训练，测 VLA 自身对新任务的泛化</td></tr>
+            <tr><th>RAEA</th><td>示范片段和当前查询拼成一个多模态提示，一起过 VLM</td><td>作者把原方法改造到 VLA 上的版本（附录 D 脚注）</td></tr>
+            <tr><th>RICL<sub>G</sub> / RICL<sub>R</sub></th><td>同样把示范放进提示微调，另加动作插值层：<b>A</b><sub>t</sub> = w(d)·<b>A</b>′ + (1 − w(d))·π<sub>θ</sub>(·)，w(d) = e<sup>−λ<sub>w</sub>d</sup>，d 为检索空间里到最近邻的 L2 距离</td><td>λ<sub>w</sub> = 1.0 为 RICL<sub>G</sub>（偏生成），0.2 为 RICL<sub>R</sub>（偏检索动作）；为适配 flow matching 改写了回归损失</td></tr>
+            <tr><th>RA-VLA</th><td>本文</td><td>默认 K = 1</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose small">
+        <p>共同设置：所有方法都用 GR00T N1.5 当主干；双视角 RGB（第三人称 + 腕部）；动作块长度 16，4 个去噪步。LIBERO 上基线分别配现成 SigLIP 2 检索器和本文检索器各测一遍；UR5e 上只测 RAEA、RICL<sub>R</sub> 和 RA-VLA，全部用本文检索器。RA-VLA 超参：τ = 0.01，s = 4，m = 0.01，λ = 0.1。附录 E 脚注还说，降低去噪时噪声动作块的更新幅度在 LIBERO 上也表现稳定，但主实验没用。</p>
+        <p><span class="tag nd">未披露</span>检索器和动作头的训练步数、batch、学习率、训练数据量；RAEA / RICL 的 VLM 是否同样冻结；评测时多个留出任务是否共用一个 buffer；每个动作块执行几步再重新推理。</p>
+      </div>
+    </section>
+
+    <section id="results">
+      <p class="eyebrow">§7 · 结果 · §5.2–5.6</p>
+      <h2>主表、真机、敏感度、检索器、延迟、规模</h2>
+      <h3 style="margin-top:0">LIBERO：留出套件（表 1）</h3>
+      <div class="chartbox">
+        <h4>四个套件的平均成功率</h4>
+        <p class="sub">表 1 Average 列，数值是比例（表头写 %，正文写 38.5% 等）。每个留出任务 3 条示范。</p>
+        <div class="scroll"><svg class="chart" id="ch-lib-avg" viewBox="0 0 720 300"></svg></div>
+      </div>
+      <div class="chartbox">
+        <h4>换检索器之后：逐套件</h4>
+        <p class="sub">每行一个基线，<span style="color:var(--ochre);font-weight:700">●</span> 现成 SigLIP 2 检索器，<span style="color:var(--blue-2);font-weight:700">●</span> 本文检索器；蓝色竖线 = RA-VLA（上方数字），灰色虚线 = Vanilla。五个面板同一比例尺 0–0.6。</p>
+        <div class="scroll"><svg class="chart" id="ch-lib-db" viewBox="0 0 760 210"></svg></div>
+        <details class="raw" id="raw-lib"><summary>原表数字（表 1）</summary></details>
+      </div>
+      <div class="prose">
+        <p>Vanilla VLA 在新任务上几乎为零（平均 0.0170）。现成检索器下三个基线只有 0.045–0.0885。换成本文检索器，三个基线都涨：RAEA 0.0450 → 0.1235，RICL<sub>G</sub> 0.0885 → 0.1295，RICL<sub>R</sub> 0.0465 → 0.2085。RA-VLA 在四个套件上都最高，平均 0.3845，比最强基线高 0.176（正文写「absolute 17.60%」）。最难的是 LIBERO-Long，RA-VLA 也只有 0.130。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>RICL<sub>R</sub> 是检索器换代后受益最大的基线</h4>
+        <p>RICL<sub>R</sub> 给检索动作的权重最大（λ<sub>w</sub> = 0.2）。检索不准时，它照抄的是错误阶段的动作，所以现成检索器下反而不如 RICL<sub>G</sub>（0.0465 vs 0.0885）；检索准了以后它涨得最多（+0.162）。这说明在新任务上，「照着对齐好的示范动作做」本身就值很多分。</p>
+      </div>
+
+      <h3>UR5e 真机：留一法（表 2）</h3>
+      <div class="chartbox">
+        <h4>每个留出任务的子目标与整体成功率</h4>
+        <p class="sub">虚线框 = 子目标成功率（拿到盒子 / 拿到垃圾 / 碰到抽屉 / 碰到踏板），实心柱 = 整体成功率，柱顶数字是整体成功率；每任务 12 次，悬停看次数和子目标数值。基线都用本文检索器。</p>
+        <div class="legend"><span><i class="bg-b1"></i>Vanilla VLA</span><span><i class="bg-b0"></i>RAEA</span><span><i class="bg-aa"></i>RICL<sub>R</sub></span><span><i class="bg-ours"></i>RA-VLA</span><span><i class="ring"></i>子目标</span></div>
+        <div class="scroll"><svg class="chart" id="ch-ur5e" viewBox="0 0 760 300"></svg></div>
+        <details class="raw" id="raw-ur5e"><summary>原表数字（表 2）</summary></details>
+      </div>
+      <div class="prose">
+        <p>RA-VLA 平均 0.5625，RICL<sub>R</sub> 0.3542，正文说提升 20.83 个百分点。4 个任务的整体成功率都是 RA-VLA 最高；唯一被超过的是 Press Pedal 的子目标（碰到踏板），RICL<sub>R</sub> 0.667 高于 RA-VLA 0.583。RAEA 在 Stack Box、Throw Trash、Press Pedal 上的整体成功率和 Vanilla 一样是 0：从定性图看，它会去做训练任务（拿垃圾、踩踏板、关抽屉），论文把这当作「偏向训练分布行为」的证据。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>真机的样本量</h4>
+        <p>每任务 12 次，一次试验就是 0.083。合并 4 个任务是 27/48 对 17/48，把试验当独立样本做双侧 Fisher 精确检验，p ≈ 0.065。真机结果方向和 LIBERO 一致，但单独看还不够稳。Close Drawer 上 Vanilla VLA 就有 0.333，作者在图 8 图注里也承认预训练分布可能已经覆盖关抽屉动作。</p>
+      </div>
+
+      <h3>上下文敏感度（表 3）</h3>
+      <div class="prose"><p>Relative Contextual Sensitivity 衡量把检索上下文换成随机上下文后，策略<strong>生成部分</strong>的输出相对变化多大，在 1,000 个样本上平均：</p></div>
+      <div class="eq"><span>S<sub>ctx</sub> = ‖ π<sub>θ</sub>(<b>V</b><sub>t</sub>, L, 𝒟<sub>ret</sub>) − π<sub>θ</sub>(<b>V</b><sub>t</sub>, L, 𝒟<sub>rand</sub>) ‖ ⁄ ‖ π<sub>θ</sub>(<b>V</b><sub>t</sub>, L, 𝒟<sub>ret</sub>) ‖</span><span class="no">(8)</span></div>
+      <div class="chartbox">
+        <h4>S<sub>ctx</sub> 与 LIBERO-Goal 成功率</h4>
+        <p class="sub">4 个点，全部来自表 3。基线用本文检索器。</p>
+        <div class="scroll"><svg class="chart sm" id="ch-sctx" viewBox="0 0 640 300"></svg></div>
+        <details class="raw" id="raw-sctx"><summary>原表数字（表 3）</summary></details>
+      </div>
+      <div class="prose"><p>RA-VLA 的 S<sub>ctx</sub> 是 0.3639，RAEA 0.0247、RICL<sub>R</sub> 0.0788。去掉 𝓛<sub>adhere</sub> 后掉到 0.0353，成功率从 0.532 掉到 0.098。论文据此说 S<sub>ctx</sub> 和成功率正相关、adherence loss 是把检索知识转成动作的关键。</p></div>
+
+      <h3>两个组件的拆解：LIBERO-Goal</h3>
+      <div class="chartbox">
+        <h4>缺任何一样都回到基线水平</h4>
+        <p class="sub">数字分别来自表 1、表 3 与 §5.4 正文（「10.2% → 53.2%」）。</p>
+        <div class="scroll"><svg class="chart" id="ch-goal" viewBox="0 0 720 260"></svg></div>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>增益不是两项相加</h4>
+        <p>只有本文检索器、没有 𝓛<sub>adhere</sub>：0.098；只有 𝓛<sub>adhere</sub>、检索器换回现成的：0.102。两者都和 RAEA（0.104）差不多，合起来却是 0.532。逻辑上说得通：检索错了，逼动作头去读它只会读到错的；检索对了，动作头不读也白搭。另一面是，pairwise grounding、预编码这些<strong>结构</strong>改动本身并不带来成功率，它们的价值在延迟上。</p>
+      </div>
+
+      <h3>推理延迟（图 5 / 图 11）</h3>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/latency.png" aria-label="放大原文图 11"><img src="fig/latency.png" width="1481" height="595" alt="原文图 11：RAEA、RICL、RA-VLA 的延迟随检索片段数 k 的变化，按 ViT+检索、LLM、动作头分解" loading="lazy"></button>
+        <figcaption><b>原文 Figure 11</b>生成一个动作块的延迟，1,000 次平均，动作头 4 个去噪步，按 ViT + Retrieval（浅蓝）、LLM（红）、Action Head（绿）堆叠。k = 8 时 RAEA 0.157 s、RICL 0.156 s、RA-VLA 0.055 s（图上标注）。RAEA 和 RICL 的增长几乎全在 LLM 段；RA-VLA 的 LLM 段不随 k 变，动作头段随 k 略有增加。正文图 5 是同一组数据去掉 RAEA 面板。</figcaption>
+      </figure>
+      <div class="prose"><p>附录 B 的检索开销：查询 (1 × 512) 与键 (N × 512) 做一次矩阵乘再取 Top-K，A100 上 N = 10<sup>7</sup> 时 0.18 ms，占总推理延迟 0.36%（反推总延迟约 50 ms，和图 11 中 K = 1 时 RA-VLA 约 0.05 s 吻合）。作者说更大规模可以接 ANN 索引。</p></div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>0.18 ms 读不完 10 GB 的键</h4>
+        <p>每个键 1 KB（512 维 × 2 字节），N = 10<sup>7</sup> 时键矩阵约 10 GB。一次暴力矩阵乘至少要把它从显存读一遍，A100 显存带宽约 2 TB/s，下限约 5 ms，比报告的 0.18 ms 大二十多倍。可能是计时没做 CUDA 同步，也可能 N 指的不是键的个数，论文没交代。另外 10<sup>7</sup> 个片段的预编码特征（每段 2 MB）约 20 TB，放不进 GPU 显存，「GPU 管理的 buffer、内存开销可以忽略」只在小 buffer 下成立。</p>
+      </div>
+
+      <h3>buffer 大小 N 与检索数 K（表 4）</h3>
+      <div class="chartbox">
+        <h4>LIBERO-Goal 成功率</h4>
+        <p class="sub">N = buffer 里每任务的示范数（K 固定为 1），K = 检索片段数（N 固定为 3）。纵轴从 0.45 起，不是从 0 起。</p>
+        <div class="legend"><span><i class="bg-ours"></i>N（示范数）</span><span><i class="bg-ots"></i>K（检索片段数）</span></div>
+        <div class="scroll"><svg class="chart sm" id="ch-size" viewBox="0 0 600 250"></svg></div>
+        <details class="raw" id="raw-size"><summary>原表数字（表 4）</summary></details>
+      </div>
+      <div class="prose"><p>示范从 1 条加到 4 条，成功率 0.482 → 0.552，单调上升。K 从 1 到 4 只有 0.532 → 0.546，K = 4 比 K = 3 还低一点。作者的说法是当前设置下少量片段已经够用，K 可扩展这一点留给更复杂或更模糊的场景。</p></div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>K 的差异在噪声范围内</h4>
+        <p>按 0.002 = 1/500 推断，每个套件的成功率是 500 次试验（10 任务 × 50 次）。p ≈ 0.53 时二项分布的标准误约 0.022，K 那一行最大差 0.016，不到一个标准误。N 那一行的 0.07 是实打实的。这也解释了为什么默认用 K = 1：延迟上的优势在 K 大时才显现，而成功率并不需要大 K。</p>
+      </div>
+
+      <h3>定性结果（图 3、图 6–9）</h3>
+      <div class="lab" id="gal-lab" style="padding-bottom:12px">
+        <div class="gal-nav" id="gal-nav" role="group" aria-label="选择 rollout"></div>
+        <button type="button" class="gal-img" id="gal-btn" aria-label="放大当前 rollout 图"><img id="gal-img" src="fig/rollout-stackbox.jpg" width="1800" height="1059" alt="" loading="lazy"></button>
+        <p class="say" id="gal-cap"></p>
+      </div>
+    </section>
+
+    <section id="insight">
+      <p class="eyebrow">§8 · 读懂它</p>
+      <h2>这篇真正说明了什么</h2>
+      <h3 style="margin-top:0">关键 insight</h3>
+      <div class="cards">
+        <div class="card b"><h4>1. 检索器要学的是「动作阶段」，不是「长得像」</h4><p>DTW 只在训练时用动作定义谁和谁算同一步，测试时检索器只看图和指令。图 4 那一例里，现成 SigLIP 2 五段错三段，Eagle 2 错两段；表 1 里同一个基线只换检索器，平均成功率最多翻了 4 倍多（RICL<sub>R</sub> 0.0465 → 0.2085）。</p></div>
+        <div class="card r"><h4>2. 给了上下文不等于用了上下文</h4><p>标准行为克隆下，当前观测足够把损失压低，动作头没有理由去读示范。margin 损失把「读不读示范，损失差不差」变成显式目标：S<sub>ctx</sub> 从 0.0353 升到 0.3639，LIBERO-Goal 从 0.098 升到 0.532。</p></div>
+        <div class="card o"><h4>3. 上下文放在动作头，而不是 VLM 提示里</h4><p>冻结 VLM + 离线预编码 + 每层只拼一段，使 LLM 的输入长度与 K 无关。K = 8 时 0.055 s 对 0.156 s。代价是 VLM 不能为了读示范而调整，作者在局限里承认训练规模变大时独立编码可能成为限制。</p></div>
+        <div class="card b"><h4>4. 起点也是上下文</h4><p>去噪从检索动作的均值出发，等于在专家动作附近做修正。RICL<sub>R</sub> 偏重检索动作而大涨、RA-VLA 也用检索动作当起点，两者都指向同一件事：新任务上，对齐好的示范动作本身就是很强的先验。这一项论文没有拆开量化。</p></div>
+      </div>
+      <h3>容易误解的地方</h3>
+      <div class="prose">
+        <ul>
+          <li><strong>「免训练」只针对新任务。</strong>检索器要训练，动作头要微调，只是新任务来了不再更新权重。</li>
+          <li><strong>17.60% 和 20.83% 是绝对百分点</strong>，对比的是同样用了本文检索器的最强基线 RICL<sub>R</sub>。如果和基线原本的检索方式（现成检索器）比，差距更大。</li>
+          <li><strong>表 1 的数是比例。</strong>表头写「success rate (%)」，单元格是 0.3845 这样的小数；正文的「20.9% → 38.5%」是平均列四舍五入。</li>
+          <li><strong>S<sub>ctx</sub> 高不代表动作对。</strong>它只衡量换上下文后输出变了多少。一个照抄随机示范的策略 S<sub>ctx</sub> 也会很高。论文的论证靠的是它和成功率同时变化。</li>
+          <li><strong>基线不是原版代码。</strong>RAEA 是作者改造到 VLA 上的版本，RICL 改写了回归损失，并且都换上了本文检索器。对比的是「同一主干、同一检索器下不同的用法」。</li>
+        </ul>
+      </div>
+      <h3>FAQ</h3>
+      <details class="faq"><summary><span>评测时 buffer 里到底有多少东西？</span></summary><div class="a"><p>LIBERO 每个留出任务 3 条示范，UR5e 4 条，按 h = 16、s = 4 切片。附录 B 举例：一条 128 步的示范切成 15 段（见疑点：按 s = 4 应为 29 段）。多个留出任务是否共用一个 buffer，论文没写明；图 1(a) 的失败例检索到同场景另一个任务（夹碗）的片段，说明至少那个例子里 buffer 混有其他任务的示范。</p></div></details>
+      <details class="faq"><summary><span>为什么 VLM 必须冻结？</span></summary><div class="a"><p>buffer 里的 <b>H</b>′ 是离线算好的，它必须和在线算出的 <b>H</b><sub>t</sub> 处在同一个特征空间，VLM 一更新缓存就失效。冻结也让检索器的输入（LLM 之前的 token）固定。论文明确写了 frozen VLM backbone 是能预计算、缓存的前提。</p></div></details>
+      <details class="faq"><summary><span>检索器是在什么数据上训练的？能检索到训练里没见过的任务吗？</span></summary><div class="a"><p>正样本来自训练任务里同一任务两条示范的 DTW 对齐，负样本是 batch 里其他片段（包括其他任务）。论文主张学到的是「动作轮廓」，所以能用于留出任务；直接证据是表 1：留出套件上，本文检索器让三个基线全部提升。检索器的训练数据量、步数论文没给。</p></div></details>
+      <details class="faq"><summary><span>RICL<sub>G</sub> 和 RICL<sub>R</sub> 差在哪？</span></summary><div class="a"><p>只差插值权重的衰减系数 λ<sub>w</sub>：w(d) = e<sup>−λ<sub>w</sub>d</sup>，λ<sub>w</sub> = 1.0（G）时权重衰减快、更依赖生成；0.2（R）时更依赖检索到的专家动作。现成检索器下 G 更好（0.0885 vs 0.0465），本文检索器下 R 更好（0.2085 vs 0.1295）。</p></div></details>
+      <details class="faq"><summary><span>真机上的控制频率和延迟够用吗？</span></summary><div class="a"><p>数据采集和执行都是 10 Hz，推理在远端 A100 服务器上。图 11 中 K = 1 时 RA-VLA 一个动作块约 0.05 s（读图）。一个动作块 16 步，按 10 Hz 是 1.6 s 的动作；每块执行多少步再重推理，论文没写。</p></div></details>
+    </section>
+
+    <section id="limits">
+      <p class="eyebrow">§9 · 局限与疑点</p>
+      <h2>作者承认的，和我们读出来的</h2>
+      <div class="two">
+        <div>
+          <h4>论文自己提到的（附录 F、Impact Statement）</h4>
+          <ul>
+            <li>buffer 是新任务唯一的指导来源，示范的质量和多样性决定了适应能力；为公平起见所有实验用同一个 buffer。</li>
+            <li>绝对成功率仍远低于分布内水平；评测在分布外，性能对超参数很敏感。</li>
+            <li>需要在更大规模训练、非 flow matching 架构、更复杂任务上验证；训练规模变大时，独立编码策略可能限制性能。</li>
+            <li>依赖示范 buffer 带来数据投毒风险：恶意示范会被策略照着执行，部署时需要校验示范来源。</li>
+          </ul>
+        </div>
+        <div>
+          <h4>我们读出来的</h4>
+          <ul>
+            <li><span class="tag doubt">疑点</span>附录 B 的检索延迟（N = 10<sup>7</sup>，0.18 ms）低于 A100 显存带宽允许的下限约 5 ms；10<sup>7</sup> 段的特征约 20 TB，也放不进显存。</li>
+            <li><span class="tag doubt">疑点</span>去噪起点换成检索动作均值没有消融，基线是否同样处理没说，是否加噪声没说。𝓛<sub>irrel</sub> 那一路的起点用的是随机片段的均值还是检索片段的均值也没说：如果是前者，换上下文会连起点一起换，S<sub>ctx</sub> 和 margin 不只反映交叉注意力有没有读上下文。</li>
+            <li><span class="tag doubt">疑点</span>附录 B 说 128 步示范切成 15 段，按 h = 16、s = 4 应为 29 段；15 段对应 s = 8。</li>
+            <li><span class="tag doubt">疑点</span>图 1(c) 与图 5 的延迟对不上：图 1(c) 读图 k = 8 时现有 ICIL 约 0.166 s、RA-VLA 约 0.066 s，图 5 标注为 0.156 s 和 0.055 s，测法差别没交代。</li>
+            <li>没有标准差和多种子。表 4 中 K 的差异不到一个标准误；UR5e 合并检验 p ≈ 0.065。</li>
+            <li>S<sub>ctx</sub> 只有 4 个点；它衡量变化量，不衡量对错。RICL 只算生成部分，不含插值进去的检索动作。</li>
+            <li>「新任务」的边界：UR5e 训练混入了 LIBERO 数据，Close Drawer 上 Vanilla 已有 0.333；图 8 图注说 Vanilla 对关抽屉有明显的遵循，配图里 Vanilla 那一行却是失败。</li>
+            <li>§5.4 的「换回现成检索器 10.2%」只有一句正文，没说策略是否用现成检索器重新训练。</li>
+            <li>训练细节（步数、batch、学习率、检索器训练数据量）均未披露，复现门槛高。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="topic">
+      <p class="eyebrow">§10 · 放到专题里看</p>
+      <h2>改的是「看什么」：每一步多看一张别人的卡片</h2>
+      <div class="prose">
+        <p>在 <a href="../../topics/robot-harness/">Harness for Robotics</a> 专题里，RA-VLA 属于 <strong>Context Architecture</strong>：它不保存任何回合内状态，每个动作块独立检索一次，buffer 部署时是静态的。它改的是策略每一步看到什么，以及看到的东西以什么形式进来：一段别人在同一动作阶段的观测特征和动作块，以交叉注意力 K/V 的形式进入动作头，外加一个由示范动作给出的去噪起点。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t cmp">
+          <thead><tr><th></th><th class="me">RA-VLA</th><th><a href="../../papers/activevla/">ActiveVLA</a></th><th><a href="../../papers/tic-vla/">TIC-VLA</a></th><th><a href="../../papers/optimusvla/">OptimusVLA</a></th><th><a href="../../papers/memoryvla/">MemoryVLA</a></th><th><a href="../../papers/soma/">SOMA</a></th><th><a href="../../papers/hime/">HiMe</a></th></tr></thead>
+          <tbody>
+            <tr><th>类别</th><td class="me">看什么</td><td>看什么</td><td>看什么（时序对齐）</td><td>记什么</td><td>记什么</td><td>记什么</td><td>记什么</td></tr>
+            <tr><th>额外信息从哪来</th><td class="me">外部示范 buffer（新任务 1–5 条示范）</td><td>当前 RGB-D 重建的点云</td><td>自己慢速 VLM 的推理结果</td><td>训练集轨迹库 + 本回合上一个动作块</td><td>本回合过去时刻的工作记忆</td><td>头部相机扫描 + 操作中的新观测</td><td>执行过程 + 人的指令与偏好</td></tr>
+            <tr><th>以什么形式</th><td class="me">冻结 VLM 预编码特征 + 状态 + 动作块；检索动作均值作去噪起点</td><td>选出的虚拟视角渲染图 + 3D zoom-in 图</td><td>延迟的 VLM 末层 KV cache + 延迟 Δt + 自车位移</td><td>检索动作块的加权均值 / 方差当去噪先验；上一块动作 → 一致性偏置</td><td>感知 token + 认知 token 记忆库，带时间编码</td><td>物体实例记忆 token（外观特征 + 3D 框位置编码）</td><td>文字子目标 + 图文情景记忆（增删改）</td></tr>
+            <tr><th>怎么选</th><td class="me">DTW 监督的对比学习检索器，余弦 top-K（片段级）</td><td>热力图定位 + 可见性 / 距离 / 多样性打分</td><td>不选，用最近一次完成的推理</td><td>InfoNCE 训练的 Prior Head，正样本 = 同一任务（轨迹级），按进度标量取窗口</td><td>交叉注意力检索 + 门控融合，满了合并相似条目</td><td>交叉注意力，按类别和外观-几何相似度更新</td><td>文本嵌入向量库 top-K，由规划器调用</td></tr>
+            <tr><th>进到哪里</th><td class="me">动作头每层交叉注意力的 K/V；VLM 输入不变</td><td>VLM 的图像输入</td><td>动作专家交叉注意力的 K/V</td><td>flow policy 的初始噪声与输入</td><td>VLM 之后、扩散动作专家之前</td><td>增强 VLM token 后注入 DiT</td><td>VLA 外部：子目标作为执行器的语言条件</td></tr>
+            <tr><th>训练</th><td class="me">检索器对比学习 + 动作头微调，VLM 冻结；新任务不训练</td><td>在各基准上训练</td><td>VLM SFT → 带延迟注入的模仿学习 → PPO</td><td>π0.5 式预训练 → Prior Head → LCM</td><td>端到端训练</td><td>除 VLM 语言解码器外全部训练</td><td>只微调执行器（π0.5），哨兵和规划器零样本或少样本</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <p><strong>同类：</strong></p>
+        <ul>
+          <li><strong>和 ActiveVLA。</strong>两篇都在决定模型每一步看到什么，选择的对象不同。ActiveVLA 在<em>当前场景</em>里选：用点云渲染出新视角并放大关键区域，选视角靠可见性、距离、多样性这类几何打分，改的是 VLM 的图像输入。RA-VLA 在<em>外部示范库</em>里选，选法是学出来的行为对齐嵌入，VLM 的输入保持不变，额外信息进动作头。</li>
+          <li><strong>和 TIC-VLA。</strong>注入方式几乎一样：都把额外上下文作为动作专家交叉注意力的 K/V，都避免为额外上下文重跑大模型（TIC-VLA 复用延迟的 KV cache，RA-VLA 复用离线预编码特征）。区别在上下文的来源和「怎样保证被正确使用」：TIC-VLA 的上下文是自己过时的推理，所以显式喂延迟和位移元数据，并在训练里注入延迟；RA-VLA 的上下文是别人的示范，所以加 margin 损失逼动作头去读。</li>
+        </ul>
+        <p><strong>跨类（点到为止）：</strong></p>
+        <ul>
+          <li><strong>OptimusVLA</strong> 是机制上最近的一篇：它的 Global Prior Memory 也用对比学习训一个检索头，也把检索到的动作块当 flow 的起点（加权均值 + 方差，按相似度自适应噪声和步数）。差别在于它的正样本是「同一任务」、库是训练集轨迹、目的是减少去噪步数；RA-VLA 的正样本是「DTW 对齐的同一步」、库是新任务示范、目的是适应新任务，并且检索结果还进交叉注意力。</li>
+          <li><strong>MemoryVLA</strong> 也在动作专家前做检索和融合，但检索的是<em>本回合自己的过去</em>；RA-VLA 检索的是<em>别人的示范</em>，完全没有回合内历史。</li>
+          <li><strong>SOMA</strong> 和 RA-VLA 都是往 GR00T 式策略的 DiT 里注入额外 token（SOMA 以 GR00T N1.5 为真机基线），SOMA 注入的是扫描得来的场景物体记忆。</li>
+          <li><strong>HiMe</strong> 的检索发生在 VLA 外面，由 GPT-4o 规划器在子目标切换时调用，结果以文字子目标交给执行器；RA-VLA 的检索在控制回路里，每个动作块都做。</li>
+        </ul>
+        <p><strong>和（3）结构化执行、（4）评估与反馈两类：</strong></p>
+        <ul>
+          <li><strong>和 <a href="../../papers/tt-vla/">TT-VLA</a>。</strong>两篇标题都落在「测试时适应」上，做法正好相反：RA-VLA 不改权重，只往 buffer 里放新任务的几条示范（LIBERO 每任务 3 条、UR5e 4 条），每个动作块检索一次；TT-VLA 在回合内每 8 步用进度差分奖励更新一次 LoRA，下个回合重置。TT-VLA 附录说明它只适用于离散 token 的 VLA，RA-VLA 的基座 GR00T N1.5 是 flow matching 动作头，两者不能直接叠加。</li>
+          <li><strong>和 <a href="../../papers/acot-vla/">ACoT-VLA</a>。</strong>两者都让动作头用交叉注意力读一段「参考动作」：RA-VLA 读别人在同一动作阶段的 16 步动作块，ACoT 读自己的 EAR 先去噪出的 15 点粗轨迹。<span class="tag read">解读</span>怎么保证动作头真去读，两篇答法不同：RA-VLA 加 margin 损失（去掉后 LIBERO-Goal 0.532 → 0.098），ACoT 训练时直接喂真值未来轨迹（teacher forcing），代价是暴露偏差，论文没做对照。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="glossary">
+      <p class="eyebrow">§11 · 术语表</p>
+      <h2>读这篇会遇到的词</h2>
+      <details class="gl"><summary>展开术语表</summary>
+        <dl>
+          <dt>ICIL</dt><dd>In-Context Imitation Learning：推理时把专家示范作为上下文给策略，不更新权重地适应新任务。</dd>
+          <dt>test-time adaptation</dt><dd>测试时适应。本文指只往 buffer 里放新任务示范。</dd>
+          <dt>adaptation bottleneck</dt><dd>论文对现有 ICIL 问题的统称：表面检索 + 行为惯性 + 延迟随 K 增长。</dd>
+          <dt>behavioral inertia</dt><dd>行为惯性：策略无视上下文，继续执行预训练先验里的动作。</dd>
+          <dt>buffer 𝓑</dt><dd>上下文缓冲区，存放切好的示范片段，每段一个键和一组值。</dd>
+          <dt>segment</dt><dd>片段 (<b>V</b>′, L′, <b>s</b>′, <b>A</b>′)：某一时刻的观测、指令、状态，加其后 h = 16 步动作块。</dd>
+          <dt>DTW</dt><dd>Dynamic Time Warping：在允许时间伸缩的前提下对齐两条序列，本文用在动作序列上求正样本对。</dd>
+          <dt>behavioral alignment loss</dt><dd>训练检索器的对比损失，正样本是 DTW 对齐的片段对，τ = 0.01。</dd>
+          <dt>contextual adherence loss</dt><dd>max(0, m − (𝓛<sub>irrel</sub> − 𝓛<sub>rel</sub>))，要求用检索片段时的损失比用随机片段时低至少 m = 0.01。</dd>
+          <dt>pairwise grounding</dt><dd>每个交叉注意力层只把一段检索特征和当前观测拼在一起，K 段按相关度分到 8 层。</dd>
+          <dt>S<sub>ctx</sub></dt><dd>Relative Contextual Sensitivity：换成随机上下文后输出的相对变化。</dd>
+          <dt>RAEA</dt><dd>Retrieval-Augmented Embodied Agents：把示范拼进多模态提示的基线。</dd>
+          <dt>RICL</dt><dd>Re-training for In-Context Learning：提示里放示范，另把检索动作按距离加权插值进输出。</dd>
+          <dt>GR00T N1.5</dt><dd>NVIDIA 的 flow matching VLA，本文所有方法的共同主干；VLM 为 Eagle 系列，动作头为 DiT。</dd>
+          <dt>vector field F<sub>t</sub></dt><dd>flow matching 的回归目标 <b>A</b><sub>t</sub> − <b>A</b><sub>t</sub><sup>(0)</sup>。</dd>
+          <dt>LIBERO</dt><dd>仿真基准，Spatial / Object / Goal / Long 四个套件各 10 个任务。</dd>
+          <dt>GELLO</dt><dd>低成本关节映射式遥操作设备，本文用它采 UR5e 示范。</dd>
+        </dl>
+      </details>
+    </section>
+  </main>
+</div>
+<footer class="page">
+  <p>图全部来自 arXiv 源码（2608.25585v2）里的原图；表 1–5 的数字取自 tex 表格，图 11 只引用图上标注的数值，标「读图」的是目测近似值。标「解读」的是本页的判断，不是论文的主张。</p>
+</footer>
+<dialog id="lb" aria-label="放大查看"><div class="box"><img id="lb-img" alt=""></div><div class="bar"><span id="lb-cap"></span><button type="button" id="lb-close">关闭</button></div></dialog>
+<div class="tip" id="tip" hidden></div>
+<script>
+(function(){
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, text){ const e = document.createElementNS(NS, tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+  function press(group, btn){ $$('button', group).forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false')); }
+
+  /* tooltip */
+  const tip = $('#tip');
+  function place(x, y){ const r = tip.getBoundingClientRect(); let l = x + 14, t = y + 14; if (l + r.width > innerWidth - 8) l = x - r.width - 14; if (t + r.height > innerHeight - 8) t = y - r.height - 14; tip.style.left = Math.max(8, l) + 'px'; tip.style.top = Math.max(8, t) + 'px'; }
+  document.addEventListener('pointerover', e => { const t = e.target.closest && e.target.closest('[data-tip]'); if (!t) return; tip.textContent = t.getAttribute('data-tip'); tip.hidden = false; place(e.clientX, e.clientY); });
+  document.addEventListener('pointermove', e => { if (tip.hidden) return; if (!(e.target.closest && e.target.closest('[data-tip]'))) { tip.hidden = true; return; } place(e.clientX, e.clientY); });
+
+  /* lightbox */
+  const lb = $('#lb');
+  function openLB(src, cap){ $('#lb-img').src = src; $('#lb-cap').textContent = cap || ''; if (lb.showModal) lb.showModal(); else lb.setAttribute('open', ''); }
+  $$('figure.plate .zoom').forEach(b => b.addEventListener('click', () => { const c = b.parentElement.querySelector('figcaption b'); openLB(b.dataset.src, c ? c.textContent : ''); }));
+  $('#lb-close').addEventListener('click', () => lb.close());
+  lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+
+  /* toc */
+  const links = $$('.toc a');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id)); }), { rootMargin: '-35% 0px -60% 0px' });
+    $$('main section').forEach(s => io.observe(s));
+  }
+
+  function rawTable(host, head, rows){
+    const d = document.createElement('div'); d.className = 'tblwrap';
+    d.innerHTML = '<table class="t"><thead><tr>' + head.map((h, i) => '<th' + (i ? ' class="num"' : '') + '>' + h + '</th>').join('') + '</tr></thead><tbody>' +
+      rows.map(r => r.grp ? '<tr class="grp"><th colspan="' + head.length + '">' + r.grp + '</th></tr>' : '<tr' + (r.best ? ' class="best"' : '') + '>' + r.cells.map((c, i) => i ? '<td class="num">' + c + '</td>' : '<th>' + c + '</th>').join('') + '</tr>').join('') + '</tbody></table>';
+    host.appendChild(d);
+  }
+
+  /* ================= data ================= */
+  const SUITES = ['Spatial', 'Object', 'Goal', 'Long', 'Average'];
+  const LIB = {
+    van:  { n: 'Vanilla VLA', v: ['0.000','0.066','0.002','0.000','0.0170'] },
+    ots: [
+      { n: 'RAEA', v: ['0.060','0.106','0.008','0.006','0.0450'] },
+      { n: 'RICL_G', v: ['0.092','0.156','0.106','0.000','0.0885'] },
+      { n: 'RICL_R', v: ['0.048','0.052','0.086','0.000','0.0465'] }
+    ],
+    aa: [
+      { n: 'RAEA', v: ['0.164','0.182','0.104','0.044','0.1235'] },
+      { n: 'RICL_G', v: ['0.156','0.198','0.116','0.048','0.1295'] },
+      { n: 'RICL_R', v: ['0.210','0.326','0.206','0.092','0.2085'] }
+    ],
+    ours: { n: 'RA-VLA', v: ['0.320','0.556','0.532','0.130','0.3845'] }
+  };
+  const nm = s => s.replace('_G', '<tspan baseline-shift="sub" font-size="9">G</tspan>').replace('_R', '<tspan baseline-shift="sub" font-size="9">R</tspan>');
+  const nmh = s => s.replace('_G', '<sub>G</sub>').replace('_R', '<sub>R</sub>');
+  const nmt = s => s.replace('_G', 'G').replace('_R', 'R');
+
+  /* ---- LIBERO average hbars ---- */
+  (function(){
+    const svg = $('#ch-lib-avg'); const W = 720, L = 210, R = 70, max = 0.45, rh = 27;
+    const rows = [{ grp: '无检索' }, { label: LIB.van.n, v: LIB.van.v[4], cls: 'c-b1' }, { grp: '现成检索器（SigLIP 2）' }].concat(LIB.ots.map(m => ({ label: m.n, v: m.v[4], cls: 'c-ots' })), [{ grp: '本文行为对齐检索器' }], LIB.aa.map(m => ({ label: m.n, v: m.v[4], cls: 'c-aa' })), [{ label: 'RA-VLA', v: LIB.ours.v[4], cls: 'c-ours', hi: true }]);
+    let y = 10; const items = [];
+    rows.forEach(r => { if (r.grp) { items.push({ grp: r.grp, y: y + 14 }); y += 22; } else { items.push(Object.assign({ y }, r)); y += rh; } });
+    const H = y + 28; svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const x = v => L + (W - L - R) * v / max;
+    for (let g = 0; g <= max + 1e-9; g += 0.1) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: 6, y2: H - 22, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: H - 6, 'text-anchor': 'middle', class: 'tick' }, g.toFixed(1))); }
+    items.forEach(r => {
+      if (r.grp) { svg.appendChild(el('text', { x: 8, y: r.y, class: 'gh' }, r.grp)); return; }
+      const t = el('text', { x: L - 10, y: r.y + rh / 2 + 4, 'text-anchor': 'end', class: 'glabel', 'font-weight': r.hi ? 700 : 400 }); t.innerHTML = nm(r.label); svg.appendChild(t);
+      svg.appendChild(el('rect', { x: L, y: r.y + 5, width: Math.max(1.5, x(+r.v) - L), height: rh - 11, rx: 2, class: r.cls, 'data-tip': nmt(r.label) + ' · Average：' + r.v }));
+      svg.appendChild(el('text', { x: x(+r.v) + 6, y: r.y + rh / 2 + 4, class: 'val' + (r.hi ? ' hi' : '') }, r.v));
+    });
+    svg.appendChild(el('line', { x1: L, x2: L, y1: 6, y2: H - 22, class: 'base' }));
+  })();
+
+  /* ---- LIBERO dumbbells ---- */
+  (function(){
+    const svg = $('#ch-lib-db'); const W = 760, L = 96, gap = 24, T = 44, rh = 40, max = 0.6;
+    const pw = (W - L - 10 - gap * 4) / 5; const H = T + rh * 3 + 30; svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    SUITES.forEach((s, p) => {
+      const ox = L + p * (pw + gap); const x = v => ox + pw * v / max;
+      svg.appendChild(el('text', { x: ox + pw / 2, y: 14, 'text-anchor': 'middle', class: 'glabel', 'font-weight': 700 }, s));
+      for (let g = 0; g <= max + 1e-9; g += 0.2) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: T - 8, y2: T + rh * 3 - 4, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: T + rh * 3 + 12, 'text-anchor': g < 0.01 ? 'start' : (g > max - 0.01 ? 'end' : 'middle'), class: 'tick' }, g.toFixed(1))); }
+      const vv = +LIB.van.v[p], ov = +LIB.ours.v[p];
+      svg.appendChild(el('line', { x1: x(vv), x2: x(vv), y1: T - 8, y2: T + rh * 3 - 4, stroke: 'var(--base)', 'stroke-width': 1.5, 'stroke-dasharray': '2 2', 'data-tip': 'Vanilla VLA · ' + s + '：' + LIB.van.v[p] }));
+      svg.appendChild(el('line', { x1: x(ov), x2: x(ov), y1: T - 8, y2: T + rh * 3 - 4, stroke: 'var(--blue)', 'stroke-width': 2.2, 'data-tip': 'RA-VLA · ' + s + '：' + LIB.ours.v[p] }));
+      const near = x(ov) > ox + pw - 22 ? 'end' : (x(ov) < ox + 22 ? 'start' : 'middle');
+      svg.appendChild(el('text', { x: near === 'end' ? x(ov) + 2 : (near === 'start' ? x(ov) - 2 : x(ov)), y: T - 13, 'text-anchor': near, class: 'val hi', style: 'fill:var(--blue)' }, LIB.ours.v[p]));
+      LIB.ots.forEach((m, i) => {
+        const a = +m.v[p], b = +LIB.aa[i].v[p], cy = T + i * rh + rh / 2;
+        svg.appendChild(el('line', { x1: x(a), x2: x(b), y1: cy, y2: cy, stroke: 'var(--ink-2)', 'stroke-width': 1.4 }));
+        svg.appendChild(el('circle', { cx: x(a), cy, r: 4.5, class: 'c-ots', 'data-tip': nmt(m.n) + ' · ' + s + ' · 现成检索器：' + m.v[p] }));
+        svg.appendChild(el('circle', { cx: x(b), cy, r: 5, class: 'c-aa', stroke: 'var(--ink-2)', 'stroke-width': .8, 'data-tip': nmt(m.n) + ' · ' + s + ' · 本文检索器：' + LIB.aa[i].v[p] }));
+      });
+    });
+    LIB.ots.forEach((m, i) => { const t = el('text', { x: L - 10, y: T + i * rh + rh / 2 + 4, 'text-anchor': 'end', class: 'glabel' }); t.innerHTML = nm(m.n); svg.appendChild(t); });
+    rawTable($('#raw-lib'), ['Retriever · Method'].concat(SUITES), [{ cells: ['— · Vanilla VLA'].concat(LIB.van.v) }, { grp: 'Off-the-shelf (SigLIP 2)' }].concat(LIB.ots.map(m => ({ cells: [nmh(m.n)].concat(m.v) })), [{ grp: 'Action-aware (Ours)' }], LIB.aa.map(m => ({ cells: [nmh(m.n)].concat(m.v) })), [{ cells: ['RA-VLA'].concat(LIB.ours.v), best: true }]));
+  })();
+
+  /* ---- UR5e ---- */
+  const UR = {
+    tasks: ['Stack Box', 'Throw Trash', 'Close Drawer', 'Press Pedal'],
+    subs: ['Pick Box', 'Pick Trash', 'Touch Drawer', 'Touch Pedal'],
+    m: [
+      { n: 'Vanilla VLA', cls: 'c-b1', sub: ['0.000','0.083','0.500','0.000'], suc: ['0.000','0.000','0.333','0.000'], avg: '0.0833' },
+      { n: 'RAEA', cls: 'c-b0', sub: ['0.000','0.250','0.667','0.000'], suc: ['0.000','0.000','0.500','0.000'], avg: '0.1250' },
+      { n: 'RICL_R', cls: 'c-aa', sub: ['0.583','0.833','0.667','0.667'], suc: ['0.250','0.250','0.583','0.333'], avg: '0.3542' },
+      { n: 'RA-VLA', cls: 'c-ours', sub: ['0.750','0.917','0.750','0.583'], suc: ['0.417','0.750','0.667','0.417'], avg: '0.5625' }
+    ]
+  };
+  const of12 = v => Math.round(+v * 12) + '/12';
+  (function(){
+    const svg = $('#ch-ur5e'); const W = 760, H = 300, L = 40, R = 10, T = 22, B = 46, max = 1;
+    svg.innerHTML = '';
+    const y = v => T + (H - T - B) * (1 - v / max);
+    for (let g = 0; g <= 1.0001; g += 0.25) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g.toFixed(2))); }
+    const groups = UR.tasks.concat(['Average']); const gw = (W - L - R) / groups.length, bw = 24;
+    groups.forEach((gname, gi) => {
+      const cx = L + gw * gi + gw / 2, x0 = cx - bw * 4 / 2;
+      if (gi === 4) svg.appendChild(el('line', { x1: L + gw * gi, x2: L + gw * gi, y1: T - 8, y2: H - 10, stroke: 'var(--ink-2)', 'stroke-dasharray': '3 3' }));
+      UR.m.forEach((m, j) => {
+        const bx = x0 + j * bw + 2, w = bw - 4;
+        if (gi < 4) {
+          const sv = +m.sub[gi], su = +m.suc[gi];
+          svg.appendChild(el('rect', { x: bx, y: y(sv), width: w, height: Math.max(0, y(0) - y(sv)), fill: 'none', stroke: 'var(--ink-2)', 'stroke-width': 1.2, 'stroke-dasharray': '3 2', 'data-tip': nmt(m.n) + ' · ' + UR.subs[gi] + '（子目标）：' + m.sub[gi] + ' = ' + of12(m.sub[gi]) }));
+          svg.appendChild(el('rect', { x: bx + 2, y: y(su), width: w - 4, height: Math.max(1, y(0) - y(su)), class: m.cls, 'data-tip': nmt(m.n) + ' · ' + gname + ' 整体成功：' + m.suc[gi] + ' = ' + of12(m.suc[gi]) }));
+          svg.appendChild(el('text', { x: bx + w / 2, y: (su > 0 ? y(su) : y(0)) - 4, 'text-anchor': 'middle', class: 'val' + (j === 3 ? ' hi' : ''), 'font-size': 9.5 }, su > 0 ? m.suc[gi].replace(/^0/, '') : '0'));
+        } else {
+          const av = +m.avg;
+          svg.appendChild(el('rect', { x: bx + 2, y: y(av), width: w - 4, height: Math.max(1, y(0) - y(av)), class: m.cls, 'data-tip': nmt(m.n) + ' · 四任务平均：' + m.avg + '（' + Math.round(av * 48) + '/48）' }));
+          svg.appendChild(el('text', { x: bx + w / 2, y: y(av) - 4, 'text-anchor': 'middle', class: 'val' + (j === 3 ? ' hi' : ''), 'font-size': 9.5 }, m.avg.replace(/^0/, '')));
+        }
+      });
+      svg.appendChild(el('text', { x: cx, y: H - B + 18, 'text-anchor': 'middle', class: 'glabel', 'font-size': 12, 'font-weight': gi === 4 ? 700 : 400 }, gname));
+      if (gi < 4) svg.appendChild(el('text', { x: cx, y: H - B + 33, 'text-anchor': 'middle', class: 'tick' }, '子目标 ' + UR.subs[gi]));
+      else svg.appendChild(el('text', { x: cx, y: H - B + 33, 'text-anchor': 'middle', class: 'tick' }, '整体成功率'));
+    });
+    svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(0), y2: y(0), class: 'base' }));
+    const head = ['Method'].concat([].concat.apply([], UR.tasks.map((t, i) => [t + ' · ' + UR.subs[i], t + ' · Success'])), ['Average']);
+    rawTable($('#raw-ur5e'), head, UR.m.map(m => ({ cells: [nmh(m.n)].concat([].concat.apply([], m.sub.map((s, i) => [s, m.suc[i]])), [m.avg]), best: m.n === 'RA-VLA' })));
+  })();
+
+  /* ---- S_ctx scatter ---- */
+  const SCTX = [
+    { n: 'RAEA', s: '0.0247', g: '0.104', c: 'var(--base)' },
+    { n: 'RICL_R', s: '0.0788', g: '0.206', c: 'var(--blue-2)' },
+    { n: 'RA-VLA w/o L_adhere', s: '0.0353', g: '0.098', c: 'var(--red)' },
+    { n: 'RA-VLA', s: '0.3639', g: '0.532', c: 'var(--blue)' }
+  ];
+  (function(){
+    const svg = $('#ch-sctx'); const W = 640, H = 300, L = 54, R = 20, T = 30, B = 44;
+    svg.innerHTML = '';
+    const x = v => L + (W - L - R) * v / 0.4, y = v => T + (H - T - B) * (1 - v / 0.6);
+    for (let g = 0; g <= 0.6001; g += 0.1) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g.toFixed(1))); }
+    for (let g = 0; g <= 0.4001; g += 0.1) svg.appendChild(el('text', { x: x(g), y: H - B + 16, 'text-anchor': 'middle', class: 'tick' }, g.toFixed(1)));
+    svg.appendChild(el('text', { x: (L + W - R) / 2, y: H - 6, 'text-anchor': 'middle', class: 'tick' }, 'S_ctx（越大 = 越依赖检索上下文）'));
+    svg.appendChild(el('text', { x: L - 6, y: 12, class: 'tick' }, 'LIBERO-Goal 成功率'));
+    svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(0), y2: y(0), class: 'base' }));
+    svg.appendChild(el('line', { x1: L, x2: L, y1: T, y2: y(0), class: 'base' }));
+    const off = { 'RAEA': [10, -10, 'start'], 'RICL_R': [10, 4, 'start'], 'RA-VLA w/o L_adhere': [10, 16, 'start'], 'RA-VLA': [-10, 4, 'end'] };
+    SCTX.forEach(p => {
+      svg.appendChild(el('circle', { cx: x(+p.s), cy: y(+p.g), r: 6.5, fill: p.c, stroke: 'var(--surface)', 'stroke-width': 1.5, 'data-tip': nmt(p.n) + '：S_ctx ' + p.s + '，LIBERO-Goal ' + p.g }));
+      const o = off[p.n]; const t = el('text', { x: x(+p.s) + o[0], y: y(+p.g) + o[1], 'text-anchor': o[2], class: 'val' }); t.textContent = nmt(p.n).replace('L_adhere', '𝓛adhere') + '  (' + p.s + ', ' + p.g + ')'; svg.appendChild(t);
+    });
+    rawTable($('#raw-sctx'), ['Method', 'S_ctx', 'LIBERO-Goal'], SCTX.map(p => ({ cells: [nmh(p.n).replace('L_adhere', '𝓛<sub>adhere</sub>'), p.s, p.g], best: p.n === 'RA-VLA' })));
+  })();
+
+  /* ---- Goal decomposition ---- */
+  (function(){
+    const svg = $('#ch-goal'); const W = 720, L = 250, R = 60, rh = 28, max = 0.6;
+    const rows = [
+      { l: 'RA-VLA（本文检索器 + 𝓛adhere）', v: '0.532', cls: 'c-ours', hi: true, src: '表 1 / 表 3' },
+      { l: 'RA-VLA，去掉 𝓛adhere', v: '0.098', cls: 'c-warn', src: '表 3' },
+      { l: 'RA-VLA，换回现成检索器', v: '0.102', cls: 'c-warn', src: '§5.4 正文「10.2%」' },
+      { l: 'RICL_R（本文检索器）', v: '0.206', cls: 'c-aa', src: '表 1' },
+      { l: 'RICL_G（本文检索器）', v: '0.116', cls: 'c-aa', src: '表 1' },
+      { l: 'RAEA（本文检索器）', v: '0.104', cls: 'c-aa', src: '表 1' },
+      { l: 'Vanilla VLA', v: '0.002', cls: 'c-b1', src: '表 1' }
+    ];
+    const H = 12 + rows.length * rh + 26; svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const x = v => L + (W - L - R) * v / max;
+    for (let g = 0; g <= max + 1e-9; g += 0.1) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: 6, y2: H - 22, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: H - 6, 'text-anchor': 'middle', class: 'tick' }, g.toFixed(1))); }
+    rows.forEach((r, i) => {
+      const yy = 12 + i * rh;
+      const t = el('text', { x: L - 10, y: yy + rh / 2 + 4, 'text-anchor': 'end', class: 'glabel', 'font-weight': r.hi ? 700 : 400 }); t.innerHTML = nm(r.l); svg.appendChild(t);
+      svg.appendChild(el('rect', { x: L, y: yy + 5, width: Math.max(1.5, x(+r.v) - L), height: rh - 11, rx: 2, class: r.cls, 'data-tip': nmt(r.l) + '：' + r.v + '（' + r.src + '）' }));
+      svg.appendChild(el('text', { x: x(+r.v) + 6, y: yy + rh / 2 + 4, class: 'val' + (r.hi ? ' hi' : '') }, r.v));
+    });
+    svg.appendChild(el('line', { x1: L, x2: L, y1: 6, y2: H - 22, class: 'base' }));
+  })();
+
+  /* ---- N / K ---- */
+  const SIZE = { N: ['0.482','0.518','0.532','0.552'], K: ['0.532','0.540','0.548','0.546'] };
+  (function(){
+    const svg = $('#ch-size'); const W = 600, H = 250, L = 54, R = 40, T = 16, B = 40, lo = 0.45, hi = 0.58;
+    svg.innerHTML = '';
+    const x = i => L + 34 + (W - L - R - 68) * i / 3, y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+    for (let g = 0.46; g <= hi + 1e-9; g += 0.02) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g.toFixed(2))); }
+    [1, 2, 3, 4].forEach((v, i) => svg.appendChild(el('text', { x: x(i), y: H - B + 18, 'text-anchor': 'middle', class: 'tick' }, v)));
+    svg.appendChild(el('text', { x: (L + W - R) / 2, y: H - 4, 'text-anchor': 'middle', class: 'tick' }, 'N 或 K 的取值'));
+    [['N', 'var(--blue)', 'K'], ['K', 'var(--ochre)', 'N']].forEach(([k, c, o]) => {
+      const vals = SIZE[k].map(Number), other = SIZE[o].map(Number);
+      svg.appendChild(el('polyline', { points: vals.map((v, i) => x(i) + ',' + y(v)).join(' '), fill: 'none', stroke: c, 'stroke-width': 2.2 }));
+      vals.forEach((v, i) => { const dy = v >= other[i] ? -10 : 18; svg.appendChild(el('circle', { cx: x(i), cy: y(v), r: 4.5, fill: c, 'data-tip': k + ' = ' + (i + 1) + '：' + SIZE[k][i] })); svg.appendChild(el('text', { x: x(i), y: y(v) + dy, 'text-anchor': 'middle', class: 'val', 'font-size': 10.5, style: 'fill:' + c }, SIZE[k][i])); });
+    });
+    rawTable($('#raw-size'), ['', '1', '2', '3', '4'], [{ cells: ['N'].concat(SIZE.N) }, { cells: ['K'].concat(SIZE.K) }]);
+  })();
+
+  /* ---- assignment table ---- */
+  const ASSIGN = { 1: [1,1,1,1,1,1,1,1], 2: [2,2,2,2,1,1,1,1], 3: [3,3,2,2,2,1,1,1], 4: [4,4,3,3,2,2,1,1], 5: [5,4,3,3,2,2,1,1], 6: [6,5,4,3,2,2,1,1], 7: [7,6,5,4,3,2,1,1], 8: [8,7,6,5,4,3,2,1] };
+  $('#assign-tb').innerHTML = Object.keys(ASSIGN).map(k => '<tr><th class="num" style="text-align:left">' + k + '</th><td class="mono">[' + ASSIGN[k].join(', ') + ']</td></tr>').join('');
+
+  /* ================= flow lab ================= */
+  const FR = {"query":[[523.397,807.175,1.944,7.102,1.035],[523.397,807.175,25.972,7.102,1.035],[523.397,807.175,50,7.102,1.035],[523.397,807.175,74.028,7.102,1.035],[523.397,807.175,98.056,7.102,1.035]],"source":[[521.139,792.952,1.844,32.422,1.0211],[521.139,792.952,25.999,32.422,1.0211],[521.139,792.952,50.154,32.422,1.0211],[521.139,792.952,74.309,32.422,1.0211],[521.139,792.952,98.463,32.422,1.0211]],"vit":[[527.051,792.952,2.145,59.822,1.0097],[527.051,792.952,25.971,59.822,1.0097],[527.051,792.952,49.796,59.822,1.0097],[527.051,792.952,73.621,59.822,1.0097],[527.051,792.952,97.446,59.822,1.0097]],"vlm":[[527.972,786.026,2.553,79.313,0.9991],[527.972,786.026,26.328,79.313,0.9991],[527.972,786.026,50.102,79.313,0.9991],[527.972,786.026,73.877,79.313,0.9991],[527.972,786.026,97.651,79.313,0.9991]],"ours":[[529.36,792.952,2.347,98.347,1.0053],[529.36,792.952,26.046,98.347,1.0053],[529.36,792.952,49.745,98.347,1.0053],[529.36,792.952,73.444,98.347,1.0053],[529.36,792.952,97.142,98.347,1.0053]]};
+  function frame(node, row, i){ const b = FR[row][i]; node.style.backgroundSize = b[0] + '% ' + b[1] + '%'; node.style.backgroundPosition = b[2] + '% ' + b[3] + '%'; node.style.aspectRatio = String(b[4]); }
+  const TICK = { vit: [0,1,0,0,1], vlm: [1,1,1,0,0], ours: [1,1,1,1,1] };
+  const PHASE = ['Pick up', 'Pick up', 'Place', 'Place', 'Place'];
+  const RETS = [
+    { k: 'vit', n: 'ViT · SigLIP 2', kind: '表层相似', d: '通用图像嵌入，按画面相似度排序。（解读）同一场景里碗、盘子、柜子的位置都差不多，阶段差别主要体现在机械臂姿态上。' },
+    { k: 'vlm', n: 'VLM · Eagle 2', kind: '表层相似', d: '现成 VLM 的特征（GR00T N1.5 用的也是 Eagle 系列 VLM），带指令语义。（解读）它没有专门为区分「刚要拿」和「正在放」这类动作阶段训练过。' },
+    { k: 'ours', n: '本文 · 行为对齐', kind: '行为对齐', d: '2 层 Transformer 读 LLM 之前的图文 token，池化成 512 维键。训练时正样本来自两条示范动作序列的 DTW 对齐，所以嵌入空间按「做到第几步」组织。' }
+  ];
+  let fs = 0, seg = 0, ret = 'ours', K = 1;
+  const segBox = $('#fl-seg');
+  for (let i = 0; i < 5; i++) { const b = document.createElement('button'); b.type = 'button'; b.textContent = (i + 1); b.setAttribute('aria-pressed', i === seg ? 'true' : 'false'); b.addEventListener('click', () => { seg = i; press(segBox, b); renderFlow(); }); segBox.appendChild(b); }
+  const kBox = $('#fl-k');
+  for (let k = 1; k <= 8; k++) { const b = document.createElement('button'); b.type = 'button'; b.textContent = k; b.setAttribute('aria-pressed', k === K ? 'true' : 'false'); b.addEventListener('click', () => { K = k; press(kBox, b); renderFlow(); }); kBox.appendChild(b); }
+
+  function box(svg, x, y, w, h, label, sub, cls){ svg.appendChild(el('rect', { x, y, width: w, height: h, rx: 5, class: 'bx' + (cls ? ' ' + cls : '') })); svg.appendChild(el('text', { x: x + w / 2, y: y + (sub ? h / 2 - 2 : h / 2 + 5), 'text-anchor': 'middle' }, label)); if (sub) svg.appendChild(el('text', { x: x + w / 2, y: y + h / 2 + 14, 'text-anchor': 'middle', class: 'mono' }, sub)); }
+  function arrow(svg, d, hot){ svg.appendChild(el('path', { d, class: 'ln' + (hot ? ' hot' : ''), 'marker-end': hot ? 'url(#fa-h)' : 'url(#fa)' })); }
+  function defs(svg){ const d = el('defs'); d.innerHTML = '<marker id="fa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--ink-2)"/></marker><marker id="fa-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--blue)"/></marker>'; svg.appendChild(d); }
+
+  function drawStep0(){
+    const svg = $('#fl-svg0'); svg.innerHTML = ''; defs(svg);
+    box(svg, 10, 14, 150, 46, 'RGB × 2', '第三人称 + 腕部');
+    box(svg, 10, 76, 150, 46, '指令 L', '');
+    box(svg, 200, 14, 150, 46, 'Vision Encoder', '冻结', 'fz');
+    box(svg, 200, 76, 150, 46, 'Text Tokenizer', '');
+    arrow(svg, 'M160 37 H198'); arrow(svg, 'M160 99 H198');
+    // token strip
+    svg.appendChild(el('text', { x: 380, y: 30, class: 'mono' }, 'LLM 之前的输入 token'));
+    for (let i = 0; i < 9; i++) svg.appendChild(el('rect', { x: 380 + i * 14, y: 40, width: 12, height: 22, rx: 2, fill: i < 5 ? 'var(--blue-2)' : 'var(--ochre)', opacity: .85 }));
+    svg.appendChild(el('text', { x: 380, y: 80, class: 'mono' }, '蓝 = 图像 · 黄 = 文本'));
+    arrow(svg, 'M350 37 H376'); arrow(svg, 'M350 99 C 364 99, 366 62, 378 58');
+    // branches
+    arrow(svg, 'M416 88 C 416 130, 150 120, 125 156', true);
+    arrow(svg, 'M470 88 C 470 120, 440 130, 437 156');
+    box(svg, 20, 158, 210, 54, '检索编码器 R(·)', '2 层 Transformer · 512 / 8 头', 'hot');
+    box(svg, 360, 158, 150, 54, 'VLM 的 LLM', '冻结', 'fz');
+    arrow(svg, 'M125 212 V 236', true); arrow(svg, 'M435 212 V 236');
+    box(svg, 20, 238, 210, 46, '平均池化 → z', '512 维 · 1 KB', 'hot');
+    box(svg, 360, 238, 150, 46, 'H_t', '当前观测特征');
+    svg.appendChild(el('text', { x: 125, y: 306, 'text-anchor': 'middle', class: 'hd', style: 'fill:var(--blue)' }, '→ 第 ② 步：去 buffer 检索'));
+    svg.appendChild(el('text', { x: 435, y: 306, 'text-anchor': 'middle', class: 'hd' }, '→ 第 ③ 步：动作头'));
+    box(svg, 250, 318, 120, 34, '状态 s_t', '');
+    svg.appendChild(el('text', { x: 380, y: 340, class: 'mono' }, '线性编码器 → 动作头'));
+  }
+
+  function drawStep2(){
+    const svg = $('#fl-svg2'); svg.innerHTML = ''; defs(svg);
+    const asg = ASSIGN[K];
+    const shade = j => 'color-mix(in oklab,var(--blue) ' + Math.round(100 - (j - 1) * 10) + '%,var(--surface))';
+    svg.appendChild(el('text', { x: 10, y: 18, class: 'hd' }, '检索到的 K 段'));
+    svg.appendChild(el('text', { x: 10, y: 34, class: 'mono' }, '离线预编码，不过 LLM'));
+    const cy = j => 50 + (j - 1) * 40;
+    for (let j = 1; j <= K; j++) {
+      svg.appendChild(el('rect', { x: 10, y: cy(j), width: 150, height: 32, rx: 4, fill: shade(j), stroke: 'var(--line)', 'data-tip': '第 ' + j + ' 相关的片段：H′（冻结 VLM 特征）+ s′ + A′' }));
+      svg.appendChild(el('text', { x: 85, y: cy(j) + 21, 'text-anchor': 'middle', style: 'fill:' + (j <= 4 ? 'var(--on-blue)' : 'var(--ink)') + ';font-family:var(--f-mono);font-size:12px' }, '片段 #' + j + (j === 1 ? '（最相关）' : '')));
+    }
+    svg.appendChild(el('text', { x: 300, y: 18, class: 'hd' }, '动作头 DiT（只画交叉注意力层）'));
+    const ly = l => 360 - (l - 1) * 38;
+    for (let l = 1; l <= 8; l++) {
+      const j = asg[l - 1], yy = ly(l);
+      svg.appendChild(el('rect', { x: 300, y: yy, width: 290, height: 30, rx: 4, class: 'bx' }));
+      svg.appendChild(el('text', { x: 310, y: yy + 20, class: 'mono' }, 'Cross-Attn ' + l));
+      svg.appendChild(el('rect', { x: 412, y: yy + 5, width: 76, height: 20, rx: 3, fill: shade(j), 'data-tip': '第 ' + l + ' 层 K/V 里的检索片段：#' + j }));
+      svg.appendChild(el('text', { x: 450, y: yy + 19, 'text-anchor': 'middle', style: 'fill:' + (j <= 4 ? 'var(--on-blue)' : 'var(--ink)') + ';font-family:var(--f-mono);font-size:11.5px' }, '#' + j));
+      svg.appendChild(el('rect', { x: 492, y: yy + 5, width: 90, height: 20, rx: 3, fill: 'var(--surface-2)', stroke: 'var(--line)' }));
+      svg.appendChild(el('text', { x: 537, y: yy + 19, 'text-anchor': 'middle', style: 'font-family:var(--f-mono);font-size:11.5px;fill:var(--ink-2)' }, 'H_t'));
+      svg.appendChild(el('path', { d: 'M160 ' + (cy(j) + 16) + ' C 240 ' + (cy(j) + 16) + ', 250 ' + (yy + 15) + ', 298 ' + (yy + 15), fill: 'none', stroke: shade(j), 'stroke-width': 1.4, opacity: .9 }));
+    }
+    svg.appendChild(el('text', { x: 445, y: 44, 'text-anchor': 'middle', class: 'mono' }, '↑ 去噪后的动作块（16 步）'));
+    svg.appendChild(el('rect', { x: 300, y: 396, width: 290, height: 28, rx: 4, class: 'bx hot' }));
+    svg.appendChild(el('text', { x: 445, y: 415, 'text-anchor': 'middle', style: 'font-size:12.5px;fill:var(--ink)' }, 'A⁽⁰⁾ = ' + (K === 1 ? '片段 #1 的动作块' : 'K 段动作块的均值') + ' · 4 步去噪'));
+    svg.appendChild(el('text', { x: 10, y: 410, class: 'mono' }, '状态 s_t 与加噪动作走 self-attn（未画）'));
+    // kv bar
+    const unit = '<i style="width:30px;background:var(--surface-2);border:1px solid var(--line)"></i>';
+    const segu = '<i style="width:30px;background:var(--blue-2)"></i>';
+    $('#fl-kv').innerHTML = '<span class="mono small">RAEA / RICL<br>LLM 输入</span><span class="trk">' + unit + Array(K).fill(segu).join('') + '</span>' +
+      '<span class="mono small">RA-VLA<br>LLM 输入</span><span class="trk">' + unit + '</span>' +
+      '<span class="mono small">RA-VLA<br>每层 K/V</span><span class="trk">' + unit + segu + '</span>';
+    const lat = K === 8 ? '图 11 标注：K = 8 时 RAEA 0.157 s、RICL 0.156 s、RA-VLA 0.055 s。' : 'K = 8 时图 11 标注 RAEA 0.157 s、RICL 0.156 s、RA-VLA 0.055 s。';
+    $('#fl-say2').innerHTML = '<b>K = ' + K + '</b>，分配 [' + asg.join(', ') + ']（附录表 5，第 1 层 → 第 8 层）。' + (K === 1 ? '默认设置：8 层都读同一段，去噪起点就是这一段的动作块。' : '最相关的 #1 总在最高层，低相关的片段放在低层。') +
+      ' 上面三条小方块是<b>示意</b>（灰 = 当前观测，蓝 = 一段示范；假设一段示范和当前观测 token 数相当，论文未给具体数）：基线把 K 段拼进 LLM 提示，RA-VLA 的 LLM 只看当前观测，每层交叉注意力也只多一段，所以长度与 K 无关。' + lat;
+  }
+
+  function drawStep3(){
+    const svg = $('#fl-svg3'); svg.innerHTML = '';
+    const m = 0.01, gap = +$('#fl-gap').value;
+    const W = 520, H = 250, L = 56, R = 16, T = 18, B = 42, x0 = -0.01, x1 = 0.03, y1 = 0.02;
+    const x = v => L + (W - L - R) * (v - x0) / (x1 - x0), y = v => T + (H - T - B) * (1 - v / y1);
+    svg.appendChild(el('rect', { x: x(x0), y: T, width: x(m) - x(x0), height: y(0) - T, fill: 'var(--red-soft)', opacity: .6 }));
+    for (let g = 0; g <= y1 + 1e-9; g += 0.005) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g.toFixed(3))); }
+    for (let g = -0.01; g <= x1 + 1e-9; g += 0.01) svg.appendChild(el('text', { x: x(g), y: H - B + 16, 'text-anchor': 'middle', class: 'tick' }, g.toFixed(2)));
+    svg.appendChild(el('text', { x: (L + W - R) / 2, y: H - 6, 'text-anchor': 'middle', class: 'tick' }, 'Δ = 𝓛irrel − 𝓛rel'));
+    svg.appendChild(el('text', { x: L + 4, y: T + 12, class: 'tick' }, '𝓛adhere'));
+    svg.appendChild(el('polyline', { points: [x0, m, x1].map(v => x(v) + ',' + y(Math.max(0, m - v))).join(' '), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2 }));
+    svg.appendChild(el('line', { x1: x(0), x2: x(0), y1: T, y2: y(0), stroke: 'var(--ink-2)', 'stroke-dasharray': '3 3' }));
+    svg.appendChild(el('text', { x: x(0) + 4, y: T + 30, class: 'tick' }, 'Δ = 0：读不读一样'));
+    svg.appendChild(el('line', { x1: x(m), x2: x(m), y1: T, y2: y(0), stroke: 'var(--blue)', 'stroke-dasharray': '3 3' }));
+    svg.appendChild(el('text', { x: x(m) + 4, y: T + 48, class: 'tick', style: 'fill:var(--blue)' }, 'Δ = m = 0.01'));
+    svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(0), y2: y(0), class: 'base' }));
+    const la = Math.max(0, m - gap);
+    svg.appendChild(el('circle', { cx: x(gap), cy: y(la), r: 7, fill: la > 0 ? 'var(--red)' : 'var(--blue)', stroke: 'var(--surface)', 'stroke-width': 2 }));
+    $('#fl-read3').innerHTML = '<div><span class="k">Δ</span><b>' + gap.toFixed(3) + '</b></div><div><span class="k">𝓛adhere</span><b>' + la.toFixed(3) + '</b></div><div><span class="k">加到总损失（λ = 0.1）</span><b>' + (0.1 * la).toFixed(4) + '</b></div>';
+    let s;
+    if (gap < 0) s = 'Δ < 0：用随机片段反而比用检索片段损失更低，罚得最重（' + la.toFixed(3) + '）。';
+    else if (gap < 0.0005) s = 'Δ ≈ 0：动作头无视上下文，换成随机片段也一样准，这正是论文说的行为惯性，罚满 m = 0.01。';
+    else if (gap < m) s = '0 < Δ < m：检索片段已经有帮助，但差距还没拉到 margin，继续罚 m − Δ = ' + la.toFixed(3) + '。';
+    else s = 'Δ ≥ m：用检索片段的损失比随机片段低出至少 0.01，不再罚。合页函数只要求拉开差距，不要求差距无限大。';
+    $('#fl-say3').innerHTML = s + ' 这个损失只在训练时算，推理时只有检索片段那一路，没有额外开销。下面四条是表 3 的证据：去掉 𝓛adhere 后 S<sub>ctx</sub> 从 0.3639 掉到 0.0353，LIBERO-Goal 从 0.532 掉到 0.098，和 RAEA 差不多。左侧的 Δ 是公式演示，不是论文报告的训练数值。';
+  }
+  $('#fl-sctx').innerHTML = SCTX.map(p => '<div class="mbar"><span>' + nmh(p.n).replace('L_adhere', '𝓛<sub>adhere</sub>') + '</span><span class="tr"><i style="width:' + (+p.s / 0.4 * 100) + '%;background:' + p.c + '"></i></span><span class="v">' + p.s + ' / ' + p.g + '</span></div>').join('');
+  $('#fl-gap').addEventListener('input', drawStep3);
+
+  function drawStep1(){
+    const host = $('#fl-rets'); host.innerHTML = '';
+    const q = document.createElement('div'); q.className = 'ret q';
+    q.innerHTML = '<h5>查询 · 第 ' + (seg + 1) + ' 段</h5><div class="fr"></div><div class="v"><span>' + PHASE[seg] + '</span><span class="muted">阶段</span></div>';
+    host.appendChild(q); frame($('.fr', q), 'query', seg);
+    RETS.forEach(r => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'ret'; b.setAttribute('aria-pressed', r.k === ret ? 'true' : 'false');
+      const ok = TICK[r.k][seg];
+      b.innerHTML = '<h5>' + r.n + '</h5><div class="fr"></div><div class="v"><span class="' + (ok ? 'ok' : 'no') + '">' + (ok ? '✓ 阶段对齐' : '✗ 阶段错位') + '</span><span class="muted">' + r.kind + '</span></div>';
+      b.addEventListener('click', () => { ret = r.k; renderFlow(); });
+      host.appendChild(b); frame($('.fr', b), r.k, seg);
+    });
+    const cnt = k => TICK[k].reduce((a, b) => a + b, 0);
+    $('#fl-tally').innerHTML = '图 4 全部 5 段的对齐数：' + RETS.map(r => '<span>' + r.n + ' <b>' + cnt(r.k) + '/5</b></span>').join('');
+    const R = RETS.find(r => r.k === ret), ok = TICK[ret][seg];
+    let s = '<b>' + R.n + '</b>：' + R.d + ' 第 ' + (seg + 1) + ' 段查询处在 <b>' + PHASE[seg] + '</b> 阶段，' + (ok ? '这次检索到的片段阶段对得上。' : '这次检索到的片段阶段对不上，检索结果会把动作头引向错误的动作阶段。');
+    if (ret === 'vit' && seg === 0) s += ' 原文图注专门点了这一格：查询是刚开始拿起，检索到的却是后面的搬运阶段。';
+    s += ' 打分方式对三者相同：查询嵌入 z 和 buffer 里所有键 z′ 算余弦相似度，取 top-K（默认 K = 1）。附录 B：实现上就是一次 (1 × 512) × (512 × N) 的矩阵乘加 Top-K。';
+    $('#fl-say1').innerHTML = s;
+  }
+
+  function renderFlow(){
+    $$('#fl-steps button').forEach((b, i) => { b.setAttribute('aria-pressed', i === fs ? 'true' : 'false'); b.classList.toggle('done', i < fs); });
+    $$('#flow-lab .pane').forEach(p => p.hidden = +p.dataset.p !== fs);
+    $('#fl-segctrl').hidden = fs > 1;
+    $('#fl-prev').disabled = fs === 0; $('#fl-next').disabled = fs === 3;
+    if (fs === 0) { frame($('#fl-q0'), 'query', seg); $('#fl-q0cap').textContent = '查询轨迹第 ' + (seg + 1) + ' 段 · ' + PHASE[seg] + ' 阶段（原文图 4 上排）'; drawStep0(); }
+    if (fs === 1) drawStep1();
+    if (fs === 2) drawStep2();
+    if (fs === 3) drawStep3();
+  }
+  $$('#fl-steps button').forEach(b => b.addEventListener('click', () => { fs = +b.dataset.s; renderFlow(); }));
+  $('#fl-prev').addEventListener('click', () => { if (fs > 0) { fs--; renderFlow(); } });
+  $('#fl-next').addEventListener('click', () => { if (fs < 3) { fs++; renderFlow(); } });
+  renderFlow();
+
+  /* ================= DTW lab (synthetic) ================= */
+  (function(){
+    const ss = (a, b, t) => { const u = Math.min(1, Math.max(0, (t - a) / (b - a))); return u * u * (3 - 2 * u); };
+    const prof = t => 0.9 - 0.65 * ss(0.12, 0.32, t) + 0.6 * ss(0.42, 0.56, t) - 0.45 * ss(0.72, 0.86, t) + 0.3 * ss(0.9, 1.0, t);
+    const NA = 24, NB = 30;
+    const A = Array.from({ length: NA }, (_, i) => prof(i / (NA - 1)));
+    const warp = s => s < 0.5 ? 0.5 * Math.pow(s / 0.5, 1.5) : 0.5 + 0.5 * Math.pow((s - 0.5) / 0.5, 0.75);
+    const B = Array.from({ length: NB }, (_, j) => prof(warp(j / (NB - 1))) + 0.06);
+    const D = Array.from({ length: NA }, () => Array(NB).fill(Infinity));
+    for (let i = 0; i < NA; i++) for (let j = 0; j < NB; j++) { const c = (A[i] - B[j]) ** 2; const p = i === 0 && j === 0 ? 0 : Math.min(i ? D[i - 1][j] : Infinity, j ? D[i][j - 1] : Infinity, i && j ? D[i - 1][j - 1] : Infinity); D[i][j] = c + p; }
+    const path = []; let i = NA - 1, j = NB - 1; path.push([i, j]);
+    while (i > 0 || j > 0) { const opts = []; if (i && j) opts.push([D[i - 1][j - 1], i - 1, j - 1]); if (i) opts.push([D[i - 1][j], i - 1, j]); if (j) opts.push([D[i][j - 1], i, j - 1]); opts.sort((a, b) => a[0] - b[0]); i = opts[0][1]; j = opts[0][2]; path.push([i, j]); }
+    path.reverse();
+    const svg = $('#dtw-svg'), W = 700, L = 90, R = 20;
+    const xa = k => L + (W - L - R) * k / (NA - 1), xb = k => L + (W - L - R) * k / (NB - 1);
+    const ya = v => 20 + 80 * (1 - (v - 0.1) / 0.95), yb = v => 150 + 80 * (1 - (v - 0.1) / 0.95);
+    function draw(sel){
+      svg.innerHTML = '';
+      svg.appendChild(el('text', { x: 8, y: 60, class: 'glabel', 'font-weight': 700 }, '示范 A')); svg.appendChild(el('text', { x: 8, y: 76, class: 'tick' }, '24 段'));
+      svg.appendChild(el('text', { x: 8, y: 190, class: 'glabel', 'font-weight': 700 }, '示范 B')); svg.appendChild(el('text', { x: 8, y: 206, class: 'tick' }, '30 段 · 更慢'));
+      path.forEach(([a, b]) => { const on = a === sel; svg.appendChild(el('line', { x1: xa(a), y1: ya(A[a]), x2: xb(b), y2: yb(B[b]), stroke: on ? 'var(--blue)' : 'var(--line)', 'stroke-width': on ? 2 : 1 })); });
+      svg.appendChild(el('polyline', { points: A.map((v, k) => xa(k) + ',' + ya(v)).join(' '), fill: 'none', stroke: 'var(--ink-2)', 'stroke-width': 1.6 }));
+      svg.appendChild(el('polyline', { points: B.map((v, k) => xb(k) + ',' + yb(v)).join(' '), fill: 'none', stroke: 'var(--ink-2)', 'stroke-width': 1.6 }));
+      const pos = new Set(path.filter(p => p[0] === sel).map(p => p[1]));
+      A.forEach((v, k) => { const c = el('circle', { cx: xa(k), cy: ya(v), r: k === sel ? 6.5 : 4, fill: k === sel ? 'var(--blue)' : 'var(--surface)', stroke: 'var(--ink-2)', 'stroke-width': 1.2, style: 'cursor:pointer', 'data-tip': '示范 A 第 ' + (k + 1) + ' 段' }); c.addEventListener('click', () => { $('#dtw-i').value = k; update(); }); svg.appendChild(c); });
+      B.forEach((v, k) => svg.appendChild(el('circle', { cx: xb(k), cy: yb(v), r: pos.has(k) ? 6 : 4, fill: pos.has(k) ? 'var(--blue)' : 'var(--red-soft)', stroke: pos.has(k) ? 'var(--blue)' : 'var(--red)', 'stroke-width': 1.1, 'data-tip': '示范 B 第 ' + (k + 1) + ' 段：' + (pos.has(k) ? '正样本' : '负样本') })));
+      svg.appendChild(el('text', { x: L, y: 262, class: 'tick' }, '纵轴：示意的「末端高度」；连线 = DTW 最优路径'));
+      return pos;
+    }
+    function update(){
+      const k = +$('#dtw-i').value; const pos = draw(k); const arr = [...pos].map(v => v + 1);
+      $('#dtw-iv').textContent = '第 ' + (k + 1) + ' 段';
+      $('#dtw-say').innerHTML = '示范 A 的第 <b>' + (k + 1) + '</b> 段在 DTW 路径上对到示范 B 的第 <b>' + (arr.length > 1 ? arr[0] + '–' + arr[arr.length - 1] : arr[0]) + '</b> 段（蓝色），这些片段对是<b>正样本</b>；B 里其余 ' + (NB - arr.length) + ' 段（红圈）和 batch 里其他任务的片段都是<b>负样本</b>。注意 B 在前半段更慢、整体还抬高了一点，DTW 仍按「做到哪一步」对齐。检索器训练时只看这些片段的观测，学着把正样本拉近。';
+    }
+    $('#dtw-i').addEventListener('input', update);
+    update();
+  })();
+
+  /* ================= gallery ================= */
+  (function(){
+    const G = [
+      { k: 'stackbox', n: 'Stack Box · 图 3', h: 1059, c: '<b>原文 Figure 3</b>真机留出任务「Put the small box on the large box」，三个方法都用本文检索器。RAEA 拿错了物体（去拿垃圾）；RICL<sub>R</sub> 拿对了小盒，但放不到大盒上；RA-VLA 拿起并放好。论文的解读：RAEA 偏向训练分布里的行为，RICL<sub>R</sub> 的简单混合让控制不精确、抖动。' },
+      { k: 'throwtrash', n: 'Throw Trash · 图 7', h: 1378, c: '<b>原文 Figure 7</b>「Put the trash in the red bin」。Vanilla VLA 和 RAEA 都去踩踏板（Press Pedal 是训练任务）；RICL<sub>R</sub> 拿对了垃圾但没放进红桶；RA-VLA 完成。' },
+      { k: 'closedrawer', n: 'Close Drawer · 图 8', h: 1373, c: '<b>原文 Figure 8</b>「Close the open drawer」。RAEA、RICL<sub>R</sub>、RA-VLA 都成功，Vanilla VLA 这一次失败。图注说 Vanilla 在这个任务上有明显的指令遵循，推测预训练分布里有关抽屉的示范；表 2 中 Vanilla 的成功率是 0.333。' },
+      { k: 'presspedal', n: 'Press Pedal · 图 9', h: 1376, c: '<b>原文 Figure 9</b>「Press the pedal to open the trash bin」。Vanilla VLA 和 RAEA 都去关抽屉（训练任务）；RICL<sub>R</sub> 踩不准；RA-VLA 踩下踏板、桶盖打开。' },
+      { k: 'libero', n: 'LIBERO-Goal · 图 6', h: 1063, c: '<b>原文 Figure 6</b>LIBERO-Goal 留出任务「Put the wine bottle on top of the cabinet」。RAEA 拿错了物体，RICL<sub>R</sub> 没抓起来，RA-VLA 拿起酒瓶放到柜顶。' }
+    ];
+    const nav = $('#gal-nav'); let cur = 0;
+    G.forEach((g, i) => { const b = document.createElement('button'); b.type = 'button'; b.innerHTML = g.n; b.setAttribute('aria-pressed', i ? 'false' : 'true'); b.addEventListener('click', () => { cur = i; press(nav, b); show(); }); nav.appendChild(b); });
+    function show(){ const g = G[cur]; const img = $('#gal-img'); img.setAttribute('src', ['fig', 'rollout-' + g.k + '.jpg'].join('/')); img.setAttribute('height', g.h); img.alt = '原文 rollout 对比图：' + g.n.replace(/<[^>]+>/g, ''); $('#gal-cap').innerHTML = g.c; }
+    $('#gal-btn').addEventListener('click', () => openLB($('#gal-img').getAttribute('src'), G[cur].n));
+    show();
+  })();
+})();
+</script>
+</body>
+</html>

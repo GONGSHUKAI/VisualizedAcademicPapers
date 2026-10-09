@@ -25,10 +25,36 @@
 
 [专题对照页](https://gongshukai.github.io/VisualizedAcademicPapers/topics/robot-harness/)
 
+#### （1）Context Architecture
+
+设计模型每次决策时看到什么、以什么形式看到：检索、视觉选择、时序对齐等。
+
+- [ActiveVLA](https://gongshukai.github.io/VisualizedAcademicPapers/papers/activevla/) · 2026-01 · arXiv [2601.08325](https://arxiv.org/abs/2601.08325) — 相机不动，在重建点云上挑虚拟视点再缩视场角放大：BridgeVLA 骨干的精阶段改看球面上选出的 3 个视图和 4 倍放大图；RLBench 91.8%（BridgeVLA 88.2），推理时间约翻倍。
+- [TIC-VLA](https://gongshukai.github.io/VisualizedAcademicPapers/papers/tic-vla/) · 2026-02 · arXiv [2602.02459](https://arxiv.org/abs/2602.02459) — 把慢 VLM 的 KV cache 连同推理延迟 Δt 和期间位移 Δp 一起喂给 10 Hz 导航动作专家，训练时注入延迟；DynaNav 85 条 SR 55.29（最强语言基线 32.94），不建模延迟时 47.06 → 30.59（均无 RL）。
+- [RA-VLA](https://gongshukai.github.io/VisualizedAcademicPapers/papers/ra-vla/) · 2026-08 · arXiv [2608.25585](https://arxiv.org/abs/2608.25585) — GR00T N1.5 外挂示范检索：DTW 监督的检索器按动作阶段取片段，动作头每层拼一段并用 margin 损失逼它读；LIBERO 留出套件平均 0.3845（最强基线 0.2085），UR5e 0.5625（0.3542）。
+
+#### （2）Persistent State / Memory
+
+在多步任务中持续保存任务状态、空间状态和执行历史，让当前动作不只依赖当前观测。
+
+- [MemoryVLA](https://gongshukai.github.io/VisualizedAcademicPapers/papers/memoryvla/) · 2025-08 · arXiv [2508.19236](https://arxiv.org/abs/2508.19236) — CogACT 式 VLA 的 VLM 与 DiT 动作头之间插一个感知-认知记忆库：每步存 256 个感知 token + 1 个认知 token，cross-attention 检索、门控融合，库满合并相邻最相似条目；真机 6 个时序任务平均 83，CogACT 57。
+- [OptimusVLA](https://gongshukai.github.io/VisualizedAcademicPapers/papers/optimusvla/) · 2026-02 · arXiv [2602.20200](https://arxiv.org/abs/2602.20200) — 给 π0.5 外挂两块记忆，都接在 flow 的去噪起点上：检索同类示范轨迹的均值和方差代替高斯噪声，按相似度定噪声和步数；Mamba 读上一个动作块再加偏置。LIBERO 平均 98.6（π0.5 96.9），NFE 3.2 vs 10。
+- [SOMA](https://gongshukai.github.io/VisualizedAcademicPapers/papers/soma/) · 2026-05 · arXiv [2605.22283](https://arxiv.org/abs/2605.22283) — 可动头部先扫一圈，用 YOLO-World、DINOv3、VGGT 把每个物体压成带 3D 框的记忆 token，门控 EMA 刷新、交叉注意力读进 DiT；5 个视野外真机任务各阶段平均成功率 28.3%，GR00T N1.5 约 18%。
+- [HiMe](https://gongshukai.github.io/VisualizedAcademicPapers/papers/hime/) · 2026-07 · arXiv [2607.03449](https://arxiv.org/abs/2607.03449) — π0.5 执行、Qwen3-VL-8B 判子任务是否完成、GPT-4o 只在交接点增改删图文记忆的三层框架；WidowX 三个长程任务平均任务进度 90%，FIFO 式 Flat Memory 65%。
+
+#### （3）结构化执行 Structured Execution
+
+把复杂任务组织为「推理 → 意图/子任务 → 动作」的分层受控执行流程，通过明确的中间接口连接高层决策与低层控制。
+
 - [ACoT-VLA](https://gongshukai.github.io/VisualizedAcademicPapers/papers/acot-vla/) · 2026-01 · arXiv [2601.11404](https://arxiv.org/abs/2601.11404) — 结构化执行：π0.5 先用 EAR 去噪出一段 15 点、步长 2 的粗参考轨迹，再用 IAR 从 VLM 的 KV 里抽隐式先验，动作头读两者生成动作；LIBERO 98.5（π0.5 96.9），LIBERO-Plus 微调设定 88.0（75.7）。
+- [MotorMind](https://gongshukai.github.io/VisualizedAcademicPapers/papers/motormind/) · 2026-09 · arXiv [2609.38078](https://arxiv.org/abs/2609.38078) — 结构化执行：冻结的通用 VLM 分饰规划、执行、监控、验证、记忆，输出带数值的中层动作交给确定性控制器，监控异步并行；LIBERO-PRO 零样本 66.7% / 扰动 53.8%，但每回合约 223 秒。
+
+#### （4）评估与反馈 Evaluation & Feedback
+
+在执行前或执行后引入显式评价信号，根据结果修正计划、更新状态或适应策略，形成闭环。
+
 - [TT-VLA](https://gongshukai.github.io/VisualizedAcademicPapers/papers/tt-vla/) · 2026-01 · arXiv [2601.06748](https://arxiv.org/abs/2601.06748) — 评估与反馈：VLAC 进度估计的差分做每步奖励，无价值函数的 PPO 每 8 步更新一次 LoRA，每回合重置；4 个 VLA、15 个未见任务上维度平均提升 0.8–3.8 个点。
 - [τ₀-VLA](https://gongshukai.github.io/VisualizedAcademicPapers/papers/tau0-vla/) · 2026-08 · arXiv [2608.16885](https://arxiv.org/abs/2608.16885) — 评估与反馈：带执行记忆的高层在不确定时做子任务束搜索，世界模型想象后果、价值模型打分后再提交；分层 + 记忆让四个长程真机任务平均成功率 27.5% → 45.0%，搜索再加 2–3 次成功 / 10。
-- [MotorMind](https://gongshukai.github.io/VisualizedAcademicPapers/papers/motormind/) · 2026-09 · arXiv [2609.38078](https://arxiv.org/abs/2609.38078) — 结构化执行：冻结的通用 VLM 分饰规划、执行、监控、验证、记忆，输出带数值的中层动作交给确定性控制器，监控异步并行；LIBERO-PRO 零样本 66.7% / 扰动 53.8%，但每回合约 223 秒。
 <!-- catalog:end -->
 
 ## 目录结构
@@ -59,10 +85,11 @@ docs/page-spec.md           精读页怎么做：取材、结构、设计要求
    | `date` | arXiv 首版年月，`YYYY-MM`，专题内按它排序 |
    | `org` | 机构 |
    | `topics` | 所属专题 id 列表，第一个决定导航条里列出哪组论文 |
+   | `category` | 专题下的类别 id，只在所属专题定义了 `categories` 时填 |
    | `summary` | 一句话：做了什么、关键数字 |
    | `added` | 收录日期 |
 
-   如果是新专题，在 `topics` 里加一条（`id`、`title`、`path`、`summary`、`page`），并写好 `topics/<id>/index.html`。
+   如果是新专题，在 `topics` 里加一条（`id`、`title`、`path`、`summary`、`page`），并写好 `topics/<id>/index.html`。专题可以再分类别：加 `categories` 列表，每项含 `id`、`title`、`short`（导航条里显示的短名）、`summary`，首页、README 和导航条会按列出的顺序分组显示。
 3. 运行构建：
 
    ```sh

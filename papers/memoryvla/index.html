@@ -1,0 +1,1264 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>MemoryVLA 精读</title>
+<meta name="description" content="MemoryVLA: Perceptual-Cognitive Memory in Vision-Language-Action Models for Robotic Manipulation 中文精读：感知-认知记忆库的检索、门控融合与相邻合并，SimplerEnv / LIBERO / Mikasa-Robo / 真机 12 任务的结果与疑点。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F6F2EA; --surface:#FFFCF6; --surface-2:#EDE6DA; --ink:#1D1A22; --ink-2:#423C48; --muted:#6C6571; --line:#DDD4C6;
+  --per:#C9472F; --per-soft:#F7DDD5; --on-per:#FFFFFF;
+  --cog:#2B3990; --cog-soft:#DCE0F4; --on-cog:#FFFFFF;
+  --mem:#A8710F; --mem-soft:#F3E4C2;
+  --warn:#9A2A6C; --warn-soft:#F3DCE9;
+  --base:#857E88; --base-2:#B3ACB5; --base-3:#D6D0D7;
+  --plate:#FFFFFF; --focus:#2B3990;
+  --f-display:"Instrument Serif","Noto Serif SC","Songti SC","STSong",Georgia,serif;
+  --f-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#121119; --surface:#1A1922; --surface-2:#24222E; --ink:#ECE8F1; --ink-2:#C6C0CE; --muted:#9690A0; --line:#34313E;
+    --per:#F2846E; --per-soft:#3B201B; --on-per:#1A0E0B;
+    --cog:#9DA9F2; --cog-soft:#1F2446; --on-cog:#10131F;
+    --mem:#E3B253; --mem-soft:#3A2E14;
+    --warn:#EC92C4; --warn-soft:#3A1D2E;
+    --base:#8C8696; --base-2:#5E5968; --base-3:#423E4A;
+    --plate:#F4F1EC; --focus:#9DA9F2;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#121119; --surface:#1A1922; --surface-2:#24222E; --ink:#ECE8F1; --ink-2:#C6C0CE; --muted:#9690A0; --line:#34313E;
+  --per:#F2846E; --per-soft:#3B201B; --on-per:#1A0E0B;
+  --cog:#9DA9F2; --cog-soft:#1F2446; --on-cog:#10131F;
+  --mem:#E3B253; --mem-soft:#3A2E14;
+  --warn:#EC92C4; --warn-soft:#3A1D2E;
+  --base:#8C8696; --base-2:#5E5968; --base-3:#423E4A;
+  --plate:#F4F1EC; --focus:#9DA9F2;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:var(--cog);text-underline-offset:3px;text-decoration-thickness:1px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+strong{font-weight:700}
+em{font-style:normal;background:linear-gradient(transparent 62%,var(--mem-soft) 62%)}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+sub,sup{font-size:.72em;line-height:0}
+.per-t{color:var(--per)} .cog-t{color:var(--cog)} .mem-t{color:var(--mem)}
+.page{max-width:1200px;margin:0 auto;padding-inline:24px}
+@media (max-width:560px){.page{padding-inline:16px}}
+
+/* hero */
+.hero{padding-block:44px 24px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,.98fr);gap:40px;align-items:center}
+@media (max-width:900px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+.kicker{font:500 12px/1.5 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--cog);margin:0 0 14px}
+.kicker span{color:var(--per)}
+h1.title{font-family:var(--f-display);font-weight:400;font-size:clamp(3.4rem,2.2rem + 6vw,7rem);line-height:.92;letter-spacing:-.02em;margin:0;font-synthesis:none}
+h1.title i{color:var(--per);font-style:italic}
+h1.title b{color:var(--cog);font-weight:400}
+.entitle{font-family:var(--f-display);font-size:clamp(1.1rem,1rem + .45vw,1.35rem);line-height:1.4;color:var(--ink-2);margin:14px 0 0;font-synthesis:none}
+.thesis{font-size:clamp(1.05rem,1rem + .35vw,1.22rem);line-height:1.8;margin:20px 0 0;max-width:35em}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin:20px 0 0;padding:0;list-style:none;font:13px/1.6 var(--f-mono);color:var(--muted)}
+.meta b{color:var(--ink-2);font-weight:500}
+.ribbon{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
+.ribbon svg{display:block;width:100%;height:auto}
+.ribbon svg text{font-family:var(--f-mono);fill:var(--muted);font-size:11px}
+.ribbon svg .lab{font-family:var(--f-body);font-size:12.5px;fill:var(--ink-2)}
+.ribbon figcaption{font:12px/1.6 var(--f-mono);color:var(--muted);margin-top:8px}
+.rb-per{fill:var(--per)} .rb-cog{fill:var(--cog)} .rb-mem{stroke:var(--mem);stroke-width:2;fill:none}
+.rb-arc-p{stroke:var(--per);fill:none;stroke-width:1.6} .rb-arc-c{stroke:var(--cog);fill:none;stroke-width:1.6}
+.rb-ax{stroke:var(--line);stroke-width:1}
+@media (prefers-reduced-motion:no-preference){
+  .rb-pulse{animation:pulse 3s ease-in-out infinite}
+  .rb-pulse.d1{animation-delay:.5s}.rb-pulse.d2{animation-delay:1s}.rb-pulse.d3{animation-delay:1.5s}
+  @keyframes pulse{0%,100%{opacity:.25}45%{opacity:1}}
+}
+.tldr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:32px}
+@media (max-width:760px){.tldr{grid-template-columns:minmax(0,1fr)}}
+.tldr>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.tldr h3{font:500 12px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.tldr p{margin:0;font-size:15px;line-height:1.75}
+.tldr .flag h3{color:var(--warn)}
+
+/* layout */
+.layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:52px;padding-block:20px 80px}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr);gap:0}}
+.toc{position:sticky;top:20px;align-self:start;font-size:14px;line-height:1.5}
+.toc p{font:500 11px/1.4 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.toc li a{display:block;padding:5px 0 5px 14px;margin-left:-1px;border-left:2px solid transparent;color:var(--muted);text-decoration:none}
+.toc li a:hover{color:var(--ink)}
+.toc li a.on{color:var(--ink);border-left-color:var(--per);font-weight:500}
+@media (max-width:1000px){
+  .toc{position:static;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .toc p{display:none}
+  .toc ol{display:flex;gap:6px;border:0;white-space:nowrap;padding-bottom:6px}
+  .toc li a{border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin:0;background:var(--surface)}
+  .toc li a.on{border-color:var(--per)}
+}
+main{min-width:0}
+section{padding-top:56px;scroll-margin-top:12px}
+section:first-child{padding-top:8px}
+.eyebrow{font:500 12px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--per);margin:0 0 8px}
+h2{font-family:var(--f-display);font-weight:600;font-synthesis:none;font-size:clamp(1.45rem,1.15rem + 1.2vw,2.05rem);line-height:1.3;margin:0 0 18px}
+h3{font-family:var(--f-display);font-weight:600;font-synthesis:none;font-size:1.18rem;line-height:1.45;margin:38px 0 10px}
+p{margin:0 0 14px}
+.prose{max-width:44em}
+.prose li{margin-bottom:6px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.tag{display:inline-block;font:500 11px/1 var(--f-mono);letter-spacing:.04em;padding:4px 6px 3px;border-radius:4px;vertical-align:2px;margin-right:6px;white-space:nowrap}
+.tag.read{border:1px dashed var(--ink-2);color:var(--ink-2)}
+.tag.doubt{background:var(--warn-soft);color:var(--warn)}
+.tag.nd{background:var(--surface-2);color:var(--muted)}
+.note{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 18px;margin:18px 0;max-width:46em}
+.note>:last-child{margin-bottom:0}
+.note h4{font:500 12.5px/1.5 var(--f-mono);letter-spacing:.04em;margin:0 0 6px;color:var(--muted)}
+.note.doubt{border-color:color-mix(in oklab,var(--warn) 35%,var(--line));background:color-mix(in oklab,var(--warn-soft) 55%,var(--surface))}
+.note.doubt h4{color:var(--warn)}
+.eq{font-family:"Times New Roman",Georgia,"Noto Serif SC",serif;font-size:1.08rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:14px 0;overflow-x:auto;white-space:nowrap;display:flex;justify-content:space-between;gap:24px;max-width:46em}
+.eq .no{font:12px var(--f-mono);color:var(--muted);align-self:center}
+.eq .p{color:var(--per)} .eq .c{color:var(--cog)} .eq .m{color:var(--mem)}
+
+figure.plate{margin:22px 0}
+figure.plate .zoom{display:block;width:100%;padding:10px;background:var(--plate);border:1px solid var(--line);border-radius:8px;cursor:zoom-in}
+figure.plate img{display:block;width:100%;height:auto}
+figure.plate figcaption{font-size:14px;line-height:1.7;color:var(--ink-2);margin-top:10px;max-width:52em}
+figure.plate figcaption b{font:500 12px var(--f-mono);letter-spacing:.04em;color:var(--muted);margin-right:8px}
+dialog#lb{border:0;padding:0;background:transparent;max-width:min(96vw,1800px);width:96vw}
+dialog#lb::backdrop{background:rgba(10,9,14,.86)}
+dialog#lb .box{background:var(--plate);border-radius:8px;padding:10px;max-height:88vh;overflow:auto}
+dialog#lb img{display:block;width:100%;height:auto}
+dialog#lb .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#EEE8DE;font-size:14px;padding:8px 2px 0}
+dialog#lb button{font:500 13px var(--f-mono);background:#EEE8DE;color:#1D1A22;border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
+
+.tblwrap{overflow-x:auto;margin:16px 0;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;font-size:14px;line-height:1.6;min-width:100%}
+table.t th,table.t td{padding:7px 11px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.t thead th{font:500 12px/1.4 var(--f-mono);letter-spacing:.02em;color:var(--muted);border-bottom:1.5px solid var(--ink-2);white-space:nowrap}
+table.t tbody th{font-weight:500;white-space:nowrap;color:var(--ink-2)}
+table.t .num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t tr.best td,table.t tr.best th{font-weight:700;color:var(--ink)}
+table.t td.lo{color:var(--warn)}
+table.t td.hi{font-weight:700}
+
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.cards.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:860px){.cards.three{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.cards{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card h4{font-family:var(--f-display);font-weight:600;font-synthesis:none;font-size:1.05rem;line-height:1.45;margin:0 0 8px}
+.card p{font-size:14.5px;line-height:1.75;margin:0 0 8px}
+.card p:last-child{margin:0}
+.card.p{border-top:3px solid var(--per)} .card.c{border-top:3px solid var(--cog)} .card.m{border-top:3px solid var(--mem)} .card.k{border-top:3px solid var(--ink-2)}
+.card dl{display:grid;grid-template-columns:76px minmax(0,1fr);gap:4px 10px;margin:0;font-size:13.5px;line-height:1.65}
+.card dt{color:var(--muted)} .card dd{margin:0}
+
+/* lab */
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin:22px 0}
+@media (max-width:560px){.lab{padding:14px 12px}}
+.lab-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 16px;margin-bottom:12px}
+.lab-head h4{font-family:var(--f-display);font-weight:600;font-synthesis:none;font-size:1.12rem;margin:0}
+.lab-head p{margin:0;font-size:13px;color:var(--muted)}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:0 0 12px;font-size:13.5px}
+.ctrl label{color:var(--muted);font:500 12px var(--f-mono);margin-right:6px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--bg);flex-wrap:wrap;vertical-align:middle}
+.seg button{font:500 13px/1 var(--f-body);border:0;background:transparent;color:var(--muted);padding:8px 11px;cursor:pointer;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg.k button{font-family:var(--f-mono);min-width:36px}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.btn{font:500 13px/1 var(--f-body);border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:7px;padding:9px 13px;cursor:pointer;min-height:36px}
+.btn.pri{background:var(--cog);border-color:var(--cog);color:var(--on-cog)}
+.btn:disabled{opacity:.45;cursor:default}
+.tl{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0 10px}
+.tl button{font:500 12px/1 var(--f-mono);border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:999px;padding:6px 9px;cursor:pointer;min-width:38px}
+.tl button.done{color:var(--ink-2);border-color:var(--base-2)}
+.tl button[aria-current="step"]{background:var(--per);border-color:var(--per);color:var(--on-per)}
+.phases{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 10px;font:500 12px/1 var(--f-mono)}
+.phases span{padding:6px 9px;border-radius:5px;background:var(--bg);border:1px solid var(--line);color:var(--muted)}
+.phases span.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.phases span.off{opacity:.4;text-decoration:line-through}
+.lab svg{display:block;width:100%;height:auto}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.ml svg{min-width:660px}
+.ml text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+.ml .mono{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.ml .hd{font-family:var(--f-body);font-weight:700;font-size:12.5px;fill:var(--ink)}
+.ml .tp{fill:var(--per);font-weight:700} .ml .tc{fill:var(--cog);font-weight:700} .ml .tm{fill:var(--mem);font-weight:700} .ml .tw{fill:var(--warn);font-weight:700}
+.readout{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+@media (max-width:700px){.readout{grid-template-columns:minmax(0,1fr)}}
+.readout>div{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13.5px;line-height:1.6}
+.readout b{font-family:var(--f-mono);font-weight:500;font-size:17px;color:var(--ink);display:block}
+.readout .k{font:500 11px var(--f-mono);letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.say{font-size:14px;line-height:1.8;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:12px 0 0}
+.say b{font-weight:700}
+ol.log{margin:10px 0 0;padding-left:0;list-style:none;font:12.5px/1.7 var(--f-mono);color:var(--ink-2);max-height:230px;overflow:auto}
+ol.log li{border-top:1px dashed var(--line);padding:3px 0}
+
+/* charts */
+.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 16px 10px;margin:18px 0}
+.chartbox h4{font-family:var(--f-display);font-weight:600;font-synthesis:none;font-size:1.08rem;margin:0 0 2px}
+.chartbox .sub{font-size:13px;color:var(--muted);margin:0 0 10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink-2);margin:0 0 6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+svg.chart{display:block;width:100%;height:auto;min-width:620px}
+svg.chart text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+svg.chart .tick{font:11px var(--f-mono);fill:var(--muted)}
+svg.chart .val{font:11px var(--f-mono);fill:var(--ink-2)}
+svg.chart .val.hi{fill:var(--ink);font-weight:500}
+svg.chart .grid{stroke:var(--line);stroke-width:1}
+svg.chart .base{stroke:var(--ink-2);stroke-width:1}
+svg.chart .glabel{font-size:12.5px;fill:var(--ink)}
+svg.chart .ghead{font:500 11.5px var(--f-mono);fill:var(--muted);letter-spacing:.04em}
+.c-ours{fill:var(--cog)} .c-per{fill:var(--per)} .c-mem{fill:var(--mem)} .c-b0{fill:var(--base)} .c-b1{fill:var(--base-2)} .c-b2{fill:var(--base-3)} .c-warn{fill:var(--warn)}
+.bg-ours{background:var(--cog)} .bg-per{background:var(--per)} .bg-mem{background:var(--mem)} .bg-b0{background:var(--base)} .bg-b1{background:var(--base-2)} .bg-b2{background:var(--base-3)}
+details.raw{margin:8px 0 4px;font-size:13.5px}
+details.raw summary{cursor:pointer;color:var(--muted);font:500 12.5px var(--f-mono)}
+details.raw .tblwrap{margin:8px 0}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);font:12.5px/1.55 var(--f-body);padding:8px 10px;border-radius:6px;max-width:300px}
+
+table.heat{border-collapse:separate;border-spacing:3px;font-size:13px;min-width:640px;width:100%}
+table.heat th{font:500 11.5px/1.3 var(--f-mono);color:var(--muted);text-align:center;padding:6px 4px;white-space:nowrap}
+table.heat th.row{text-align:left;font:500 13px/1.3 var(--f-body);color:var(--ink);white-space:nowrap;padding-right:10px}
+table.heat td{text-align:center;font:500 12.5px var(--f-mono);font-variant-numeric:tabular-nums;border-radius:4px;padding:7px 4px;color:var(--ink)}
+table.heat td.dk{color:var(--on-cog)}
+table.heat td.na{color:var(--muted);background:transparent}
+table.heat td.basec{box-shadow:inset 0 0 0 1.5px var(--ink-2)}
+
+details.faq{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:10px 0;max-width:50em}
+details.faq summary{cursor:pointer;padding:12px 16px;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::after{content:"+";font:500 16px var(--f-mono);color:var(--muted)}
+details.faq[open] summary::after{content:"−"}
+details.faq .a{padding:0 16px 14px;font-size:15px;line-height:1.8}
+details.faq .a p:last-child{margin:0}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0;align-items:start}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.two>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.two h4{font:500 12px/1.4 var(--f-mono);letter-spacing:.1em;margin:0 0 10px;color:var(--muted)}
+.two ul{margin:0;padding-left:18px;font-size:14.5px;line-height:1.75}
+.two li{margin-bottom:8px}
+table.cmp{min-width:900px}
+table.cmp td{font-size:13.5px}
+table.cmp th.me,table.cmp td.me{background:color-mix(in oklab,var(--per-soft) 55%,transparent)}
+details.gl{background:var(--surface);border:1px solid var(--line);border-radius:10px;max-width:52em}
+details.gl summary{cursor:pointer;padding:14px 18px;font-weight:500}
+details.gl dl{margin:0;padding:0 18px 16px;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:8px 18px;font-size:14px;line-height:1.7}
+details.gl dt{font-family:var(--f-mono);font-size:13px;color:var(--ink)}
+details.gl dd{margin:0;color:var(--ink-2)}
+@media (max-width:560px){details.gl dl{grid-template-columns:minmax(0,1fr);gap:2px}details.gl dd{margin-bottom:10px}}
+footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+.vapnav-grp{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-cat{font-size:11.5px;letter-spacing:.04em;opacity:.5}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/">Harness for Robotics</a></span><span class="vapnav-links"><span class="vapnav-grp"><span class="vapnav-cat">上下文</span><a href="../../papers/activevla/">ActiveVLA</a><a href="../../papers/tic-vla/">TIC-VLA</a><a href="../../papers/ra-vla/">RA-VLA</a></span><span class="vapnav-grp"><span class="vapnav-cat">记忆</span><a href="../../papers/memoryvla/" aria-current="page">MemoryVLA</a><a href="../../papers/optimusvla/">OptimusVLA</a><a href="../../papers/soma/">SOMA</a><a href="../../papers/hime/">HiMe</a></span><span class="vapnav-grp"><span class="vapnav-cat">结构化执行</span><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/motormind/">MotorMind</a></span><span class="vapnav-grp"><span class="vapnav-cat">评估与反馈</span><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/tau0-vla/">τ₀-VLA</a></span></span></div></div>
+<!-- /vap:nav -->
+<header class="hero page">
+  <div class="hero-grid">
+    <div>
+      <p class="kicker">论文精读 · Harness for Robotics · <span>Persistent State / Memory</span></p>
+      <h1 class="title"><i>Memory</i><b>VLA</b></h1>
+      <p class="entitle">Perceptual-Cognitive Memory in Vision-Language-Action Models for Robotic Manipulation</p>
+      <p class="thesis">在 VLM 和扩散动作头之间加一个随时间累积的<strong>记忆库</strong>：每一步把 <span class="per-t">256 个感知 token</span> 和 <span class="cog-t">1 个认知 token</span> 写进去；下一步用当前 token 做 cross-attention 取回相关历史，经门控和当前表示混合；库满时把<span class="mem-t">相邻且最相似的两条取平均</span>。模型只看单帧第三人称 RGB，6 个真机时序任务平均 83 分，CogACT 57 分。</p>
+      <ul class="meta">
+        <li><b>清华自动化系 · Dexmal · 旷视</b> · 天大 · 哈工大 · 阶跃星辰</li>
+        <li><b>arXiv</b> 2508.19236v2</li>
+        <li><b>v1</b> 2025-08-26 · <b>v2</b> 2026-01-30 · ICLR 2026</li>
+        <li><a href="https://arxiv.org/abs/2508.19236" target="_blank" rel="noopener">arXiv</a> · <a href="https://shihao1895.github.io/MemoryVLA" target="_blank" rel="noopener">项目页</a> · <a href="https://github.com/shihao1895/MemoryVLA" target="_blank" rel="noopener">代码</a></li>
+      </ul>
+    </div>
+    <figure class="ribbon">
+      <svg viewBox="0 0 520 300" role="img" aria-label="记忆库示意：两条记忆流沿时间排列，部分相邻条目被合并，当前时刻的工作记忆对历史条目做注意力检索">
+        <line class="rb-ax" x1="34" y1="34" x2="404" y2="34"/>
+        <g text-anchor="middle">
+          <text x="40" y="24">t1</text><text x="108" y="24">t3</text><text x="176" y="24">t5</text><text x="244" y="24">t7</text><text x="312" y="24">t9</text><text x="380" y="24">t11</text><text x="470" y="24" style="fill:var(--ink-2)">当前 t</text>
+        </g>
+        <!-- perceptual stream -->
+        <text class="lab" x="34" y="66" style="fill:var(--per)">感知记忆 · 低层细节</text>
+        <g class="rb-per">
+          <rect x="30" y="78" width="20" height="20" rx="3"/>
+          <rect x="64" y="78" width="54" height="20" rx="3"/>
+          <rect x="132" y="78" width="20" height="20" rx="3"/>
+          <rect x="166" y="78" width="20" height="20" rx="3"/>
+          <rect x="200" y="78" width="88" height="20" rx="3"/>
+          <rect x="302" y="78" width="20" height="20" rx="3"/>
+          <rect x="336" y="78" width="20" height="20" rx="3"/>
+          <rect x="370" y="78" width="20" height="20" rx="3"/>
+        </g>
+        <path class="rb-mem" d="M64 104 v6 h54 v-6 M200 104 v6 h88 v-6"/>
+        <!-- cognitive stream -->
+        <text class="lab" x="34" y="148" style="fill:var(--cog)">认知记忆 · 高层语义</text>
+        <g class="rb-cog">
+          <circle cx="40" cy="170" r="9"/><circle cx="74" cy="170" r="9"/>
+          <rect x="98" y="161" width="54" height="18" rx="9"/>
+          <circle cx="176" cy="170" r="9"/><circle cx="210" cy="170" r="9"/><circle cx="244" cy="170" r="9"/>
+          <rect x="268" y="161" width="88" height="18" rx="9"/>
+          <circle cx="380" cy="170" r="9"/>
+        </g>
+        <path class="rb-mem" d="M98 186 v6 h54 v-6 M268 186 v6 h88 v-6"/>
+        <!-- current working memory -->
+        <rect x="446" y="74" width="48" height="28" rx="4" fill="none" stroke="var(--per)" stroke-width="1.5"/>
+        <rect x="452" y="80" width="16" height="16" rx="2" class="rb-per"/><rect x="472" y="80" width="16" height="16" rx="2" class="rb-per" opacity=".6"/>
+        <circle cx="470" cy="170" r="11" fill="none" stroke="var(--cog)" stroke-width="1.5"/><circle cx="470" cy="170" r="7" class="rb-cog"/>
+        <text x="470" y="122" text-anchor="middle">p</text><text x="470" y="200" text-anchor="middle">c</text>
+        <!-- attention arcs -->
+        <g class="rb-pulse"><path class="rb-arc-p" d="M446 82 C 300 40, 140 44, 40 76" opacity=".9"/></g>
+        <g class="rb-pulse d1"><path class="rb-arc-p" d="M446 88 C 380 66, 300 62, 244 76" opacity=".55"/></g>
+        <g class="rb-pulse d2"><path class="rb-arc-c" d="M459 176 C 380 228, 200 228, 125 181"/></g>
+        <g class="rb-pulse d3"><path class="rb-arc-c" d="M459 166 C 430 140, 400 140, 380 160" opacity=".55"/></g>
+        <text class="lab" x="34" y="246">检索：当前 p、c 分别对本流记忆做注意力（key 加时间步编码）</text>
+        <text class="lab" x="34" y="268" style="fill:var(--mem)">整理：库满时，每条流各自合并一对相邻最相似条目</text>
+        <text x="34" y="290">两条流合并的位置可以不同 · 仿真 L = 16，真机时序任务 L = 256</text>
+      </svg>
+      <figcaption>按论文 §3.3 的机制画的示意，不是实验数据。</figcaption>
+    </figure>
+  </div>
+  <div class="tldr" aria-label="一分钟版">
+    <div><h3>做了什么</h3><p>沿用 CogACT 的骨架（7B Prismatic VLM + 约 300M 的 DiT 动作头），在两者之间插入<b>感知-认知记忆库 PCMB</b>。工作记忆是当前帧的 256 个感知 token（SE 瓶颈压缩）加 LLaMA 在 EOS 位置输出的 1 个 4096 维认知 token。两条记忆流各存最多 L 条：仿真与真机通用任务取 16，真机时序任务取 256。</p></div>
+    <div><h3>训练与评测</h3><p>端到端微调，动作去噪用 MSE 损失，8 张 A100。评测覆盖 3 种机器人、6 个平台：SimplerEnv-Bridge 与 Fractal、LIBERO 五套、Mikasa-Robo，以及 Franka / WidowX 上的 12 个真机任务。所有设置都只输入一张 224×224 的第三人称 RGB，不用腕部相机和本体状态。</p></div>
+    <div><h3>结果</h3><p>Bridge <b>71.9</b>（复测的 CogACT-Large 57.3，π0-Beta 68.4）；Fractal <b>72.7</b>（CogACT 68.1）；LIBERO <b>96.5</b>（CogACT 93.2）；Mikasa-Robo <b>41.2</b>（π0 29.4）；真机时序任务 <b>83</b>（CogACT 57）。在 RTX 4090 上单次推理 0.194 s，基线是 0.187 s。</p></div>
+    <div class="flag"><h3>最该留意的</h3><p>论文没有“同一套训练、只去掉记忆”的对照，有没有记忆只能拿 CogACT 比；而 MemoryVLA 的仿真数字取的是在测试基准上表现最好的那个验证步。消融只在 Bridge 上做，差距折合 96 次试验里的 2 到 8 次。Mikasa 一节正文说“每个任务都最好”，表里有两个任务不是。</p></div>
+  </div>
+</header>
+
+<div class="page layout">
+  <nav class="toc" aria-label="目录">
+    <p>目录</p>
+    <ol>
+      <li><a href="#problem">问题</a></li>
+      <li><a href="#overview">全局</a></li>
+      <li><a href="#memory">记忆模块</a></li>
+      <li><a href="#lab">记忆库演示</a></li>
+      <li><a href="#action">动作头与训练</a></li>
+      <li><a href="#setup">实验设置</a></li>
+      <li><a href="#results">结果</a></li>
+      <li><a href="#insight">读懂它</a></li>
+      <li><a href="#limits">局限与疑点</a></li>
+      <li><a href="#topic">放到专题里看</a></li>
+      <li><a href="#glossary">术语表</a></li>
+    </ol>
+  </nav>
+  <main>
+    <section id="problem">
+      <p class="eyebrow">问题 · §1–2</p>
+      <h2>单帧 VLA 分不清“按过了”和“还没按”</h2>
+      <div class="prose">
+        <p>OpenVLA、π0、CogACT 这类主流 VLA 每一步只看当前观测。论文用按按钮举例：按下前和按下后的画面几乎一样，只看当前帧没法判断这个按钮按过没有，策略就可能反复去按。操作任务是<strong>非马尔可夫</strong>的，早先做过什么会影响后面该做什么。</p>
+        <p>最直接的补法是把连续几帧一起喂给 VLM。论文认为这有两个问题：</p>
+        <ul>
+          <li><strong>上下文长度受限。</strong>自注意力的代价随序列长度平方增长，能塞进去的帧数有限。</li>
+          <li><strong>和预训练分布不一致。</strong>VLM 的机器人预训练（Open X-Embodiment）是单帧输入，多帧序列偏离了这个分布。</li>
+        </ul>
+        <p>相关工作里的几种时序做法，论文各点了一个短板：Octo、RoboVLMs、Interleave-VLA 用图文交错格式喂视频，实现复杂、计算贵；RoboFlamingo 把视觉语言表示压成一个 latent token 用 LSTM 传递，细粒度的感知历史基本丢了；TraceVLA 把历史轨迹画在当前帧上，丢了语义细节；UniVLA 把过去的动作写进 prompt，更像思维链，没有真正用上历史信息。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig1-teaser.jpg" aria-label="放大原文图 1"><img src="fig/fig1-teaser.jpg" width="1800" height="1113" alt="原文图 1：按按钮任务的时序混淆、人类认知-记忆-动作系统、MemoryVLA 框架与性能对比" loading="lazy"></button>
+        <figcaption><b>原文 Figure 1</b>(a) 按按钮任务：按下再抬起后，画面和按之前几乎没有区别，机器人“不知道自己按过没有”，于是重复按。(b) 论文借用的认知科学类比：工作记忆（神经活动）负责短时控制，海马体的情景记忆分别以 verbatim（逐字细节）和 gist（要义）两种形式保存经历。(c) 对应到 MemoryVLA：感知 token 和认知 token 组成工作记忆，记忆库分低层细节和高层语义两条流。(d) 五个平台上与基线的平均成功率对比。</figcaption>
+      </figure>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig11-real-mem.jpg" aria-label="放大原文图 11"><img src="fig/fig11-real-mem.jpg" width="1800" height="1026" alt="原文图 11：三个真机任务中需要记忆的关键时刻" loading="lazy"></button>
+        <figcaption><b>原文 Figure 11</b>三个真机时序任务为什么需要记忆。Clean Table &amp; Count：每清走一件物品要按一次计数按钮，“刚才按过没有”看画面判断不了，结果要么漏按要么重复按。Guess Where：方块被盖住后，只看当前帧不知道在哪个盖子下面。Change Food：把盘子里的食物拿走、再放另一个上去，中途桌上同时有两样食物，“刚才拿的是哪个、现在该拿哪个”无法从单帧判断。</figcaption>
+      </figure>
+      <div class="note">
+        <h4><span class="tag read">解读</span>这篇的“记忆”是什么层次的东西</h4>
+        <p>它存的是 VLM 产出的<strong>特征</strong>，不是图像、不是文字，也不是显式的任务状态。记忆只在一个 episode 内累积（时间步编码用的是 episode 内的 timestep），不跨任务、不检索外部数据库。所以它解决的是“这个 episode 里我刚才做过什么”，不是“以前在类似场景里怎么做”。</p>
+      </div>
+    </section>
+
+    <section id="overview">
+      <p class="eyebrow">方法 · 全局 · §3.1–3.2</p>
+      <h2>VLM 产出工作记忆，记忆库在中间，动作头在最后</h2>
+      <div class="prose">
+        <p>问题形式化：给定当前 RGB 图像 <i>I</i> ∈ ℝ<sup>H×W×3</sup> 和语言指令 <i>L</i>，策略输出未来 T 步动作 (a<sub>1</sub>, …, a<sub>T</sub>) = π(I, L)。每个动作是 7 维：相对平移 Δx, Δy, Δz，相对旋转（欧拉角）Δθ<sub>x</sub>, Δθ<sub>y</sub>, Δθ<sub>z</sub>，以及二值夹爪 g ∈ {0, 1}。注意策略的输入里<strong>没有</strong>历史帧，历史只通过记忆库进来。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig2-arch.png" aria-label="放大原文图 2"><img src="fig/fig2-arch.png" width="1800" height="651" alt="原文图 2：MemoryVLA 总体架构" loading="lazy"></button>
+        <figcaption><b>原文 Figure 2</b>从左往右读。左：视觉编码器的输出一路经投影层和文本 token 一起进 LLM，在 EOS 位置取出认知 token（绿色）；另一路经感知压缩得到感知 token（蓝色），两者组成工作记忆。中：工作记忆作为 query 从记忆库检索（key 上加时间步编码），再经门控融合，结果一边送去动作头，一边写回记忆库（绿色箭头，Memory Consolidation）。右：DiT 动作头每层先做 Cognition Attention 再做 Perception Attention，去噪后经 MLP 输出动作。图中 DiT 的层数也记作 “×L”，和记忆长度 L 不是一回事。</figcaption>
+      </figure>
+      <div class="cards three">
+        <div class="card k"><h4>视觉-语言认知模块</h4><dl><dt>主干</dt><dd>7B Prismatic VLM，在 Open X-Embodiment 上做过机器人预训练</dd><dt>视觉</dt><dd>DINOv2 与 SigLIP 并行，特征拼接成原始视觉 token</dd><dt>感知 token</dt><dd><span class="per-t">p ∈ ℝ<sup>256×d<sub>p</sub></sup></span>，经 SE 瓶颈压缩；附录表 8 写感知 token 通道数 256</dd><dt>认知 token</dt><dd><span class="cog-t">c ∈ ℝ<sup>1×4096</sup></span>：视觉 token 线性投影进语言空间，和指令一起过 LLaMA-7B，取 EOS 位置的输出</dd></dl></div>
+        <div class="card m"><h4>感知-认知记忆模块</h4><dl><dt>记忆库</dt><dd>两条流，每条最多 L 条：感知条目 m<sup>per</sup><sub>i</sub> ∈ ℝ<sup>256×d<sub>p</sub></sup>，认知条目 m<sup>cog</sup><sub>i</sub> ∈ ℝ<sup>1×4096</sup></dd><dt>检索</dt><dd>cross-attention，key 加时间步正弦编码，两层（注意力 + FFN）</dd><dt>融合</dt><dd>逐元素 sigmoid 门</dd><dt>整理</dt><dd>超过 L 条时，合并相邻最相似的一对</dd></dl></div>
+        <div class="card c"><h4>记忆条件动作专家</h4><dl><dt>结构</dt><dd>DiT，约 300M 参数</dd><dt>条件</dt><dd>先对 <span class="cog-t">c̃</span> 做 cognition-attention，再对 <span class="per-t">p̃</span> 做 perception-attention</dd><dt>输出</dt><dd>16 步 × 7 维动作块</dd><dt>推理</dt><dd>DDIM 10 步，CFG 系数 1.5</dd></dl></div>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>256 个感知 token 是怎么来的</h4>
+        <p>224×224 的输入在 patch 14 的 DINOv2 和 SigLIP 上各得到 16×16 = 256 个 patch，所以 N<sub>p</sub> = 256 正好等于 patch 数。论文说 SE 瓶颈把视觉 token “压缩成紧凑的感知 token”，附录又说感知 token 通道数是 256，推算下来压缩的是<strong>通道</strong>（两路特征拼接后的宽度），token 数没变。这是按维度推的，论文没有写出 SE 模块的输入输出宽度。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag nd">未披露</span>是不是从 CogACT 权重初始化</h4>
+        <p>论文写“基于在 OXE 上预训练过的 7B Prismatic VLM”，视觉主干、DiT 动作头、推理时的自适应动作集成都和 CogACT 一致，效率表里的 “Baseline” 也没写名字。是否直接加载 CogACT 的 checkpoint 再加记忆模块微调，正文和附录都没说。</p>
+      </div>
+    </section>
+
+    <section id="memory">
+      <p class="eyebrow">方法 · 记忆模块 · §3.3</p>
+      <h2>检索、门控融合、合并：每一步在两条流里各做一遍</h2>
+      <div class="prose">
+        <p>认知模块给出的工作记忆只反映当前时刻：</p>
+      </div>
+      <div class="eq"><span>M<sub>wk</sub> = { <span class="p">p ∈ ℝ<sup>N<sub>p</sub>×d<sub>p</sub></sup></span>, <span class="c">c ∈ ℝ<sup>1×d<sub>c</sub></sup></span> }</span><span class="no">(2)</span></div>
+      <div class="prose"><p>记忆库 PCMB 由两条流组成，每条最多 L 条：</p></div>
+      <div class="eq"><span>M<sub>pcmb</sub> = { m<sup>x</sup> | x ∈ {per, cog} },&nbsp;&nbsp; m<sup>x</sup> = { m<sup>x</sup><sub>i</sub> ∈ ℝ<sup>N<sub>x</sub>×d<sub>x</sub></sup> }<sub>i=1</sub><sup>L</sup></span><span class="no">(3)(4)</span></div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig3-memory.png" aria-label="放大原文图 3"><img src="fig/fig3-memory.png" width="1800" height="541" alt="原文图 3：记忆检索、门控融合、记忆整理三个子模块" loading="lazy"></button>
+        <figcaption><b>原文 Figure 3</b>(a) 检索：当前感知、认知 token 作为 Q，记忆作为 V，记忆加时间步编码作为 K，cross-attention + FFN 重复两次。(b) 门控融合：当前 token 与检索结果拼接后过 MLP 和 sigmoid，得到门 g，按 g 和 1−g 加权求和。(c) 整理：融合结果推入记忆库；如果满了，计算相邻条目的相似度 s<sub>2</sub>…s<sub>n</sub>，取 argmax（图中是 s<sub>3</sub>），合并对应的 t<sub>2</sub> 和 t<sub>3</sub>。</figcaption>
+      </figure>
+
+      <h3>1. 检索：当前 token 作 query，key 上加时间步编码</h3>
+      <div class="prose">
+        <p>每个记忆条目带着它的 episode 时间步 t<sub>i</sub>，用正弦编码 TE(·) 加到 key 上，value 不加。感知流把 L 条记忆堆成 LN<sub>p</sub>×d<sub>p</sub> 的张量，认知流堆成 L×d<sub>c</sub>：</p>
+      </div>
+      <div class="eq"><span>K<sup>x</sup> = [ m<sup>x</sup><sub>1</sub> + <span class="m">TE(t<sub>1</sub>)</span>; … ; m<sup>x</sup><sub>L</sub> + <span class="m">TE(t<sub>L</sub>)</span> ],&nbsp;&nbsp; V<sup>x</sup> = [ m<sup>x</sup><sub>1</sub>; … ; m<sup>x</sup><sub>L</sub> ]</span><span class="no">(5)</span></div>
+      <div class="eq"><span>Ĥ<sup>x</sup> = softmax( q<sup>x</sup> (K<sup>x</sup>)<sup>⊤</sup> / √d<sub>x</sub> ) V<sup>x</sup>,&nbsp;&nbsp; q<sup>x</sup> ∈ { <span class="p">p</span>, <span class="c">c</span> }</span><span class="no">(6)</span></div>
+      <div class="prose">
+        <p>注意力之后接 FFN 构成一个 Transformer 层，叠两层得到最终的检索结果 H<sup>p</sup>、H<sup>c</sup>。感知流里 256 个 query token 各自看全部 L×256 个记忆 token；认知流里 1 个 query 看 L 个记忆。</p>
+      </div>
+
+      <h3>2. 门控融合：逐元素决定信记忆还是信当前</h3>
+      <div class="eq"><span>g<sup>x</sup> = σ( MLP( concat[ x, H<sup>x</sup> ] ) ),&nbsp;&nbsp; x̃ = g<sup>x</sup> ⊙ H<sup>x</sup> + (1 − g<sup>x</sup>) ⊙ x</span><span class="no">(7)(8)</span></div>
+      <div class="prose">
+        <p>g 是和 x 同形状的向量，每一维单独决定这一维取多少记忆、多少当前。融合结果 p̃、c̃ 被送往动作专家，<strong>同时</strong>写进记忆库。</p>
+      </div>
+
+      <h3>3. 整理（consolidation）：库满时合并相邻最相似的一对</h3>
+      <div class="eq"><span>i<sup>*</sup><sub>x</sub> = argmax<sub>i=1..L−1</sub> cos( x̃<sub>i</sub>, x̃<sub>i+1</sub> ),&nbsp;&nbsp; <span class="m">m<sup>x</sup><sub>i*</sub> ← ½ ( x̃<sub>i*</sub> + x̃<sub>i*+1</sub> )</span></span><span class="no">(9)</span></div>
+      <div class="prose">
+        <p>当条目数超过 L，在每条流<strong>内部</strong>计算相邻条目的余弦相似度，选最高的一对取平均。两条流各选各的，所以感知流合并的可能是 t<sub>2</sub>、t<sub>3</sub>，认知流合并的可能是 t<sub>5</sub>、t<sub>6</sub>。论文的理由是去掉冗余、保留最显著的细节和语义，让记忆保持紧凑。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>写进库里的是融合后的 x̃，不是原始的 x</h4>
+        <p>这让每条记忆都是“递归”的：t 时刻写入的条目已经混入了 t 之前检索到的历史。所以即便两帧画面一模一样（按按钮前后），它们写进库里的条目也会不同。下面的演示里可以直接看到这一点。代价是记忆内容依赖模型参数，训练时不能离线预计算。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag nd">未披露</span>公式里没交代的几处</h4>
+        <p>① 合并后的条目在 TE 里用哪个时间步（前一个、后一个，还是平均）。② 第一步记忆库为空时检索怎么处理。③ 检索层里有没有 Q/K/V 投影：公式 (6) 直接写 q K<sup>⊤</sup>，但“一个 Transformer 层”通常带投影。④ 感知条目是 256×d<sub>p</sub> 的矩阵，算余弦相似度时是展平还是先池化。⑤ 新一个 episode 开始时是否清空记忆库（从时间步编码按 episode 计来看应当清空，但没有明说）。</p>
+      </div>
+    </section>
+
+    <section id="lab">
+      <p class="eyebrow">交互 · 按论文公式 (5)–(9) 逐步计算</p>
+      <h2>记忆库是怎样一步步读、写、合并的</h2>
+      <div class="prose">
+        <p>下面用一个 12 步的“依次按蓝、绿、粉三个按钮”的玩具 episode 走一遍记忆模块。每个时间步分成：观测 → 检索 → 门控融合 → 写入 →（库满时）找相邻最相似 → 合并。所有数字都是浏览器里按公式实时算出来的。</p>
+      </div>
+      <div class="lab" id="mem-lab">
+        <div class="lab-head"><h4>感知-认知记忆库分步演示</h4><p>玩具向量 · 可切换三项消融</p></div>
+        <div class="ctrl">
+          <span><label>容量 L</label><span class="seg k" id="ml-L"><button type="button" data-v="4" aria-pressed="true">4</button><button type="button" data-v="6" aria-pressed="false">6</button><button type="button" data-v="8" aria-pressed="false">8</button></span></span>
+          <span><label>时间步编码</label><span class="seg" id="ml-pe"><button type="button" data-v="1" aria-pressed="true" data-tip="表 7：w/ Timestep PE 71.9">开</button><button type="button" data-v="0" aria-pressed="false" data-tip="表 7：w/o Timestep PE 69.8">关</button></span></span>
+          <span><label>融合</label><span class="seg" id="ml-fu"><button type="button" data-v="gate" aria-pressed="true" data-tip="表 7：Gate 71.9">门控</button><button type="button" data-v="add" aria-pressed="false" data-tip="表 7：Add 67.7">相加</button></span></span>
+          <span><label>整理</label><span class="seg" id="ml-co"><button type="button" data-v="merge" aria-pressed="true" data-tip="表 7：Token Merge 71.9">相邻合并</button><button type="button" data-v="fifo" aria-pressed="false" data-tip="表 7：FIFO 66.7">FIFO</button></span></span>
+        </div>
+        <div class="tl" id="ml-tl" aria-label="时间步"></div>
+        <div class="phases" id="ml-ph"></div>
+        <div class="btns">
+          <button type="button" class="btn" id="ml-prev">← 上一步</button>
+          <button type="button" class="btn pri" id="ml-next">下一步 →</button>
+          <button type="button" class="btn" id="ml-skip">跳到下一个时间步</button>
+          <button type="button" class="btn" id="ml-play">自动播放</button>
+          <button type="button" class="btn" id="ml-reset">重置</button>
+        </div>
+        <div class="scroll ml"><svg id="ml-wm" viewBox="0 0 720 150" aria-label="当前工作记忆、检索结果、门与融合结果"></svg></div>
+        <div class="scroll ml"><svg id="ml-bank" viewBox="0 0 720 280" aria-label="感知与认知两条记忆流的当前内容"></svg></div>
+        <p class="say" id="ml-say"></p>
+        <div class="readout">
+          <div><span class="k">记忆库占用</span><b id="ml-occ">—</b><span id="ml-occ2" class="small muted"></span></div>
+          <div><span class="k">画面相同，表示不同吗</span><b id="ml-twin">—</b><span id="ml-twin2" class="small muted"></span></div>
+          <div><span class="k">真实模型的尺寸</span><b>256×256 / 1×4096</b><span class="small muted">感知条目 / 认知条目；L = 16 或 256。演示缩成 3×6 / 1×6。</span></div>
+        </div>
+        <ol class="log" id="ml-log" aria-label="合并记录"></ol>
+        <p class="small muted" style="margin:10px 0 0">演示的取舍：每帧的特征由手工规则生成（按钮颜色、机械臂在哪个按钮上方、是否按下，取值 0–2）；门控 MLP 用固定种子的随机权重；检索只算公式 (6) 的一层、无投影；TE 乘 0.5 以免盖过 6 维玩具特征；感知条目展平后算余弦。合并条目的时间步论文未披露，演示取两者平均（显示为 τ）。空库时演示令 H = x。真实模型的检索偏好是训练出来的（见结果部分图 10），这里的注意力只反映玩具向量之间的相似度。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>拨一拨开关能看到什么</h4>
+        <p><strong>FIFO</strong> 会先丢掉最早的条目，L = 4 时到 t=5 “起始画面”就没了；<strong>相邻合并</strong>不按先后丢，而是把“按下—抬起”这类连续相似的帧压成一条，最早的信息即使被合并，也以 t1–4 这样的条目留在库里。论文的检索可视化（图 10b）显示，Mikasa 的 ShellGameTouch 任务里模型的注意力几乎全压在最初几帧（球被盖住之前），这正是 FIFO 最先删掉的部分。<strong>关掉时间步编码</strong>后，画面相同的两条记忆在检索里无法区分先后。</p>
+      </div>
+    </section>
+
+    <section id="action">
+      <p class="eyebrow">方法 · 动作专家与训练 · §3.4 · 附录 C</p>
+      <h2>动作专家与训练配方</h2>
+      <div class="prose">
+        <p><strong>记忆条件动作专家。</strong>一个约 300M 参数的 DiT，用 DDIM 采样 10 步，预测 T = 16 步的动作块。每个去噪步里，带噪动作 token 先加上去噪步的正弦编码，再和认知表示 c̃ 拼接；cognition-attention 层提供高层语义引导，perception-attention 层从 p̃ 补充细粒度视觉细节，最后过 FFN。训练目标是预测动作与目标动作之间的 MSE，最终向量过 MLP 得到 7 维连续动作。推理时 CFG 系数 1.5。</p>
+        <p><strong>超参（附录表 8）。</strong>全局 batch 256（每卡 32 × 8 卡 A100，PyTorch FSDP），学习率 2×10<sup>−5</sup>，梯度裁剪 1.0，“repeated diffusion steps” 为 4（训练时每个样本重复采样 4 次扩散步，CogACT 的做法），动作块 16，感知 token 通道 256。数据增强按固定顺序做随机裁剪（90% 面积）、亮度 0.2、对比度和饱和度 [0.8, 1.2]、色相 0.05，评测时关闭。</p>
+      </div>
+      <h3>记忆要训练，数据就得按时间顺序喂</h3>
+      <div class="cards">
+        <div class="card m"><h4>流式加载：SimplerEnv-Bridge / Fractal</h4><p>每个 episode 拆成连续帧并标上 episode ID。一个 batch 尽量用同一个 episode 的连续帧填满；episode 结束了就接着填下一个 episode 的帧；下一个 batch 从上一个停下的位置继续，保证 episode 内的时间顺序。记忆长度 16。</p></div>
+        <div class="card m"><h4>分组采样：LIBERO / Mikasa-Robo</h4><p>每个 batch 分成若干组，每组是同一个 episode 里的若干帧，组内保持时间顺序。附录另一句写“每次迭代从单个 episode 里<strong>随机</strong>采 16 帧，与记忆长度 16 对应”。记忆长度 16。</p></div>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>训练时记忆库怎么构造，论文没讲清</h4>
+        <p>附录只描述了数据加载器，没说一个 batch 里的帧是不是逐帧串行前向、把前面帧的 x̃ 写进记忆供后面帧检索，梯度是否沿时间回传，batch 跨 episode 时记忆是否清空。LIBERO 的“随机采 16 帧、组内保持顺序”意味着训练时相邻记忆条目之间隔着不定数量的帧，而推理时每次调用都写入一条，两者的时间间隔分布不同。真机数据在训练前按末端位移（&gt;0.01 m 或转角 &gt;0.4 rad，最多隔 120 帧）抽帧，推理时是否按同样规则决定何时写记忆也没交代。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>没有专门的记忆损失</h4>
+        <p>记忆模块（检索两层、门控 MLP）只靠动作的去噪 MSE 端到端学习，没有对齐、对比或重建类的辅助目标。合并操作（余弦 argmax + 平均）本身无参数。</p>
+      </div>
+    </section>
+
+    <section id="setup">
+      <p class="eyebrow">实验设置 · §4.1 · 附录 C–D、K</p>
+      <h2>6 个平台，只给一张第三人称 RGB</h2>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig4-setup.jpg" aria-label="放大原文图 4"><img src="fig/fig4-setup.jpg" width="1800" height="1024" alt="原文图 4：实验设置总览" loading="lazy"></button>
+        <figcaption><b>原文 Figure 4</b>上排四个仿真平台：SimplerEnv-Bridge（WidowX）、SimplerEnv-Fractal（Google Robot）、LIBERO（Franka，图中第四格标成 “Long-100 Suite”，正文是 Long-10 与 Long-90）、Mikasa-Robo（Franka）。下排左：12 个真机任务，上一行 6 个通用任务，下一行 6 个长时程时序任务；从图上看 Stack Cups、Stack Blocks 在 WidowX 上，其余在 Franka 上。下排右：真机鲁棒性测试的 6 种变化。</figcaption>
+      </figure>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>平台</th><th>机器人</th><th>训练数据</th><th>训练步数</th><th>评测</th><th class="num">记忆长度 L</th><th>动作集成</th></tr></thead>
+          <tbody>
+            <tr><th>SimplerEnv-Bridge</th><td>WidowX</td><td>Bridge v2，约 6 万条遥操作轨迹</td><td>50k，每 2.5k 验证</td><td>4 任务 × 24 次</td><td class="num">16</td><td>CogACT 自适应集成，α = 0.1，窗口 7</td></tr>
+            <tr><th>SimplerEnv-Fractal</th><td>Google Robot</td><td>RT-1，约 13 万条，700+ 任务</td><td>80k，每 5k 验证</td><td>4 任务 × VM / VA，共 336 个变体</td><td class="num">16</td><td>同上，窗口 2</td></tr>
+            <tr><th>LIBERO</th><td>Franka</td><td>每任务 50 条示范（去掉失败轨迹）</td><td>Spatial / Object / Goal 各 20k；Long-10 与 Long-90 合训 40k</td><td>每任务 50 次</td><td class="num">16</td><td>不用</td></tr>
+            <tr><th>Mikasa-Robo</th><td>Franka</td><td>5 任务 × 250 条官方示范，128×128，Δ 末端控制</td><td>20k，每 1k 验证</td><td>每任务 100 个 episode</td><td class="num">16</td><td>不用</td></tr>
+            <tr><th>真机 · 通用</th><td>Franka、WidowX</td><td>每任务 50–150 条摇杆遥操作</td><td>5k–20k</td><td>每任务 15 次（Pick Diverse Fruits 5 种 × 5 = 25 次）</td><td class="num">16</td><td>未披露</td></tr>
+            <tr><th>真机 · 时序</th><td>Franka、WidowX</td><td>每任务 200–300 条</td><td>5k–20k</td><td>每任务 10 次（Seq. Push Buttons 3 种顺序 × 5 = 15 次），按步骤计分</td><td class="num">256</td><td>未披露</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <p><strong>输入。</strong>所有设置都只用一张 224×224 的第三人称 RGB 加语言指令。真机用前置的 Intel RealSense D435，640×480、30 fps 采集后下采样，系统通过 ROS 集成；Franka 每次实验用原装平行夹爪或 Robotiq 平行夹爪之一。</p>
+        <p><strong>选点方式。</strong>四个仿真平台都在训练中定期“验证”，报告<strong>验证最好的那一步</strong>的成功率。附录解释：扩散模型的去噪目标不能可靠反映策略质量，所以用成功率挑 checkpoint。这里的验证就是在评测基准上跑成功率。</p>
+        <p><strong>基线来源。</strong></p>
+        <ul>
+          <li>SimplerEnv：CogACT-Large 用官方权重在作者的设置里复测（原论文只给了 CogACT-Base 的逐任务数字）；π0 取自开源复现 open-pi-zero（float32，Uniform / Beta 两种时间步采样，用了本体状态），该复现没有 Fractal VA 的结果。</li>
+          <li>LIBERO：CogACT 用官方代码复现；π0、π0-FAST 用原文数字，它们用了腕部相机和本体状态。</li>
+          <li>Mikasa-Robo：OpenVLA-OFT、PI-0、SpatialVLA 来自 Mikasa-Robo 的 VLA 基线；同期的时序 VLA CronusVLA 由作者复现。</li>
+          <li>真机：OpenVLA、π0、CogACT，全部只用第三人称 RGB 和指令。</li>
+        </ul>
+      </div>
+      <details class="raw"><summary>真机 6 个时序任务的计分细则（附录 D.4）</summary>
+        <div class="tblwrap"><table class="t"><thead><tr><th>任务</th><th>指令</th><th>计分</th></tr></thead><tbody>
+          <tr><th>Seq. Push Buttons</th><td>按指定颜色顺序按三个按钮</td><td>每按对一个 30 分，三个全对加 10 分；轻碰也算按下</td></tr>
+          <tr><th>Change Food</th><td>把盘里的食物拿走，再把另一个放上去</td><td>拿起并移走原食物 30，抓起新食物 30，放到盘上 30，完全成功加 10</td></tr>
+          <tr><th>Guess Where</th><td>用盖子盖住方块，再揭开</td><td>抓起盖子 30，盖住方块 30，揭开 40</td></tr>
+          <tr><th>Clean Table &amp; Count</th><td>逐个清理桌面，每清一件按一次计数按钮</td><td>共 5 件，每件清走 10 分、按计数 10 分；小计数错误（没按实 / 多按一次）得 5，大错误（漏计 / 多按几次）得 0；明显想计数的空抓扣 5</td></tr>
+          <tr><th>Pick Place Order</th><td>按胡萝卜、香蕉、橙子的顺序放进篮子</td><td>每步对 30 分，全对加 10；顺序错误立即终止</td></tr>
+          <tr><th>Clean Restaurant Table</th><td>垃圾进垃圾桶，餐具进收纳箱</td><td>共 5 件，分类正确 20，放错 10，只抓起没放好 5</td></tr>
+        </tbody></table></div>
+      </details>
+    </section>
+
+    <section id="results">
+      <p class="eyebrow">结果 · §4.2–4.6 · 附录</p>
+      <h2>主表、时序基线、消融、鲁棒性与开销</h2>
+      <h3>五个平台的主表（表 1–5）</h3>
+      <div class="chartbox" id="main-box">
+        <div class="ctrl" style="margin-bottom:8px"><span class="seg" id="main-seg">
+          <button type="button" data-k="bridge" aria-pressed="true">Bridge</button><button type="button" data-k="fractal" aria-pressed="false">Fractal</button><button type="button" data-k="libero" aria-pressed="false">LIBERO</button><button type="button" data-k="mikasa" aria-pressed="false">Mikasa-Robo</button><button type="button" data-k="real" aria-pressed="false">真机</button>
+        </span></div>
+        <h4 id="main-h">—</h4>
+        <p class="sub" id="main-sub"></p>
+        <div class="legend" id="main-legend"></div>
+        <div class="scroll"><svg class="chart" id="main-svg" viewBox="0 0 720 300"></svg></div>
+        <details class="raw" id="main-raw"><summary>原表数字</summary><div id="main-rawhost"></div></details>
+      </div>
+      <div class="prose" id="main-note"></div>
+
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>Mikasa-Robo：正文说“每个任务都最好”，表 4 不是这样</h4>
+        <p>正文原话是 “consistently achieves the highest performance across all tasks”。表 4 里 InterceptMedium 上 MemoryVLA 24，PI-0 42；RememberColor3 上 MemoryVLA 44，OpenVLA-OFT 59。平均 41.2 最高这一点成立，主要来自 ShellGameTouch 的 88（次高 47）。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>“+14.6” 比的是复测的 CogACT-Large，不是最强基线</h4>
+        <p>摘要和正文都突出 Bridge 上 +14.6，这是相对作者自己复测的 CogACT-Large（57.3）。同一张表里 π0-Beta* 是 68.4，差距 3.5；在 Spoon on Towel（84.6 vs 75.0）和 Stack Cube（47.9 vs 37.5）上 π0-Beta* 更高。LIBERO 表里没有 Long-90 的方法按前四套取平均，MemoryVLA 的 96.5 是五套平均；按前四套算 MemoryVLA 是 96.7（表 17），比 π0* 的 94.2 高 2.5。</p>
+      </div>
+
+      <h3>和时序上下文类 VLA 比（附录表 17）</h3>
+      <div class="prose"><p>正文主表里时序方法不多，附录专门补了一张对比。作者指出 Mikasa-Robo 官方没有时序 VLA 基线，所以复现了同期的 CronusVLA（用滑窗模块聚合多帧 VLM 特征）。</p></div>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>平台</th><th>方法</th><th class="num">平均成功率</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><th rowspan="4">SimplerEnv-Bridge</th><td>TraceVLA</td><td class="num">27.7</td><td>历史轨迹画在当前帧上</td></tr>
+            <tr><td>RoboVLMs</td><td class="num">37.5</td><td>图文交错</td></tr>
+            <tr><td>CronusVLA</td><td class="num">60.4</td><td>多帧特征滑窗聚合</td></tr>
+            <tr class="best"><td>MemoryVLA</td><td class="num">71.9</td><td></td></tr>
+            <tr><th rowspan="6">LIBERO（前四套）</th><td>TTF-VLA</td><td class="num">74.0</td><td></td></tr>
+            <tr><td>TraceVLA</td><td class="num">74.8</td><td></td></tr>
+            <tr><td>4D-VLA</td><td class="num">88.6</td><td></td></tr>
+            <tr><td>CronusVLA</td><td class="num">92.2</td><td></td></tr>
+            <tr><td>MAP-VLA</td><td class="num">93.4</td><td></td></tr>
+            <tr class="best"><td>MemoryVLA</td><td class="num">96.7</td><td>前四套平均</td></tr>
+            <tr><th rowspan="2">Mikasa-Robo</th><td>CronusVLA（作者复现）</td><td class="num">18.0</td><td>五个任务都低于 MemoryVLA</td></tr>
+            <tr class="best"><td>MemoryVLA</td><td class="num">41.2</td><td></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>表 3 和表 17 里 CronusVLA、4D-VLA 的数字对不上</h4>
+        <p>表 3 中 4D-VLA 一行是 93.8 / 92.8 / 95.6 / 86.5（平均 92.2），CronusVLA 一行是 90.1 / 94.7 / 91.3 / 68.7（平均 86.2）。表 17 里 CronusVLA 变成了 93.8 / 92.8 / 95.6 / 86.5（平均 92.2），4D-VLA 是 88.9 / 95.2 / 90.9 / 79.1（平均 88.6）。同一组数字在两张表里挂在不同方法名下，至少有一张表标错了。</p>
+      </div>
+
+      <h3>消融：五个设计选择（表 6、7、11、14）</h3>
+      <div class="chartbox">
+        <h4>SimplerEnv-Bridge 平均成功率，换算成 96 次试验里的成功次数</h4>
+        <p class="sub">Bridge 每任务 24 次、4 个任务，平均成功率 × 0.96 就是 96 次里成功的次数。横轴从 58 开始，只为了把差距放大看清，柱长不代表比例。</p>
+        <div class="scroll"><svg class="chart" id="abl-svg" viewBox="0 0 720 420"></svg></div>
+        <details class="raw" id="abl-raw"><summary>原表逐任务数字（表 14、11）</summary></details>
+      </div>
+      <div class="prose">
+        <p>论文读出的结论：两种记忆一起用最好（71.9），只用认知记忆 63.5、只用感知记忆 64.6；记忆长度 16 最好，4 和 64 都掉到 67.7；时间步编码 +2.1；门控比相加高 4.2；相邻合并比 FIFO 高 5.2。认知 token 从 1 个加到 4 个没有收益（69.8），作者推测单个 4096 维 EOS token 已经够用。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>消融差距要按试验次数看</h4>
+        <p>所有消融变体落在 96 次里成功 61 到 69 次之间。时间步编码的 +2.1 是 2 次成功；w/o Timestep PE 在 Stack Cube（50.0 vs 37.5）和 Spoon on Towel（83.3 vs 75.0）上反而更高，只在 Eggplant 和 Carrot 上低。论文没有报告多随机种子或置信区间，单项消融的结论偏弱；五项的方向一致，合起来比单项更可信。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>补充消融（表 10、12、13）</th><th>变体</th><th class="num">Clean Table &amp; Count（真机）</th><th class="num">LIBERO-Long-90</th></tr></thead>
+          <tbody>
+            <tr><th rowspan="3">记忆长度</th><td>64 / 8</td><td class="num">78</td><td class="num">94.2</td></tr>
+            <tr class="best"><td>256 / 16（默认）</td><td class="num">84</td><td class="num">95.6</td></tr>
+            <tr><td>512 / 32</td><td class="num">81</td><td class="num">95.6</td></tr>
+            <tr><th rowspan="2">融合</th><td>Add</td><td class="num">78</td><td class="num">93.8</td></tr>
+            <tr class="best"><td>Gate</td><td class="num">84</td><td class="num">95.6</td></tr>
+            <tr><th rowspan="2">整理</th><td>FIFO</td><td class="num">76</td><td class="num">94.9</td></tr>
+            <tr class="best"><td>Token Merge</td><td class="num">84</td><td class="num">95.6</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose small muted"><p>记忆长度一行：真机比较 64 / 256 / 512，LIBERO-Long-90 比较 8 / 16 / 32。真机这个任务每种设置 10 次试验、按步骤计分。</p></div>
+
+      <h3>记忆长度和 episode 长度（附录表 9）</h3>
+      <div class="chartbox">
+        <h4>各套任务的动作长度（步数），竖线是论文用的记忆长度 L</h4>
+        <p class="sub">对数横轴。线段是最短到最长，圆点是中位数，短竖线是平均。真机的 “Filtered” 去掉了末端几乎不动的帧（平移 &lt;1 cm 且转角 &lt;0.4 rad）。</p>
+        <div class="legend"><span><i class="bg-mem"></i>L = 16</span><span><i class="bg-per"></i>L = 256</span></div>
+        <div class="scroll"><svg class="chart" id="len-svg" viewBox="0 0 720 300"></svg></div>
+        <details class="raw" id="len-raw"><summary>原表数字（表 9）</summary></details>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>真机时序任务里，合并其实很少发生</h4>
+        <p>作者用这张表解释为什么真机时序任务要把 L 调到 256：这些任务即便抽帧后也明显更长。反过来看，抽帧后的中位数是 236 步，比 256 还短，如果推理时每步写一条，一半以上的 episode 根本不会触发合并；仿真里 L = 16 而 episode 平均 119–156 步，合并几乎每步都在发生，平均一条记忆要代表 7 到 10 帧。两种场景下“记忆整理”起的作用并不一样。这个推算依赖“每次调用写入一条”的假设，推理时的写入频率论文没说。</p>
+      </div>
+
+      <h3>检索到底看了什么（附录图 10）</h3>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig10-mem-attn.jpg" aria-label="放大原文图 10"><img src="fig/fig10-mem-attn.jpg" width="1800" height="1216" alt="原文图 10：真机与仿真任务中记忆检索的注意力分布" loading="lazy"></button>
+        <figcaption><b>原文 Figure 10</b>上：真机 Change Food。在 “Confusion” 时刻（第一样食物刚放到一边，桌上同时有两样食物），注意力有两个峰：一个在约第 20 条记忆（拿走玉米的时刻，提示“玉米应该放在右边”），一个在最近几条（提示“正在从右往左移动”）。在 “Over!” 时刻，注意力集中在第 90 条附近，提示“不是刚开始”。横轴最多到 45 和 100，对应 L = 256 的库里当时已有的条目数。下：Mikasa ShellGameTouch。球被杯子盖住前的最初几帧（横轴 0–15，即 L = 16）拿到了几乎全部注意力。</figcaption>
+      </figure>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig12-food-steps.jpg" aria-label="放大原文图 12"><img src="fig/fig12-food-steps.jpg" width="1800" height="1000" alt="原文图 12：Change Food 任务逐步的记忆依赖" loading="lazy"></button>
+        <figcaption><b>原文 Figure 12</b>Change Food 每个阶段的单帧歧义：开始时（“刚开始还是快结束？”）、抓起时（“拿走还是放到盘上？”）、中途（“往左还是往右？刚才拿的是什么？”）。右下是训练数据里的几种初始状态：玉米在盘上、胡萝卜在盘上都有，所以任务中途的画面恰好和另一条示范的起始画面一样。这是这个任务离不开记忆的直接原因。</figcaption>
+      </figure>
+
+      <h3>鲁棒性与零样本（附录 B、I）</h3>
+      <div class="chartbox">
+        <h4>分布外变化下的成功率</h4>
+        <p class="sub">真机两项来自图 5，仿真四项来自图 6、图 7（数字与附录 B 正文一致）。带框的是 Base。都没有基线对比。</p>
+        <div class="scroll" id="ood-host"></div>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig5-ood-real.jpg" aria-label="放大原文图 5"><img src="fig/fig5-ood-real.jpg" width="1800" height="1123" alt="原文图 5：真机分布外变化示例与成功率" loading="lazy"></button>
+        <figcaption><b>原文 Figure 5</b>真机 Pick Place Order 与 Clean Restaurant Table 的 6 种分布外变化：未见背景（贴了图案板）、干扰物、光照、物体、容器，以及遮挡（前景挡板）。下方柱状图即上面热力表的真机两行。</figcaption>
+      </figure>
+      <div class="prose">
+        <p>作者的结论：对干扰物、背景、纹理这类中等变化泛化良好，对未见相机视角掉得最多（Pick Coke Can 42.0，Move Near 58.0）。零样本任务泛化（表 16）以 Apple To Basket 为训练任务（5 次成功 4 次），在三个未见任务上分别是 Eggplant To Basket 3/5、Blush To Basket 2/5、Apple To Plate 2/5，平均 0.47。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>仿真鲁棒性的 Base 和主表对不上；有的“分布外”比 Base 还高</h4>
+        <p>图 6、7 的 Base：Pick Coke Can 92.0、Move Near 76.0、Open/Close Drawer 46.3、Place Apple Into Drawer 72.0。表 2 里对应任务的 VM / VA 分别是 90.7 / 80.5、88.0 / 78.8、84.7 / 53.2、47.2 / 58.3，没有一个对得上，论文没说这组实验用的是哪个 checkpoint、什么设置。Move Near 和 Open/Close Drawer 的多个分布外变体比 Base 高 8 到 11 分，说明每格的试验次数不多、噪声不小。零样本泛化每个任务只有 5 次试验，也没有基线。</p>
+      </div>
+
+      <h3>推理开销（附录表 15）</h3>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>模型</th><th class="num">延迟 RTX 4090</th><th class="num">吞吐 RTX 4090</th><th class="num">延迟 HGX H20</th><th class="num">吞吐 HGX H20</th><th class="num">显存</th></tr></thead>
+          <tbody>
+            <tr><th>Baseline</th><td class="num">0.187 s</td><td class="num">85.6 Hz</td><td class="num">0.236 s</td><td class="num">67.8 Hz</td><td class="num">15.8 GB</td></tr>
+            <tr class="best"><th>MemoryVLA</th><td class="num">0.194 s</td><td class="num">82.5 Hz</td><td class="num">0.246 s</td><td class="num">65.0 Hz</td><td class="num">16.6 GB</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose"><p>300 次平均，bfloat16，动作块长度 16。作者把开销小归因于三点：每条认知记忆只有 1 个 token，感知记忆压到 256 通道，合并操作持续去掉冗余条目。</p></div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>“82.5 Hz” 是动作块长度除以延迟，不是控制频率</h4>
+        <p>16 / 0.194 = 82.5，16 / 0.187 = 85.6，四个吞吐数字都满足这个关系。每次前向本身约 5 Hz；SimplerEnv 上用自适应动作集成时每个控制步都要调用一次模型，实际控制频率就是这个 5 Hz 左右。另外表 15 没写测的是哪个记忆长度。L = 256 时感知记忆有 256 × 256 = 65,536 个 token 参与 cross-attention，开销会比 L = 16 时大，论文没测。</p>
+      </div>
+
+      <h3>定性结果（附录图 13）</h3>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig13-temporal.jpg" aria-label="放大原文图 13"><img src="fig/fig13-temporal.jpg" width="1800" height="1782" alt="原文图 13：真机长时程时序任务的执行序列" loading="lazy"></button>
+        <figcaption><b>原文 Figure 13</b>三个真机时序任务的成功执行序列。(a) Seq. Push Buttons：依次按蓝、绿、粉三个按钮，按下前后画面几乎一样。(b) Change Food：先把玉米从盘子拿到一边，再把胡萝卜放上盘子。(c) Guess Where：用盖子盖住绿色方块，再揭开。</figcaption>
+      </figure>
+    </section>
+
+    <section id="insight">
+      <p class="eyebrow">读懂它</p>
+      <h2>这篇真正说明了什么</h2>
+      <h3 style="margin-top:0">关键 insight</h3>
+      <div class="cards">
+        <div class="card m"><h4>1. 记忆放在特征空间，不进 VLM 的输入</h4><p>VLM 每步仍只看单帧，保持和单帧预训练一致；历史以压缩特征的形式在 VLM 之后、动作头之前注入。代价很小：单次推理 0.187 → 0.194 s，显存多 0.8 GB（L = 16 时）。</p></div>
+        <div class="card p"><h4>2. 两条流互补，单独都不够</h4><p>只留认知流 63.5，只留感知流 64.6，两个都留 71.9。感知流每步存 256 个 token，承担了大部分存储；认知流每步只存 1 个 token，却和感知流贡献相当。</p></div>
+        <div class="card m"><h4>3. 相邻合并 = 自适应的时间分辨率</h4><p>重复、静止的片段被压成一条，变化剧烈的片段保留更多条目，最早的关键帧不会被挤掉。FIFO 换成相邻合并，Bridge +5.2、真机 Clean Table &amp; Count +8、LIBERO-90 +0.7。（解读：这个“分辨率”的说法是我们的概括。）</p></div>
+        <div class="card c"><h4>4. 涨得最多的是真正需要记忆的任务</h4><p>真机时序任务比 CogACT 高 26，通用任务高 9；Seq. Push Buttons 从 15 到 58，Change Food 47 到 85。Mikasa 的 ShellGameTouch 88，次高 47。Fractal VM 平均只比 CogACT 高 2.9。</p></div>
+      </div>
+      <h3>容易误解的地方</h3>
+      <div class="prose">
+        <ul>
+          <li><strong>真机的“成功率”是按步骤计分的平均分。</strong>时序任务按细则给部分分（例如 Guess Where 抓起盖子就有 30 分），83 分不等于 83% 的试验完整完成。</li>
+          <li><strong>“比 SOTA 高 X 点”比的对象每个平台不一样。</strong>Bridge 的 +14.6 和 Fractal 的 +4.6 对 CogACT，Mikasa 的 +11.8 对 PI-0，LIBERO 的 +3.3 对复现的 CogACT。对最强基线的差距分别是 +3.5（π0-Beta*）、+4.6、+11.8、+2.5（π0*，按前四套）。</li>
+          <li><strong>“记忆”不跨 episode。</strong>它不是经验库，也不做相似任务检索；论文在结论里把“终身记忆”列为未来方向。</li>
+          <li><strong>认知 token 不是语言输出。</strong>它是 LLaMA 在 EOS 位置的隐状态，模型不生成任何文字。</li>
+        </ul>
+      </div>
+      <h3>FAQ</h3>
+      <details class="faq"><summary>为什么 Bridge 这种短任务也涨了 14.6 分？</summary><div class="a"><p>Bridge 的四个任务（放勺子、放胡萝卜、叠方块、放茄子）不像按按钮那样明显依赖历史。论文把增益归于时序记忆，但没有“同一套训练流程、只去掉记忆”的对照：基线 CogACT-Large 是官方权重复测的，而 MemoryVLA 是在 20 个验证点里挑测试成功率最高的那个。两者之间除了记忆还有训练步数、数据加载方式（流式按时间顺序）和选点方式的差别。消融表里最接近“无记忆”的是只留一种记忆（63.5 / 64.6），也都高于 CogACT-Large 的 57.3。</p></div></details>
+      <details class="faq"><summary>为什么不直接把多帧喂给 VLM？</summary><div class="a"><p>论文的两条理由：自注意力随长度平方增长，以及多帧输入偏离单帧的机器人预训练分布。MemoryVLA 每步只往库里加 256 + 1 个 token，并且 VLM 本身不看这些历史。附录表 17 里用多帧特征滑窗的 CronusVLA 在 Bridge 上 60.4、Mikasa 上 18.0，都低于 MemoryVLA，但这不是同一骨架下的受控对比。</p></div></details>
+      <details class="faq"><summary>认知 token 只有 1 个，够吗？</summary><div class="a"><p>表 11：1 个 71.9，4 个 69.8。逐任务看 4 个 token 在 Spoon on Towel 更高（79.2 vs 75.0），Carrot 和 Eggplant 更低。作者推测单个 4096 维 EOS token 的语义容量已经足够。差距是 2 次成功 / 96 次，只能说“加到 4 个没看到收益”。</p></div></details>
+      <details class="faq"><summary>记忆长度为什么不是越长越好？</summary><div class="a"><p>Bridge 上 16 最好，64 掉到 67.7；真机 Clean Table &amp; Count 上 256 最好（84），512 是 81；LIBERO-90 上 16 和 32 都是 95.6。作者把最优长度和 episode 长度挂钩。论文没有解释长度变长为什么会变差；结合上面的长度统计，L = 64 时 Bridge 的大部分 episode 只合并很少几次，L = 512 时真机多数 episode 不触发合并，较长的 L 等于部分关掉了整理机制（解读）。</p></div></details>
+      <details class="faq"><summary>这个记忆模块能直接装到别的 VLA 上吗？</summary><div class="a"><p>论文只在一种骨架（Prismatic-7B + DiT）上做了实验。机制本身只需要一组“每帧一个或几个语义 token + 一组视觉 token”和一个能做 cross-attention 条件的动作头，π0 这类把 VLM 和动作专家放在同一注意力里的结构需要另找插入点。这一点论文没讨论（解读）。</p></div></details>
+    </section>
+
+    <section id="limits">
+      <p class="eyebrow">局限与疑点</p>
+      <h2>作者承认的，和我们读出来的</h2>
+      <div class="two">
+        <div>
+          <h4>论文自己提到的</h4>
+          <ul>
+            <li>对未见相机视角明显不鲁棒：Pick Coke Can 从 92.0 掉到 42.0，Move Near 从 76.0 掉到 58.0（附录 B.2）。</li>
+            <li>记忆长度需要按 episode 长度调：仿真 16，真机时序任务 256（附录 G）。</li>
+            <li>未来方向：<strong>memory reflection</strong>，把长期记忆对齐到 LLM 输入空间，在嵌入空间里做思维链；<strong>lifelong memory</strong>，把常用经验蒸馏成永久表示，跨场景、任务和本体泛化。反过来说明现在的记忆既不回到 LLM，也不跨 episode。</li>
+          </ul>
+        </div>
+        <div>
+          <h4>我们读出来的</h4>
+          <ul>
+            <li><span class="tag doubt">疑点</span>缺“同训练、无记忆”的对照，记忆的净贡献和训练流程、选点方式的差别混在一起（见 FAQ 第一条）。</li>
+            <li><span class="tag doubt">疑点</span>仿真结果取测试基准上最好的验证步（Bridge 20 个、Fractal 16 个、LIBERO 每 1k 步一个），基线是单个发布权重或原文数字。在 24 次试验的粒度上挑最大值，会系统性偏高。</li>
+            <li><span class="tag doubt">疑点</span>Mikasa 正文“每个任务都最好”与表 4 不符（InterceptMedium 24 vs 42，RememberColor3 44 vs 59）。</li>
+            <li><span class="tag doubt">疑点</span>表 3 与表 17 的 CronusVLA / 4D-VLA 数字互相错位。</li>
+            <li><span class="tag doubt">疑点</span>Fractal 的总试验数：正文写 336 个变体 “yielding 2,856 trials”，附录写 “producing 2,352 evaluation trials”。</li>
+            <li><span class="tag doubt">疑点</span>训练时记忆如何构造、梯度是否跨时间回传、推理时何时写入、episode 之间是否清空，都没写；训练与推理的帧间隔可能不一致。</li>
+            <li><span class="tag doubt">疑点</span>效率表没写记忆长度；L = 256 时 65,536 个感知记忆 token 的开销未测。“82.5 Hz”是 16 / 延迟。</li>
+            <li><span class="tag doubt">疑点</span>消融只在 Bridge 上做、每项 96 次试验，没有报告多种子或置信区间，差距 2–8 次；仿真鲁棒性的 Base 与主表对不上，部分分布外变体高于 Base。</li>
+            <li>真机通用任务正文说“每个任务都超过最强基线”，Stack Cups 是 93 平 CogACT 的 93。</li>
+            <li>合并后条目的时间步编码、空库时的检索、检索层是否带投影，均未披露。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="topic">
+      <p class="eyebrow">放到专题里看</p>
+      <h2>专题里最早的记忆方案：存自己的特征，在 VLM 之后取</h2>
+      <div class="prose">
+        <p>在 <a href="../../topics/robot-harness/">Harness for Robotics 专题</a>里，MemoryVLA 属于 <strong>Persistent State / Memory</strong> 一类，改的是“<strong>记什么</strong>”，不是“看什么”：VLM 每一步看到的仍然只有当前一帧和指令，变化在于策略多了一个跨时间步保存、按需读取的状态。它也是本专题四类论文里发表最早的一篇（2025-08），记忆类的另外三篇都引用了它。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t cmp">
+          <thead><tr><th></th><th class="me">MemoryVLA</th><th>OptimusVLA</th><th>SOMA</th><th>HiMe</th></tr></thead>
+          <tbody>
+            <tr><th>存什么</th><td class="me">自己每一步融合后的特征：256 个感知 token + 1 个认知 token</td><td>GPM：训练集里语义相似轨迹的完整动作序列；LCM：上一个动作块和 Mamba 递归状态</td><td>物体级 3D 空间-语义 token（DINOv3 外观 + VGGT 几何得到的 3D 框，384 维）</td><td>图文知识条目（向量库）+ 语言子目标清单 + 最近 8 帧原图</td></tr>
+            <tr><th>容量与整理</th><td class="me">每条流最多 L 条（16 / 256），超出时合并相邻最相似的一对</td><td>GPM 离线建库后冻结，不写入；LCM 递归更新</td><td>条目数等于物体实例数，无上限；同一物体 EMA 融合，新物体追加，不删除</td><td>GPT-4o 显式 Add / Update / Delete，实测 5.5–14 条</td></tr>
+            <tr><th>怎么读、读到哪</th><td class="me">cross-attention 检索 + 门控，进 DiT 动作头的条件</td><td>检索结果替换 flow matching 的初始噪声（均值、方差、噪声尺度和 NFE），LCM 再加偏置</td><td>VLM token 作 query 做 3 层 cross-attention，结果注入 DiT 动作头</td><td>不进 VLA；Planner 读记忆后输出语言子目标给 π0.5 执行器</td></tr>
+            <tr><th>时间尺度</th><td class="me">单个 episode</td><td>GPM 跨 episode（每个 episode 开头检索一次）；LCM 单个 episode</td><td>单个 episode，开场先扫描</td><td>单个 episode</td></tr>
+            <tr><th>训练</th><td class="me">端到端微调（Prismatic-7B + DiT），只有动作 MSE</td><td>从 π0.5 初始化；后两阶段冻结 VLA，只训 Prior Head 和 LCM</td><td>GR00T N1.5 式结构，除语言解码器外端到端训练</td><td>只微调 π0.5 执行器；Sentry 和 Planner 靠 prompt</td></tr>
+            <tr><th>代表数字</th><td class="me">LIBERO 96.5；真机时序任务 83</td><td>LIBERO 98.6（同表把 MemoryVLA 的前四套平均 96.7 列为基线）</td><td>5 个视野外真机任务；RoboCasa GR1、SimplerEnv</td><td>3 个真机任务，Task Progress 90%</td></tr>
+            <tr><th>开销</th><td class="me">4090 单次 0.187 → 0.194 s</td><td>LIBERO-Long NFE 3.2，π0.5 为 10.0</td><td>4090 约 1.58 s / 块，GR00T 1.30</td><td>Planner 每次调用中位数 6–39 s，只在子任务交接时调用</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>和 <a href="../../papers/optimusvla/">OptimusVLA</a>：</strong>唯一和 MemoryVLA 正面比过数字的一篇（LIBERO 表 1）。它把记忆拆成两半：跨 episode 的全局先验从训练数据里检索相似轨迹，放进噪声先验；episode 内的局部一致性只看已执行的动作。它的相关工作批评 MemoryVLA 这类工作记忆“每次更新都要做一次完整的 VLM 前向”。<span class="tag read">解读</span>MemoryVLA 本来每步都要跑 VLM 出动作，记忆复用的是同一次前向的输出，这条批评在“想让记忆更新比 VLM 调用更频繁”时才成立。两者记的东西也互补：MemoryVLA 记“看到了什么”，OptimusVLA 的 LCM 记“做了什么”。</li>
+          <li><strong>和 <a href="../../papers/soma/">SOMA</a>：</strong>注入方式几乎一样，都是 cross-attention 后作为 DiT 动作头的条件。区别在组织方式：SOMA 按<strong>物体</strong>组织，带 3D 框，同一物体的多次观测用 EMA 合并，记忆随物体数增长；MemoryVLA 按<strong>时间</strong>组织，合并依据是“时间相邻且特征相似”，记忆随时间增长、靠合并封顶。SOMA 的相关工作只用一句话提到 MemoryVLA：存近期观测或关键帧，支持短期推理。</li>
+          <li><strong>和 <a href="../../papers/hime/">HiMe</a>：</strong>层次完全不同。HiMe 的记忆是人能读懂的语言和图文条目，由 GPT-4o 显式增删改，执行器只收到语言子目标；MemoryVLA 的记忆是不可读的特征向量，怎么读由梯度学出来。HiMe 把 MemoryVLA 归为“策略层的检索式记忆库”。两篇都和 FIFO 做了对照，结论方向一致（HiMe 68% vs 90%，MemoryVLA 66.7 vs 71.9），但记忆单位一个是知识条目，一个是帧特征，不能直接类比。</li>
+          <li><strong>跨类，点到为止：</strong>Context Architecture 三篇改的是“看什么”。<a href="../../papers/ra-vla/">RA-VLA</a> 在测试前装好一个专家示范库，检索片段送进 DiT 动作头的 cross-attention，库在 rollout 中只读；<a href="../../papers/activevla/">ActiveVLA</a> 每一步从点云重新渲染、挑视角和放大，不跨步保存状态；<a href="../../papers/tic-vla/">TIC-VLA</a> 让 10 Hz 的动作专家读 0.5 Hz VLM 最近一次输出的 KV 缓存和延迟元数据。<span class="tag read">解读</span>RA-VLA 的“检索 + cross-attention 进 DiT”在结构上和 MemoryVLA 最像，区别只在检索对象：别人的示范，还是自己这一回合的历史。TIC-VLA 的单槽缓存可以看成容量为 1、不做检索、每次覆盖的极端情形。</li>
+          <li><strong>和（3）结构化执行、（4）评估与反馈两类：</strong><a href="../../papers/tau0-vla/">τ₀-VLA</a> 举的番茄炒蛋「加盐」和本篇的按按钮是同一类问题：做完之后画面几乎不变，只看当前帧判断不了。τ₀ 把「已加盐」写进高层的文字执行记忆，低层 VLA 只拿子任务（分层 + 记忆让这个任务从 0/10 到 4/10）；MemoryVLA 把历史存成策略内部的特征 token，每步检索。<span class="tag read">解读</span>两篇在证据上有同一个缺口：MemoryVLA 没有「同一训练流程、只去掉记忆」的对照，τ₀ 评测协议里写了记忆消融却没给结果，分层和记忆的贡献分不开。<a href="../../papers/motormind/">MotorMind</a> 的 Memory Manager 也把历史压成有界的摘要，但做法是让同一个 VLM 把逐动作日志改写成一张文字便条；MemoryVLA 是合并相邻且最相似的特征条目。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="glossary">
+      <p class="eyebrow">术语表</p>
+      <h2>读这篇会遇到的词</h2>
+      <details class="gl"><summary>展开术语表</summary>
+        <dl>
+          <dt>VLA</dt><dd>Vision-Language-Action 模型：以图像和语言为输入、直接输出机器人动作的模型，通常基于预训练 VLM。</dd>
+          <dt>非马尔可夫</dt><dd>当前最优动作不只取决于当前观测，还取决于历史。按按钮、计数、盖住再揭开都是例子。</dd>
+          <dt>CogACT</dt><dd>本文的主要基线和骨架来源：Prismatic VLM 输出认知特征，DiT 动作头据此去噪动作块，推理时用自适应动作集成。</dd>
+          <dt>Prismatic VLM</dt><dd>DINOv2 + SigLIP 双视觉编码器接 LLaMA 的 VLM 家族；OpenVLA 和 CogACT 用的就是它在 OXE 上预训练后的版本。</dd>
+          <dt>工作记忆 M<sub>wk</sub></dt><dd>当前时刻的感知 token p 和认知 token c，类比大脑里短时保持信息的神经活动。</dd>
+          <dt>感知 token p</dt><dd>视觉特征经 SE 瓶颈压缩后的 256 个 token，保留低层视觉细节（类比 verbatim 记忆）。</dd>
+          <dt>认知 token c</dt><dd>LLaMA-7B 在 EOS 位置的 4096 维输出，代表高层语义（类比 gist 记忆）。</dd>
+          <dt>PCMB</dt><dd>Perceptual-Cognitive Memory Bank，感知-认知记忆库：两条流，每条最多 L 个条目，存融合后的 p̃、c̃。</dd>
+          <dt>TE / Timestep PE</dt><dd>按 episode 内时间步计算的正弦位置编码，检索时加在 key 上。</dd>
+          <dt>门控融合</dt><dd>g = σ(MLP([x, H]))，x̃ = g⊙H + (1−g)⊙x，逐元素决定用多少记忆。消融里的对照是直接相加（Add）。</dd>
+          <dt>Consolidation / Token Merge</dt><dd>记忆整理：条目数超过 L 时，在每条流内合并余弦相似度最高的一对相邻条目（取平均）。对照是 FIFO（丢最早的）。</dd>
+          <dt>SE 瓶颈</dt><dd>Squeeze-and-Excitation 结构的压缩模块，这里用来压缩视觉 token 的通道。</dd>
+          <dt>DiT / DDIM / CFG</dt><dd>扩散 Transformer 动作头；10 步的确定性采样器；分类器无关引导，系数 1.5。</dd>
+          <dt>自适应动作集成</dt><dd>CogACT 的推理策略：每步都调用模型，把重叠的历史动作块按相似度加权平均。本文 α = 0.1，Bridge 窗口 7，Fractal 窗口 2。</dd>
+          <dt>VM / VA</dt><dd>SimplerEnv-Fractal 的两种评测：Visual Matching 尽量还原真实场景外观；Visual Aggregation 改背景、光照、干扰物、纹理等做压力测试。</dd>
+          <dt>Mikasa-Robo</dt><dd>专门考察记忆的操作基准，本文用其中 5 个任务：ShellGameTouch、InterceptMedium、RememberColor3 / 5 / 9。</dd>
+          <dt>步骤计分</dt><dd>真机时序任务的评分方式：按子目标给部分分，满分 100。</dd>
+          <dt>OXE / RLDS</dt><dd>Open X-Embodiment 跨本体机器人数据集；RLDS 是它使用的 episode 数据格式。</dd>
+        </dl>
+      </details>
+    </section>
+  </main>
+</div>
+
+<footer class="page">
+  <p>精读基于 arXiv 2508.19236v2 的 LaTeX 源码与附录；图片取自源码包中的原图。数字以源码中的表格为准，“解读”标注的是我们的判断。</p>
+</footer>
+
+<dialog id="lb" aria-label="放大查看"><div class="box"><img id="lb-img" alt=""></div><div class="bar"><span id="lb-cap"></span><button type="button" id="lb-close">关闭</button></div></dialog>
+<div class="tip" id="tip" hidden></div>
+<script>
+(function(){
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, text){ const e = document.createElementNS(NS, tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+
+  /* tooltip */
+  const tip = $('#tip');
+  function place(x, y){ const r = tip.getBoundingClientRect(); let l = x + 14, t = y + 14; if (l + r.width > innerWidth - 8) l = x - r.width - 14; if (t + r.height > innerHeight - 8) t = y - r.height - 14; tip.style.left = Math.max(8, l) + 'px'; tip.style.top = Math.max(8, t) + 'px'; }
+  document.addEventListener('pointerover', e => { const t = e.target.closest && e.target.closest('[data-tip]'); if (!t) return; tip.textContent = t.getAttribute('data-tip'); tip.hidden = false; place(e.clientX, e.clientY); });
+  document.addEventListener('pointermove', e => { if (tip.hidden) return; if (!(e.target.closest && e.target.closest('[data-tip]'))) { tip.hidden = true; return; } place(e.clientX, e.clientY); });
+
+  /* lightbox */
+  const lb = $('#lb');
+  $$('figure.plate .zoom').forEach(b => b.addEventListener('click', () => { $('#lb-img').src = b.dataset.src; const c = b.parentElement.querySelector('figcaption b'); $('#lb-cap').textContent = c ? c.textContent : ''; if (lb.showModal) lb.showModal(); else lb.setAttribute('open', ''); }));
+  $('#lb-close').addEventListener('click', () => lb.close());
+  lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+
+  /* toc */
+  const links = $$('.toc a');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id)); }), { rootMargin: '-35% 0px -60% 0px' });
+    $$('main section').forEach(s => io.observe(s));
+  }
+
+  function rawTable(host, head, rows){
+    const d = document.createElement('div'); d.className = 'tblwrap';
+    d.innerHTML = '<table class="t"><thead><tr>' + head.map((h, i) => '<th' + (i ? ' class="num"' : '') + '>' + h + '</th>').join('') + '</tr></thead><tbody>' +
+      rows.map(r => '<tr' + (r.best ? ' class="best"' : '') + '>' + r.cells.map((c, i) => i ? '<td class="num">' + c + '</td>' : '<th>' + c + '</th>').join('') + '</tr>').join('') + '</tbody></table>';
+    host.appendChild(d);
+  }
+  const R = (cells, best) => ({ cells, best });
+
+  /* ===== chart helpers ===== */
+  function hbars(svg, rows, opt){
+    opt = opt || {}; const W = 720, L = opt.left || 170, Rr = 58, top = 14, rh = opt.rh || 26, max = 100;
+    const H = top + rows.length * rh + 26; svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const x = v => L + (W - L - Rr) * v / max;
+    for (let g = 0; g <= max; g += 20) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: top - 6, y2: H - 22, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: H - 6, 'text-anchor': 'middle', class: 'tick' }, g)); }
+    rows.forEach((r, i) => {
+      const y = top + i * rh;
+      svg.appendChild(el('text', { x: L - 10, y: y + rh / 2 + 4, 'text-anchor': 'end', class: 'glabel', 'font-weight': r.hi ? 700 : 400 }, r.label));
+      svg.appendChild(el('rect', { x: L, y: y + 4, width: Math.max(1, x(+r.v) - L), height: rh - 9, rx: 3, class: r.cls, 'data-tip': r.label + '：' + r.v + (r.note ? '（' + r.note + '）' : '') }));
+      svg.appendChild(el('text', { x: x(+r.v) + 6, y: y + rh / 2 + 4, class: 'val' + (r.hi ? ' hi' : '') }, r.v + (r.mark || '')));
+    });
+    svg.appendChild(el('line', { x1: L, x2: L, y1: top - 6, y2: H - 22, class: 'base' }));
+  }
+  function ghbars(svg, rows, names){
+    const W = 720, L = 150, Rr = 54, top = 14, rh = 34, max = 100;
+    const H = top + rows.length * rh + 26; svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const x = v => L + (W - L - Rr) * v / max;
+    for (let g = 0; g <= max; g += 20) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: top - 6, y2: H - 22, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: H - 6, 'text-anchor': 'middle', class: 'tick' }, g)); }
+    rows.forEach((r, i) => {
+      const y = top + i * rh;
+      svg.appendChild(el('text', { x: L - 10, y: y + rh / 2 + 4, 'text-anchor': 'end', class: 'glabel', 'font-weight': r.hi ? 700 : 400 }, r.label));
+      r.vals.forEach((v, j) => {
+        const yy = y + 4 + j * 13;
+        if (v == null) { svg.appendChild(el('text', { x: L + 6, y: yy + 10, class: 'tick' }, names[j] + '：—（未报告）')); return; }
+        svg.appendChild(el('rect', { x: L, y: yy, width: Math.max(1, x(+v) - L), height: 11, rx: 2, class: r.hi ? 'c-ours' : (j ? 'c-b1' : 'c-b0'), opacity: r.hi && j ? .5 : 1, 'data-tip': r.label + ' · ' + names[j] + '：' + v }));
+        svg.appendChild(el('text', { x: x(+v) + 5, y: yy + 10, class: 'val' + (r.hi ? ' hi' : ''), 'font-size': 10.5 }, v));
+      });
+    });
+    svg.appendChild(el('line', { x1: L, x2: L, y1: top - 6, y2: H - 22, class: 'base' }));
+  }
+  function vgroups(svg, groups, series, opt){
+    opt = opt || {}; const W = opt.W || 760, H = opt.H || 300, L = 36, Rr = 8, T = 24, B = 48, max = 100;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const y = v => T + (H - T - B) * (1 - v / max);
+    for (let g = 0; g <= max; g += 20) { svg.appendChild(el('line', { x1: L, x2: W - Rr, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g)); }
+    const n = groups.length, gw = (W - L - Rr) / n, bw = Math.min(opt.bwMax || 20, (gw - 8) / series.length);
+    groups.forEach((gr, i) => {
+      const cx = L + gw * i + gw / 2, x0 = cx - bw * series.length / 2;
+      if (gr.sep) svg.appendChild(el('line', { x1: L + gw * i, x2: L + gw * i, y1: T - 14, y2: H - 6, stroke: 'var(--ink-2)', 'stroke-dasharray': '3 3' }));
+      if (gr.avg) svg.appendChild(el('rect', { x: L + gw * i + 2, y: T - 6, width: gw - 4, height: H - T - B + 6, fill: 'var(--surface-2)', opacity: .6 }));
+      series.forEach((s, j) => {
+        const v = gr.vals[j]; const yy = y(+v);
+        svg.appendChild(el('rect', { x: x0 + j * bw + 1, y: yy, width: bw - 2, height: Math.max(1, y(0) - yy), rx: 2, class: s.cls, 'data-tip': gr.name.replace('\n', ' ') + ' · ' + s.name + '：' + v }));
+        if (opt.vals !== false) svg.appendChild(el('text', { x: x0 + j * bw + bw / 2, y: yy - 4 - (gr.avg && opt.stagger && j % 2 ? 12 : 0), 'text-anchor': 'middle', class: 'val', 'font-size': opt.fs || 10 }, v));
+      });
+      gr.name.split('\n').forEach((w, k) => svg.appendChild(el('text', { x: cx, y: H - B + 16 + k * 14, 'text-anchor': 'middle', class: 'glabel', 'font-size': 11.5, 'font-weight': gr.avg ? 700 : 400 }, w)));
+    });
+    svg.appendChild(el('line', { x1: L, x2: W - Rr, y1: y(0), y2: y(0), class: 'base' }));
+    (opt.headers || []).forEach(h => svg.appendChild(el('text', { x: L + gw * h.at + 4, y: 12, class: 'ghead' }, h.text)));
+  }
+  function legend(host, items){ host.innerHTML = items.map(it => '<span><i class="' + it[0] + '"' + (it[2] ? ' style="opacity:' + it[2] + '"' : '') + '></i>' + it[1] + '</span>').join(''); }
+
+  /* ===== main results ===== */
+  const MAIN = {
+    bridge: {
+      h: 'SimplerEnv-Bridge（WidowX）平均成功率 · 表 1',
+      sub: '每任务 24 次，4 个任务。* 为 open-pi-zero 复现，用了本体状态。CogACT-Large 为作者用官方权重复测。',
+      leg: [['bg-ours', 'MemoryVLA'], ['bg-b0', 'CogACT / π0'], ['bg-b1', '其他']],
+      draw(svg){ const rows = [['RT-1-X',1.1],['OpenVLA',4.2],['Octo-Base',17.5],['TraceVLA',27.7],['RoboVLMs',37.5],['SpatialVLA',42.7],['Magma',44.8],['CogACT-Base',51.3,1],['π0-Uniform*',55.7,1],['CogACT-Large',57.3,1],['CronusVLA',60.4],['π0-Beta*',68.4,1],['MemoryVLA',71.9,2]];
+        hbars(svg, rows.map(r => ({ label: r[0], v: r[1], cls: r[2] === 2 ? 'c-ours' : r[2] ? 'c-b0' : 'c-b1', hi: r[2] === 2 }))); },
+      raw(host){ rawTable(host, ['方法','Spoon on Towel','Carrot on Plate','Stack Cube','Eggplant in Basket','平均'], [
+        R(['RT-1-X','0.0','4.2','0.0','0.0','1.1']), R(['OpenVLA','4.2','0.0','0.0','12.5','4.2']), R(['Octo-Base','15.8','12.5','0.0','41.7','17.5']), R(['TraceVLA','12.5','16.6','16.6','65.0','27.7']), R(['RoboVLMs','45.8','20.8','4.2','79.2','37.5']), R(['SpatialVLA','16.7','25.0','29.2','100.0','42.7']), R(['Magma','37.5','29.2','20.8','91.7','44.8']), R(['CogACT-Base','71.7','50.8','15.0','67.5','51.3']), R(['π0-Uniform*','63.3','58.8','21.3','79.2','55.7']), R(['CogACT-Large','58.3','45.8','29.2','95.8','57.3']), R(['CronusVLA','66.7','54.2','20.8','100.0','60.4']), R(['π0-Beta*','84.6','55.8','47.9','85.4','68.4']), R(['MemoryVLA','75.0','75.0','37.5','100.0','71.9'], 1)]); },
+      note: '<p>MemoryVLA 平均 71.9，逐任务 75.0 / 75.0 / 37.5 / 100.0。论文强调的 +14.6 是相对作者复测的 CogACT-Large（57.3）；表中最强的基线是用了本体状态的 π0-Beta*（68.4），它在 Spoon on Towel 和 Stack Cube 上高于 MemoryVLA。</p>'
+    },
+    fractal: {
+      h: 'SimplerEnv-Fractal（Google Robot）VM / VA 平均 · 表 2',
+      sub: 'VM 尽量还原真实场景外观，VA 改背景、光照、干扰物、纹理。open-pi-zero 没有 VA 结果。总体分数见原表。',
+      leg: [['bg-ours', 'MemoryVLA · VM'], ['bg-ours', 'MemoryVLA · VA', .5], ['bg-b0', '基线 · VM'], ['bg-b1', '基线 · VA']],
+      draw(svg){ ghbars(svg, [['Octo-Base','11.0',1.2],['RT-1-X',42.4,30.2],['OpenVLA',34.3,39.3],['RoboVLMs','57.0',30.9],['TraceVLA',45.8,49.8],['RT-2-X',46.3,54.4],['Magma',48.8,57.5],['SpatialVLA','56.0',51.8],['π0-Uniform*',69.1,null],['π0-Beta*',71.4,null],['CogACT',74.8,61.3],['MemoryVLA',77.7,67.7,1]].map(r => ({ label: r[0], vals: [r[1], r[2]], hi: !!r[3] })), ['VM', 'VA']); },
+      raw(host){ rawTable(host, ['方法','VM Coke','VM Move','VM O/C Drawer','VM Put in','VM 平均','VA Coke','VA Move','VA O/C Drawer','VA Put in','VA 平均','总体'], [
+        R(['Octo-Base','17.0','4.2','22.7','0.0','11.0','0.6','3.1','1.1','0.0','1.2','6.1']), R(['RT-1-X','56.7','31.7','59.7','21.3','42.4','49.0','32.3','29.4','10.1','30.2','36.3']), R(['OpenVLA','18.0','56.3','63.0','0.0','34.3','60.8','67.7','28.8','0.0','39.3','36.8']), R(['RoboVLMs','76.3','79.0','44.9','27.8','57.0','50.7','62.5','10.3','0.0','30.9','44.0']), R(['TraceVLA','45.0','63.8','63.1','11.1','45.8','64.3','60.6','61.6','12.5','49.8','47.8']), R(['RT-2-X','78.7','77.9','25.0','3.7','46.3','82.3','79.2','35.5','20.6','54.4','50.4']), R(['Magma','75.0','53.0','58.9','8.3','48.8','68.6','78.5','59.0','24.0','57.5','53.2']), R(['SpatialVLA','79.3','90.0','54.6','0.0','56.0','78.7','83.0','39.2','6.3','51.8','53.9']), R(['π0-Uniform*','88.0','80.3','56.0','52.2','69.1','—','—','—','—','—','—']), R(['π0-Beta*','97.9','78.7','62.3','46.6','71.4','—','—','—','—','—','—']), R(['CogACT','91.3','85.0','71.8','50.9','74.8','89.6','80.8','28.3','46.6','61.3','68.1']), R(['MemoryVLA','90.7','88.0','84.7','47.2','77.7','80.5','78.8','53.2','58.3','67.7','72.7'], 1)]); },
+      note: '<p>总体 72.7，CogACT 68.1；VM 77.7（+2.9），VA 67.7（+6.4）。增量集中在抽屉类任务：VM 的 Open/Close Drawer 84.7，比 CogACT 高 12.9；VA 的 Open/Close Drawer 高 24.9、Put in Drawer 高 11.7。反过来，VA 下 Coke Can（80.5 vs 89.6）、Move Near（78.8 vs 80.8）和 VM 下 Put in Drawer（47.2 vs 50.9）都低于 CogACT。</p>'
+    },
+    libero: {
+      h: 'LIBERO（Franka）平均成功率 · 表 3',
+      sub: '每任务 50 次。† 表示没有 Long-90 结果、按前四套平均；* 用了腕部相机和本体状态；CogACT 为作者复现。MemoryVLA 的 96.5 是五套平均。',
+      leg: [['bg-ours', 'MemoryVLA'], ['bg-b0', 'CogACT / π0 系列'], ['bg-b1', '其他']],
+      draw(svg){ const rows = [['Diffusion Policy',72.4,0,'†'],['Octo',75.1,0,'†'],['MDT',76.1,0,'†'],['UniACT',76.8],['MaIL',83.5,0,'†'],['SpatialVLA',71.7],['TraceVLA',74.8,0,'†'],['OpenVLA',75.9],['CoT-VLA',81.1,0,'†'],['π0-FAST*','85.0',1],['CronusVLA',86.2,0,'†'],['TriVLA','87.0',0,'†'],['4D-VLA',92.2,0,'†'],['CogACT',93.2,1],['π0*',94.2,1,'†'],['MemoryVLA',96.5,2]];
+        hbars(svg, rows.map(r => ({ label: r[0], v: r[1], mark: r[3] || '', cls: r[2] === 2 ? 'c-ours' : r[2] ? 'c-b0' : 'c-b1', hi: r[2] === 2 }))); },
+      raw(host){ rawTable(host, ['方法','Spatial','Object','Goal','Long-10','Long-90','平均'], [
+        R(['Diffusion Policy','78.3','92.5','68.3','50.5','—','72.4']), R(['Octo','78.9','85.7','84.6','51.1','—','75.1']), R(['MDT','78.5','87.5','73.5','64.8','—','76.1']), R(['UniACT','77.0','87.0','77.0','70.0','73.0','76.8']), R(['MaIL','74.3','90.1','81.8','78.6','—','83.5']), R(['SpatialVLA','88.2','89.9','78.6','55.5','46.2','71.7']), R(['TraceVLA','84.6','85.2','75.1','54.1','—','74.8']), R(['OpenVLA','84.7','88.4','79.2','53.7','73.5','75.9']), R(['CoT-VLA','87.5','91.6','87.6','69.0','—','81.1']), R(['π0-FAST*','96.4','96.8','88.6','60.2','83.1','85.0']), R(['CronusVLA','90.1','94.7','91.3','68.7','（空）','86.2']), R(['TriVLA','91.2','93.8','89.8','73.2','—','87.0']), R(['4D-VLA','93.8','92.8','95.6','86.5','—','92.2']), R(['CogACT','97.2','98.0','90.2','88.8','92.1','93.2']), R(['π0*','96.8','98.8','95.8','85.2','—','94.2']), R(['MemoryVLA','98.4','98.4','96.4','93.4','95.6','96.5'], 1)]); },
+      note: '<p>五套分别是 Spatial 98.4、Object 98.4、Goal 96.4、Long-10 93.4、Long-90 95.6。拉开差距的主要是 Long-10：93.4，CogACT 88.8，π0* 85.2。论文特别说明 MemoryVLA 只用第三人称 RGB，π0 和 π0-FAST 还用了腕部相机和本体状态。</p>'
+    },
+    mikasa: {
+      h: 'Mikasa-Robo（Franka）逐任务成功率 · 表 4',
+      sub: '每任务 100 个 episode，5 个任务合训。CronusVLA 为作者复现，其余来自 Mikasa-Robo 的 VLA 基线。',
+      leg: [['bg-b2', 'CronusVLA'], ['bg-b1', 'SpatialVLA'], ['bg-b0', 'OpenVLA-OFT'], ['bg-per', 'PI-0'], ['bg-ours', 'MemoryVLA']],
+      draw(svg){ vgroups(svg, [{ name: 'ShellGame\nTouch', vals: [32,23,47,33,88] }, { name: 'Intercept\nMedium', vals: [5,27,14,42,24] }, { name: 'Remember\nColor3', vals: [31,27,59,35,44] }, { name: 'Remember\nColor5', vals: [13,17,16,22,30] }, { name: 'Remember\nColor9', vals: [9,11,6,15,20] }, { name: '平均', avg: 1, vals: ['18.0','21.0',28.4,29.4,41.2] }],
+        [{ name: 'CronusVLA', cls: 'c-b2' }, { name: 'SpatialVLA', cls: 'c-b1' }, { name: 'OpenVLA-OFT', cls: 'c-b0' }, { name: 'PI-0', cls: 'c-per' }, { name: 'MemoryVLA', cls: 'c-ours' }], { W: 900, H: 300, bwMax: 28, fs: 9.5 }); },
+      raw(host){ rawTable(host, ['方法','ShellGameTouch','InterceptMedium','RememberColor3','RememberColor5','RememberColor9','平均'], [
+        R(['CronusVLA','32','5','31','13','9','18.0']), R(['SpatialVLA','23','27','27','17','11','21.0']), R(['OpenVLA-OFT','47','14','59','16','6','28.4']), R(['PI-0','33','42','35','22','15','29.4']), R(['MemoryVLA','88','24','44','30','20','41.2'], 1)]); },
+      note: '<p>平均 41.2，PI-0 29.4。ShellGameTouch（先看到球在哪个杯子下，杯子盖上后再去碰那个杯子）上 88，次高的 OpenVLA-OFT 47，平均分的领先大部分来自这一个任务。RememberColor 随颜色数增加从 44 降到 30、20。InterceptMedium（24 vs PI-0 42）和 RememberColor3（44 vs OpenVLA-OFT 59）不是最高。这里的 PI-0 柱用珊瑚色只是为了区分系列，与方法部分的“感知流”配色无关。</p>'
+    },
+    real: {
+      h: '真机 12 任务的成功分 · 表 5',
+      sub: '左 6 组通用任务（每任务 15 次，Pick Diverse Fruits 25 次），右 6 组长时程时序任务（10–15 次，按步骤计分）。所有方法只用第三人称 RGB。',
+      leg: [['bg-b2', 'OpenVLA'], ['bg-b1', 'π0'], ['bg-b0', 'CogACT'], ['bg-ours', 'MemoryVLA']],
+      draw(svg){ vgroups(svg, [{ name: 'Insert\nCircle', vals: [47,67,80,87] }, { name: 'Egg\nin Pan', vals: [27,73,67,80] }, { name: 'Egg\nin Oven', vals: [53,73,60,80] }, { name: 'Stack\nCups', vals: [40,87,93,93] }, { name: 'Stack\nBlocks', vals: [13,53,80,87] }, { name: 'Diverse\nFruits', vals: [4,80,76,84] }, { name: '通用\n平均', avg: 1, vals: [31,72,76,85] },
+        { name: 'Seq. Push\nButtons', sep: 1, vals: [6,25,15,58] }, { name: 'Change\nFood', vals: [3,42,47,85] }, { name: 'Guess\nWhere', vals: [0,24,40,72] }, { name: 'Clean Table\n& Count', vals: [15,61,67,84] }, { name: 'Pick Place\nOrder', vals: [27,82,90,100] }, { name: 'Clean Rest.\nTable', vals: [0,80,84,96] }, { name: '时序\n平均', avg: 1, vals: [9,52,57,83] }],
+        [{ name: 'OpenVLA', cls: 'c-b2' }, { name: 'π0', cls: 'c-b1' }, { name: 'CogACT', cls: 'c-b0' }, { name: 'MemoryVLA', cls: 'c-ours' }], { W: 1000, H: 300, fs: 9.5, headers: [{ at: 0, text: '通用任务' }, { at: 7, text: '长时程时序任务' }] }); },
+      raw(host){ rawTable(host, ['方法','Insert Circle','Egg in Pan','Egg in Oven','Stack Cups','Stack Blocks','Pick Diverse Fruits','平均'], [R(['OpenVLA','47','27','53','40','13','4','31']), R(['π0','67','73','73','87','53','80','72']), R(['CogACT','80','67','60','93','80','76','76']), R(['MemoryVLA','87','80','80','93','87','84','85'], 1)]);
+        rawTable(host, ['方法','Seq. Push Buttons','Change Food','Guess Where','Clean Table & Count','Pick Place Order','Clean Rest. Table','平均'], [R(['OpenVLA','6','3','0','15','27','0','9']), R(['π0','25','42','24','61','82','80','52']), R(['CogACT','15','47','40','67','90','84','57']), R(['MemoryVLA','58','85','72','84','100','96','83'], 1)]); },
+      note: '<p>通用任务平均 85（CogACT 76，π0 72），时序任务平均 83（CogACT 57，π0 52）。论文列出的增量 Seq. Push Buttons +43、Change Food +38、Guess Where +32、Clean Table &amp; Count +17、Egg in Pan +13、Egg in Oven +20 都是<strong>相对 CogACT</strong>。在 Seq. Push Buttons、Egg in Pan、Egg in Oven 上 π0 比 CogACT 高，相对最强基线的差距分别是 +33、+7、+7。通用任务里 Stack Cups 与 CogACT 同为 93。</p>'
+    }
+  };
+  function showMain(k){
+    const m = MAIN[k];
+    $$('#main-seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === k ? 'true' : 'false'));
+    $('#main-h').textContent = m.h; $('#main-sub').textContent = m.sub;
+    legend($('#main-legend'), m.leg);
+    const svg = $('#main-svg'); svg.style.minWidth = k === 'real' ? '820px' : '';
+    m.draw(svg);
+    const host = $('#main-rawhost'); host.innerHTML = ''; m.raw(host);
+    $('#main-note').innerHTML = m.note;
+  }
+  $$('#main-seg button').forEach(b => b.addEventListener('click', () => showMain(b.dataset.k)));
+  showMain('bridge');
+
+  /* ===== ablation dot chart ===== */
+  (function(){
+    const svg = $('#abl-svg');
+    const groups = [
+      ['(a) 记忆类型 · 表 6', [['仅认知记忆', 63.5, 'cog'], ['仅感知记忆', 64.6, 'per'], ['两种都用', 71.9, 'def']]],
+      ['(b) 记忆长度 · 表 6', [['L = 4', 67.7], ['L = 16', 71.9, 'def'], ['L = 64', 67.7]]],
+      ['(c) 检索 · 表 7', [['无时间步编码', 69.8], ['有时间步编码', 71.9, 'def']]],
+      ['(d) 融合 · 表 7', [['相加 Add', 67.7], ['门控 Gate', 71.9, 'def']]],
+      ['(e) 整理 · 表 7', [['FIFO', 66.7], ['相邻合并 Token Merge', 71.9, 'def']]],
+      ['(f) 认知 token 数 · 表 11', [['1 个', 71.9, 'def'], ['4 个', 69.8]]]
+    ];
+    const W = 720, L = 200, Rr = 70, lo = 58, hi = 74, rh = 20, gh = 22;
+    let y = 30; const items = [];
+    groups.forEach(g => { items.push({ head: g[0], y }); y += gh; g[1].forEach(r => { items.push({ r, y }); y += rh; }); y += 6; });
+    const H = y + 18; svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const x = v => L + (W - L - Rr) * (v - lo) / (hi - lo);
+    for (let g = lo; g <= hi; g += 2) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: 22, y2: H - 18, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: H - 4, 'text-anchor': 'middle', class: 'tick' }, g)); }
+    for (let c = 56; c <= 70; c += 2) { svg.appendChild(el('line', { x1: x(c / .96), x2: x(c / .96), y1: 18, y2: 24, stroke: 'var(--ink-2)' })); svg.appendChild(el('text', { x: x(c / .96), y: 14, 'text-anchor': 'middle', class: 'tick' }, c)); }
+    svg.appendChild(el('text', { x: L - 12, y: 14, 'text-anchor': 'end', class: 'tick' }, '成功次数 / 96 →'));
+    svg.appendChild(el('text', { x: L - 12, y: H - 4, 'text-anchor': 'end', class: 'tick' }, '平均成功率 % →'));
+    svg.appendChild(el('line', { x1: x(71.9), x2: x(71.9), y1: 22, y2: H - 18, stroke: 'var(--ink-2)', 'stroke-dasharray': '4 3' }));
+    items.forEach(it => {
+      if (it.head) { svg.appendChild(el('text', { x: 8, y: it.y + 14, class: 'ghead' }, it.head)); return; }
+      const [lab, v, kind] = it.r, cy = it.y + rh / 2;
+      svg.appendChild(el('text', { x: L - 12, y: cy + 4, 'text-anchor': 'end', class: 'glabel', 'font-weight': kind === 'def' ? 700 : 400 }, lab));
+      svg.appendChild(el('line', { x1: x(71.9), x2: x(v), y1: cy, y2: cy, stroke: 'var(--base-2)', 'stroke-width': 2 }));
+      const fill = kind === 'per' ? 'var(--per)' : kind === 'cog' ? 'var(--cog)' : kind === 'def' ? 'var(--ink)' : 'var(--surface)';
+      svg.appendChild(el('circle', { cx: x(v), cy, r: 6, fill, stroke: kind ? fill : 'var(--ink-2)', 'stroke-width': 1.6, 'data-tip': lab + '：' + v + '（约 ' + Math.round(v * .96) + ' / 96 次成功）' }));
+      svg.appendChild(el('text', { x: x(v) + (v < 71 ? -12 : 12), y: cy + 4, 'text-anchor': v < 71 ? 'end' : 'start', class: 'val' + (kind === 'def' ? ' hi' : '') }, v + '  ·  ' + Math.round(v * .96)));
+    });
+    svg.appendChild(el('text', { x: x(71.9) + 4, y: 34, class: 'tick' }, '默认配置 71.9'));
+    rawTable($('#abl-raw'), ['变体','Spoon on Towel','Carrot on Plate','Stack Cube','Eggplant in Basket','平均'], [
+      R(['(a) 仅认知','70.8','58.3','29.2','95.8','63.5']), R(['(a) 仅感知','83.3','54.2','20.8','100.0','64.6']), R(['(b) L = 4','79.2','75.0','25.0','91.7','67.7']), R(['(b) L = 64','79.2','54.2','37.5','100.0','67.7']), R(['(c) 无时间步编码','83.3','62.5','50.0','83.3','69.8']), R(['(d) 相加','75.0','62.5','33.3','100.0','67.7']), R(['(e) FIFO','66.7','66.7','33.3','100.0','66.7']), R(['(f) 认知 token × 4','79.2','66.7','37.5','95.8','69.8']), R(['默认（两种记忆、L = 16、有 TE、门控、相邻合并、1 个认知 token）','75.0','75.0','37.5','100.0','71.9'], 1)]);
+  })();
+
+  /* ===== length chart (log) ===== */
+  (function(){
+    const svg = $('#len-svg');
+    const rows = [['SimplerEnv Bridge / Fractal', 200, 80, 117, 119, 16], ['LIBERO Spatial / Object / Goal', 270, 75, 131, 130, 16], ['LIBERO-10 / 90', 505, 58, 144, 156, 16], ['真机通用（原始）', 1575, 281, 575, 575, 16], ['真机通用（Filtered）', 213, 40, 81, 84, 16], ['真机时序（原始）', 7704, 412, 981, 1672, 256], ['真机时序（Filtered）', 902, 72, 236, 288, 256]];
+    const W = 720, L = 200, Rr = 168, top = 16, rh = 34, H = top + rows.length * rh + 28;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const lx = v => L + (W - L - Rr) * (Math.log10(v) - 1) / 3;
+    [10, 30, 100, 300, 1000, 3000, 10000].forEach(g => { svg.appendChild(el('line', { x1: lx(g), x2: lx(g), y1: top - 6, y2: H - 24, class: 'grid' })); svg.appendChild(el('text', { x: lx(g), y: H - 8, 'text-anchor': 'middle', class: 'tick' }, g)); });
+    rows.forEach((r, i) => {
+      const [lab, mx, mn, med, avg, Lm] = r, cy = top + i * rh + rh / 2;
+      const col = Lm === 16 ? 'var(--mem)' : 'var(--per)';
+      svg.appendChild(el('text', { x: L - 12, y: cy + 4, 'text-anchor': 'end', class: 'glabel' }, lab));
+      svg.appendChild(el('line', { x1: lx(Lm), x2: lx(Lm), y1: cy - 13, y2: cy + 13, stroke: col, 'stroke-width': 3, 'data-tip': lab + '：记忆长度 L = ' + Lm }));
+      svg.appendChild(el('line', { x1: lx(mn), x2: lx(mx), y1: cy, y2: cy, stroke: 'var(--ink-2)', 'stroke-width': 2, 'data-tip': lab + '：最短 ' + mn + '，最长 ' + mx }));
+      svg.appendChild(el('line', { x1: lx(avg), x2: lx(avg), y1: cy - 7, y2: cy + 7, stroke: 'var(--ink)', 'stroke-width': 2 }));
+      svg.appendChild(el('circle', { cx: lx(med), cy, r: 5, fill: 'var(--cog)', 'data-tip': lab + '：中位数 ' + med + '，平均 ' + avg }));
+      svg.appendChild(el('text', { x: W - Rr + 22, y: cy + 4, class: 'val' }, mn + '–' + mx + ' · 中位 ' + med));
+    });
+    svg.appendChild(el('text', { x: W - Rr + 22, y: H - 8, class: 'tick' }, '步数（对数轴）'));
+    rawTable($('#len-raw'), ['任务套','最长','最短','中位数','平均'], rows.map(r => R([r[0], r[1], r[2], r[3], r[4]])));
+  })();
+
+  /* ===== OOD heat ===== */
+  (function(){
+    const cols = ['Base','背景','干扰物','光照','物体','容器','遮挡','纹理','相机视角'];
+    const rows = [['Pick Place Order · 真机', [100,100,92,96,89,100,96,null,null]], ['Clean Restaurant Table · 真机', [96,92,86,94,94,96,94,null,null]], ['Pick Coke Can · 仿真', ['92.0','86.7','90.7','90.7',null,null,null,'86.7','42.0']], ['Move Near · 仿真', ['76.0','86.0','84.0','84.0',null,null,null,'86.0','58.0']], ['Open/Close Drawer · 仿真', ['46.3','56.4',null,'49.1',null,null,null,'57.4',null]], ['Place Apple Into Drawer · 仿真', ['72.0','66.0',null,'52.0',null,null,null,'50.0',null]]];
+    let h = '<table class="heat"><thead><tr><th></th>' + cols.map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>';
+    rows.forEach(r => { h += '<tr><th class="row">' + r[0] + '</th>' + r[1].map((v, j) => { if (v == null) return '<td class="na">—</td>'; const p = Math.round(parseFloat(v) * .85); return '<td class="' + (p > 50 ? 'dk ' : '') + (j === 0 ? 'basec' : '') + '" style="background:color-mix(in oklab,var(--cog) ' + p + '%,var(--surface))">' + v + '</td>'; }).join('') + '</tr>'; });
+    $('#ood-host').innerHTML = h + '</tbody></table>';
+  })();
+
+  /* ===== memory bank lab ===== */
+  (function(){
+    const D = 6, S = 2, TES = 0.5;
+    const EP = [['起始悬停','h',0],['移到蓝键上方','b',0],['按下蓝键','b',1],['抬起，画面同 t2','b',0],['移到绿键上方','g',0],['按下绿键','g',1],['抬起，画面同 t5','g',0],['移到粉键上方','p',0],['按下粉键','p',1],['抬起，画面同 t8','p',0],['回到起点，画面同 t1','h',0],['停住，画面同 t1','h',0]];
+    const REG = ['b','g','p'];
+    const percObs = s => REG.map((r, ri) => { const v = [0,0,0,0,0,0.4]; v[ri] = 1; if (s[1] === r) { v[3] = 1; v[4] = s[2]; } return v.map(x => x * S); });
+    const cogObs = s => [0.5, s[1] === 'b' ? 1 : 0, s[1] === 'g' ? 1 : 0, s[1] === 'p' ? 1 : 0, s[2], s[1] === 'h' ? 1 : 0].map(x => x * S);
+    function rng(seed){ return function(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+    function mlp(seed){ const r = rng(seed), u = () => (r() * 2 - 1) * 0.9;
+      const W1 = Array.from({ length: 8 }, () => Array.from({ length: 2 * D }, u)), b1 = Array.from({ length: 8 }, u);
+      const W2 = Array.from({ length: D }, () => Array.from({ length: 8 }, u)), b2 = Array.from({ length: D }, u);
+      return (x, h) => { const inp = x.concat(h); const hid = W1.map((w, i) => Math.max(0, w.reduce((s, wj, j) => s + wj * inp[j], b1[i]))); return W2.map((w, i) => 1 / (1 + Math.exp(-w.reduce((s, wj, j) => s + wj * hid[j], b2[i])))); }; }
+    const GATE = { p: mlp(7), c: mlp(11) };
+    function TE(t){ const v = []; for (let k = 0; k < D / 2; k++) { const f = Math.pow(10000, -2 * k / D); v.push(TES * Math.sin(t * f), TES * Math.cos(t * f)); } return v; }
+    const dot = (a, b) => a.reduce((s, x, i) => s + x * b[i], 0);
+    const flat = v => [].concat(...v);
+    const cos = (a, b) => dot(a, b) / (Math.sqrt(dot(a, a) * dot(b, b)) || 1);
+    const softmax = a => { const m = Math.max(...a), e = a.map(x => Math.exp(x - m)), s = e.reduce((p, q) => p + q, 0); return e.map(x => x / s); };
+    const clone = b => ({ p: b.p.map(e => Object.assign({}, e, { v: e.v.map(r => r.slice()) })), c: b.c.map(e => Object.assign({}, e, { v: e.v.map(r => r.slice()) })) });
+    const cache = {};
+    function simulate(cfg){
+      const key = JSON.stringify(cfg); if (cache[key]) return cache[key];
+      const bank = { p: [], c: [] }, out = [];
+      EP.forEach((s, i) => {
+        const t = i + 1, x = { p: percObs(s), c: [cogObs(s)] };
+        const rec = { t, x, before: clone(bank), H: {}, g: {}, xt: {}, att: {}, sims: {}, pick: {} };
+        ['p', 'c'].forEach(k => {
+          const B = bank[k];
+          if (!B.length) { rec.H[k] = x[k].map(r => r.slice()); rec.att[k] = []; }
+          else {
+            const keys = [], vals = [], own = [];
+            B.forEach((e, ei) => e.v.forEach(tok => { const te = cfg.pe ? TE(e.tau) : [0, 0, 0, 0, 0, 0]; keys.push(tok.map((v, d) => v + te[d])); vals.push(tok); own.push(ei); }));
+            const ew = new Array(B.length).fill(0);
+            rec.H[k] = x[k].map(q => { const w = softmax(keys.map(kk => dot(q, kk) / Math.sqrt(D))); w.forEach((wi, j) => ew[own[j]] += wi / x[k].length); return q.map((_, d) => vals.reduce((sum, v, j) => sum + w[j] * v[d], 0)); });
+            rec.att[k] = ew;
+          }
+          if (cfg.fu === 'gate') { rec.g[k] = x[k].map((xr, j) => GATE[k](xr, rec.H[k][j])); rec.xt[k] = x[k].map((xr, j) => xr.map((xv, d) => rec.g[k][j][d] * rec.H[k][j][d] + (1 - rec.g[k][j][d]) * xv)); }
+          else { rec.g[k] = null; rec.xt[k] = x[k].map((xr, j) => xr.map((xv, d) => xv + rec.H[k][j][d])); }
+        });
+        ['p', 'c'].forEach(k => bank[k].push({ v: rec.xt[k].map(r => r.slice()), t0: t, t1: t, tau: t }));
+        rec.written = clone(bank);
+        rec.over = bank.p.length > cfg.L;
+        if (rec.over) ['p', 'c'].forEach(k => {
+          const B = bank[k];
+          if (cfg.co === 'merge') {
+            const sims = []; for (let j = 0; j < B.length - 1; j++) sims.push(cos(flat(B[j].v), flat(B[j + 1].v)));
+            let a = 0; sims.forEach((v, j) => { if (v > sims[a]) a = j; });
+            rec.sims[k] = sims; rec.pick[k] = a;
+            const A = B[a], C = B[a + 1];
+            B.splice(a, 2, { v: A.v.map((r, ri) => r.map((v, d) => (v + C.v[ri][d]) / 2)), t0: A.t0, t1: C.t1, tau: (A.tau + C.tau) / 2 });
+          } else { rec.pick[k] = 0; rec.dropped = rec.dropped || {}; rec.dropped[k] = B[0]; B.shift(); }
+        });
+        rec.after = clone(bank);
+        out.push(rec);
+      });
+      return (cache[key] = out);
+    }
+
+    const cfg = { L: 4, pe: 1, fu: 'gate', co: 'merge' };
+    let T = 1, P = 0, timer = null;
+    const lab = e => e.t0 === e.t1 ? 't' + e.t0 : 't' + e.t0 + '–' + e.t1;
+    const f2 = v => v.toFixed(2).replace(/^0\./, '.');
+    const nPh = rec => rec.over ? 6 : 4;
+
+    function segBind(id, key, conv){ $$('#' + id + ' button').forEach(b => b.addEventListener('click', () => { cfg[key] = conv(b.dataset.v); $$('#' + id + ' button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); const recs = simulate(cfg); P = Math.min(P, nPh(recs[T - 1]) - 1); render(); })); }
+    segBind('ml-L', 'L', v => +v); segBind('ml-pe', 'pe', v => +v); segBind('ml-fu', 'fu', v => v); segBind('ml-co', 'co', v => v);
+
+    const tl = $('#ml-tl');
+    EP.forEach((s, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = 't' + (i + 1); b.setAttribute('data-tip', 't' + (i + 1) + '：' + s[0]); b.addEventListener('click', () => { stop(); T = i + 1; P = 0; render(); }); tl.appendChild(b); });
+
+    function cellFill(stream, v, maxv){ const p = Math.round(Math.max(0, Math.min(1, v / maxv)) * 88); const c = stream === 'p' ? 'var(--per)' : stream === 'c' ? 'var(--cog)' : 'var(--mem)'; return 'color-mix(in oklab,' + c + ' ' + p + '%,var(--surface))'; }
+    function grid(svg, x0, y0, mat, stream, cw, ch, maxv, tipPrefix){
+      mat.forEach((row, ri) => row.forEach((v, d) => svg.appendChild(el('rect', { x: x0 + d * cw, y: y0 + ri * ch, width: cw - 1, height: ch - 1, rx: 1.5, fill: cellFill(stream, v, maxv), 'data-tip': tipPrefix + (mat.length > 1 ? ' · token ' + (ri + 1) : '') + ' · 维 ' + (d + 1) + '：' + v.toFixed(2) }))));
+    }
+
+    function drawWM(rec){
+      const svg = $('#ml-wm'); svg.innerHTML = '';
+      const cols = [['x', '当前工作记忆', rec.x, 'stream', S]];
+      if (P >= 1) cols.push(['H', '检索结果', rec.H, 'stream', S]);
+      if (P >= 2) { cols.push(['g', cfg.fu === 'gate' ? '门 σ(MLP[x,H])' : '无门（相加）', rec.g, 'gate', 1]); cols.push(['x̃', '融合后', rec.xt, 'stream', cfg.fu === 'gate' ? S : 2 * S]); }
+      svg.appendChild(el('text', { x: 6, y: 60, class: 'tp' }, '感知 p'));
+      svg.appendChild(el('text', { x: 6, y: 74, class: 'mono' }, '3 token × 6 维'));
+      svg.appendChild(el('text', { x: 6, y: 118, class: 'tc' }, '认知 c'));
+      svg.appendChild(el('text', { x: 6, y: 132, class: 'mono' }, '1 token × 6 维'));
+      cols.forEach((c, i) => {
+        const x0 = 104 + i * 154;
+        svg.appendChild(el('text', { x: x0, y: 16, class: 'hd' }, c[0] + '\u00a0\u00a0')).appendChild(el('tspan', { class: 'mono' }, c[1]));
+        if (i) svg.appendChild(el('text', { x: x0 - 22, y: 74, class: 'mono' }, '→'));
+        if (c[0] === 'g' && !rec.g.p) { svg.appendChild(el('text', { x: x0, y: 60, class: 'mono' }, 'x̃ = x + H')); svg.appendChild(el('text', { x: x0, y: 76, class: 'mono' }, '每一维都全收')); return; }
+        grid(svg, x0, 30, c[2].p, c[3] === 'gate' ? 'g' : 'p', 18, 13, c[4], c[0] + ' 感知');
+        grid(svg, x0, 104, c[2].c, c[3] === 'gate' ? 'g' : 'c', 18, 13, c[4], c[0] + ' 认知');
+        if (c[0] === 'g') { const m = rec.g.c[0].reduce((a, b) => a + b, 0) / D; svg.appendChild(el('text', { x: x0, y: 134, class: 'mono' }, '认知门均值 ' + m.toFixed(2))); }
+      });
+      if (P === 1 && !rec.before.p.length) svg.appendChild(el('text', { x: 258, y: 146, class: 'mono' }, '空库：演示令 H = x'));
+    }
+
+    function drawBank(rec){
+      const svg = $('#ml-bank'); svg.innerHTML = '';
+      const maxSlots = cfg.L + 1, X0 = 112, pitch = (712 - X0) / maxSlots, sw = pitch - 8, cs = Math.min(12, (sw - 10) / 6);
+      const bandH = { p: 18 + 3 * cs + 52, c: 18 + cs + 66 };
+      const Y = { p: 30, c: 30 + bandH.p + 34 };
+      const Htot = Y.c + bandH.c + 8; svg.setAttribute('viewBox', '0 0 720 ' + Htot);
+      let bank = rec.before, newIdx = -1, pairIdx = null, mergedIdx = null, dropIdx = null, showAtt = false, showSims = false;
+      if (P === 1) showAtt = true;
+      if (P === 3 || P === 4) { bank = rec.written; newIdx = bank.p.length - 1; }
+      if (P === 4) { if (cfg.co === 'merge') { pairIdx = rec.pick; showSims = true; } else dropIdx = 0; }
+      if (P === 5) { bank = rec.after; if (cfg.co === 'merge') mergedIdx = rec.pick; }
+      ['p', 'c'].forEach(k => {
+        const y0 = Y[k], B = bank[k], rows = k === 'p' ? 3 : 1;
+        svg.appendChild(el('text', { x: 6, y: y0 + 16, class: k === 'p' ? 'tp' : 'tc' }, k === 'p' ? '感知记忆流' : '认知记忆流'));
+        svg.appendChild(el('text', { x: 6, y: y0 + 32, class: 'mono' }, k === 'p' ? 'm^per · 每条 3×6' : 'm^cog · 每条 1×6'));
+        svg.appendChild(el('text', { x: 6, y: y0 + 46, class: 'mono' }, B.length + ' / ' + cfg.L + ' 条'));
+        for (let i = 0; i < maxSlots; i++) {
+          const sx = X0 + i * pitch, gy = y0 + 18;
+          if (i >= B.length) { svg.appendChild(el('rect', { x: sx, y: y0 + 2, width: sw, height: 18 + rows * cs + 6, rx: 5, fill: 'none', stroke: i >= cfg.L ? 'transparent' : 'var(--line)', 'stroke-dasharray': '3 3' })); if (i === cfg.L) svg.appendChild(el('text', { x: sx + sw / 2, y: y0 + 18 + rows * cs / 2 + 4, 'text-anchor': 'middle', class: 'mono' }, '超出 L')); continue; }
+          const e = B[i];
+          let stroke = 'var(--line)', sw2 = 1, dash = null, tag = null, tagCls = 'mono';
+          if (i === newIdx && P === 3) { stroke = k === 'p' ? 'var(--per)' : 'var(--cog)'; sw2 = 2.2; tag = '新写入'; tagCls = k === 'p' ? 'tp' : 'tc'; }
+          if (i === newIdx && P === 4 && cfg.co === 'merge') { stroke = k === 'p' ? 'var(--per)' : 'var(--cog)'; sw2 = 1.6; }
+          if (pairIdx && (i === pairIdx[k] || i === pairIdx[k] + 1)) { stroke = 'var(--mem)'; sw2 = 2.4; dash = '5 3'; }
+          if (dropIdx === i) { stroke = 'var(--warn)'; sw2 = 2.4; dash = '5 3'; tag = '丢弃'; tagCls = 'tw'; }
+          if (mergedIdx && i === mergedIdx[k]) { stroke = 'var(--mem)'; sw2 = 2.4; tag = '合并'; tagCls = 'tm'; }
+          if (i >= cfg.L) svg.appendChild(el('rect', { x: sx - 2, y: y0, width: sw + 4, height: 18 + rows * cs + 10, rx: 6, fill: 'var(--warn-soft)', opacity: .7 }));
+          const r = el('rect', { x: sx, y: y0 + 2, width: sw, height: 18 + rows * cs + 6, rx: 5, fill: 'var(--bg)', stroke, 'stroke-width': sw2, 'data-tip': lab(e) + (e.t0 !== e.t1 ? ' · 合并条目，TE 用 τ = ' + e.tau.toFixed(1) + '（演示取平均，论文未披露）' : ' · TE 用 t = ' + e.tau) });
+          if (dash) r.setAttribute('stroke-dasharray', dash);
+          svg.appendChild(r);
+          svg.appendChild(el('text', { x: sx + sw / 2, y: y0 + 15, 'text-anchor': 'middle', class: e.t0 !== e.t1 ? 'tm' : 'mono', 'font-size': 11 }, lab(e)));
+          grid(svg, sx + (sw - 6 * cs) / 2, gy + 2, e.v, k, cs, cs, cfg.fu === 'gate' ? S : 2 * S, lab(e));
+          if (tag) svg.appendChild(el('text', { x: sx + sw / 2, y: gy + rows * cs + 22, 'text-anchor': 'middle', class: tagCls, 'font-size': 11 }, tag));
+          if (showAtt && rec.att[k].length) {
+            const w = rec.att[k][i], base = gy + rows * cs + 50, h = w * 38 / Math.max(0.5, Math.max(...rec.att[k]));
+            svg.appendChild(el('rect', { x: sx + sw / 2 - 9, y: base - h, width: 18, height: Math.max(1, h), rx: 2, fill: k === 'p' ? 'var(--per)' : 'var(--cog)', 'data-tip': lab(e) + ' 分到的注意力：' + w.toFixed(3) }));
+            svg.appendChild(el('text', { x: sx + sw / 2, y: base + 12, 'text-anchor': 'middle', class: 'mono' }, f2(w)));
+          }
+          if (showSims && i < B.length - 1) {
+            const s = rec.sims[k][i], bx = sx + sw + 4, isMax = i === pairIdx[k];
+            const ty = gy + rows * cs + 40;
+            if (isMax) svg.appendChild(el('rect', { x: bx - 22, y: ty - 12, width: 44, height: 17, rx: 4, fill: 'var(--mem-soft)', stroke: 'var(--mem)' }));
+            svg.appendChild(el('line', { x1: bx, x2: bx, y1: gy + rows * cs + 10, y2: ty - 13, stroke: isMax ? 'var(--mem)' : 'var(--line)' }));
+            svg.appendChild(el('text', { x: bx, y: ty, 'text-anchor': 'middle', class: isMax ? 'tm' : 'mono', 'font-size': 10.5, 'data-tip': 'cos(' + lab(B[i]) + ', ' + lab(B[i + 1]) + ') = ' + s.toFixed(4) }, s.toFixed(3)));
+          }
+        }
+      });
+      if (showAtt && !rec.before.p.length) svg.appendChild(el('text', { x: X0, y: Y.p + 18 + 3 * cs + 40, class: 'mono' }, '记忆库为空，这一步没有可检索的历史'));
+    }
+
+    function earliestTwin(recs, t){ for (let s = 0; s < t - 1; s++) if (cos(recs[t - 1].x.c[0], recs[s].x.c[0]) > 0.9999) return s; return -1; }
+
+    function render(){
+      const recs = simulate(cfg), rec = recs[T - 1], n = nPh(rec);
+      $$('#ml-tl button').forEach((b, i) => { b.classList.toggle('done', i < T - 1); if (i === T - 1) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current'); });
+      const names = cfg.co === 'merge' ? ['① 观测', '② 检索', '③ 门控融合', '④ 写入', '⑤ 找相邻最相似', '⑥ 合并'] : ['① 观测', '② 检索', '③ 融合', '④ 写入', '⑤ 超出容量', '⑥ 丢弃最早'];
+      if (cfg.fu === 'add') names[2] = '③ 相加融合';
+      $('#ml-ph').innerHTML = names.map((nm, i) => '<span class="' + (i === P ? 'on' : i >= n ? 'off' : '') + '">' + nm + '</span>').join('');
+      drawWM(rec); drawBank(rec);
+      const say = $('#ml-say'), s = EP[T - 1];
+      if (P === 0) say.innerHTML = '<b>t = ' + T + ' · ' + s[0] + '。</b>VLM 把当前帧编码成工作记忆：感知 token p 和认知 token c（演示里分别缩成 3×6 和 1×6）。这一步还没碰记忆库' + (rec.before.p.length ? '，库里已有 ' + rec.before.p.length + ' 条。' : '，库还是空的。');
+      else if (P === 1) {
+        if (!rec.before.p.length) say.innerHTML = '<b>检索。</b>记忆库为空，没有历史可取。论文没说第一步怎么处理，演示令 H = x。';
+        else { const a = rec.att.c, mi = a.indexOf(Math.max(...a)); say.innerHTML = '<b>检索。</b>p 的 3 个 token、c 的 1 个 token 分别作 query，对本流全部记忆算 softmax(qKᵀ/√d)·V（公式 6）。key = 记忆 + TE(时间步)' + (cfg.pe ? '' : '<b>（TE 已关闭，key 就是记忆本身）</b>') + '，value = 记忆本身。柱高是每条记忆分到的注意力，感知流按 3 个 query 平均。认知流里分得最多的是 ' + lab(rec.before.c[mi]) + '（' + a[mi].toFixed(2) + '）。'; }
+      }
+      else if (P === 2) {
+        if (cfg.fu === 'gate') { const m = rec.g.c[0].reduce((x, y) => x + y, 0) / D; say.innerHTML = '<b>门控融合。</b>g = σ(MLP([x, H]))，逐元素算出（琥珀色那一列，越深越接近 1），x̃ = g⊙H + (1−g)⊙x（公式 7、8）。这一步认知门的平均值是 ' + m.toFixed(2) + '，即 c̃ 大约 ' + Math.round(m * 100) + '% 来自记忆、' + Math.round((1 - m) * 100) + '% 来自当前帧。'; }
+        else say.innerHTML = '<b>相加融合（消融对照）。</b>x̃ = x + H，没有门：记忆和当前帧都按全部权重相加，表示的尺度也跟着变大。表 7 里这一项是 67.7，门控是 71.9。';
+      }
+      else if (P === 3) say.innerHTML = '<b>写入。</b>x̃ 一路送进 DiT 动作头当条件（演示不画），一路作为新条目推入两条记忆流，时间步记为 t = ' + T + '。现在每条流有 ' + rec.written.p.length + ' 条' + (rec.over ? '，<b>超过了容量 L = ' + cfg.L + '</b>。' : '，容量 L = ' + cfg.L + '，还没满。');
+      else if (P === 4) {
+        if (cfg.co === 'merge') { const sp = rec.sims.p[rec.pick.p], sc = rec.sims.c[rec.pick.c]; say.innerHTML = '<b>找相邻最相似的一对。</b>在每条流内部算相邻条目的余弦相似度（感知条目展平后算）。感知流最高的是 ' + lab(rec.written.p[rec.pick.p]) + ' 与 ' + lab(rec.written.p[rec.pick.p + 1]) + '（' + sp.toFixed(3) + '），认知流最高的是 ' + lab(rec.written.c[rec.pick.c]) + ' 与 ' + lab(rec.written.c[rec.pick.c + 1]) + '（' + sc.toFixed(3) + '）。' + (rec.pick.p !== rec.pick.c ? '<b>两条流选中的位置不同</b>，论文就是各流独立合并。' : '两条流这一步恰好选中同一位置。'); }
+        else say.innerHTML = '<b>超出容量。</b>FIFO 不看相似度，直接丢掉最早的一条 ' + lab(rec.written.p[0]) + '（两条流都是）。表 7 里 FIFO 是 66.7，相邻合并是 71.9。';
+      }
+      else if (P === 5) {
+        if (cfg.co === 'merge') { const e = rec.after.c[rec.pick.c]; say.innerHTML = '<b>合并。</b>选中的两条逐元素取平均，合成一条（公式 9），占用回到 L = ' + cfg.L + '。合并后条目在 TE 里用哪个时间步论文未披露，演示取两者平均（认知流这条是 τ = ' + e.tau.toFixed(1) + '）。'; }
+        else say.innerHTML = '<b>丢弃之后。</b>最早的条目被移出。因为写入的是融合后的 x̃，它的一部分信息已经混进了后面的条目，但它本身不再能被直接检索到。';
+      }
+      $('#ml-occ').textContent = (P >= 3 && P <= 4 ? rec.written.p.length : P === 5 ? rec.after.p.length : rec.before.p.length) + ' / ' + cfg.L;
+      let ev = 0; recs.slice(0, T).forEach((r, i) => { if (r.over && (i < T - 1 || P === 5)) ev++; });
+      $('#ml-occ2').textContent = (cfg.co === 'merge' ? '每条流已各合并 ' : '每条流已各丢弃 ') + ev + ' 次';
+      const tw = earliestTwin(recs, T);
+      if (tw < 0) { $('#ml-twin').textContent = '—'; $('#ml-twin2').textContent = '这一帧之前没有画面完全相同的时刻。'; }
+      else if (P < 2) { $('#ml-twin').textContent = 't' + T + ' 与 t' + (tw + 1); $('#ml-twin2').textContent = '两帧的原始 c 完全相同（cos = 1.000）。走到“融合”一步再看。'; }
+      else { const cc = cos(rec.xt.c[0], recs[tw].xt.c[0]), cp = cos(flat(rec.xt.p), flat(recs[tw].xt.p)); $('#ml-twin').textContent = 'c̃ ' + cc.toFixed(3) + ' · p̃ ' + cp.toFixed(3); $('#ml-twin2').textContent = 't' + T + ' 与 t' + (tw + 1) + ' 的原始 token 完全相同（cos = 1.000），融合了各自的记忆后不再相同。'; }
+      const log = $('#ml-log'); log.innerHTML = '';
+      recs.slice(0, T).forEach((r, i) => { if (!r.over || (i === T - 1 && P < 5)) return; const li = document.createElement('li');
+        if (cfg.co === 'merge') li.textContent = 't' + r.t + ' · 感知流合并 ' + lab(r.written.p[r.pick.p]) + ' + ' + lab(r.written.p[r.pick.p + 1]) + '（cos ' + r.sims.p[r.pick.p].toFixed(3) + '） · 认知流合并 ' + lab(r.written.c[r.pick.c]) + ' + ' + lab(r.written.c[r.pick.c + 1]) + '（cos ' + r.sims.c[r.pick.c].toFixed(3) + '）';
+        else li.textContent = 't' + r.t + ' · 两条流都丢弃 ' + lab(r.written.p[0]);
+        log.appendChild(li); });
+      if (!log.children.length) { const li = document.createElement('li'); li.textContent = '合并记录：库还没满过。'; log.appendChild(li); }
+      $('#ml-prev').disabled = T === 1 && P === 0;
+      $('#ml-next').disabled = T === EP.length && P === n - 1;
+      $('#ml-skip').disabled = T === EP.length;
+    }
+    function next(){ const recs = simulate(cfg), n = nPh(recs[T - 1]); if (P < n - 1) P++; else if (T < EP.length) { T++; P = 0; } else { stop(); return false; } render(); return true; }
+    function prev(){ const recs = simulate(cfg); if (P > 0) P--; else if (T > 1) { T--; P = nPh(recs[T - 1]) - 1; } render(); }
+    function stop(){ if (timer) { clearInterval(timer); timer = null; $('#ml-play').textContent = '自动播放'; } }
+    $('#ml-next').addEventListener('click', () => { stop(); next(); });
+    $('#ml-prev').addEventListener('click', () => { stop(); prev(); });
+    $('#ml-skip').addEventListener('click', () => { stop(); if (T < EP.length) { T++; P = 0; render(); } });
+    $('#ml-reset').addEventListener('click', () => { stop(); T = 1; P = 0; render(); });
+    $('#ml-play').addEventListener('click', () => { if (timer) { stop(); return; } if (T === EP.length && P === nPh(simulate(cfg)[T - 1]) - 1) { T = 1; P = 0; render(); } timer = setInterval(() => { if (!next()) stop(); }, 1300); $('#ml-play').textContent = '暂停'; });
+    render();
+  })();
+})();
+
+</script>
+</body>
+</html>

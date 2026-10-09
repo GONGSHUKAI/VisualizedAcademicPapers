@@ -1,0 +1,1378 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>ActiveVLA 精读</title>
+<meta name="description" content="ActiveVLA 中文精读：在重建点云上做虚拟视角选择与 3D zoom-in 的粗到精 VLA。逐条拆解球面候选打分公式、放大公式、RLBench / COLOSSEUM / GemBench / 真机结果，以及打分函数退化等疑点。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Azeret+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#E4E8EC; --surface:#F4F6F8; --surface-2:#D7DDE3; --ink:#13181D; --ink-2:#343E48; --muted:#5B6672; --line:#C3CBD3;
+  --amb:#A65E00; --amb-hi:#E89A1E; --amb-soft:#F5E2C1; --on-amb:#FFFFFF;
+  --cy:#1F6A8A; --cy-soft:#D2E5EE; --on-cy:#FFFFFF;
+  --warn:#AE3526; --warn-soft:#F4DAD5;
+  --ok:#2F7A4B;
+  --base:#8A949E; --base-2:#B8C0C8;
+  --plate:#FFFFFF; --focus:#A65E00;
+  --screen:#0B0E11; --screen-ink:#E7ECF0; --screen-line:#2A3138;
+  --f-display:"Chakra Petch","Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"Azeret Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#101316; --surface:#171B1F; --surface-2:#21272D; --ink:#E5E9ED; --ink-2:#BAC3CB; --muted:#8994A0; --line:#2D343B;
+    --amb:#F2AA3C; --amb-hi:#F7B955; --amb-soft:#3A2A11; --on-amb:#1B1205;
+    --cy:#6CB4D6; --cy-soft:#14303C; --on-cy:#08161D;
+    --warn:#EF8B78; --warn-soft:#3B1E19;
+    --ok:#7CC796;
+    --base:#6D7882; --base-2:#48515A;
+    --plate:#EEF1F3; --focus:#F2AA3C;
+    --screen:#07090B; --screen-ink:#E7ECF0; --screen-line:#262D33;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#101316; --surface:#171B1F; --surface-2:#21272D; --ink:#E5E9ED; --ink-2:#BAC3CB; --muted:#8994A0; --line:#2D343B;
+  --amb:#F2AA3C; --amb-hi:#F7B955; --amb-soft:#3A2A11; --on-amb:#1B1205;
+  --cy:#6CB4D6; --cy-soft:#14303C; --on-cy:#08161D;
+  --warn:#EF8B78; --warn-soft:#3B1E19;
+  --ok:#7CC796;
+  --base:#6D7882; --base-2:#48515A;
+  --plate:#EEF1F3; --focus:#F2AA3C;
+  --screen:#07090B; --screen-ink:#E7ECF0; --screen-line:#262D33;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:var(--cy);text-underline-offset:3px;text-decoration-thickness:1px}
+a:hover{text-decoration-thickness:2px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:3px}
+strong{font-weight:700}
+em{font-style:normal;background:linear-gradient(transparent 62%,var(--amb-soft) 62%)}
+code,.mono{font-family:var(--f-mono);font-size:.86em}
+sub,sup{font-size:.72em;line-height:0}
+.page{max-width:1200px;margin:0 auto;padding-inline:24px}
+@media (max-width:560px){.page{padding-inline:16px}}
+
+/* viewfinder corner brackets */
+.vf{position:relative}
+.vf::before,.vf::after{content:"";position:absolute;width:18px;height:18px;pointer-events:none;border-color:var(--amb);border-style:solid}
+.vf::before{top:-1px;left:-1px;border-width:2px 0 0 2px}
+.vf::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0}
+
+/* hero */
+.hero{padding-block:44px 24px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,.98fr);gap:40px;align-items:center}
+@media (max-width:900px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+.kicker{font:500 12px/1.5 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--amb);margin:0 0 14px}
+h1.title{font-family:var(--f-display);font-weight:700;font-size:clamp(3.1rem,1.8rem + 6vw,6.2rem);line-height:.95;letter-spacing:-.01em;margin:0;display:flex;align-items:baseline;gap:.08em;flex-wrap:wrap}
+h1.title .af{position:relative;padding:0 .1em;color:var(--amb)}
+h1.title .af::before,h1.title .af::after{content:"";position:absolute;width:.32em;height:.32em;border:0 solid var(--amb)}
+h1.title .af::before{left:-.04em;top:.02em;border-width:.055em 0 0 .055em}
+h1.title .af::after{right:-.04em;bottom:-.06em;border-width:0 .055em .055em 0}
+.entitle{font-family:var(--f-display);font-weight:500;font-size:clamp(.98rem,.88rem + .4vw,1.18rem);line-height:1.45;color:var(--ink-2);margin:16px 0 0}
+.thesis{font-size:clamp(1.06rem,1rem + .35vw,1.24rem);line-height:1.78;margin:20px 0 0;max-width:35em}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin:20px 0 0;padding:0;list-style:none;font:12.5px/1.6 var(--f-mono);color:var(--muted)}
+.meta b{color:var(--ink-2);font-weight:500}
+.ribbon{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:14px}
+.ribbon svg{display:block;width:100%;height:auto}
+.ribbon svg text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+.ribbon svg .mono{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.ribbon figcaption{font:11.5px/1.6 var(--f-mono);color:var(--muted);margin-top:8px}
+.hv-leg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 12px;list-style:none;margin:6px 0 0;padding:0;font-size:12.5px;line-height:1.45;color:var(--ink-2)}
+@media (max-width:1100px){.hv-leg{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.hv-leg li{display:flex;align-items:center;gap:6px}
+.hv-leg svg{flex:none;width:18px;height:16px;overflow:visible}
+.hv-note{font:11.5px/1.6 var(--f-mono);color:var(--muted);margin:8px 0 0;padding-top:8px;border-top:1px dashed var(--line)}
+.hv-table{fill:color-mix(in oklab,var(--amb) 10%,var(--surface));stroke:var(--line);stroke-width:1}
+.hv-sph{fill:none;stroke:var(--base-2);stroke-width:1;stroke-dasharray:2 3}
+.hv-ring{fill:none;stroke:var(--base-2);stroke-width:.8;opacity:.8}
+.hv-c-vis{fill:var(--cy);opacity:.85}
+.hv-c-occ{fill:var(--surface);stroke:var(--base);stroke-width:1}
+.hv-occ{fill:color-mix(in oklab,var(--base) 45%,var(--surface));stroke:var(--ink-2);stroke-width:.7;opacity:.92}
+.hv-tgt{fill:#C8453A;stroke:#7A211A;stroke-width:.6}
+.hv-ray{stroke:var(--amb);stroke-width:1.2;stroke-dasharray:3 3}
+.hv-fr{fill:var(--amb);opacity:.28}
+.hv-fr-wide{fill:none;stroke:var(--amb);stroke-width:.8;stroke-dasharray:2 2;opacity:.7}
+.hv-sel{fill:var(--amb)}
+.hv-br{fill:none;stroke:var(--amb);stroke-width:1.6}
+.hv-pf circle{fill:var(--ink)} .hv-pf path{stroke:var(--ink);stroke-width:1.4}
+.tldr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:32px}
+@media (max-width:760px){.tldr{grid-template-columns:minmax(0,1fr)}}
+.tldr>div{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:16px 18px}
+.tldr h3{font:500 11.5px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.tldr p{margin:0;font-size:15px;line-height:1.75}
+.tldr .flag h3{color:var(--warn)}
+
+/* layout */
+.layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:52px;padding-block:20px 80px}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr);gap:0}}
+.toc{position:sticky;top:20px;align-self:start;font-size:14px;line-height:1.5}
+.toc p{font:500 11px/1.4 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.toc li a{display:block;padding:5px 0 5px 14px;margin-left:-1px;border-left:2px solid transparent;color:var(--muted);text-decoration:none}
+.toc li a:hover{color:var(--ink)}
+.toc li a.on{color:var(--ink);border-left-color:var(--amb);font-weight:500}
+@media (max-width:1000px){
+  .toc{position:static;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .toc p{display:none}
+  .toc ol{display:flex;gap:6px;border:0;white-space:nowrap;padding-bottom:6px}
+  .toc li a{border:1px solid var(--line);border-radius:3px;padding:4px 12px;margin:0;background:var(--surface)}
+  .toc li a.on{border-color:var(--amb)}
+}
+main{min-width:0}
+section{padding-top:56px;scroll-margin-top:12px}
+section:first-child{padding-top:8px}
+.eyebrow{font:500 12px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--amb);margin:0 0 8px}
+h2{font-family:var(--f-display);font-weight:700;font-size:clamp(1.35rem,1.1rem + 1.1vw,1.9rem);line-height:1.3;margin:0 0 18px}
+h3{font-family:var(--f-display);font-weight:700;font-size:1.08rem;line-height:1.45;margin:36px 0 10px}
+p{margin:0 0 14px}
+.prose{max-width:44em}
+.prose li{margin-bottom:6px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.tag{display:inline-block;font:500 10.5px/1 var(--f-mono);letter-spacing:.05em;padding:4px 6px 3px;border-radius:2px;vertical-align:2px;margin-right:6px;white-space:nowrap}
+.tag.read{border:1px dashed var(--ink-2);color:var(--ink-2)}
+.tag.doubt{background:var(--warn-soft);color:var(--warn)}
+.tag.nd{background:var(--surface-2);color:var(--muted)}
+.note{border:1px solid var(--line);background:var(--surface);border-radius:4px;padding:14px 18px;margin:18px 0;max-width:46em}
+.note>:last-child{margin-bottom:0}
+.note h4{font:500 12px/1.5 var(--f-mono);letter-spacing:.04em;margin:0 0 6px;color:var(--muted)}
+.note.doubt{border-color:color-mix(in oklab,var(--warn) 35%,var(--line));background:color-mix(in oklab,var(--warn-soft) 55%,var(--surface))}
+.note.doubt h4{color:var(--warn)}
+.eq{font-family:"Times New Roman",Georgia,"Noto Serif SC",serif;font-size:1.08rem;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--amb);border-radius:2px;padding:12px 16px;margin:14px 0;overflow-x:auto;white-space:nowrap;display:flex;justify-content:space-between;gap:24px;max-width:46em}
+.eq .no{font:11.5px var(--f-mono);color:var(--muted);align-self:center}
+
+figure.plate{margin:22px 0}
+figure.plate .zoom{display:block;width:100%;padding:10px;background:var(--plate);border:1px solid var(--line);border-radius:3px;cursor:zoom-in}
+figure.plate img{display:block;width:100%;height:auto}
+figure.plate figcaption{font-size:14px;line-height:1.7;color:var(--ink-2);margin-top:10px;max-width:52em}
+figure.plate figcaption b{font:500 11.5px var(--f-mono);letter-spacing:.04em;color:var(--amb);margin-right:8px}
+dialog#lb{border:0;padding:0;background:transparent;max-width:min(96vw,1800px);width:96vw}
+dialog#lb::backdrop{background:rgba(8,10,12,.86)}
+dialog#lb .box{background:var(--plate);border-radius:3px;padding:10px;max-height:88vh;overflow:auto}
+dialog#lb img{display:block;width:100%;height:auto}
+dialog#lb .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#E7ECF0;font-size:14px;padding:8px 2px 0}
+dialog#lb button{font:500 13px var(--f-mono);background:#E7ECF0;color:#13181D;border:0;border-radius:3px;padding:6px 12px;cursor:pointer}
+
+.tblwrap{overflow-x:auto;margin:16px 0;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;font-size:14px;line-height:1.6;min-width:100%}
+table.t th,table.t td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.t thead th{font:500 11.5px/1.4 var(--f-mono);letter-spacing:.03em;color:var(--muted);border-bottom:1.5px solid var(--ink-2);white-space:nowrap}
+table.t tbody th{font-weight:500;white-space:nowrap;color:var(--ink-2)}
+table.t .num{text-align:right;font-family:var(--f-mono);font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t tr.best td,table.t tr.best th{font-weight:700}
+table.t td.bad{color:var(--warn);font-weight:600}
+
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.cards.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:860px){.cards.three{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.cards{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:16px 18px}
+.card h4{font-family:var(--f-display);font-weight:700;font-size:1rem;line-height:1.45;margin:0 0 8px}
+.card p{font-size:14.5px;line-height:1.75;margin:0 0 8px}
+.card p:last-child{margin:0}
+.card.c{border-top:3px solid var(--cy)} .card.a{border-top:3px solid var(--amb)} .card.k{border-top:3px solid var(--ink-2)}
+
+/* stepper */
+.steps{display:flex;flex-wrap:wrap;gap:8px 4px;align-items:center;margin:4px 0 14px;padding:0;list-style:none}
+.steps li{display:flex;align-items:center;gap:4px}
+.steps li+li::before{content:"→";font:500 13px var(--f-mono);color:var(--muted);margin-right:2px}
+.steps button{font:500 13px/1.25 var(--f-body);border:1px solid var(--line);background:var(--bg);color:var(--ink-2);border-radius:3px;padding:7px 10px;cursor:pointer;text-align:left}
+.steps button .n{font:600 11px var(--f-mono);margin-right:6px}
+.steps button.st-c .n{color:var(--cy)} .steps button.st-a .n{color:var(--amb)} .steps button.st-k .n{color:var(--ink-2)}
+.steps button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.steps button[aria-pressed="true"] .n{color:var(--amb-hi)}
+.stepbody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+@media (max-width:760px){.stepbody{grid-template-columns:minmax(0,1fr)}}
+.stepbody h5{font-family:var(--f-display);font-weight:700;font-size:1.02rem;margin:0 0 6px}
+.stepbody p{font-size:14.5px;line-height:1.75;margin:0 0 8px}
+.stepbody dl{display:grid;grid-template-columns:72px minmax(0,1fr);gap:5px 10px;margin:0;font-size:13.5px;line-height:1.65}
+.stepbody dt{color:var(--muted);font-family:var(--f-mono);font-size:12px;padding-top:1px}
+.stepbody dd{margin:0}
+.stepbody .nd{background:var(--bg);border:1px dashed var(--line);border-radius:3px;padding:10px 12px;font-size:13.5px;line-height:1.7}
+.stepbody .nd b{font:500 11.5px var(--f-mono);color:var(--muted);display:block;margin-bottom:2px}
+
+/* lab */
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:18px;margin:22px 0}
+.lab-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;margin-bottom:12px}
+.lab-head h4{font-family:var(--f-display);font-weight:700;font-size:1.05rem;margin:0}
+.lab-head p{margin:0;font-size:12.5px;color:var(--muted);font-family:var(--f-mono)}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:0 0 10px;font-size:14px}
+.ctrl .lb{font:500 11.5px var(--f-mono);color:var(--muted);letter-spacing:.03em}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:3px;overflow:hidden;background:var(--bg);flex-wrap:wrap}
+.seg button{font:500 13px/1 var(--f-body);border:0;background:transparent;color:var(--muted);padding:8px 11px;cursor:pointer;min-height:34px}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg.k button{font-family:var(--f-mono);min-width:34px}
+.wts{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.wts label{display:flex;align-items:center;gap:6px;font:500 12px var(--f-mono);color:var(--ink-2)}
+.wts input[type=range]{width:96px;accent-color:var(--amb)}
+.wts output{min-width:34px;font:500 12px var(--f-mono);color:var(--muted)}
+.lab-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:900px){.lab-grid{grid-template-columns:minmax(0,1fr)}}
+.world{position:relative;background:var(--bg);border:1px solid var(--line);border-radius:3px;touch-action:none}
+.world canvas{display:block;width:100%;aspect-ratio:4/3;cursor:grab}
+.world canvas:active{cursor:grabbing}
+.world .hint{position:absolute;left:10px;bottom:8px;font:11px var(--f-mono);color:var(--muted);pointer-events:none}
+.legend2{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--ink-2);margin:8px 0 0}
+.legend2 i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.legend2 .lv{background:var(--cy)} .legend2 .lo{border:1.5px solid var(--base);background:transparent} .legend2 .ls{background:var(--amb)} .legend2 .lr{background:var(--warn)}
+.vfs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.vfbox{background:var(--screen);border-radius:3px;padding:6px;position:relative}
+.vfbox canvas{display:block;width:100%;aspect-ratio:1/1}
+.vfbox .cap{font:11px/1.4 var(--f-mono);color:var(--screen-ink);opacity:.85;margin:5px 2px 1px;display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.zoomrow{display:flex;align-items:center;gap:10px;margin:10px 0 0;font:500 12px var(--f-mono);color:var(--ink-2);flex-wrap:wrap}
+.zoomrow input{flex:1;min-width:140px;accent-color:var(--amb)}
+.readout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.readout>div{background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:8px 10px;font-size:12.5px;line-height:1.5}
+.readout b{font-family:var(--f-mono);font-weight:500;font-size:17px;color:var(--ink);display:block}
+.readout .k{font:500 10.5px var(--f-mono);letter-spacing:.05em;color:var(--muted);text-transform:uppercase}
+.rank{margin-top:12px}
+table.rk{border-collapse:collapse;width:100%;min-width:560px;font:12px/1.4 var(--f-mono);font-variant-numeric:tabular-nums}
+table.rk th,table.rk td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+table.rk th{color:var(--muted);font-weight:500;border-bottom:1.5px solid var(--ink-2)}
+table.rk td:first-child,table.rk th:first-child{text-align:left}
+table.rk tbody tr{cursor:pointer}
+table.rk tbody tr:hover{background:var(--bg)}
+table.rk tr.top td{color:var(--ink);font-weight:600}
+table.rk tr.top td:first-child{box-shadow:inset 3px 0 0 var(--amb)}
+table.rk tr.cur td{background:var(--amb-soft)}
+table.rk td.zero{color:var(--muted)}
+.say{font-size:14px;line-height:1.75;background:var(--bg);border:1px solid var(--line);border-left:3px solid var(--amb);border-radius:2px;padding:12px 14px;margin:12px 0 0}
+.say b{font-weight:700}
+
+/* charts */
+.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:16px 16px 10px;margin:18px 0}
+.chartbox h4{font-family:var(--f-display);font-weight:700;font-size:1rem;margin:0 0 2px}
+.chartbox .sub{font-size:13px;color:var(--muted);margin:0 0 10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink-2);margin:0 0 6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+svg.chart{display:block;width:100%;height:auto;min-width:620px}
+svg.chart text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+svg.chart .tick{font:10.5px var(--f-mono);fill:var(--muted)}
+svg.chart .val{font:10.5px var(--f-mono);fill:var(--ink-2)}
+svg.chart .val.hi{fill:var(--ink);font-weight:600}
+svg.chart .grid{stroke:var(--line);stroke-width:1}
+svg.chart .base{stroke:var(--ink-2);stroke-width:1}
+svg.chart .glabel{font-size:12.5px;fill:var(--ink)}
+.c-ours{fill:var(--amb)} .c-b0{fill:var(--base)} .c-b1{fill:var(--base-2)} .c-cy{fill:var(--cy)} .c-warn{fill:var(--warn)}
+.bg-ours{background:var(--amb)} .bg-b0{background:var(--base)} .bg-b1{background:var(--base-2)} .bg-cy{background:var(--cy)}
+details.raw{margin:8px 0 4px;font-size:13.5px}
+details.raw summary{cursor:pointer;color:var(--muted);font:500 12px var(--f-mono)}
+details.raw .tblwrap{margin:8px 0}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);font:12.5px/1.55 var(--f-body);padding:8px 10px;border-radius:3px;max-width:280px}
+
+/* heat */
+table.heat{border-collapse:separate;border-spacing:3px;font-size:13px;min-width:640px;width:100%}
+table.heat th{font:500 11px/1.3 var(--f-mono);color:var(--muted);text-align:center;padding:6px 4px;white-space:nowrap}
+table.heat th.row{text-align:left;font:500 13px/1.3 var(--f-body);color:var(--ink);white-space:nowrap;padding-right:10px}
+table.heat th.ours{color:var(--amb)}
+table.heat td{text-align:center;font:500 12px var(--f-mono);font-variant-numeric:tabular-nums;border-radius:2px;padding:7px 4px;color:var(--ink)}
+table.heat td.dk{color:var(--on-amb)}
+table.heat td.flag{outline:2px solid var(--warn);outline-offset:-2px}
+table.heat tr.avg th.row{font-weight:700}
+table.heat tr.avg td{box-shadow:inset 0 2px 0 var(--ink-2)}
+
+details.faq{background:var(--surface);border:1px solid var(--line);border-radius:4px;margin:10px 0;max-width:50em}
+details.faq summary{cursor:pointer;padding:12px 16px;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::after{content:"+";font:500 16px var(--f-mono);color:var(--muted)}
+details.faq[open] summary::after{content:"−"}
+details.faq .a{padding:0 16px 14px;font-size:15px;line-height:1.8}
+details.faq .a p:last-child{margin:0}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0;align-items:start}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.two>div{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:16px 18px}
+.two h4{font:500 12px/1.4 var(--f-mono);letter-spacing:.08em;margin:0 0 10px;color:var(--muted)}
+.two ul{margin:0;padding-left:18px;font-size:14.5px;line-height:1.75}
+.two li{margin-bottom:8px}
+table.cmp{min-width:880px}
+table.cmp td{font-size:13.5px}
+table.cmp th.me,table.cmp td.me{background:color-mix(in oklab,var(--amb-soft) 55%,transparent)}
+details.gl{background:var(--surface);border:1px solid var(--line);border-radius:4px;max-width:52em}
+details.gl summary{cursor:pointer;padding:14px 18px;font-weight:500}
+details.gl dl{margin:0;padding:0 18px 16px;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:8px 18px;font-size:14px;line-height:1.7}
+details.gl dt{font-family:var(--f-mono);font-size:12.5px;color:var(--ink)}
+details.gl dd{margin:0;color:var(--ink-2)}
+@media (max-width:560px){details.gl dl{grid-template-columns:minmax(0,1fr);gap:2px}details.gl dd{margin-bottom:10px}}
+footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+.vapnav-grp{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-cat{font-size:11.5px;letter-spacing:.04em;opacity:.5}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/">Harness for Robotics</a></span><span class="vapnav-links"><span class="vapnav-grp"><span class="vapnav-cat">上下文</span><a href="../../papers/activevla/" aria-current="page">ActiveVLA</a><a href="../../papers/tic-vla/">TIC-VLA</a><a href="../../papers/ra-vla/">RA-VLA</a></span><span class="vapnav-grp"><span class="vapnav-cat">记忆</span><a href="../../papers/memoryvla/">MemoryVLA</a><a href="../../papers/optimusvla/">OptimusVLA</a><a href="../../papers/soma/">SOMA</a><a href="../../papers/hime/">HiMe</a></span><span class="vapnav-grp"><span class="vapnav-cat">结构化执行</span><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/motormind/">MotorMind</a></span><span class="vapnav-grp"><span class="vapnav-cat">评估与反馈</span><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/tau0-vla/">τ₀-VLA</a></span></span></div></div>
+<!-- /vap:nav -->
+<header class="hero page">
+  <div class="hero-grid">
+    <div>
+      <p class="kicker">论文精读 · Harness for Robotics · Context Architecture</p>
+      <h1 class="title"><span class="af">Active</span><span>VLA</span></h1>
+      <p class="entitle">Injecting Active Perception into Vision-Language-Action Models for Precise 3D Robotic Manipulation</p>
+      <p class="thesis">相机其实一台都没动。ActiveVLA 把标定相机的 RGB-D 拼成点云，先让 PaliGemma 在三张正交投影图上找出关键 3D 点，再在以它为球心的测地球面上挑 3 个<strong>虚拟视点</strong>，对最好的那个把视场角缩小 4 倍重新渲染，用这些图预测下一个关键帧位姿。它改的是 VLM 每一步看到的图像：从哪个角度渲染，放大多少倍。</p>
+      <ul class="meta">
+        <li><b>复旦大学 · 上海创智学院 · 南洋理工大学</b></li>
+        <li><b>arXiv</b> 2601.08325v1</li>
+        <li><b>v1</b> 2026-01-13（截至 2026-10 无更新版本）</li>
+        <li><a href="https://arxiv.org/abs/2601.08325" target="_blank" rel="noopener">arXiv</a> · <a href="https://zhenyangliu.github.io/ActiveVLA/" target="_blank" rel="noopener">项目页</a></li>
+      </ul>
+    </div>
+    <figure class="ribbon vf">
+      <svg viewBox="0 44 380 248" role="img" aria-label="示意图：以关键点 p_f 为球心的测地球面上分布着候选虚拟视点，被遮挡物挡住视线的候选为空心，三个选中视点带琥珀色对焦框，其中一个画出缩小后的视场">
+<polygon class="hv-table" points="4.4,170.7 264.8,127.9 375.6,192.3 115.2,235.1"/>
+<circle class="hv-sph" cx="190" cy="168" r="118"/>
+<polyline class="hv-ring" points="294.2,150.9 298.6,153.8 302.2,156.7 305.0,159.8 306.9,162.9 307.8,166.1 307.9,169.3 307.1,172.4 305.4,175.6 302.8,178.7 299.4,181.7 295.1,184.6 290.1,187.3 284.2,189.9 277.7,192.4 270.5,194.7 262.6,196.7 254.3,198.6 245.4,200.2 236.1,201.6 226.5,202.7 216.5,203.5 206.4,204.1 196.2,204.4 185.9,204.4 175.6,204.2 165.5,203.7 155.5,202.9 145.8,201.8 136.4,200.5 127.5,198.9 119.0,197.1 111.0,195.1 103.7,192.9 97.0,190.4 91.0,187.9 85.8,185.1 81.4,182.2 77.8,179.3 75.0,176.2 73.1,173.1 72.2,169.9 72.1,166.7 72.9,163.6 74.6,160.4 77.2,157.3 80.6,154.3 84.9,151.4 89.9,148.7 95.8,146.1 102.3,143.6 109.5,141.3 117.4,139.3 125.7,137.4 134.6,135.8 143.9,134.4 153.5,133.3 163.5,132.5 173.6,131.9 183.8,131.6 194.1,131.6 204.4,131.8 214.5,132.3 224.5,133.1 234.2,134.2 243.6,135.5 252.5,137.1 261.0,138.9 269.0,140.9 276.3,143.1 283.0,145.6 289.0,148.1 294.2,150.9"/>
+<polyline class="hv-ring" points="245.4,200.2 245.2,190.3 244.6,180.2 243.5,170.1 242.1,159.9 240.2,149.8 238.0,139.8 235.4,130.0 232.4,120.5 229.2,111.4 225.6,102.7 221.8,94.5 217.7,86.9 213.4,79.9 208.9,73.6 204.3,67.9 199.6,63.1 194.8,59.0 190.0,55.8 185.2,53.4 180.4,51.9 175.7,51.3 171.1,51.5 166.6,52.7 162.3,54.7 158.2,57.6 154.4,61.3 150.8,65.9 147.6,71.2 144.6,77.3 142.0,84.0 139.8,91.4 137.9,99.4 136.5,107.9 135.4,116.8 134.8,126.1 134.6,135.8 134.8,145.7 135.4,155.8 136.5,165.9 137.9,176.1 139.8,186.2 142.0,196.2 144.6,206.0 147.6,215.5 150.8,224.6 154.4,233.3 158.2,241.5 162.3,249.1 166.6,256.1 171.1,262.4 175.7,268.1 180.4,272.9 185.2,277.0 190.0,280.2 194.8,282.6 199.6,284.1 204.3,284.7 208.9,284.5 213.4,283.3 217.7,281.3 221.8,278.4 225.6,274.7 229.2,270.1 232.4,264.8 235.4,258.7 238.0,252.0 240.2,244.6 242.1,236.6 243.5,228.1 244.6,219.2 245.2,209.9 245.4,200.2"/>
+<circle class="hv-c-vis" cx="202.6" cy="143.2" r="3.0"/>
+<circle class="hv-c-vis" cx="182.3" cy="204.4" r="3.0"/>
+<circle class="hv-c-occ" cx="133.4" cy="163.3" r="3.0"/>
+<circle class="hv-c-occ" cx="155.0" cy="95.7" r="3.0"/>
+<circle class="hv-c-vis" cx="219.1" cy="89.5" r="3.0"/>
+<circle class="hv-c-vis" cx="267.0" cy="132.6" r="3.0"/>
+<circle class="hv-c-occ" cx="133.4" cy="232.6" r="3.0"/>
+<circle class="hv-c-occ" cx="202.6" cy="255.4" r="3.0"/>
+<circle class="hv-c-occ" cx="101.4" cy="123.6" r="3.0"/>
+<circle class="hv-c-vis" cx="291.9" cy="186.4" r="3.0"/>
+<circle class="hv-c-occ" cx="85.8" cy="185.1" r="3.0"/>
+<circle class="hv-c-occ" cx="267.0" cy="244.9" r="3.0"/>
+<circle class="hv-c-vis" cx="190.0" cy="55.8" r="3.0"/>
+<circle class="hv-c-vis" cx="259.2" cy="78.6" r="3.0"/>
+<circle class="hv-c-occ" cx="155.0" cy="277.3" r="3.0"/>
+<circle class="hv-c-occ" cx="101.4" cy="241.6" r="3.0"/>
+<circle class="hv-c-occ" cx="120.8" cy="75.8" r="3.0"/>
+<circle class="hv-c-occ" cx="219.1" cy="280.4" r="3.0"/>
+<circle class="hv-c-vis" cx="302.0" cy="135.6" r="3.0"/>
+<circle class="hv-c-occ" cx="78.0" cy="131.1" r="3.0"/>
+<polygon class="hv-occ" points="175.4,196.3 142.0,201.7 142.0,126.5 175.4,121.1"/>
+<polygon class="hv-occ" points="108.8,107.2 142.1,101.8 175.4,121.1 142.0,126.5"/>
+<polygon class="hv-occ" points="142.0,201.7 108.8,182.4 108.8,107.2 142.0,126.5"/>
+<polygon class="hv-occ" points="142.1,176.9 175.4,196.3 175.4,121.1 142.1,101.8"/>
+<polygon class="hv-occ" points="108.8,182.4 142.1,176.9 175.4,196.3 142.0,201.7"/>
+<polygon class="hv-occ" points="108.8,182.4 142.1,176.9 142.1,101.8 108.8,107.2"/>
+<polygon class="hv-tgt" points="201.2,182.5 186.6,184.9 186.6,169.2 201.2,166.8"/>
+<polygon class="hv-tgt" points="186.6,184.9 178.8,180.4 178.8,164.7 186.6,169.2"/>
+<polygon class="hv-tgt" points="178.8,164.7 193.4,162.3 201.2,166.8 186.6,169.2"/>
+<polygon class="hv-tgt" points="178.8,180.4 193.4,178.0 201.2,182.5 186.6,184.9"/>
+<polygon class="hv-tgt" points="193.4,178.0 201.2,182.5 201.2,166.8 193.4,162.3"/>
+<polygon class="hv-tgt" points="178.8,180.4 193.4,178.0 193.4,162.3 178.8,164.7"/>
+<circle class="hv-c-occ" cx="302.0" cy="204.9" r="3.6"/>
+<circle class="hv-c-occ" cx="78.0" cy="200.4" r="3.6"/>
+<circle class="hv-c-vis" cx="160.9" cy="55.6" r="3.6"/>
+<circle class="hv-c-occ" cx="259.2" cy="260.2" r="3.6"/>
+<circle class="hv-c-vis" cx="225.0" cy="58.7" r="3.6"/>
+<circle class="hv-c-occ" cx="120.8" cy="257.4" r="3.6"/>
+<circle class="hv-c-occ" cx="190.0" cy="280.2" r="3.6"/>
+<circle class="hv-c-vis" cx="294.2" cy="150.9" r="3.6"/>
+<circle class="hv-c-vis" cx="88.1" cy="149.6" r="3.6"/>
+<circle class="hv-c-occ" cx="278.6" cy="212.4" r="3.6"/>
+<circle class="hv-c-vis" cx="177.4" cy="80.6" r="3.6"/>
+<circle class="hv-c-vis" cx="246.6" cy="103.4" r="3.6"/>
+<circle class="hv-c-occ" cx="113.0" cy="203.4" r="3.6"/>
+<circle class="hv-c-occ" cx="160.9" cy="246.5" r="3.6"/>
+<circle class="hv-c-occ" cx="225.0" cy="240.3" r="3.6"/>
+<circle class="hv-c-vis" cx="134.6" cy="135.8" r="3.6"/>
+<circle class="hv-c-occ" cx="246.6" cy="172.7" r="3.6"/>
+<circle class="hv-c-vis" cx="197.7" cy="131.6" r="3.6"/>
+<circle class="hv-c-occ" cx="177.4" cy="192.8" r="3.6"/>
+<line class="hv-ray" x1="278.6" y1="94.4" x2="190" y2="164.5"/>
+<polygon class="hv-fr-wide" points="278.6,94.4 178.8,150.3 201.2,178.6"/>
+<polygon class="hv-fr" points="278.6,94.4 187.2,160.9 192.8,168.0"/>
+<line class="hv-ray" x1="113.0" y1="91.1" x2="190" y2="164.5"/>
+<line class="hv-ray" x1="245.4" y1="200.2" x2="190" y2="164.5"/>
+<circle class="hv-sel" cx="278.6" cy="94.4" r="4.4"/>
+<path class="hv-br" d="M270.6 90.4V86.4H274.6M282.6 86.4H286.6V90.4M286.6 98.4V102.4H282.6M274.6 102.4H270.6V98.4"/>
+<circle class="hv-sel" cx="113.0" cy="91.1" r="4.4"/>
+<path class="hv-br" d="M105.0 87.1V83.1H109.0M117.0 83.1H121.0V87.1M121.0 95.1V99.1H117.0M109.0 99.1H105.0V95.1"/>
+<circle class="hv-sel" cx="245.4" cy="200.2" r="4.4"/>
+<path class="hv-br" d="M237.4 196.2V192.2H241.4M249.4 192.2H253.4V196.2M253.4 204.2V208.2H249.4M241.4 208.2H237.4V204.2"/>
+<g class="hv-pf"><circle cx="190" cy="164.5" r="3"/><path d="M179 164.5h7M194 164.5h7M190 153.5v7M190 168.5v7"/></g>
+        <text x="214" y="160">p<tspan dy="3" font-size="9">f</tspan></text>
+      </svg>
+      <ul class="hv-leg">
+        <li><svg viewBox="-8 -7 16 14"><circle class="hv-c-vis" r="3.8"/></svg><span>候选视点 · 视线无遮挡</span></li>
+        <li><svg viewBox="-8 -7 16 14"><circle class="hv-c-occ" r="3.6"/></svg><span>视线穿过点云 → v = 0</span></li>
+        <li><svg viewBox="-8 -7 16 14"><circle class="hv-sel" r="3.6"/><path class="hv-br" d="M-7 -3v-3h3M4 6h3v-3"/></svg><span>top-K 视点（K = 3）</span></li>
+        <li><svg viewBox="-8 -7 16 14"><path class="hv-fr" d="M-7 0 L7 -3 L7 3 Z"/></svg><span>最佳视点：视场角 ÷ z</span></li>
+        <li><svg viewBox="-8 -7 16 14"><rect class="hv-occ" x="-6" y="-5" width="12" height="10"/></svg><span>遮挡物（点云）</span></li>
+        <li><svg viewBox="-8 -7 16 14"><rect class="hv-tgt" x="-5" y="-4.5" width="10" height="9"/></svg><span>目标，p<sub>f</sub> 取自热图</span></li>
+      </ul>
+      <p class="hv-note">k = 1 细分，42 个候选 · s = w·z(可见) + w·z(距离) + w·z(多样性) · 全部是对点云的重渲染，物理相机位置不变</p>
+      <figcaption>按论文 §3.2 的机制画的示意，不是实验数据；遮挡关系是我们设的。</figcaption>
+    </figure>
+  </div>
+  <div class="tldr" aria-label="一分钟版">
+    <div><h3>做了什么</h3><p>沿用 BridgeVLA 的 PaliGemma 骨干和"2D 热图 → 3D 平移"框架，做两遍：粗阶段看三张正交投影找关键点 p<sub>f</sub>；精阶段改看<b>主动挑选的透视虚拟视图</b>。挑法是球面候选按可见性、距离、多样性的 Z 分数加权取 top-3，再对最佳视图做 FoV/z 的 <b>3D zoom-in</b>（z = 4）。这两步是几何计算，没有可学习参数。</p></div>
+    <div><h3>设置</h3><p>RLBench 18 个任务（每任务 100 条示范）、COLOSSEUM（附录列 20 个任务 × 12 类扰动）、GemBench（16 个训练任务 / 44 个测试任务），每个基准各训一遍；真机 4 个强遮挡任务。仿真只比关键帧式 3D 策略和少量 2D 基线。</p></div>
+    <div><h3>结果</h3><p>RLBench 平均 <b>91.8</b>（BridgeVLA 88.2），COLOSSEUM <b>65.9</b>（64.0），GemBench <b>51.3</b>（50.0）。自家消融里两个模块合计 +4.2 / +2.3 / +2.4 个百分点，推理时间约翻倍（表 4：RLBench 0.26 → 0.53 s）。真机 4 任务平均 91.8，最强基线 RVT-2 72.5。</p></div>
+    <div class="flag"><h3>最该留意的</h3><p>"主动"发生在渲染空间，只能重新摆放已经观测到的点。按正文公式，完整测地球面上<b>距离项和多样性项对每个候选都是同一个常数</b>，排序只剩二值的可见性。真机平台、COLOSSEUM 分项、真机总成功率，在正文和附录里各有两套说法。</p></div>
+  </div>
+</header>
+
+<div class="page layout">
+  <nav class="toc" aria-label="目录">
+    <p>目录</p>
+    <ol>
+      <li><a href="#problem">问题</a></li>
+      <li><a href="#overview">全局</a></li>
+      <li><a href="#coarse">粗阶段</a></li>
+      <li><a href="#views">选视角</a></li>
+      <li><a href="#zoom">3D zoom-in</a></li>
+      <li><a href="#action">动作与训练</a></li>
+      <li><a href="#setup">实验设置</a></li>
+      <li><a href="#results">结果</a></li>
+      <li><a href="#insight">读懂它</a></li>
+      <li><a href="#limits">局限与疑点</a></li>
+      <li><a href="#topic">放到专题里看</a></li>
+      <li><a href="#glossary">术语表</a></li>
+    </ol>
+  </nav>
+  <main>
+    <section id="problem">
+      <p class="eyebrow">问题 · §1、§3</p>
+      <h2>固定相机被挡住、看不清，就换个角度、凑近看</h2>
+      <div class="prose">
+        <p>论文的任务设定沿用 PerAct / RVT 一系：策略 π 把观测 <b>o</b> 和指令 <i>l</i> 映射到<strong>下一个关键帧</strong>的动作 <b>a</b>，包括末端 6-DoF 位姿 T ∈ SE(3)、夹爪开合 g ∈ {0, 1} 和一个碰撞标志 c ∈ {0, 1}，关键帧之间交给运动规划去走。观测 <b>o</b> 是一台或几台固定相机（或腕部相机）拍的 RGB-D。</p>
+        <p>作者认为问题出在这些相机的<strong>视点和分辨率是死的</strong>：目标被别的物体挡住时换不了角度，目标太小时拉不近。长时程和精细操作都会因此丢掉关键信息。开篇引了 Richard Gregory 的一句话："感知不是被动的过程，而是主动检验假设的过程。"</p>
+        <p>它的回答分两步：先粗略确定"该看哪儿"，再决定"从哪看、看多近"。后一步对应两个模块，<b>主动视角选择</b>（A-VS）和<b>主动 3D 放大</b>（A-3Z）。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/teaser.jpg" aria-label="放大原文图 1"><img src="fig/teaser.jpg" width="1800" height="1143" alt="原文图 1：上排对比固定视角被绵羊玩偶挡住苹果导致失败，与 ActiveVLA 换视角、凑近观察后成功；下排对比两类架构" loading="lazy"></button>
+        <figcaption><b>原文 Figure 1</b>上排：指令是"把桌上的苹果拿给我"，当前视角里苹果被绵羊玩偶挡住；以往方法直接出动作而失败，ActiveVLA 先"换一个更好的视角"、再"凑近仔细看"，然后成功。下排：以往方法是 VLM + 动作专家；ActiveVLA 在两者之间加了一个 Active Perception 模块，输入多了"3D Info"，输出给动作专家的是"无遮挡的放大视图"。图注原话是 ActiveVLA "freely place virtual cameras and synthesize optimal viewpoints"。</figcaption>
+      </figure>
+      <div class="note">
+        <h4><span class="tag read">解读</span>示意图和方法之间隔着一层"渲染"</h4>
+        <p>图 1 上排用三张从不同物理位置拍的真实照片表现"换个角度看"。但方法里的新视角是对<strong>已有点云</strong>的重渲染（§3.2 原文："re-renders the scene"、"virtual rendering space"），实际样子见下文图 3 的点云渲染图。虚拟相机能绕开"渲染时的前景遮挡"，前提是被挡住的那部分曾经被某台物理相机拍到过；任何一台相机都没拍到的地方，换多少个虚拟视点也是空的。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>和前作的关系</h4>
+        <p>把点云渲染成正交视图再喂给模型，是 RVT / RVT-2 的做法（论文引了它们）；骨干和热图框架直接取自 BridgeVLA（§4 "adopts the pre-trained VLM backbone from BridgeVLA"）。RVT-2 本身已有"先粗定位、再围绕该区域放大重渲染"的两阶段设计。ActiveVLA 的新意落在精阶段：视点不再是固定的正交方向，而是围绕关键点在球面上挑；放大改用透视相机缩视场角。论文没有和"固定方向放大"单独做对照。</p>
+      </div>
+    </section>
+
+    <section id="overview">
+      <p class="eyebrow">方法 · 全局 · Figure 2</p>
+      <h2>两遍 PaliGemma，中间夹一个几何模块</h2>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/pipeline.jpg" aria-label="放大原文图 2"><img src="fig/pipeline.jpg" width="1800" height="709" alt="原文图 2：ActiveVLA 流程，上排为关键区域感知，下排为主动感知和 3D 动作预测" loading="lazy"></button>
+        <figcaption><b>原文 Figure 2</b>上排（Crucial Area Perception）：RGB-D 重建点云 → 三张正交虚拟图 → PaliGemma (Coarse) → 图像 token 经 Convex Upsample 得到热图 → 抬升到 3D 得到关键点和区域。左下（Active Perception）：球面上一圈候选相机，挑出几台（红框），再做 3D zoom-in。中下（3D Action Prediction）：三张"主动视图"虚拟图 → PaliGemma (Fine) → 热图 + Action Decoder，输出夹爪旋转、开合与碰撞开关。注意两个 Convex Upsample 之间标着 Share Weights；两个 PaliGemma 是否同一组权重，正文没说。</figcaption>
+      </figure>
+      <div class="lab" id="step-lab">
+        <div class="lab-head"><h4>逐步看：每一步的输入、输出和没说清的地方</h4><p>§3.1–3.3 · 附录 C</p></div>
+        <ol class="steps" id="steps" aria-label="流程步骤"></ol>
+        <div class="stepbody" id="stepbody"></div>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>可学习的部分只有两处</h4>
+        <p>粗阶段的热图决定关键点 p<sub>f</sub>（学的），精阶段的热图和 MLP 头决定动作（学的）。中间"从哪看、看多近"由固定公式算出，梯度不经过它。所以 ActiveVLA 的"主动"是：<strong>学到的注意力（热图）告诉几何模块往哪儿凑，几何模块按手写规则决定怎么凑</strong>。</p>
+      </div>
+    </section>
+
+    <section id="coarse">
+      <p class="eyebrow">方法 · 粗阶段 · §3.1</p>
+      <h2>三张正交图 + 热图，先找出"该看哪儿"</h2>
+      <div class="prose">
+        <p><strong>多视图渲染。</strong>用标定相机的 RGB-D 重建场景点云，从<b>顶、前、右</b>三个方向做正交投影。每个视图渲染 7 个通道：RGB 3 个、深度 1 个、点的世界坐标 3 个。世界坐标通道的作用是建立跨视图的像素对应：不同视图里 (x, y, z) 相同的像素就是同一个 3D 点。渲染用 PyTorch3D，每个像素取深度最小的点，保证遮挡正确：</p>
+      </div>
+      <div class="eq"><span>I<sup>(v)</sup>(u<sub>x</sub>, u<sub>y</sub>) = Σ<sub>i=1..N</sub> <b>c</b><sub>i</sub> · δ( (u<sub>x</sub>, u<sub>y</sub>) − π<sup>(v)</sup>(<b>p</b><sub>i</sub>) )，&nbsp; π<sup>(v)</sup> 为正交投影</span><span class="no">(2)</span></div>
+      <div class="prose">
+        <p><strong>关键区域提取。</strong>三张图连同指令进 VLM。作者认为 VLM 的全局表征不够做精确定位，于是把输出的 M 个 patch token 按空间位置重排成 H<sub>p</sub> × W<sub>p</sub> 的特征网格，用 convex upsampling（逐像素学习插值权重，而不是固定插值）放大到输入分辨率，得到热图：</p>
+      </div>
+      <div class="eq"><span><b>H</b> = 𝒰( Rearrange( {<b>t</b><sub>i</sub>}<sub>i=1..M</sub> ) )</span><span class="no">(3)</span></div>
+      <div class="prose">
+        <p>热图用交叉熵训练；三个视图的热图反投影回 3D，定位关键区域，记其中心为 p<sub>f</sub>（原文举例"部分可见物体的质心"）。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag nd">未披露</span>粗阶段热图的监督信号是什么</h4>
+        <p>论文只说"用交叉熵训练热图"，没说粗阶段的目标是下一关键帧的末端位置，还是别的"关键区域"标注。多视图热图怎样聚合成一个 3D 点（取 argmax、加权平均还是体素投票）也没写。图像分辨率、点云裁剪范围同样没给。</p>
+      </div>
+    </section>
+
+    <section id="views">
+      <p class="eyebrow">方法 · 主动视角选择 · §3.2</p>
+      <h2>围绕关键点撒一圈虚拟相机，按三项分数挑 3 个</h2>
+      <div class="prose">
+        <p>论文把这一步称作"假设检验式"的视角选择。给定 p<sub>f</sub> ∈ ℝ³，在以它为球心的球面上生成候选相机位置。为了各向均匀，用<strong>正二十面体递归细分</strong>做测地采样，避免经纬度网格在两极过密。论文给出细分 k 层后的顶点数：</p>
+      </div>
+      <div class="eq"><span>V(k) = 12 + 30k + (20/3)(4<sup>k</sup> − 1)</span><span class="no">(4)</span></div>
+      <div class="prose">
+        <p>每个候选 c<sub>i</sub> 算三项分数：</p>
+        <ul>
+          <li><strong>可见性。</strong>在 c<sub>i</sub> 到 p<sub>f</sub> 的线段上等距取 N 个点 q<sub>k</sub>，用 KD-tree 查每个点到观测点云 𝒮 的最近距离 d<sub>k</sub>。全部 d<sub>k</sub> ≥ r 则视线无遮挡，v(c<sub>i</sub>, p<sub>f</sub>) = 1，否则为 0。</li>
+          <li><strong>距离。</strong>把 ‖c<sub>i</sub> − p<sub>f</sub>‖ 归一化并在候选间标准化，"偏好适中的观察距离，兼顾视野和细节"。</li>
+          <li><strong>多样性。</strong>c<sub>i</sub> 的视线方向与<strong>所有其他候选</strong>视线方向的夹角之和。</li>
+        </ul>
+      </div>
+      <div class="eq"><span>d<sub>k</sub> = min<sub>s∈𝒮</sub> ‖q<sub>k</sub> − s‖，&nbsp;&nbsp; v = 1 ⇔ d<sub>k</sub> ≥ r ∀k</span><span class="no">(5)</span></div>
+      <div class="eq"><span>S<sub>div</sub>(c<sub>i</sub>) = Σ<sub>j≠i</sub> arccos(<b>v</b><sub>i</sub> · <b>v</b><sub>j</sub>)，&nbsp; 𝒞 = {c<sub>1</sub>, …, c<sub>M</sub>}</span><span class="no">(6)</span></div>
+      <div class="eq"><span>s<sub>i</sub> = w<sub>vis</sub>·s<sub>vis</sub> + w<sub>dis</sub>·s<sub>dis</sub> + w<sub>div</sub>·s<sub>div</sub>，&nbsp; w<sub>vis</sub> + w<sub>dis</sub> + w<sub>div</sub> = 1（三项先 Z 标准化）</span><span class="no">(7)</span></div>
+      <div class="prose">
+        <p>取得分最高的 K 个视点作为下一次观测位姿（实验中 K = 3），每台虚拟相机用 look-at 定姿：eye = c<sub>i</sub>，target = p<sub>f</sub>，up 向量"动态调整"。得分最高的那个视点，作为下一步 3D zoom-in 的基础。</p>
+      </div>
+
+      <div class="lab" id="av-lab">
+        <div class="lab-head">
+          <h4>按原文公式跑一遍：候选、射线、Z 分数、top-K</h4>
+          <p>公式 (4)–(8) · 数字来自原文 Figure 5</p>
+        </div>
+        <div class="ctrl">
+          <span class="lb">场景</span>
+          <div class="seg" role="group" aria-label="选择场景" id="av-scene">
+            <button type="button" data-v="open" aria-pressed="false">开放桌面</button>
+            <button type="button" data-v="wall" aria-pressed="true">侧面遮挡</button>
+            <button type="button" data-v="cubby" aria-pressed="false">柜格内</button>
+          </div>
+          <span class="lb">细分 k</span>
+          <div class="seg k" role="group" aria-label="细分层级" id="av-k">
+            <button type="button" data-v="0" aria-pressed="false">0</button>
+            <button type="button" data-v="1" aria-pressed="true">1</button>
+            <button type="button" data-v="2" aria-pressed="false">2</button>
+          </div>
+          <span class="lb">选几个 K</span>
+          <div class="seg k" role="group" aria-label="选出的视点数" id="av-topk">
+            <button type="button" data-v="1" aria-pressed="false">1</button>
+            <button type="button" data-v="2" aria-pressed="false">2</button>
+            <button type="button" data-v="3" aria-pressed="true">3</button>
+            <button type="button" data-v="4" aria-pressed="false">4</button>
+            <button type="button" data-v="5" aria-pressed="false">5</button>
+            <button type="button" data-v="6" aria-pressed="false">6</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <span class="lb">多样性里的 𝒞</span>
+          <div class="seg" role="group" aria-label="多样性求和集合" id="av-div">
+            <button type="button" data-v="all" aria-pressed="true">全部候选（原文字面）</button>
+            <button type="button" data-v="vis" aria-pressed="false">只算可见候选（另一种读法）</button>
+          </div>
+          <div class="wts" id="av-w">
+            <label>w_vis <input type="range" min="0" max="100" value="34" data-w="vis" aria-label="可见性权重"><output>0.33</output></label>
+            <label>w_dis <input type="range" min="0" max="100" value="33" data-w="dis" aria-label="距离权重"><output>0.33</output></label>
+            <label>w_div <input type="range" min="0" max="100" value="33" data-w="div" aria-label="多样性权重"><output>0.33</output></label>
+          </div>
+        </div>
+        <div class="lab-grid">
+          <div>
+            <div class="world"><canvas id="av-world" aria-label="三维场景：点云、候选视点与选中的视点。拖动旋转，点击候选查看其取景"></canvas><span class="hint">拖动旋转 · 点候选看取景</span></div>
+            <div class="legend2"><span><i class="lv"></i>可见候选</span><span><i class="lo"></i>被遮挡</span><span><i class="ls"></i>top-K</span><span><i class="lr"></i>射线上 d<sub>k</sub> &lt; r 的采样点</span></div>
+          </div>
+          <div>
+            <div class="vfs">
+              <div class="vfbox"><canvas id="av-vf1" aria-label="选中视点的虚拟渲染，z = 1"></canvas><div class="cap"><span id="av-cap1">z = 1</span><span id="av-cap1b"></span></div></div>
+              <div class="vfbox"><canvas id="av-vf2" aria-label="同一视点 3D zoom-in 后的虚拟渲染"></canvas><div class="cap"><span id="av-cap2">z = 4</span><span id="av-cap2b"></span></div></div>
+            </div>
+            <div class="zoomrow"><span>放大倍数 z</span><input type="range" id="av-z" min="1" max="6" step="1" value="4" aria-label="放大倍数"><output id="av-zo">4</output></div>
+            <div class="readout" id="av-read"></div>
+          </div>
+        </div>
+        <div class="rank scroll"><table class="rk" id="av-rank"></table></div>
+        <p class="say" id="av-say"></p>
+        <p class="small muted" style="margin:10px 0 0">演示场景：1.1 m × 0.9 m 的桌面点云、一个红色目标方块（p<sub>f</sub> 直接取它的中心，论文里来自热图），外加可选的遮挡物。候选生成、射线可见性、三项分数、Z 标准化和加权都按原文公式实现。论文没给的参数是我们设的：球半径 0.45 m、阈值 r = 0.022 m、每条射线 24 个采样点、原始视场角 α = 60°、权重默认各 1/3；射线检测时不计目标自身的点，否则视线末端必然贴着目标表面、永远判为遮挡，论文没说怎么处理这一点。并列时按候选编号取前 K 个，这一步原文没有定义。</p>
+      </div>
+
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>距离项和多样性项，在完整球面上都是常数</h4>
+        <p><strong>距离：</strong>候选都在以 p<sub>f</sub> 为球心的同一个球面上，‖c<sub>i</sub> − p<sub>f</sub>‖ 全等于半径，Z 标准化的分母为 0。即便有多个半径，"偏好适中距离"也需要非线性打分；线性的 Z 分数配正权重偏远、配负权重偏近，做不到"适中"。论文没给半径，也没说用了几层球壳。</p>
+        <p><strong>多样性：</strong>测地球面的候选集关于球心对称。对任一候选方向 <b>v</b>，它的对径点贡献 π；其余候选两两成对 (<b>u</b>, −<b>u</b>)，每对贡献 arccos(<b>v</b>·<b>u</b>) + arccos(−<b>v</b>·<b>u</b>) = π。所以 S<sub>div</sub> 对每个候选都等于 πM/2（M = 42 时为 65.97）。我们对 k = 0 到 3 逐一数值验证过。按字面实现，排序只剩二值的可见性，所有可见候选并列。</p>
+        <p>就算把 𝒞 理解成"只在可见候选里求和"（演示里的第二个选项），这个分数也只奖励"离其他候选远"的单个视点，即可见区域边缘的掠射视角，不惩罚选出的 K 个视点彼此挨着。原文图 3 里选出的视角都是从斜上方看向目标，看不出退化的迹象；实际实现可能和正文公式不同（例如只在上半球采样），论文没有给出更多细节，我们无法核对。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>公式 (4) 的顶点数对不上</h4>
+        <p>正二十面体按中点细分，每层把一个三角形分成 4 个，顶点数是 10·4<sup>k</sup> + 2：k = 0、1、2、3 时为 12、42、162、642。公式 (4) 给出 12、62、172、522，只在 k = 0 时对。实验用了哪一层，论文没说。</p>
+      </div>
+    </section>
+
+    <section id="zoom">
+      <p class="eyebrow">方法 · 主动 3D 放大 · §3.2</p>
+      <h2>同一个视点，把视场角缩小 z 倍再渲染一次</h2>
+      <div class="prose">
+        <p>选出最佳视点后，系统在<strong>同一相机位姿</strong>下缩小视场角重新渲染，相当于在虚拟渲染空间里模拟光学变焦。设原视场角 α（弧度）、放大倍数 z &gt; 1、相机到关注区域距离 d，渲染图在垂直视线方向覆盖的宽度为：</p>
+      </div>
+      <div class="eq"><span>W(z) = 2d · tan( α / (2z) )，&nbsp;&nbsp; R = 图像宽度（像素）/ W(z)</span><span class="no">(8)</span></div>
+      <div class="prose">
+        <p>W 随 z 变小，单位物理宽度分到的像素 R 随之变大。作者强调这是"利用 3D 点云做尺度不变的视图合成，没有几何损失"，并把"选视角"和"放大"概括为探索（exploration）与利用（exploitation）的分工：A-VS 管<em>往哪儿看</em>，A-3Z 管<em>看多近</em>。实验里 z 取 4。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t" id="zoom-tbl">
+          <thead><tr><th>z</th><th class="num">论文式 W/d</th><th class="num">标准变焦 W/d</th><th class="num">相差</th><th class="num">RLBench 成功率（Figure 5b）</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="small muted">W/d 按 α = 60° 计算（论文没给 α，这里只作示例）。"标准变焦"指焦距乘以 z：tan(α′/2) = tan(α/2)/z，W = 2d·tan(α/2)/z。论文式相当于把视场角本身除以 z，小角度时两者接近。</p>
+      <div class="note">
+        <h4><span class="tag read">解读</span>放大没有增加信息，只是重新分配 VLM 的像素</h4>
+        <p>点云的密度由物理相机决定，重渲染不会凭空多出点。放大后点与点在图像上的间距随 z 同步拉大，上面演示右侧的取景框里能看到点变稀、出现缝隙。真正的收益在于：VLM 的输入分辨率是固定的（具体多少论文没说），放大把更多像素分给目标附近，热图的定位粒度跟着变细。代价是丢掉周边上下文。Figure 5b 的曲线正是这个权衡：z = 4 时 91.8 最高，z = 6 降到 90.9。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag nd">未披露</span>放大视图是替换还是追加</h4>
+        <p>公式 (9) 只对 3 个视图求和；K = 3 个选中视图加 1 张放大视图，到底送进 VLM 几张图，正文没说。图 2 下排画的 3 张"主动视图"里有一张明显是放大的。消融里加上 A-3Z 后单步耗时再增加 0.08–0.11 s，比只重渲染一张图要多，可能多了一张图过 VLM，但这只是推测。</p>
+      </div>
+    </section>
+
+    <section id="action">
+      <p class="eyebrow">方法 · 3D 动作预测与训练 · §3.3 · 附录 C</p>
+      <h2>精阶段：热图投票出平移，全局 + 局部 token 出旋转</h2>
+      <div class="prose">
+        <p>主动视图和放大视图送进 VLM 生成热图。<strong>平移</strong>：把 2D 热图反投影到工作空间的离散网格 𝒢 = {<b>g</b><sub>1</sub>, …, <b>g</b><sub>N</sub>} 上累加成多视图得分体，取最大值处为平移目标：</p>
+      </div>
+      <div class="eq"><span>S(<b>g</b>) = Σ<sub>v=1..3</sub> w<sub>v</sub> · h<sub>v</sub>( π<sub>v</sub>(<b>g</b>) )，&nbsp;&nbsp; <b>t</b>* = argmax<sub><b>g</b>∈𝒢</sub> S(<b>g</b>)</span><span class="no">(9)</span></div>
+      <div class="prose">
+        <p><strong>旋转、夹爪、碰撞</strong>：欧拉角 (φ, θ, ψ) 每轴离散成 72 个 bin（每格 5°）。一个层次化特征融合模块汇总两类 token：</p>
+        <ul>
+          <li><b>全局 token</b>：对"每个正交投影"的视觉编码器输出做 max-pool，每个视图一个，共 3 个。</li>
+          <li><b>局部 token</b>：用 ROI-aware sampler 抽取，编码细节外观和几何。</li>
+        </ul>
+        <p>全部 token 拼接后过 MLP，输出旋转、夹爪状态和碰撞标志。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag nd">未披露</span>精阶段还有几处没交代</h4>
+        <p>网格 𝒢 的分辨率、视图权重 w<sub>v</sub>、局部 token 的数量和采样区域、旋转与夹爪的损失形式都没给。另外，正文说全局 token 来自"每个正交投影"，可精阶段的输入是透视的主动视图；全局 token 用的是粗阶段的三张正交图，还是精阶段的主动视图，读不出来。</p>
+      </div>
+      <h3>训练配方（附录 C）</h3>
+      <div class="prose"><p>骨干取 BridgeVLA 的预训练 VLM：PaliGemma（SigLIP 编码器 + Gemma 解码器），在 RoboPoint 的 12 万张图子集上预训练过。之后按 RLBench → COLOSSEUM → GemBench → 真机的顺序逐段训练，各段优化流程相同，SigLIP 和语言 token 嵌入全程冻结。</p></div>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>阶段</th><th class="num">学习率</th><th class="num">batch</th><th class="num">训练量</th><th class="num">GPU</th><th class="num">时长</th></tr></thead>
+          <tbody>
+            <tr><th>RLBench</th><td class="num">8×10⁻⁵</td><td class="num">192</td><td class="num">90,000 步</td><td class="num">16 × H100</td><td class="num">约 20 h</td></tr>
+            <tr><th>COLOSSEUM</th><td class="num">8×10⁻⁵</td><td class="num">192</td><td class="num">90,000 步</td><td class="num">16 × H100</td><td class="num">约 20 h</td></tr>
+            <tr><th>GemBench</th><td class="num">8×10⁻⁵</td><td class="num">160</td><td class="num">50 epoch</td><td class="num">32 × H100</td><td class="num">约 8 h</td></tr>
+            <tr><th>真机微调</th><td class="num">2×10⁻⁵</td><td class="num">192</td><td class="num">400 epoch</td><td class="num">8 × H100</td><td class="num">约 2 h</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small muted">共同设置：AdamW，无 warmup（RLBench、COLOSSEUM 写明），cosine 学习率衰减，梯度裁剪 1.0。</p>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>到底训了哪些参数</h4>
+        <p>附录开头说全程冻结 SigLIP 和语言 token 嵌入，言下之意 Gemma 主干参与训练；同一节末尾又说"只更新动作头、视角选择模块和 3D zoom-in 模块"。按 §3.2 的描述，后两个模块根本没有可学习参数。另外正文写"所有实验在 8 张 H100 上运行"，附录的训练用了 16 或 32 张。顺序训练的说法也让人不确定：报告 RLBench 成绩的是第一段的 checkpoint，还是后面某段的。</p>
+      </div>
+    </section>
+
+    <section id="setup">
+      <p class="eyebrow">实验设置 · §4 · 附录 D、E</p>
+      <h2>三个 RLBench 系仿真基准，加 4 个真机遮挡任务</h2>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>基准</th><th>内容</th><th>评测</th></tr></thead>
+          <tbody>
+            <tr><th>RLBench</th><td>18 个任务，Franka Panda，4 台标定相机的 RGB-D，每任务 100 条示范</td><td>"五次试验"取均值和标准差；每次多少回合未披露</td></tr>
+            <tr><th>COLOSSEUM</th><td>在 RLBench 上加 12 类扰动：操作物/容器的颜色、纹理、大小，光照颜色，桌面颜色与纹理，干扰物，背景纹理，相机位姿；外加"全部扰动"和"无扰动（RLBench）"两列</td><td>附录 D 说"与 RLBench 相同的任务"；附录表 6 列的却是 20 个任务，与 RLBench 的 18 个只部分重合</td></tr>
+            <tr><th>GemBench</th><td>RLBench 物理，7 种动作原语，16 个训练任务、44 个测试任务，按 L1–L4 四级考查泛化与组合</td><td>只报均值，不带置信区间</td></tr>
+            <tr><th>真机</th><td>正文：KINOVA GEN2 + 一台 RealSense D455，eye-to-hand。附录 E：Franka Panda + 腕部 RGB-D + 两台固定相机。4 个强遮挡任务：多层抽屉取毛巾、红块叠到绿块上、果盘里取被挡住的香蕉、挂架上取被挡住的紫杯</td><td>每任务试验次数未披露；附录另列 5 个"直接操作"任务，只有图没有数字</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>基准</th><th>对比方法</th></tr></thead>
+          <tbody>
+            <tr><th>RLBench</th><td>Image-BC（CNN / ViT）、C2F-ARM-BC、HiveFormer、PolarNet、PerAct、Act3D、RVT、3D Diffuser Actor、RVT-2、BridgeVLA</td></tr>
+            <tr><th>COLOSSEUM</th><td>R3M-MLP、MVP-MLP、PerAct、RVT、RVT-2、BridgeVLA</td></tr>
+            <tr><th>GemBench</th><td>Hiveformer、PolarNet、3D Diffuser Actor、RVT-2、3D-LOTUS、3D-LOTUS++、BridgeVLA</td></tr>
+            <tr><th>真机</th><td>Diffusion Policy、VPP、TriVLA、RVT-2。TriVLA 是同一第一作者团队的前作（参考文献 liu2025trivla）。BridgeVLA 不在其中</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/rlbench-tasks.jpg" aria-label="放大原文图 6"><img src="fig/rlbench-tasks.jpg" width="1800" height="1265" alt="原文图 6：RLBench 任务示例，每个任务两帧" loading="lazy"></button>
+        <figcaption><b>原文 Figure 6</b>RLBench 任务示例，每个任务给出起止两帧：拿下烤架上的肉、拧灯泡、伸手拖拽、拧水龙头、扫到簸箕、推方块到色块、开抽屉、叠杯、把钱放进保险箱、放杯子、形状分拣、把杂货放进橱柜。图注写"18 个 RLBench 任务"，图里实际是 12 个。</figcaption>
+      </figure>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>真机平台两套说法</h4>
+        <p>正文 §4 写 KINOVA GEN2 + 一台 D455（eye-to-hand），附录 E 写 Franka Panda + 腕部相机 + 两台固定相机。图 4 和图 8 的照片里是一台黑色、带银色关节环的机械臂，外形和 Kinova Gen2 一致，不是白色的 Franka。这件事直接关系到方法的前提：如果真机只有一台固定的 D455，点云只覆盖一个视角，虚拟相机转到别的方向时，目标背面只能是空洞。</p>
+      </div>
+    </section>
+
+    <section id="results">
+      <p class="eyebrow">结果 · §4.1–4.2 · 附录 B</p>
+      <h2>四张主表、一组组件消融、两条超参数曲线</h2>
+      <h3>RLBench（表 1）</h3>
+      <div class="chartbox">
+        <h4>18 个任务的平均成功率</h4>
+        <p class="sub">数字来自表 1 的 Avg. SR 列。Image-BC、C2F-ARM-BC 两行同时引了 PerAct 论文，数字应是沿用前人报告；带 ± 的行是多次评测的均值和标准差。</p>
+        <div class="scroll"><svg class="chart" id="ch-rl" viewBox="0 0 720 380"></svg></div>
+        <details class="raw" id="raw-rl"><summary>原表数字（表 1，全部 12 个方法 × 18 个任务）</summary></details>
+      </div>
+      <div class="chartbox">
+        <h4>逐任务：最强的六个方法</h4>
+        <p class="sub">琥珀色越浓，成功率越高。红框是表 1 把 ActiveVLA 标为第一、但按表中数字并非第一的格子。</p>
+        <div class="scroll" id="heat-rl"></div>
+      </div>
+      <div class="prose">
+        <p>论文的说法是 RLBench 新 SOTA，平均成功率 91.8、平均名次 1.22，"在 Insert Peg、Open Drawer 等精度要求高的任务上表现突出，在 Place Cups 这种有遮挡的任务上也稳"（65.6）。提升最大的几项是 Put in Cupboard（BridgeVLA 73.6 → 87.4）、Place Wine（88.0 → 96.2）、Place Cups（58.4 → 65.6）。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>表 1 的标注和名次</h4>
+        <p>Turn Tap 一列 ActiveVLA 是 95.3，低于 3D Diffuser Actor 的 99.2 和 RVT-2 的 99.0，排第 3，表里却按第一名标红加粗。图注说"10 个任务第一"；按表中数字，ActiveVLA 独占第一的有 11 个，与别人并列第一的有 6 个。平均名次 1.22 也复现不出来：并列取最小名次算出 1.11，取平均名次算出 1.42。18 个任务的算术平均是 91.88，表里写 91.8。</p>
+      </div>
+
+      <h3>COLOSSEUM（表 2）</h3>
+      <div class="chartbox">
+        <h4>14 个扰动场景，三个最强方法</h4>
+        <p class="sub">表 2 的 14 列，柱顶只标 ActiveVLA，其余悬停可见。Avg. SR：RVT-2 56.7、BridgeVLA 64.0、ActiveVLA 65.9。</p>
+        <div class="legend"><span><i class="bg-b1"></i>RVT-2</span><span><i class="bg-b0"></i>BridgeVLA</span><span><i class="bg-ours"></i>ActiveVLA</span></div>
+        <div class="scroll"><svg class="chart" id="ch-col" viewBox="0 0 760 300"></svg></div>
+        <details class="raw" id="raw-col"><summary>原表数字（表 2，全部 7 个方法）</summary></details>
+      </div>
+      <div class="prose">
+        <p>ActiveVLA 在 14 列中的 13 列第一，Distractor（加干扰物）一列 54.3 低于 RVT-2 的 60.8。平均名次 1.07 和表中数字一致。"全部扰动"同时开启时三者都很低（15.6 / 18.7 / 21.4）。论文把最好的两列 Table Color 78.3、Camera Pose 76.3 拿出来说"在杂乱、干扰物和视角变化下仍保持高精度"；引言里"COLOSSEUM 上达到最高成功率 78.3%"说的其实是 Table Color 这一列，平均值是 65.9。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>同一个模型，两套 COLOSSEUM 数字</h4>
+        <p>附录表 6 给了 ActiveVLA 在 20 个任务上的逐项结果，末行 Task Mean 和我们按逐任务数字重算的均值一致，但和正文表 2 对不上，表 2 每一列都更高。展开下面的对照表看逐列差值。</p>
+        <details class="raw" id="raw-col2"><summary>表 2 与附录表 6（Task Mean）逐列对照</summary></details>
+      </div>
+
+      <h3>GemBench（表 3）</h3>
+      <div class="chartbox">
+        <h4>四级泛化</h4>
+        <p class="sub">L1–L4 依次为新摆放位置、新刚体物体、新铰接物体、新长时程任务（GemBench 原基准的分级，本文没有写明）。琥珀色越浓，成功率越高。</p>
+        <div class="scroll" id="heat-gem"></div>
+      </div>
+      <div class="prose"><p>ActiveVLA 平均 51.3，比 BridgeVLA 高 1.3 个点；L2、L3 第一。L1 低于 3D-LOTUS（92.4 vs 94.3），L4 只有 1.2，3D-LOTUS++ 是 17.4。论文承认"在最难的 L4 上表现下降"。</p></div>
+
+      <h3>真机（附录表 5）</h3>
+      <div class="chartbox">
+        <h4>4 个强遮挡任务</h4>
+        <p class="sub">每格为均值，括号外的 ± 见原表；每任务试验次数未披露。</p>
+        <div class="legend"><span><i class="bg-b1"></i>Diffusion Policy</span><span><i class="bg-b1" style="opacity:.75"></i>VPP</span><span><i class="bg-cy"></i>TriVLA</span><span><i class="bg-b0"></i>RVT-2</span><span><i class="bg-ours"></i>ActiveVLA</span></div>
+        <div class="scroll"><svg class="chart" id="ch-real" viewBox="0 0 760 290"></svg></div>
+        <details class="raw" id="raw-real"><summary>原表数字（表 5）</summary></details>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>真机总成功率 91.8 还是 96.3</h4>
+        <p>表 5 的 Overall 是 91.8，等于四个任务的平均（92、95、91、89）。附录正文却写"overall success rate of 96.3%"。正文对 TriVLA 的逐任务领先幅度（+24、+41、+29、+17）与表中数字一致。另外 91.8 恰好和 RLBench 平均值相同。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/qual-real.jpg" aria-label="放大原文图 4"><img src="fig/qual-real.jpg" width="1800" height="1686" alt="原文图 4：四个真机任务的执行过程，每行四帧" loading="lazy"></button>
+        <figcaption><b>原文 Figure 4</b>四个真机任务，每行四帧：拿起被其他水果挡住的香蕉放到蓝盘上；从杯架上拿下被架子挡住的紫杯；拿起被其他方块挡住的红块叠到绿块上；从抽屉里拿出被挡住的粉色毛巾。照片是固定第三人称视角，看不到任何虚拟视图，论文没有展示真机上选出的视角和放大图。</figcaption>
+      </figure>
+
+      <h3>组件消融（表 4）</h3>
+      <div class="chartbox">
+        <h4>成功率 vs 单步推理时间</h4>
+        <p class="sub">三个点依次为：固定视图 → 加 A-VS → 再加 A-3Z。单卡 H100。表注写"100 次试验"，正文写"per trial"的推理时间。</p>
+        <div class="scroll"><svg class="chart" id="ch-abl" viewBox="0 0 760 260"></svg></div>
+        <details class="raw" id="raw-abl"><summary>原表数字（表 4）</summary></details>
+      </div>
+      <div class="prose">
+        <p>RLBench 上，A-VS 带来 +1.8，A-3Z 再 +2.4，合计 +4.2，时间从 0.26 s 到 0.53 s（约 2.0×）。COLOSSEUM 合计 +2.3（时间 1.9×），GemBench 合计 +2.4（时间 2.8×）。作者的结论是"A-VS 决定往哪儿看，A-3Z 决定看多近，构成层次化感知"。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>"固定视图基线"其实就是自己复现的 BridgeVLA</h4>
+        <p>ActiveVLA 用的是 BridgeVLA 的骨干和预训练权重，去掉两个主动模块后的 87.6 / 63.6 / 48.9，略低于 BridgeVLA 论文报告的 88.2 / 64.0 / 50.0（ActiveVLA 表 1–3 里引用的数）。和这组报告值相比，ActiveVLA 的净增益是 +3.6 / +1.9 / +1.3 个点。消融只做了"加 A-VS"和"两者都加"，没有"只加 A-3Z"。</p>
+      </div>
+
+      <h3>超参数（原文 Figure 5）</h3>
+      <div class="chartbox">
+        <h4>选几个视点、放大几倍</h4>
+        <p class="sub">RLBench 平均成功率。数字由矢量图 pdftotext 读出（原图柱顶/点旁标注）。</p>
+        <div class="scroll"><svg class="chart" id="ch-hp" viewBox="0 0 760 260"></svg></div>
+        <details class="raw" id="raw-hp"><summary>图中数字</summary></details>
+      </div>
+      <div class="prose"><p>视点数从 1 增到 3，成功率从 82.2 升到 91.8，再多就饱和（4 个 92.0，6 个 91.8）。放大倍数 1 到 4 单调上升，之后回落。作者据此固定 K = 3、z = 4。z = 1 时的 89.4 和表 4 里"只加 A-VS"一致。</p></div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>1 个主动视图不如 3 张固定图</h4>
+        <p>只选 1 个视点时是 82.2，比完全不做主动感知的固定视图基线（87.6）还低 5.4 个点。这说明"选得好"替代不了"看得多"：固定基线用几张图论文没写，按粗阶段推测是三张正交图。"主动"的增益只有在视点数不少于 3 时才显现。</p>
+      </div>
+
+      <h3>定性结果（原文 Figure 3）</h3>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/qual-sim.jpg" aria-label="放大原文图 3"><img src="fig/qual-sim.jpg" width="1800" height="745" alt="原文图 3：四个仿真任务的四个阶段：正交投影、预测热图、主动选择的虚拟视图、放大后的虚拟视图" loading="lazy"></button>
+        <figcaption><b>原文 Figure 3</b>四个 RLBench 任务（扫灰到高簸箕、把巧克力果冻放进橱柜、把 3 个杯子放到杯架、把鸡肉从烤架上拿下）。每格虚线左边是粗阶段：(a) 三张正交投影，(b) 预测热图；右边是精阶段：(c) 主动选择的三张虚拟视图，(d) 放大后的虚拟视图。(d) 行能清楚看到放大后点云变稀、点间出现缝隙；"3 cups"一格放大后几乎只剩杯架的点阵轮廓。</figcaption>
+      </figure>
+    </section>
+
+    <section id="insight">
+      <p class="eyebrow">读懂它</p>
+      <h2>这篇真正说明了什么</h2>
+      <h3 style="margin-top:0">关键 insight</h3>
+      <div class="cards">
+        <div class="card a"><h4>1. 改的是"VLM 看到的像素"，不是模型结构</h4><p>骨干、热图头、动作头都沿用 BridgeVLA 式设计。新东西是两个没有参数的几何模块，决定送进 VLM 的图从哪个视点、以多大视场角渲染。这是一个纯粹的上下文层改动：同一个模型，换一套取景规则，RLBench 上多 4.2 个点。</p></div>
+        <div class="card a"><h4>2. 增益 2–4 个点，代价是推理时间翻倍</h4><p>A-VS +1.8 / +0.9 / +0.5，A-3Z +2.4 / +1.4 / +1.9（RLBench / COLOSSEUM / GemBench）。单步时间 0.26 → 0.53 s、0.33 → 0.62 s、0.21 → 0.59 s。按关键帧执行时每步多 0.3 s 问题不大，换成高频闭环控制就是另一回事。</p></div>
+        <div class="card c"><h4>3. 视点数比视点选法更要紧</h4><p>1 个主动视图 82.2，低于 3 张固定图的 87.6；3 个主动视图 91.8。打分函数按字面又退化成只看可见性（见疑点），可以合理怀疑：增益里有多少来自"选得聪明"，有多少来自"围绕关键点、从不被挡的方向多看几眼"。论文没有"随机挑 3 个可见视点"的对照。</p></div>
+        <div class="card c"><h4>4. 放大有甜点</h4><p>z = 4 最好，z = 6 回落 0.9 个点。原因是视野变窄丢上下文，再加上点云变稀。它和 RVT-2 式粗到精放大的思路一致，只是改在透视视图上做。</p></div>
+      </div>
+      <h3>容易误解的地方</h3>
+      <div class="prose">
+        <ul>
+          <li><strong>"主动感知"不是移动相机。</strong>物理相机全程不动，所有新视角都是对已有点云的重渲染（图 1 图注：virtual cameras）。它解决不了"所有相机都没拍到"的遮挡。</li>
+          <li><strong>选视角这一步不学习。</strong>只有关键点 p<sub>f</sub> 来自学到的热图；"从哪看"由固定公式算出，权重 w 是手设的超参数（数值未披露）。</li>
+          <li><strong>动作是关键帧位姿，不是连续控制。</strong>每个关键帧完整跑一遍"粗阶段 → 选视角 → 放大 → 精阶段"；0.53 s 是每次推理的时间。</li>
+          <li><strong>不是全面领先。</strong>RLBench 的 Turn Tap 低于 3D Diffuser Actor 和 RVT-2；COLOSSEUM 的 Distractor 低于 RVT-2（54.3 vs 60.8）；GemBench 的 L1 低于 3D-LOTUS（92.4 vs 94.3），L4 远低于 3D-LOTUS++（1.2 vs 17.4）。</li>
+          <li><strong>仿真里没有和通用 VLA 比。</strong>三个仿真基准的对比对象都是关键帧式 3D 策略（RVT、BridgeVLA 等）和少量 2D 基线；真机比了 Diffusion Policy、VPP 和同团队的 TriVLA。π0、OpenVLA 一类模型都没有出现。</li>
+        </ul>
+      </div>
+      <h3>FAQ</h3>
+      <details class="faq"><summary>虚拟视角到底能不能解决遮挡？</summary><div class="a"><p>能解决一部分。RLBench 有 4 台标定相机，融合后的点云里，目标被前景挡住常常只是因为默认渲染方向不好，换个方向渲染就能露出来，这正是可见性打分在做的事（射线检测用的是观测点云 𝒮）。但如果某块区域没有任何一台物理相机拍到，点云里就没有它，虚拟视点也看不到。真机正文只有一台固定 D455，按这个设置，换视点后目标背面应该是空洞；论文没有展示真机的虚拟视图，没法判断实际效果。</p></div></details>
+      <details class="faq"><summary>3D zoom-in 和直接裁剪 2D 图像有什么区别？</summary><div class="a"><p>裁剪再缩放会插值模糊；对点云缩小视场角重渲染，每个点按原始 3D 坐标投影，不存在插值，而且能保持正确的遮挡顺序。但两者能提供的信息量都受限于原始观测：点云重渲染的代价是点间距跟着放大，图上出现缝隙（图 3 第 (d) 行）。论文说"没有几何损失"，指的是坐标精度不损失，不等于细节变多。</p></div></details>
+      <details class="faq"><summary>和 BridgeVLA 的差别到底多大？</summary><div class="a"><p>同一个骨干、同一份预训练权重、同样的热图到 3D 平移框架。和 BridgeVLA 论文报告的数字比，ActiveVLA 多 3.6（RLBench）、1.9（COLOSSEUM）、1.3（GemBench）个点；和自家复现的固定视图版本比，多 4.2、2.3、2.4 个点。真机没有比较 BridgeVLA。</p></div></details>
+      <details class="faq"><summary>多样性项为什么会是常数？</summary><div class="a"><p>测地球面上的候选两两关于球心对称。对任一方向 <b>v</b>，另一个方向 <b>u</b> 和它的对径方向 −<b>u</b> 与 <b>v</b> 的夹角之和恒为 π。把 M 个候选按对径配对后求和，每个候选的 S<sub>div</sub> 都是 πM/2。这一项要起作用，候选集必须不对称（比如只取上半球、只取可见候选），或者改成"相对已选视点"的贪心计算。论文没说采用了哪一种。</p></div></details>
+      <details class="faq"><summary>"假设检验"体现在哪里？</summary><div class="a"><p>论文把选视角称为 hypothesis testing strategy，但方法里没有显式的假设、概率或信息增益计算：每个候选算一次可见性、距离和多样性，加权排序取 top-K，一步完成，不根据看到的结果再修正。这更接近一个基于几何的启发式视点规划。</p></div></details>
+    </section>
+
+    <section id="limits">
+      <p class="eyebrow">局限与疑点</p>
+      <h2>作者承认的，和我们读出来的</h2>
+      <div class="two">
+        <div>
+          <h4>论文自己提到的</h4>
+          <ul>
+            <li>GemBench 最难的 L4（新长时程任务）只有 1.2%。</li>
+            <li>视点数超过 3 个后成功率饱和，计算量继续增加。</li>
+            <li>放大倍数过大会降低上下文感知。</li>
+            <li>论文没有单独的局限性章节。</li>
+          </ul>
+        </div>
+        <div>
+          <h4>我们读出来的</h4>
+          <ul>
+            <li><span class="tag doubt">疑点</span>打分函数按字面退化：完整球面上距离项、多样性项对所有候选是常数，排序只剩二值可见性；公式 (4) 的顶点数也对不上标准细分。</li>
+            <li><span class="tag doubt">疑点</span>虚拟视点的信息上限就是已观测点云。真机若只有一台 D455，视角选择能补的有限；论文没给真机的虚拟视图。</li>
+            <li><span class="tag doubt">疑点</span>真机平台两套说法（Kinova + D455 eye-to-hand vs Franka + 腕部 + 两台固定相机）；照片里的机械臂外形是 Kinova。</li>
+            <li><span class="tag doubt">疑点</span>真机总成功率表 5 写 91.8，正文写 96.3；每任务试验次数未披露；真机没比较最直接的基线 BridgeVLA。</li>
+            <li><span class="tag doubt">疑点</span>COLOSSEUM 两套数字（表 2 vs 附录表 6），表 2 每列都更高；"与 RLBench 相同的任务"和附录任务清单不符；引言的 78.3% 是单列数字。</li>
+            <li><span class="tag doubt">疑点</span>表 1 的 Turn Tap 标注错误、"10 个任务第一"、平均名次 1.22 复现不出。</li>
+            <li><span class="tag doubt">疑点</span>训练描述自相矛盾：冻结 SigLIP 和词嵌入（暗示主干在训）vs "只更新动作头和两个模块"（后两者没有参数）；GPU 数 8 vs 16 / 32。</li>
+            <li>试验次数口径不一：RLBench "五次试验"，表 4 "100 次试验"。</li>
+            <li>精阶段输入几张图、全局 token 取自哪组视图、放大视图是替换还是追加，都没写清。</li>
+            <li>放大公式用 tan(α/2z) 而非 tan(α/2)/z，不是标准的焦距变焦（差别不大，但说明式子没有仔细推导）。</li>
+            <li>附录图注与图不符：图 6 说 18 个任务只画了 12 个；图 7 正文列 5 个直接操作任务，图里只有 4 个。</li>
+            <li>没有"随机选 K 个可见视点"或"固定方向放大"这类对照，无法把增益归因到打分规则本身。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="topic">
+      <p class="eyebrow">放到专题里看</p>
+      <h2>"看什么"这一类里，它管的是像素层面的取景</h2>
+      <div class="prose">
+        <p>在 <a href="../../topics/robot-harness/">Harness for Robotics 专题</a>里，ActiveVLA 属于 <strong>Context Architecture</strong>：它改的是模型<strong>每一步看什么</strong>，不改模型<strong>记住什么</strong>。具体形式是重渲染出来的虚拟视图，作为图像 token 进入 VLM 输入；每个关键帧从头计算，不跨步保留任何状态。同类另外两篇改的是另外两个维度：RA-VLA 往上下文里塞外部示范，TIC-VLA 处理语义上下文的时间戳。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t cmp">
+          <thead><tr><th></th><th class="me">ActiveVLA</th><th><a href="../../papers/ra-vla/">RA-VLA</a></th><th><a href="../../papers/tic-vla/">TIC-VLA</a></th><th><a href="../../papers/soma/">SOMA</a>（跨类对照）</th></tr></thead>
+          <tbody>
+            <tr><th>类别</th><td class="me">Context · 视觉选择</td><td>Context · 检索</td><td>Context · 时序对齐</td><td>Memory · 空间记忆</td></tr>
+            <tr><th>改的是什么</th><td class="me">当前观测的取景：视点 + 视场角</td><td>额外放进来的外部专家示范片段</td><td>语义上下文"是哪个时刻的"：延迟的 VLM 状态 + 延迟量</td><td>跨步保留的物体级场景记忆</td></tr>
+            <tr><th>进入策略的形式</th><td class="me">重渲染的虚拟视图 → VLM 图像 token</td><td>预编码缓存的片段特征，按相关度逐层接到动作头的交叉注意力；初始噪声换成检索片段的平均动作块</td><td>VLM 最后一层 KV cache + Δt + 自身位姿偏移，作为动作专家交叉注意力的 key/value</td><td>记忆 token（DINOv3 外观 + 3D 框位置编码），VL token 经交叉注意力读取</td></tr>
+            <tr><th>选择依据</th><td class="me">手写几何打分（可见性、距离、多样性），关键点来自学到的热图</td><td>学到的检索器（DTW 对齐 + 对比学习），余弦相似度取 top-K</td><td>不挑，用最近一次完成的推理</td><td>检测器找不到目标时，头部相机按预设路线扫描建库</td></tr>
+            <tr><th>相机是否真的动</th><td class="me">否，虚拟视点</td><td>—</td><td>—</td><td>是，2-DoF 云台头部相机</td></tr>
+            <tr><th>跨步状态</th><td class="me">无</td><td>示范库固定，不随执行更新</td><td>只缓存最近一次 VLM 输出</td><td>有，随新观测持续融合</td></tr>
+            <tr><th>训练</th><td class="me">每个基准微调 BridgeVLA 骨干</td><td>训练检索器并微调策略（VLM 冻结），新任务免训练</td><td>VLM SFT → 注入延迟的模仿学习 → PPO</td><td>除 VLM 语言解码器外全部参与训练，真机每任务 400 条示范</td></tr>
+            <tr><th>场景</th><td class="me">桌面 3D 操作，关键帧动作</td><td>LIBERO、UR5e</td><td>动态环境导航</td><td>人形双臂，目标初始不在视野内</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>和 RA-VLA：</strong>都是"从候选池里挑 top-K 放进上下文"，一个挑示范，一个挑视角。RA-VLA 的挑选器是学出来的（让行为相近的片段在嵌入空间里靠近），ActiveVLA 的是手写几何式子，而且按字面推导只剩可见性在起作用。</li>
+          <li><strong>和 TIC-VLA：</strong>TIC-VLA 处理上下文"什么时候"的问题，ActiveVLA 处理"从哪儿看、看多近"。TIC-VLA 让慢推理和快控制异步；ActiveVLA 完全同步，粗阶段、选视角、精阶段串行跑完，多出的时间直接算进单步推理（0.26 → 0.53 s）。</li>
+          <li><strong>和 SOMA（跨类）：</strong>动机最接近，都是"目标看不见"。SOMA 真的转动头部相机去拍，把结果写进持久记忆；ActiveVLA 不动相机，只在已有点云里换视点，也不跨步保留。前者能看到新东西，扫描路线却是预设的；后者的视点围绕任务相关的关键点挑，但看不到没拍过的地方。</li>
+          <li><strong>和 <a href="../../papers/memoryvla/">MemoryVLA</a>、<a href="../../papers/optimusvla/">OptimusVLA</a>、<a href="../../papers/hime/">HiMe</a>：</strong>点到为止。ActiveVLA 每步独立，没有记忆。这三篇分别在感知/认知 token 记忆库、检索轨迹先验加历史动作一致性、分层的文本 + 图像情节记忆上做文章，解决的是"当前观测不够、需要历史"的问题，和本篇"当前观测没看好"是两回事。</li>
+          <li><strong>和（3）结构化执行、（4）评估与反馈两类：</strong>和 <a href="../../papers/acot-vla/">ACoT-VLA</a> 一样，都是同一个模型先粗后细跑两遍：ActiveVLA 第一遍用热图定出「看哪儿」，ACoT 第一遍用 EAR 去噪出一段 15 点的粗参考轨迹，定下「大概怎么动」；两者都串行执行，多出的时间直接算进单次推理（ActiveVLA 在 RLBench 上 0.26 → 0.53 s，ACoT 91 → 112 ms，硬件不同）。<a href="../../papers/motormind/">MotorMind</a> 也是先定位再凑近：VLM 在图上画框、多个固定相机三角化，近距离换腕部相机细化；它的失败分析里，VLM 决策错误最多的一类就是定位。<span class="tag read">解读</span>这从零样本一侧说明「看哪里、看多清」值得单独设计，但 MotorMind 用的是不训练的通用 VLM，和 ActiveVLA 微调过的热图定位不能直接比。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="glossary">
+      <p class="eyebrow">术语表</p>
+      <h2>读这篇会遇到的词</h2>
+      <details class="gl"><summary>展开术语表</summary>
+        <dl>
+          <dt>active perception</dt><dd>主动感知：按任务需要决定从哪里、以多大分辨率观察。本文在渲染空间里实现，物理相机不动。</dd>
+          <dt>keyframe</dt><dd>关键帧：PerAct / RVT 一系把轨迹压缩成少数关键位姿，策略只预测下一个关键位姿，中间由运动规划补齐。</dd>
+          <dt>orthographic projection</dt><dd>正交投影：平行光线投影，没有近大远小。粗阶段用顶、前、右三个方向。</dd>
+          <dt>p<sub>f</sub></dt><dd>粗阶段热图反投影得到的关键 3D 点，球面候选以它为球心。</dd>
+          <dt>convex upsampling</dt><dd>凸上采样：每个高分辨率像素由低分辨率邻域的凸组合得到，组合权重由网络预测。</dd>
+          <dt>geodesic sampling / icosphere</dt><dd>测地采样：从正二十面体出发反复细分三角形并投影到球面，得到近似均匀的球面点集。</dd>
+          <dt>look-at</dt><dd>用相机位置（eye）、注视点（target）和上方向（up）确定相机姿态。</dd>
+          <dt>Z 标准化</dt><dd>减均值除以标准差。常数列的标准差为 0，标准化没有定义。</dd>
+          <dt>FoV / z</dt><dd>视场角 / 放大倍数。本文的放大把视场角从 α 变成 α/z，实验取 z = 4。</dd>
+          <dt>A-VS / A-3Z</dt><dd>Active View Selection / Active 3D Zoom-in，本文的两个主动感知模块。</dd>
+          <dt>amodal</dt><dd>"非模态"：指物体被遮挡部分也算在内的完整形状。论文说视角选择要"最大化 amodal 相关性"，即尽量看到目标全貌。</dd>
+          <dt>BridgeVLA</dt><dd>把 3D 点云渲染成 2D 图、让 VLM 输出 2D 热图再抬升到 3D 的 VLA，本文的骨干来源。</dd>
+          <dt>RVT / RVT-2</dt><dd>多视图虚拟渲染 + Transformer 的 3D 操作策略，RVT-2 有粗到精的放大重渲染。</dd>
+          <dt>PaliGemma</dt><dd>SigLIP 视觉编码器 + Gemma 语言模型组成的 VLM。</dd>
+          <dt>COLOSSEUM</dt><dd>在 RLBench 上系统加入 12 类视觉与几何扰动的鲁棒性基准。</dd>
+          <dt>GemBench</dt><dd>基于 RLBench 的分级泛化基准，L1 新位置、L2 新刚体物体、L3 新铰接物体、L4 新长时程任务。</dd>
+        </dl>
+      </details>
+    </section>
+  </main>
+</div>
+<footer class="page">
+  <p>图全部来自论文 arXiv 源码（v1）里的原图；表 1–5 的数字取自 tex 表格，Figure 5 的数字由矢量图 pdftotext 读出。标「解读」的是我们的判断，「未披露」表示论文没写。演示里的场景和未披露参数是我们设的，公式按原文实现。</p>
+</footer>
+<dialog id="lb" aria-label="放大查看"><div class="box"><img id="lb-img" alt=""></div><div class="bar"><span id="lb-cap"></span><button type="button" id="lb-close">关闭</button></div></dialog>
+<div class="tip" id="tip" hidden></div>
+<script>
+(function(){
+  'use strict';
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, text){ const e = document.createElementNS(NS, tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+  function esc(s){ return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function cssv(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+  /* tooltip */
+  const tip = $('#tip');
+  function place(x, y){ const r = tip.getBoundingClientRect(); let l = x + 14, t = y + 14; if (l + r.width > innerWidth - 8) l = x - r.width - 14; if (t + r.height > innerHeight - 8) t = y - r.height - 14; tip.style.left = Math.max(8, l) + 'px'; tip.style.top = Math.max(8, t) + 'px'; }
+  document.addEventListener('pointerover', e => { const t = e.target.closest && e.target.closest('[data-tip]'); if (!t) return; tip.textContent = t.getAttribute('data-tip'); tip.hidden = false; place(e.clientX, e.clientY); });
+  document.addEventListener('pointermove', e => { if (tip.hidden) return; if (!(e.target.closest && e.target.closest('[data-tip]'))) { tip.hidden = true; return; } place(e.clientX, e.clientY); });
+
+  /* lightbox */
+  const lb = $('#lb');
+  $$('figure.plate .zoom').forEach(b => b.addEventListener('click', () => { $('#lb-img').src = b.dataset.src; const c = b.parentElement.querySelector('figcaption b'); $('#lb-cap').textContent = c ? c.textContent : ''; if (lb.showModal) lb.showModal(); else lb.setAttribute('open', ''); }));
+  $('#lb-close').addEventListener('click', () => lb.close());
+  lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+
+  /* toc */
+  const links = $$('.toc a');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id)); }), { rootMargin: '-35% 0px -60% 0px' });
+    $$('main section').forEach(s => io.observe(s));
+  }
+
+  function rawTable(host, head, rows){
+    const d = document.createElement('div'); d.className = 'tblwrap';
+    d.innerHTML = '<table class="t"><thead><tr>' + head.map((h, i) => '<th' + (i ? ' class="num"' : '') + '>' + h + '</th>').join('') + '</tr></thead><tbody>' +
+      rows.map(r => '<tr' + (r.best ? ' class="best"' : '') + '>' + r.cells.map((c, i) => i ? '<td class="num' + (r.bad && r.bad.indexOf(i) >= 0 ? ' bad' : '') + '">' + c + '</td>' : '<th>' + c + '</th>').join('') + '</tr>').join('') + '</tbody></table>';
+    host.appendChild(d);
+  }
+
+  /* ---------- stepper ---------- */
+  const STEPS = [
+    { n: '01', t: '点云重建', c: 'st-c', d: '用标定相机拍到的 RGB-D 重建场景点云。后面所有"视角"都在这份点云上渲染，物理相机不再移动。', io: [['输入', 'RLBench：4 台标定相机的 RGB-D；真机：正文为 1 台 D455（附录另有说法）'], ['输出', '世界坐标系下的彩色点云'], ['可学习', '否'], ['出处', '§3.1']], nd: '工作空间裁剪范围、下采样、多相机融合方式。' },
+    { n: '02', t: '正交投影', c: 'st-c', d: '从顶、前、右三个方向正交投影。世界坐标通道让三张图的像素可以互相对应。', io: [['输入', '点云'], ['输出', '3 张图 × 7 通道（RGB、深度、世界坐标 xyz）'], ['可学习', '否；PyTorch3D 渲染，每像素取深度最小的点'], ['出处', '式 (2)']], nd: '图像分辨率。' },
+    { n: '03', t: '粗阶段热图', c: 'st-c', d: '三张图和指令进 PaliGemma；输出 patch token 按位置重排成网格，convex upsampling 放大到原分辨率得热图；三视图热图反投影到 3D，得到关键区域。', io: [['输入', '3 张正交图 + 语言指令'], ['输出', '每视图一张热图 → 关键点 p_f ∈ ℝ³'], ['可学习', '是，交叉熵'], ['出处', '式 (3)']], nd: '热图的监督目标；多视图热图聚合成 p_f 的方式。' },
+    { n: '04', t: '主动选视角', c: 'st-a', d: '在以 p_f 为球心的测地球面上撒候选相机，算可见性、距离、多样性三项，Z 标准化后加权，取得分最高的 K 个。', io: [['输入', 'p_f、观测点云 𝒮'], ['输出', 'K = 3 个 look-at 虚拟相机位姿'], ['可学习', '否'], ['出处', '式 (4)–(7)']], nd: '细分层级 k、球半径、权重 w、阈值 r、射线采样数 N、up 向量怎么调整。' },
+    { n: '05', t: '3D zoom-in', c: 'st-a', d: '在得分最高的视点上，把视场角缩小 z 倍重新渲染。', io: [['输入', '最佳视点、点云'], ['输出', '放大视图，z = 4'], ['可学习', '否'], ['出处', '式 (8)']], nd: '原始视场角 α；放大视图替换还是追加；主动视图是否也是 7 通道。' },
+    { n: '06', t: '精阶段热图 → 平移', c: 'st-k', d: '主动视图（含放大视图）进 PaliGemma 得热图，反投影到 3D 离散网格加权累加，取最大值处为平移目标。', io: [['输入', '主动视图 + 指令'], ['输出', '平移目标 t*'], ['可学习', '是'], ['出处', '式 (9)、图 2']], nd: '网格分辨率、视图权重 w_v；粗、精两个 PaliGemma 是否同一组权重。' },
+    { n: '07', t: '旋转 · 夹爪 · 碰撞', c: 'st-k', d: '每个正交视图的视觉编码器输出做 max-pool 得 3 个全局 token，再用 ROI-aware sampler 抽局部 token，拼接后过 MLP。', io: [['输入', '视觉编码器输出'], ['输出', '欧拉角每轴 72 个 bin、夹爪开合、碰撞标志'], ['可学习', '是'], ['出处', '§3.3']], nd: '局部 token 的数量与采样区域；各项损失及权重；全局 token 取自正交图还是主动视图。' }
+  ];
+  (function(){
+    const ol = $('#steps'), body = $('#stepbody');
+    STEPS.forEach((s, i) => { const li = document.createElement('li'); const b = document.createElement('button'); b.type = 'button'; b.className = s.c; b.innerHTML = '<span class="n">' + s.n + '</span>' + s.t; b.setAttribute('aria-pressed', i === 3 ? 'true' : 'false'); b.addEventListener('click', () => show(i)); li.appendChild(b); ol.appendChild(li); });
+    function show(i){
+      const s = STEPS[i];
+      $$('button', ol).forEach((b, j) => b.setAttribute('aria-pressed', j === i ? 'true' : 'false'));
+      const stage = s.c === 'st-c' ? '粗阶段' : s.c === 'st-a' ? '主动感知（几何模块）' : '精阶段';
+      body.innerHTML = '<div><h5>' + s.n + ' · ' + s.t + '</h5><p class="small muted" style="margin:0 0 6px">' + stage + '</p><p>' + esc(s.d) + '</p></div><div><dl>' + s.io.map(r => '<dt>' + r[0] + '</dt><dd>' + esc(r[1]) + '</dd>').join('') + '</dl><div class="nd" style="margin-top:10px"><b>未披露</b>' + esc(s.nd) + '</div></div>';
+    }
+    show(3);
+  })();
+
+  /* ---------- zoom table ---------- */
+  (function(){
+    const a = Math.PI / 3, HP = [89.4, 90.1, 90.8, 91.8, 91.4, 90.9];
+    const tb = $('#zoom-tbl tbody');
+    tb.innerHTML = [1, 2, 3, 4, 5, 6].map(z => { const p = 2 * Math.tan(a / (2 * z)), s = 2 * Math.tan(a / 2) / z; return '<tr' + (z === 4 ? ' class="best"' : '') + '><th>' + z + (z === 4 ? '（默认）' : '') + '</th><td class="num">' + p.toFixed(3) + '</td><td class="num">' + s.toFixed(3) + '</td><td class="num">' + (z === 1 ? '0' : ((p / s - 1) * 100).toFixed(1) + '%') + '</td><td class="num">' + HP[z - 1].toFixed(1) + '</td></tr>'; }).join('');
+  })();
+
+  /* ---------- chart helpers ---------- */
+  function hbars(svg, rows, opt){
+    opt = opt || {}; const W = 720, L = opt.left || 170, R = 56, top = 14, rh = opt.rh || 28, max = opt.max || 100;
+    const H = top + rows.length * rh + 26; svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const x = v => L + (W - L - R) * v / max;
+    for (let g = 0; g <= max; g += (opt.step || 20)) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: top - 6, y2: H - 22, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: H - 6, 'text-anchor': 'middle', class: 'tick' }, g)); }
+    rows.forEach((r, i) => {
+      const y = top + i * rh;
+      svg.appendChild(el('text', { x: L - 10, y: y + rh / 2 + 4, 'text-anchor': 'end', class: 'glabel', 'font-weight': r.hi ? 700 : 400 }, r.label));
+      svg.appendChild(el('rect', { x: L, y: y + 5, width: Math.max(1, x(r.v) - L), height: rh - 11, rx: 2, class: r.cls, 'data-tip': r.label + '：' + r.v + (r.note ? '（' + r.note + '）' : '') }));
+      svg.appendChild(el('text', { x: x(r.v) + 6, y: y + rh / 2 + 4, class: 'val' + (r.hi ? ' hi' : '') }, r.v.toFixed ? r.v.toFixed(1) : r.v));
+    });
+    svg.appendChild(el('line', { x1: L, x2: L, y1: top - 6, y2: H - 22, class: 'base' }));
+  }
+  function vgroups(svg, groups, series, opt){
+    opt = opt || {}; const W = opt.W || 760, H = opt.H || 300, L = 40, R = 10, T = 22, B = opt.B || 46, max = opt.max || 100, min = opt.min || 0;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const y = v => T + (H - T - B) * (1 - (v - min) / (max - min));
+    for (let g = min; g <= max; g += (opt.step || 20)) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g)); }
+    const n = groups.length, gw = (W - L - R) / n, bw = Math.min(opt.bw || 20, (gw - 8) / series.length);
+    groups.forEach((gr, i) => {
+      const cx = L + gw * i + gw / 2, x0 = cx - bw * series.length / 2;
+      if (gr.sep) svg.appendChild(el('line', { x1: L + gw * i, x2: L + gw * i, y1: T - 10, y2: H - 8, stroke: 'var(--ink-2)', 'stroke-dasharray': '3 3' }));
+      series.forEach((s, j) => {
+        const v = gr.vals[j]; const yy = y(v);
+        svg.appendChild(el('rect', { x: x0 + j * bw + 1, y: yy, width: bw - 2, height: Math.max(1, y(min) - yy), rx: 1.5, class: s.cls, style: s.style || '', 'data-tip': gr.name.replace('\n', ' ') + ' · ' + s.name + '：' + v }));
+        if (opt.vals !== false && (!opt.valIdx || opt.valIdx.indexOf(j) >= 0)) svg.appendChild(el('text', { x: x0 + j * bw + bw / 2, y: yy - 4, 'text-anchor': 'middle', class: 'val', 'font-size': opt.vfs || 9.5 }, v));
+      });
+      gr.name.split('\n').forEach((w, k) => svg.appendChild(el('text', { x: cx, y: H - B + 16 + k * 13, 'text-anchor': 'middle', class: 'glabel', 'font-size': opt.lfs || 11 }, w)));
+    });
+    svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(min), y2: y(min), class: 'base' }));
+  }
+  function heat(host, rowNames, colNames, getV, opt){
+    opt = opt || {};
+    let h = '<table class="heat"><thead><tr><th></th>' + colNames.map((c, j) => '<th class="' + (opt.oursCol === j ? 'ours' : '') + '">' + esc(c) + '</th>').join('') + '</tr></thead><tbody>';
+    rowNames.forEach((r, i) => {
+      h += '<tr class="' + (opt.avgRow === i ? 'avg' : '') + '"><th class="row' + (opt.oursRow === i ? ' ours' : '') + '">' + esc(r) + '</th>';
+      colNames.forEach((c, j) => { const v = getV(i, j); const p = Math.round(Math.max(0, Math.min(100, (v - (opt.lo || 0)) / ((opt.hi || 100) - (opt.lo || 0)) * 100)) * 0.85); const fl = opt.flag && opt.flag(i, j);
+        h += '<td class="' + (p > 52 ? 'dk' : '') + (fl ? ' flag' : '') + '" style="background:color-mix(in oklab,var(--amb) ' + p + '%,var(--surface))"' + (fl ? ' data-tip="' + esc(fl) + '"' : '') + '>' + (typeof v === 'number' ? v.toFixed(1) : v) + '</td>'; });
+      h += '</tr>';
+    });
+    host.innerHTML = h + '</tbody></table>';
+  }
+
+  /* ---------- RLBench ---------- */
+  const RT = ['Close Jar', 'Drag Stick', 'Insert Peg', 'Meat off Grill', 'Open Drawer', 'Place Cups', 'Place Wine', 'Push Buttons', 'Put in Cupboard', 'Put in Drawer', 'Put in Safe', 'Screw Bulb', 'Slide Block', 'Sort Shape', 'Stack Blocks', 'Stack Cups', 'Sweep to Dustpan', 'Turn Tap'];
+  const RL = [
+    { n: 'Image-BC (CNN)', avg: 1.3, rank: '11.56', v: '0.0 0.0 0.0 0.0 0.0 4.0 0.0 0.0 0.0 8.0 4.0 0.0 0.0 0.0 0.0 0.0 0.0 8.0' },
+    { n: 'Image-BC (ViT)', avg: 1.3, rank: '11.61', v: '0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 16.0' },
+    { n: 'C2F-ARM-BC', avg: 20.1, rank: '9.89', v: '24.0 24.0 4.0 20.0 20.0 0.0 8.0 72.0 0.0 4.0 12.0 8.0 16.0 8.0 0.0 0.0 0.0 68.0' },
+    { n: 'HiveFormer', avg: 45.3, rank: '8.22', v: '52.0 76.0 0.0 100.0 52.0 0.0 80.0 84.0 32.0 68.0 76.0 8.0 64.0 8.0 8.0 0.0 28.0 80.0' },
+    { n: 'PolarNet', avg: 46.4, rank: '7.78', v: '36.0 92.0 4.0 100.0 84.0 0.0 40.0 96.0 12.0 32.0 84.0 44.0 56.0 12.0 4.0 8.0 52.0 80.0' },
+    { n: 'PerAct', avg: 49.4, rank: '7.33', v: '55.2±4.7 89.6±4.1 5.6±4.1 70.4±2.0 88.0±5.7 2.4±3.2 44.8±7.8 92.8±3.0 28.0±4.4 51.2±4.7 84.0±3.6 17.6±2.0 74.0±13.0 16.8±4.7 26.4±3.2 2.4±2.0 52.0±0.0 88.0±4.4' },
+    { n: 'Act3D', avg: 65.0, rank: '5.28', v: '92.0 92.0 27.0 94.0 93.0 3.0 80.0 99.0 51.0 90.0 95.0 47.0 93.0 8.0 12.0 9.0 92.0 94.0' },
+    { n: 'RVT', avg: 62.9, rank: '5.39', v: '52.0±2.5 99.2±1.6 11.2±3.0 88.0±2.5 71.2±6.9 4.0±2.5 91.0±5.2 100.0±0.0 49.6±3.2 88.0±5.7 91.2±3.0 48.0±5.7 81.6±5.4 36.0±2.5 28.8±3.9 26.4±8.2 72.0±0.0 93.6±4.1' },
+    { n: '3D Diffuser Actor', avg: 81.3, rank: '3.39', v: '96.0±2.5 100.0±0.0 65.6±4.1 96.8±1.6 89.6±4.1 24.0±7.6 93.6±4.8 98.4±2.0 85.6±4.1 96.0±3.6 97.6±2.0 82.4±2.0 97.6±3.2 44.0±4.4 68.3±3.3 47.2±8.5 84.0±4.4 99.2±1.6' },
+    { n: 'RVT-2', avg: 81.4, rank: '3.00', v: '100.0±0.0 99.0±1.7 40.0±0.0 99.0±1.7 74.0±11.8 38.0±4.5 95.0±3.3 100.0±0.0 66.0±4.5 96.0±0.0 96.0±2.8 88.0±4.9 92.0±2.8 35.0±7.1 80.0±2.8 69.0±5.9 100.0±0.0 99.0±1.7' },
+    { n: 'BridgeVLA', avg: 88.2, rank: '2.44', v: '100.0±0.0 100.0±0.0 88.0±2.8 100.0±0.0 100.0±0.0 58.4±10.0 88.0±2.8 98.4±2.2 73.6±4.6 99.2±1.8 99.2±1.8 87.2±6.6 96.0±2.8 60.8±7.7 76.8±8.7 81.6±3.6 87.2±1.8 92.8±3.3' },
+    { n: 'ActiveVLA', avg: 91.8, rank: '1.22', v: '100.0±0.0 100.0±0.0 92.4±1.9 100.0±0.0 100.0±0.0 65.6±3.2 96.2±1.4 100.0±0.0 87.4±3.4 99.5±2.1 99.4±1.6 89.3±5.4 98.5±3.7 63.3±5.3 82.2±4.7 84.8±2.1 100.0±0.0 95.3±2.8', ours: true }
+  ];
+  RL.forEach(m => { m.raw = m.v.split(' '); m.num = m.raw.map(s => parseFloat(s)); });
+  hbars($('#ch-rl'), RL.slice().sort((a, b) => b.avg - a.avg).map(m => ({ label: m.n, v: m.avg, cls: m.ours ? 'c-ours' : (m.n === 'BridgeVLA' ? 'c-b0' : 'c-b1'), hi: m.ours, note: '平均名次 ' + m.rank })), { left: 150 });
+  rawTable($('#raw-rl'), ['Method', 'Avg. SR', 'Avg. Rank'].concat(RT), RL.map(m => ({ cells: [m.n, m.avg.toFixed(1), m.rank].concat(m.raw), best: m.ours, bad: m.ours ? [20] : null })));
+  (function(){
+    const pick = ['Act3D', 'RVT', '3D Diffuser Actor', 'RVT-2', 'BridgeVLA', 'ActiveVLA'].map(n => RL.find(m => m.n === n));
+    heat($('#heat-rl'), RT.concat(['平均（表 1）']), pick.map(m => m.n), (i, j) => i < 18 ? pick[j].num[i] : pick[j].avg, { avgRow: 18, oursCol: 5, flag: (i, j) => (i === 17 && j === 5) ? '表 1 把这一格标为第一；按数字排第 3（3D Diffuser Actor 99.2、RVT-2 99.0）' : '' });
+  })();
+
+  /* ---------- COLOSSEUM ---------- */
+  const CC = ['All Perturb.', 'MO-COLOR', 'RO-COLOR', 'MO-TEXTURE', 'RO-TEXTURE', 'MO-SIZE', 'RO-SIZE', 'Light Color', 'Table Color', 'Table Texture', 'Distractor', 'Background Texture', 'RLBench', 'Camera Pose'];
+  const CCL = ['All\nPerturb.', 'MO-\nCOLOR', 'RO-\nCOLOR', 'MO-\nTEXTURE', 'RO-\nTEXTURE', 'MO-\nSIZE', 'RO-\nSIZE', 'Light\nColor', 'Table\nColor', 'Table\nTexture', 'Distrac-\ntor', 'Backgr.\nTexture', 'RLBench', 'Camera\nPose'];
+  const COL = [
+    { n: 'R3M-MLP', avg: '0.8', rank: '6.57', v: '0.6 0.4 0.0 0.0 0.0 1.8 0.0 1.0 1.4 0.2 1.6 1.2 2.0 0.8' },
+    { n: 'MVP-MLP', avg: '1.6', rank: '6.36', v: '0.8 1.2 0.0 0.4 0.0 4.44 0.0 1.6 1.6 1.0 3.8 2.2 2.0 2.6' },
+    { n: 'PerAct', avg: '27.9', rank: '4.79', v: '7.2 24.0 29.2 28.8 17.71 35.6 29.3 29.1 30.4 23.2 27.1 33.5 39.4 36.3' },
+    { n: 'RVT', avg: '35.4', rank: '4.36', v: '6.4 26.0 31.3 44.8 41.1 35.3 40.5 34.0 30.0 45.2 18.8 46.4 53.4 42.2' },
+    { n: 'RVT-2', avg: '56.7', rank: '2.86', v: '15.6±0.8 53.0±0.9 54.6±0.6 59.7±0.7 56.7±1.4 60.9±0.9 53.4±1.5 58.0±1.1 62.6±0.9 56.6±0.9 60.8±0.5 68.7±1.1 68.8±1.3 64.4±0.5' },
+    { n: 'BridgeVLA', avg: '64.0', rank: '2.07', v: '18.7±2.2 60.5±1.1 63.8±0.1 63.5±1.5 68.4±3.3 69.3±1.0 61.7±0.8 69.7±1.2 75.7±0.9 71.3±0.7 51.8±1.5 74.8±1.0 73.1±0.2 73.8±0.3' },
+    { n: 'ActiveVLA', avg: '65.9', rank: '1.07', v: '21.4±1.8 64.2±1.5 64.4±1.2 65.7±2.1 69.3±2.6 72.4±0.8 64.4±1.3 70.4±1.4 78.3±1.1 72.5±0.9 54.3±1.2 75.2±0.6 74.4±0.6 76.3±1.1', ours: true }
+  ];
+  COL.forEach(m => { m.raw = m.v.split(' '); m.num = m.raw.map(s => parseFloat(s)); });
+  (function(){
+    const r2 = COL[4], br = COL[5], av = COL[6];
+    vgroups($('#ch-col'), CC.map((c, i) => ({ name: CCL[i], vals: [r2.num[i], br.num[i], av.num[i]] })), [{ name: 'RVT-2', cls: 'c-b1' }, { name: 'BridgeVLA', cls: 'c-b0' }, { name: 'ActiveVLA', cls: 'c-ours' }], { W: 900, H: 300, bw: 15, vfs: 9, lfs: 10, B: 44, valIdx: [2] });
+    rawTable($('#raw-col'), ['Method', 'Avg. SR', 'Avg. Rank'].concat(CC), COL.map(m => ({ cells: [m.n, m.avg, m.rank].concat(m.raw), best: m.ours, bad: m.ours ? [13] : null })));
+    const T6 = [20.0, 62.0, 65.0, 65.0, 70.0, 71.0, 63.0, 71.0, 77.0, 73.0, 53.0, 76.0, 74.0, 75.0];
+    rawTable($('#raw-col2'), ['列', '表 2（正文）', '表 6 Task Mean（附录）', '差'], CC.map((c, i) => ({ cells: [c, av.num[i].toFixed(1), T6[i].toFixed(1), '+' + (av.num[i] - T6[i]).toFixed(1)] })).concat([{ cells: ['Original（只在表 6）', '—', '74.5', '—'] }]));
+  })();
+
+  /* ---------- GemBench ---------- */
+  (function(){
+    const G = [['Hiveformer', 30.4, 60.3, 26.1, 35.1, 0.0], ['PolarNet', 38.4, 77.7, 37.1, 38.5, 0.1], ['3D Diffuser Actor', 44.0, 91.9, 43.4, 37.0, 0.0], ['RVT-2', 44.0, 89.1, 51.0, 36.0, 0.0], ['3D-LOTUS', 45.7, 94.3, 49.9, 38.1, 0.3], ['3D-LOTUS++', 48.0, 68.7, 64.5, 41.5, 17.4], ['BridgeVLA', 50.0, 91.1, 65.0, 43.8, 0.0], ['ActiveVLA', 51.3, 92.4, 66.3, 45.1, 1.2]];
+    heat($('#heat-gem'), G.map(g => g[0]), ['Average', 'L1', 'L2', 'L3', 'L4'], (i, j) => G[i][j + 1], { oursRow: 7 });
+  })();
+
+  /* ---------- real ---------- */
+  (function(){
+    const T = ['Retrieving\nTowel', 'Red to\nGreen Block', 'Occluded\nBanana', 'Occluded\nPurple Cup', 'Overall'];
+    const M = [['Diffusion Policy', ['26±2', '38±4', '42±2', '35±2'], 35.3, 'c-b1', ''], ['VPP', ['52±2', '48±7', '58±2', '64±3'], 55.5, 'c-b1', 'opacity:.75'], ['TriVLA', ['68±4', '54±3', '62±2', '72±2'], 64.0, 'c-cy', ''], ['RVT-2', ['77±4', '63±2', '72±4', '78±5'], 72.5, 'c-b0', ''], ['ActiveVLA', ['92±2', '95±3', '91±5', '89±2'], 91.8, 'c-ours', '']];
+    vgroups($('#ch-real'), T.map((t, i) => ({ name: t, sep: i === 4, vals: M.map(m => i < 4 ? parseFloat(m[1][i]) : m[2]) })), M.map(m => ({ name: m[0], cls: m[3], style: m[4] })), { W: 760, H: 290, bw: 18 });
+    rawTable($('#raw-real'), ['Method', 'Retrieving Towel', 'Red to Green Block', 'Occluded Banana', 'Occluded Purple Cup', 'Overall'], M.map(m => ({ cells: [m[0]].concat(m[1], [m[2].toFixed(1)]), best: m[0] === 'ActiveVLA' })));
+  })();
+
+  /* ---------- ablation: SR vs latency ---------- */
+  (function(){
+    const svg = $('#ch-abl'), W = 760, H = 260; svg.innerHTML = '';
+    const P = [
+      { n: 'RLBench', pts: [[0.26, 87.6], [0.45, 89.4], [0.53, 91.8]], lo: 86, hi: 93 },
+      { n: 'COLOSSEUM', pts: [[0.33, 63.6], [0.51, 64.5], [0.62, 65.9]], lo: 62, hi: 67 },
+      { n: 'GemBench', pts: [[0.21, 48.9], [0.48, 49.4], [0.59, 51.3]], lo: 47, hi: 52 }
+    ];
+    const lab = ['固定视图', '+ A-VS', '+ A-3Z'];
+    const pw = (W - 20) / 3, T = 30, B = 40;
+    P.forEach((p, i) => {
+      const ox = 10 + i * pw + 38, w = pw - 56;
+      const x = v => ox + w * (v - 0.15) / (0.70 - 0.15), y = v => T + (H - T - B) * (1 - (v - p.lo) / (p.hi - p.lo));
+      svg.appendChild(el('text', { x: ox + w / 2, y: 16, 'text-anchor': 'middle', class: 'glabel', 'font-weight': 700 }, p.n));
+      for (let g = p.lo; g <= p.hi; g += 1) { svg.appendChild(el('line', { x1: ox, x2: ox + w, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: ox - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g)); }
+      [0.2, 0.4, 0.6].forEach(t => svg.appendChild(el('text', { x: x(t), y: H - B + 16, 'text-anchor': 'middle', class: 'tick' }, t.toFixed(1) + ' s')));
+      svg.appendChild(el('polyline', { points: p.pts.map(q => x(q[0]) + ',' + y(q[1])).join(' '), fill: 'none', stroke: 'var(--amb)', 'stroke-width': 2 }));
+      p.pts.forEach((q, k) => {
+        svg.appendChild(el('circle', { cx: x(q[0]), cy: y(q[1]), r: 5, fill: k ? 'var(--amb)' : 'var(--base)', 'data-tip': p.n + ' · ' + lab[k] + '：' + q[1] + '%，' + q[0] + ' s' }));
+        svg.appendChild(el('text', { x: x(q[0]) + (k === 2 ? -8 : 8), y: y(q[1]) + (k === 2 ? -9 : 14), 'text-anchor': k === 2 ? 'end' : 'start', class: 'val' }, q[1] + ' · ' + lab[k]));
+      });
+    });
+    svg.appendChild(el('text', { x: W / 2, y: H - 4, 'text-anchor': 'middle', class: 'tick' }, '横轴：单步推理时间（秒，单卡 H100）；纵轴：成功率 %'));
+    rawTable($('#raw-abl'), ['A-VS / A-3Z', 'RLBench SR / s', 'COLOSSEUM SR / s', 'GemBench SR / s'], [{ cells: ['✗ / ✗', '87.6 / 0.26', '63.6 / 0.33', '48.9 / 0.21'] }, { cells: ['✓ / ✗', '89.4 / 0.45', '64.5 / 0.51', '49.4 / 0.48'] }, { cells: ['✓ / ✓', '91.8 / 0.53', '65.9 / 0.62', '51.3 / 0.59'], best: true }]);
+  })();
+
+  /* ---------- hyperparameters ---------- */
+  const HPV = [82.2, 87.3, 91.8, 92.0, 91.7, 91.8], HPZ = [89.4, 90.1, 90.8, 91.8, 91.4, 90.9];
+  (function(){
+    const svg = $('#ch-hp'), W = 760, H = 260; svg.innerHTML = '';
+    const P = [{ n: '(a) 选出的视点数 K', v: HPV, lo: 80, hi: 94, step: 2, hl: 2 }, { n: '(b) 放大倍数 z', v: HPZ, lo: 89, hi: 92.5, step: 0.5, hl: 3 }];
+    const pw = (W - 20) / 2, T = 30, B = 40;
+    P.forEach((p, i) => {
+      const ox = 10 + i * pw + 40, w = pw - 66;
+      const x = k => ox + w * k / 5, y = v => T + (H - T - B) * (1 - (v - p.lo) / (p.hi - p.lo));
+      svg.appendChild(el('text', { x: ox + w / 2, y: 16, 'text-anchor': 'middle', class: 'glabel', 'font-weight': 700 }, p.n));
+      for (let g = p.lo; g <= p.hi + 1e-9; g += p.step) { svg.appendChild(el('line', { x1: ox, x2: ox + w, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: ox - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, (+g.toFixed(1)))); }
+      p.v.forEach((v, k) => svg.appendChild(el('text', { x: x(k), y: H - B + 16, 'text-anchor': 'middle', class: 'tick' }, k + 1)));
+      if (i === 0) { svg.appendChild(el('line', { x1: ox, x2: ox + w, y1: y(87.6), y2: y(87.6), stroke: 'var(--cy)', 'stroke-dasharray': '4 3', 'stroke-width': 1.5 })); svg.appendChild(el('text', { x: ox + w, y: y(87.6) + 14, 'text-anchor': 'end', class: 'tick', style: 'fill:var(--cy)' }, '固定视图基线 87.6（表 4）')); }
+      svg.appendChild(el('polyline', { points: p.v.map((v, k) => x(k) + ',' + y(v)).join(' '), fill: 'none', stroke: 'var(--amb)', 'stroke-width': 2 }));
+      p.v.forEach((v, k) => { svg.appendChild(el('circle', { cx: x(k), cy: y(v), r: k === p.hl ? 5.5 : 4, fill: k === p.hl ? 'var(--amb)' : 'var(--surface)', stroke: 'var(--amb)', 'stroke-width': 2, 'data-tip': p.n + ' = ' + (k + 1) + '：' + v })); svg.appendChild(el('text', { x: x(k) + (k === 0 ? 8 : 0), y: y(v) - (k === 0 ? 4 : 10), 'text-anchor': k === 0 ? 'start' : 'middle', class: 'val' + (k === p.hl ? ' hi' : '') }, v)); });
+    });
+    rawTable($('#raw-hp'), ['取值', '1', '2', '3', '4', '5', '6'], [{ cells: ['视点数 K'].concat(HPV) }, { cells: ['放大倍数 z'].concat(HPZ) }]);
+  })();
+
+  /* =================== active view lab =================== */
+  function icosphere(k){
+    const t = (1 + Math.sqrt(5)) / 2;
+    let V = [[-1, t, 0], [1, t, 0], [-1, -t, 0], [1, -t, 0], [0, -1, t], [0, 1, t], [0, -1, -t], [0, 1, -t], [t, 0, -1], [t, 0, 1], [-t, 0, -1], [-t, 0, 1]];
+    let F = [[0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11], [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8], [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9], [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]];
+    const nrm = v => { const l = Math.hypot(v[0], v[1], v[2]); return [v[0] / l, v[1] / l, v[2] / l]; };
+    V = V.map(nrm);
+    for (let s = 0; s < k; s++) {
+      const cache = new Map(), NF = [];
+      const mid = (a, b) => { const key = a < b ? a + '_' + b : b + '_' + a; if (!cache.has(key)) { V.push(nrm([(V[a][0] + V[b][0]) / 2, (V[a][1] + V[b][1]) / 2, (V[a][2] + V[b][2]) / 2])); cache.set(key, V.length - 1); } return cache.get(key); };
+      F.forEach(f => { const ab = mid(f[0], f[1]), bc = mid(f[1], f[2]), ca = mid(f[2], f[0]); NF.push([f[0], ab, ca], [f[1], bc, ab], [f[2], ca, bc], [ab, bc, ca]); });
+      F = NF;
+    }
+    return V;
+  }
+  const PF = [0.05, 0, 0.04];
+  function boxPts(P, lo, hi, sp, col, faces){
+    const fs = faces || ['x0', 'x1', 'y0', 'y1', 'z1'];
+    const rng = (a, b) => { const n = Math.max(1, Math.round((b - a) / sp)); const out = []; for (let i = 0; i <= n; i++) out.push(a + (b - a) * i / n); return out; };
+    const X = rng(lo[0], hi[0]), Y = rng(lo[1], hi[1]), Z = rng(lo[2], hi[2]);
+    const shade = (f) => { const k = { x0: .82, x1: 1.0, y0: .9, y1: .86, z1: 1.08, z0: .7 }[f] || 1; return col.map(c => Math.max(0, Math.min(255, Math.round(c * k)))); };
+    fs.forEach(f => {
+      const c = shade(f);
+      if (f === 'x0' || f === 'x1') { const x = f === 'x0' ? lo[0] : hi[0]; Y.forEach(y => Z.forEach(z => P.push([x, y, z, c]))); }
+      if (f === 'y0' || f === 'y1') { const y = f === 'y0' ? lo[1] : hi[1]; X.forEach(x => Z.forEach(z => P.push([x, y, z, c]))); }
+      if (f === 'z0' || f === 'z1') { const z = f === 'z0' ? lo[2] : hi[2]; X.forEach(x => Y.forEach(y => P.push([x, y, z, c]))); }
+    });
+  }
+  function buildScene(name){
+    const P = [], sp = 0.014;
+    for (let x = -0.55; x <= 0.55 + 1e-9; x += sp) for (let y = -0.45; y <= 0.45 + 1e-9; y += sp) { const ch = (Math.round(x / 0.07) + Math.round(y / 0.07)) & 1; P.push([x, y, 0, ch ? [186, 144, 96] : [172, 131, 84]]); }
+    const nT0 = P.length;
+    boxPts(P, [PF[0] - 0.04, PF[1] - 0.04, 0], [PF[0] + 0.04, PF[1] + 0.04, 0.08], 0.008, [214, 64, 54]);
+    for (let i = nT0; i < P.length; i++) P[i][4] = 1;
+    boxPts(P, [-0.32, 0.16, 0], [-0.25, 0.23, 0.07], 0.01, [64, 156, 92]);
+    boxPts(P, [0.24, -0.30, 0], [0.33, -0.21, 0.05], 0.01, [70, 112, 196]);
+    if (name === 'wall') boxPts(P, [-0.10, -0.16, 0], [-0.04, 0.16, 0.27], 0.008, [222, 224, 228]);
+    if (name === 'cubby') {
+      const c = [205, 146, 72];
+      boxPts(P, [-0.075, -0.13, 0], [-0.055, 0.13, 0.17], 0.008, c, ['x0', 'x1', 'z1']);
+      boxPts(P, [-0.075, -0.13, 0], [0.18, -0.11, 0.17], 0.008, c, ['y0', 'y1', 'x1']);
+      boxPts(P, [-0.075, 0.11, 0], [0.18, 0.13, 0.17], 0.008, c, ['y0', 'y1', 'x1']);
+      boxPts(P, [-0.075, -0.13, 0.15], [0.18, 0.13, 0.17], 0.008, c, ['z0', 'z1', 'x1']);
+    }
+    return P;
+  }
+  const RAD = 0.45, RTH = 0.022, NSAMP = 24, ALPHA = 60;
+  function makeGrid(P){
+    const g = new Map(), cs = RTH;
+    P.forEach((p, i) => { if (p[4]) return; const key = (Math.floor(p[0] / cs) + 512) * 1048576 + (Math.floor(p[1] / cs) + 512) * 1024 + (Math.floor(p[2] / cs) + 512); let a = g.get(key); if (!a) g.set(key, a = []); a.push(i); });
+    return { g, cs, P };
+  }
+  function nearAny(G, q){
+    const cs = G.cs, ix = Math.floor(q[0] / cs), iy = Math.floor(q[1] / cs), iz = Math.floor(q[2] / cs), r2 = RTH * RTH;
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) {
+      const a = G.g.get((ix + dx + 512) * 1048576 + (iy + dy + 512) * 1024 + (iz + dz + 512)); if (!a) continue;
+      for (let j = 0; j < a.length; j++) { const p = G.P[a[j]]; const ex = p[0] - q[0], ey = p[1] - q[1], ez = p[2] - q[2]; if (ex * ex + ey * ey + ez * ez < r2) return true; }
+    }
+    return false;
+  }
+  function raySamples(G, c){
+    const out = [];
+    for (let k = 0; k < NSAMP; k++) { const t = k / NSAMP; const q = [c[0] + (PF[0] - c[0]) * t, c[1] + (PF[1] - c[1]) * t, c[2] + (PF[2] - c[2]) * t]; out.push({ q, hit: nearAny(G, q) }); }
+    return out;
+  }
+  function zs(a){ const n = a.length, m = a.reduce((s, x) => s + x, 0) / n; const sd = Math.sqrt(a.reduce((s, x) => s + (x - m) * (x - m), 0) / n); if (sd < 1e-6 * (Math.abs(m) + 1)) return { z: a.map(() => 0), deg: true, m }; return { z: a.map(x => (x - m) / sd), deg: false, m }; }
+
+  const S = { scene: 'wall', k: 1, K: 3, div: 'all', w: { vis: 34, dis: 33, div: 33 }, z: 4, cur: -1, az: 0.95, el: 0.55 };
+  let SC = null, C = null, ORDER = [], G = null;
+  function rebuildScene(){ SC = buildScene(S.scene); G = makeGrid(SC); }
+  function computeCands(){
+    const U = icosphere(S.k);
+    C = U.map((u, i) => { const c = [PF[0] + u[0] * RAD, PF[1] + u[1] * RAD, PF[2] + u[2] * RAD]; const rs = raySamples(G, c); return { i, u, c, vis: rs.some(r => r.hit) ? 0 : 1, rays: rs, dis: Math.hypot(c[0] - PF[0], c[1] - PF[1], c[2] - PF[2]), el: Math.asin(Math.max(-1, Math.min(1, u[2]))) * 180 / Math.PI, az: Math.atan2(u[1], u[0]) * 180 / Math.PI }; });
+  }
+  function score(){
+    const M = C.length;
+    const view = C.map(c => [-c.u[0], -c.u[1], -c.u[2]]);
+    const visIdx = C.filter(c => c.vis).map(c => c.i);
+    C.forEach((c, i) => {
+      let s = 0; const set = S.div === 'all' ? C.map(x => x.i) : visIdx;
+      for (let t = 0; t < set.length; t++) { const j = set[t]; if (j === i) continue; const d = view[i][0] * view[j][0] + view[i][1] * view[j][1] + view[i][2] * view[j][2]; s += Math.acos(Math.max(-1, Math.min(1, d))); }
+      c.sdiv = s;
+    });
+    const zv = zs(C.map(c => c.vis)), zd = zs(C.map(c => c.dis)), zdv = zs(C.map(c => c.sdiv));
+    const wsum = S.w.vis + S.w.dis + S.w.div || 1, wv = S.w.vis / wsum, wd = S.w.dis / wsum, wdv = S.w.div / wsum;
+    C.forEach((c, i) => { c.zv = zv.z[i]; c.zd = zd.z[i]; c.zdv = zdv.z[i]; c.s = wv * c.zv + wd * c.zd + wdv * c.zdv; });
+    ORDER = C.slice().sort((a, b) => (b.s - a.s) || (a.i - b.i));
+    ORDER.forEach((c, r) => c.rank = r + 1);
+    return { M, visN: visIdx.length, zvDeg: zv.deg, zdDeg: zd.deg, zdvDeg: zdv.deg, sdivMean: zdv.m, wv, wd, wdv };
+  }
+
+  /* ----- drawing ----- */
+  const cvW = $('#av-world'), cv1 = $('#av-vf1'), cv2 = $('#av-vf2');
+  let COLS = {};
+  function readCols(){ COLS = { bg: cssv('--bg'), surface: cssv('--surface'), ink: cssv('--ink'), ink2: cssv('--ink-2'), muted: cssv('--muted'), line: cssv('--line'), amb: cssv('--amb'), ambhi: cssv('--amb-hi'), cy: cssv('--cy'), warn: cssv('--warn'), base: cssv('--base'), screen: cssv('--screen'), sink: cssv('--screen-ink') }; }
+  function fit(cv){ const r = cv.getBoundingClientRect(), d = Math.min(2, window.devicePixelRatio || 1); const w = Math.max(10, Math.round(r.width * d)), h = Math.max(10, Math.round(r.height * d)); if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; } return { w, h, d }; }
+  function camBasis(eye, tgt, upHint){
+    let f = [tgt[0] - eye[0], tgt[1] - eye[1], tgt[2] - eye[2]]; const fl = Math.hypot(f[0], f[1], f[2]); f = f.map(x => x / fl);
+    let up = upHint || [0, 0, 1]; if (Math.abs(f[0] * up[0] + f[1] * up[1] + f[2] * up[2]) > 0.95) up = [1, 0, 0];
+    let r = [f[1] * up[2] - f[2] * up[1], f[2] * up[0] - f[0] * up[2], f[0] * up[1] - f[1] * up[0]]; const rl = Math.hypot(r[0], r[1], r[2]); r = r.map(x => x / rl);
+    const u = [r[1] * f[2] - r[2] * f[1], r[2] * f[0] - r[0] * f[2], r[0] * f[1] - r[1] * f[0]];
+    return { f, r, u, eye };
+  }
+  function proj(B, p, tanh, W, H){
+    const d = [p[0] - B.eye[0], p[1] - B.eye[1], p[2] - B.eye[2]];
+    const z = d[0] * B.f[0] + d[1] * B.f[1] + d[2] * B.f[2]; if (z < 0.02) return null;
+    const x = d[0] * B.r[0] + d[1] * B.r[1] + d[2] * B.r[2], y = d[0] * B.u[0] + d[1] * B.u[1] + d[2] * B.u[2];
+    const s = Math.min(W, H) / 2;
+    return [W / 2 + x / (z * tanh) * s, H / 2 - y / (z * tanh) * s, z];
+  }
+  let HIT = [];
+  function drawWorld(){
+    const { w: W, h: H, d } = fit(cvW); const ctx = cvW.getContext('2d');
+    ctx.fillStyle = COLS.bg; ctx.fillRect(0, 0, W, H);
+    const ctr = [0.03, 0, 0.12], dist = 1.75;
+    const eye = [ctr[0] + dist * Math.cos(S.el) * Math.cos(S.az), ctr[1] + dist * Math.cos(S.el) * Math.sin(S.az), ctr[2] + dist * Math.sin(S.el)];
+    const B = camBasis(eye, ctr), th = Math.tan(20 * Math.PI / 180);
+    const items = [];
+    for (let i = 0; i < SC.length; i += (SC.length > 7000 ? 2 : 1)) { const p = SC[i]; const q = proj(B, p, th, W, H); if (q) items.push([q[2], 0, q, p[3]]); }
+    const top = new Set(ORDER.slice(0, S.K).map(c => c.i));
+    HIT = [];
+    C.forEach(c => { const q = proj(B, c.c, th, W, H); if (!q) return; items.push([q[2], 1, q, c]); HIT.push([q[0] / d, q[1] / d, q[2], c.i]); });
+    items.sort((a, b) => b[0] - a[0]);
+    const ps = Math.max(1.6, 1.9 * d);
+    const pfq = proj(B, PF, th, W, H);
+    // rays to top-K (behind everything else drawn later? draw first, thin)
+    ctx.lineWidth = 1.4 * d; ctx.setLineDash([4 * d, 4 * d]); ctx.strokeStyle = COLS.amb;
+    ORDER.slice(0, S.K).forEach(c => { const q = proj(B, c.c, th, W, H); if (q && pfq) { ctx.beginPath(); ctx.moveTo(q[0], q[1]); ctx.lineTo(pfq[0], pfq[1]); ctx.stroke(); } });
+    ctx.setLineDash([]);
+    items.forEach(it => {
+      if (it[1] === 0) { const c = it[3]; ctx.fillStyle = 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'; ctx.fillRect(it[2][0] - ps / 2, it[2][1] - ps / 2, ps, ps); return; }
+      const c = it[3], q = it[2], rr = (top.has(c.i) ? 5.2 : 3.8) * d * Math.min(1.25, Math.max(0.75, 1.75 / q[2]));
+      ctx.beginPath(); ctx.arc(q[0], q[1], rr, 0, Math.PI * 2);
+      if (top.has(c.i)) { ctx.fillStyle = COLS.amb; ctx.fill(); }
+      else if (c.vis) { ctx.fillStyle = COLS.cy; ctx.globalAlpha = 0.9; ctx.fill(); ctx.globalAlpha = 1; }
+      else { ctx.fillStyle = COLS.bg; ctx.fill(); ctx.lineWidth = 1.2 * d; ctx.strokeStyle = COLS.base; ctx.stroke(); }
+      if (top.has(c.i)) { const b = rr + 4 * d, g = 4 * d; ctx.strokeStyle = COLS.amb; ctx.lineWidth = 1.6 * d; ctx.beginPath(); ctx.moveTo(q[0] - b, q[1] - b + g); ctx.lineTo(q[0] - b, q[1] - b); ctx.lineTo(q[0] - b + g, q[1] - b); ctx.moveTo(q[0] + b - g, q[1] + b); ctx.lineTo(q[0] + b, q[1] + b); ctx.lineTo(q[0] + b, q[1] + b - g); ctx.stroke(); }
+      if (c.i === S.cur) { ctx.beginPath(); ctx.arc(q[0], q[1], rr + 3 * d, 0, Math.PI * 2); ctx.lineWidth = 2 * d; ctx.strokeStyle = COLS.ink; ctx.stroke(); }
+    });
+    // inspected ray samples
+    const cc = C[S.cur];
+    if (cc) { cc.rays.forEach(r => { const q = proj(B, r.q, th, W, H); if (!q) return; ctx.beginPath(); ctx.arc(q[0], q[1], (r.hit ? 2.6 : 1.6) * d, 0, Math.PI * 2); ctx.fillStyle = r.hit ? COLS.warn : COLS.muted; ctx.fill(); }); }
+    if (pfq) { ctx.strokeStyle = COLS.ink; ctx.lineWidth = 1.5 * d; const x = pfq[0], y = pfq[1], a = 5 * d, b = 11 * d; ctx.beginPath(); ctx.moveTo(x - b, y); ctx.lineTo(x - a, y); ctx.moveTo(x + a, y); ctx.lineTo(x + b, y); ctx.moveTo(x, y - b); ctx.lineTo(x, y - a); ctx.moveTo(x, y + a); ctx.lineTo(x, y + b); ctx.stroke(); ctx.fillStyle = COLS.ink; ctx.font = (11 * d) + 'px "Azeret Mono", monospace'; ctx.fillText('p_f', x + 8 * d, y - 8 * d); }
+  }
+  function drawVF(cv, c, fovDeg, isZoom){
+    const { w: W, h: H, d } = fit(cv); const ctx = cv.getContext('2d');
+    ctx.fillStyle = COLS.screen; ctx.fillRect(0, 0, W, H);
+    const B = camBasis(c.c, PF), th = Math.tan(fovDeg * Math.PI / 360);
+    const items = [];
+    for (let i = 0; i < SC.length; i++) { const q = proj(B, SC[i], th, W, H); if (q && q[0] > -10 && q[0] < W + 10 && q[1] > -10 && q[1] < H + 10) items.push([q[2], q[0], q[1], SC[i][3]]); }
+    items.sort((a, b) => b[0] - a[0]);
+    const ps = Math.max(2, W * 0.012);
+    items.forEach(it => { const col = it[3]; ctx.fillStyle = 'rgb(' + col[0] + ',' + col[1] + ',' + col[2] + ')'; ctx.fillRect(it[1] - ps / 2, it[2] - ps / 2, ps, ps); });
+    // viewfinder overlay
+    const m = 10 * d, L = 16 * d; ctx.strokeStyle = COLS.ambhi; ctx.lineWidth = 2 * d; ctx.beginPath();
+    ctx.moveTo(m, m + L); ctx.lineTo(m, m); ctx.lineTo(m + L, m); ctx.moveTo(W - m - L, m); ctx.lineTo(W - m, m); ctx.lineTo(W - m, m + L);
+    ctx.moveTo(W - m, H - m - L); ctx.lineTo(W - m, H - m); ctx.lineTo(W - m - L, H - m); ctx.moveTo(m + L, H - m); ctx.lineTo(m, H - m); ctx.lineTo(m, H - m - L); ctx.stroke();
+    ctx.lineWidth = 1 * d; ctx.beginPath(); ctx.moveTo(W / 2 - 7 * d, H / 2); ctx.lineTo(W / 2 + 7 * d, H / 2); ctx.moveTo(W / 2, H / 2 - 7 * d); ctx.lineTo(W / 2, H / 2 + 7 * d); ctx.stroke();
+    if (!isZoom && S.z > 1) { const f = Math.tan(fovDeg / S.z * Math.PI / 360) / th; const bw = W * f, bh = H * f; ctx.setLineDash([3 * d, 3 * d]); ctx.strokeRect(W / 2 - bw / 2, H / 2 - bh / 2, bw, bh); ctx.setLineDash([]); }
+    if (!c.vis) { ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, H - 26 * d, W, 26 * d); ctx.fillStyle = '#F4A08F'; ctx.font = (11.5 * d) + 'px "Noto Sans SC", sans-serif'; ctx.fillText('视线被点云挡住（v = 0）', 12 * d, H - 9 * d); }
+  }
+  const W2 = (z) => 2 * RAD * Math.tan(ALPHA * Math.PI / 180 / (2 * z));
+
+  /* ----- UI ----- */
+  function renderAll(info){
+    const c = C[S.cur];
+    drawWorld();
+    drawVF(cv1, c, ALPHA, false);
+    drawVF(cv2, c, ALPHA / S.z, true);
+    $('#av-cap1').textContent = '#' + c.i + ' · z = 1 · FoV ' + ALPHA + '°';
+    $('#av-cap1b').textContent = 'W = ' + W2(1).toFixed(2) + ' m';
+    $('#av-cap2').textContent = 'z = ' + S.z + ' · FoV ' + (ALPHA / S.z).toFixed(1) + '°';
+    $('#av-cap2b').textContent = 'W = ' + W2(S.z).toFixed(3) + ' m';
+    $('#av-zo').textContent = S.z;
+    const paperV = Math.round(12 + 30 * S.k + 20 / 3 * (Math.pow(4, S.k) - 1));
+    const sK = ORDER[S.K - 1].s, ties = ORDER.filter(o => Math.abs(o.s - sK) < 1e-9).length;
+    $('#av-read').innerHTML =
+      '<div><span class="k">候选数</span><b>' + C.length + '</b>实际顶点；论文式 (4) 给出 V(' + S.k + ') = ' + paperV + '</div>' +
+      '<div><span class="k">视线无遮挡</span><b>' + info.visN + ' / ' + C.length + '</b>阈值 r = ' + RTH + ' m，每条射线 ' + NSAMP + ' 点</div>' +
+      '<div><span class="k">第 ' + S.K + ' 名的分数</span><b>' + (ties > 1 ? ties + ' 个并列' : '无并列') + '</b>s = ' + sK.toFixed(3) + '</div>' +
+      '<div><span class="k">原文 Figure 5（RLBench）</span><b>' + HPV[S.K - 1].toFixed(1) + ' · ' + HPZ[S.z - 1].toFixed(1) + '</b>K = ' + S.K + ' 时 · z = ' + S.z + ' 时</div>';
+    // rank table
+    let rows = ORDER.slice(0, 8); if (rows.indexOf(c) < 0) rows = rows.concat([c]);
+    const f2 = (x, deg) => deg ? '<td class="zero">0</td>' : '<td>' + (x >= 0 ? '+' : '') + x.toFixed(2) + '</td>';
+    $('#av-rank').innerHTML = '<thead><tr><th>名次</th><th>候选</th><th>仰角</th><th>方位</th><th>v</th><th>z(v)</th><th>S_div</th><th>z(div)</th><th>z(dis)</th><th>s</th></tr></thead><tbody>' +
+      rows.map(o => '<tr data-i="' + o.i + '" class="' + (o.rank <= S.K ? 'top' : '') + (o.i === S.cur ? ' cur' : '') + '"><td>' + o.rank + (o.rank <= S.K ? ' ★' : '') + '</td><td>#' + o.i + '</td><td>' + o.el.toFixed(0) + '°</td><td>' + o.az.toFixed(0) + '°</td><td>' + o.vis + '</td>' + f2(o.zv, info.zvDeg) + '<td>' + o.sdiv.toFixed(2) + '</td>' + f2(o.zdv, info.zdvDeg) + f2(o.zd, info.zdDeg) + '<td>' + o.s.toFixed(3) + '</td></tr>').join('') + '</tbody>';
+    $$('#av-rank tbody tr').forEach(tr => tr.addEventListener('click', () => { S.cur = +tr.dataset.i; renderAll(LAST); }));
+    // say
+    const topC = ORDER.slice(0, S.K);
+    let minAng = Infinity; for (let a = 0; a < topC.length; a++) for (let b = a + 1; b < topC.length; b++) { const u = topC[a].u, v = topC[b].u; minAng = Math.min(minAng, Math.acos(Math.max(-1, Math.min(1, u[0] * v[0] + u[1] * v[1] + u[2] * v[2]))) * 180 / Math.PI); }
+    let s = '';
+    if (S.div === 'all') {
+      s += '<b>原文字面：</b>' + C.length + ' 个候选的 S_div 全部等于 πM/2 = ' + (Math.PI * C.length / 2).toFixed(2) + '，Z 标准化后为 0；距离都等于半径 ' + RAD + ' m，Z 标准化后也是 0。排序只由二值可见性决定：';
+      s += info.visN + ' 个可见候选得分完全相同（s = ' + (info.visN ? C.find(x => x.vis).s.toFixed(3) : '—') + '）。取前 ' + S.K + ' 个时只能按候选编号，原文没定义这一步。';
+    } else {
+      const best = C.filter(x => x.vis).sort((a, b) => b.sdiv - a.sdiv)[0];
+      s += '<b>只在可见候选里求和：</b>S_div 不再是常数' + (best ? '，最大的是 #' + best.i + '（仰角 ' + best.el.toFixed(0) + '°），位于可见区域的边缘' : '') + '。选中视点的仰角依次为 ' + topC.map(o => o.el.toFixed(0) + '°').join('、') + '。这一项奖励"离其他可见候选远"的单个视点，不检查选出的视点彼此是否挨着。';
+    }
+    if (topC.length > 1 && isFinite(minAng)) s += ' 当前 top-' + S.K + ' 两两之间最小夹角 ' + minAng.toFixed(0) + '°。';
+    if (info.visN < S.K) s += ' <b>可见候选只有 ' + info.visN + ' 个，不够 K = ' + S.K + '</b>，剩下的名额只能从被遮挡的视点里补。';
+    if (info.wv === 0) s += ' w_vis = 0 时可见性也不起作用，所有候选都并列。';
+    s += ' 当前查看 #' + c.i + '：' + (c.vis ? '视线无遮挡' : '射线上有 ' + c.rays.filter(r => r.hit).length + ' 个采样点离点云不到 r（图中红点）') + '，排第 ' + c.rank + '。';
+    $('#av-say').innerHTML = s;
+  }
+  let LAST = null;
+  function recompute(resetCur){ computeCands(); LAST = score(); if (resetCur || S.cur < 0 || S.cur >= C.length) S.cur = ORDER[0].i; renderAll(LAST); }
+  function rescore(){ LAST = score(); renderAll(LAST); }
+  function seg(id, key, fn){ $$('#' + id + ' button').forEach(b => b.addEventListener('click', () => { $$('#' + id + ' button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); const v = b.dataset.v; S[key] = isNaN(+v) ? v : +v; fn(); })); }
+  seg('av-scene', 'scene', () => { rebuildScene(); recompute(true); });
+  seg('av-k', 'k', () => recompute(true));
+  seg('av-topk', 'K', () => renderAll(LAST));
+  seg('av-div', 'div', () => { rescore(); });
+  $$('#av-w input').forEach(inp => inp.addEventListener('input', () => { S.w[inp.dataset.w] = +inp.value; const sum = S.w.vis + S.w.dis + S.w.div || 1; $$('#av-w input').forEach(x => { x.nextElementSibling.textContent = (S.w[x.dataset.w] / sum).toFixed(2); }); rescore(); }));
+  $('#av-z').addEventListener('input', e => { S.z = +e.target.value; renderAll(LAST); });
+  // orbit + pick
+  (function(){
+    let drag = null;
+    cvW.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, az: S.az, el: S.el, moved: false }; cvW.setPointerCapture(e.pointerId); });
+    cvW.addEventListener('pointermove', e => { if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true; if (!drag.moved) return; S.az = drag.az - dx * 0.008; S.el = Math.max(-0.35, Math.min(1.45, drag.el + dy * 0.006)); drawWorld(); });
+    cvW.addEventListener('pointerup', e => {
+      if (drag && !drag.moved) { const r = cvW.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top; let best = null, bd = 16 * 16; HIT.forEach(h => { const dd = (h[0] - x) * (h[0] - x) + (h[1] - y) * (h[1] - y); if (dd < bd) { bd = dd; best = h; } }); if (best) { S.cur = best[3]; renderAll(LAST); } }
+      drag = null;
+    });
+    cvW.addEventListener('pointercancel', () => { drag = null; });
+  })();
+  readCols(); rebuildScene(); recompute(true);
+  let rT = null; window.addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(() => renderAll(LAST), 120); });
+  if (window.matchMedia) { const mq = window.matchMedia('(prefers-color-scheme: dark)'); const fnc = () => { readCols(); renderAll(LAST); }; if (mq.addEventListener) mq.addEventListener('change', fnc); else if (mq.addListener) mq.addListener(fnc); }
+  new MutationObserver(() => { readCols(); renderAll(LAST); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+})();
+</script>
+</body>
+</html>

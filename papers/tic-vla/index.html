@@ -1,0 +1,1359 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>TIC-VLA 精读</title>
+<meta name="description" content="TIC-VLA: A Think-in-Control Vision-Language-Action Model for Robot Navigation in Dynamic Environments 中文精读：延迟语义-控制接口（KV cache + 延迟 Δt + 期间位移）、延迟一致的三阶段训练、DynaNav 基准与真机结果，附时间轴交互演示和疑点。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Fira+Code:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#E7EEEA; --surface:#F4F8F5; --surface-2:#DBE5DF; --ink:#0F1F1A; --ink-2:#2E423B; --muted:#5A6D65; --line:#C3D1C9; --grid:#D2DDD6;
+  --rt:#06777E; --rt-soft:#CBE8E8; --on-rt:#FFFFFF;
+  --lag:#AE2577; --lag-soft:#F3D5E6;
+  --meta:#9A6200; --meta-soft:#F1E2C1;
+  --warn:#B0382A; --warn-soft:#F3D8D2;
+  --base:#84958D; --base-2:#B5C3BC;
+  --plate:#FFFFFF; --focus:#06777E;
+  --f-display:"Space Grotesk","Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"Fira Code",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  /* oscilloscope screen: dark in both themes */
+  --scr:#07120E; --scr-grid:#173129; --scr-ax:#2A4A40; --scr-txt:#8DB3A7;
+  --ph-c:#3FE0D0; --ph-m:#F26BBE; --ph-a:#F2B544;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#09130F; --surface:#0F1C17; --surface-2:#162722; --ink:#E0ECE7; --ink-2:#B3C6BE; --muted:#7E948B; --line:#22362F; --grid:#13231D;
+    --rt:#3FE0D0; --rt-soft:#0E3330; --on-rt:#04201C;
+    --lag:#F26BBE; --lag-soft:#3A152E;
+    --meta:#F2B544; --meta-soft:#38290C;
+    --warn:#F08A76; --warn-soft:#3A1C16;
+    --base:#6D8279; --base-2:#3C5048;
+    --plate:#EEF3F0; --focus:#3FE0D0;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#09130F; --surface:#0F1C17; --surface-2:#162722; --ink:#E0ECE7; --ink-2:#B3C6BE; --muted:#7E948B; --line:#22362F; --grid:#13231D;
+  --rt:#3FE0D0; --rt-soft:#0E3330; --on-rt:#04201C;
+  --lag:#F26BBE; --lag-soft:#3A152E;
+  --meta:#F2B544; --meta-soft:#38290C;
+  --warn:#F08A76; --warn-soft:#3A1C16;
+  --base:#6D8279; --base-2:#3C5048;
+  --plate:#EEF3F0; --focus:#3FE0D0;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:var(--rt);text-underline-offset:3px;text-decoration-thickness:1px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+strong{font-weight:700}
+em{font-style:normal;background:linear-gradient(transparent 62%,var(--lag-soft) 62%)}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+sub,sup{font-size:.72em;line-height:0}
+.page{max-width:1200px;margin:0 auto;padding-inline:24px}
+@media (max-width:560px){.page{padding-inline:16px}}
+.c-rt-t{color:var(--rt)} .c-lag-t{color:var(--lag)} .c-meta-t{color:var(--meta)}
+
+/* hero */
+.hero-wrap{background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:44px 44px;background-position:-1px -1px;border-bottom:1px solid var(--line)}
+.hero{padding-block:44px 30px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;align-items:center}
+@media (max-width:920px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:26px}}
+.kicker{font:500 12px/1.5 var(--f-mono);letter-spacing:.08em;color:var(--rt);margin:0 0 14px}
+.kicker b{color:var(--lag);font-weight:500}
+h1.title{font-family:var(--f-display);font-weight:700;font-size:clamp(3.2rem,2rem + 6vw,6.2rem);line-height:.95;letter-spacing:-.035em;margin:0}
+h1.title .a{color:var(--rt)} h1.title .h{color:var(--lag)}
+.entitle{font-family:var(--f-display);font-weight:500;font-size:clamp(.98rem,.88rem + .4vw,1.16rem);line-height:1.45;color:var(--ink-2);margin:14px 0 0}
+.thesis{font-size:clamp(1.06rem,1rem + .4vw,1.24rem);line-height:1.78;margin:20px 0 0;max-width:34em}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin:20px 0 0;padding:0;list-style:none;font:13px/1.6 var(--f-mono);color:var(--muted)}
+.meta b{color:var(--ink-2);font-weight:500}
+.scope{margin:0;background:var(--scr);border-radius:12px;padding:12px;box-shadow:0 0 0 1px var(--line),inset 0 0 40px rgba(63,224,208,.06)}
+.scope svg{display:block;width:100%;height:auto}
+.scope svg text{font-family:var(--f-mono);font-size:10.5px;fill:var(--scr-txt)}
+.scope svg .ch{font-size:10px;font-weight:500}
+.scope figcaption{font:12px/1.6 var(--f-mono);color:var(--scr-txt);margin-top:8px}
+@media (prefers-reduced-motion:no-preference){
+  .scan{animation:scan 6s linear infinite}
+  @keyframes scan{from{transform:translateX(0)}to{transform:translateX(420px)}}
+}
+.tldr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:30px}
+@media (max-width:760px){.tldr{grid-template-columns:minmax(0,1fr)}}
+.tldr>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.tldr h3{font:500 12px/1.4 var(--f-mono);letter-spacing:.08em;color:var(--muted);margin:0 0 6px}
+.tldr p{margin:0;font-size:15px;line-height:1.75}
+.tldr .flag h3{color:var(--warn)}
+
+/* layout */
+.layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:52px;padding-block:24px 80px}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr);gap:0}}
+.toc{position:sticky;top:20px;align-self:start;font-size:14px;line-height:1.5}
+.toc p{font:500 11px/1.4 var(--f-mono);letter-spacing:.12em;color:var(--muted);margin:0 0 10px}
+.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.toc li a{display:block;padding:5px 0 5px 14px;margin-left:-1px;border-left:2px solid transparent;color:var(--muted);text-decoration:none}
+.toc li a:hover{color:var(--ink)}
+.toc li a.on{color:var(--ink);border-left-color:var(--rt);font-weight:500}
+@media (max-width:1000px){
+  .toc{position:static;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .toc p{display:none}
+  .toc ol{display:flex;gap:6px;border:0;white-space:nowrap;padding-bottom:6px}
+  .toc li a{border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin:0;background:var(--surface)}
+  .toc li a.on{border-color:var(--rt)}
+}
+main{min-width:0}
+section{padding-top:56px;scroll-margin-top:12px}
+section:first-child{padding-top:8px}
+.eyebrow{font:500 12px/1.4 var(--f-mono);letter-spacing:.08em;color:var(--rt);margin:0 0 8px}
+h2{font-family:var(--f-display);font-weight:700;font-size:clamp(1.35rem,1.1rem + 1.1vw,1.9rem);line-height:1.3;letter-spacing:-.01em;margin:0 0 18px}
+h3{font-family:var(--f-display);font-weight:700;font-size:1.06rem;line-height:1.45;margin:36px 0 10px}
+p{margin:0 0 14px}
+.prose{max-width:44em}
+.prose li{margin-bottom:6px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.tag{display:inline-block;font:500 11px/1 var(--f-mono);letter-spacing:.04em;padding:4px 6px 3px;border-radius:4px;vertical-align:2px;margin-right:6px;white-space:nowrap}
+.tag.read{border:1px dashed var(--ink-2);color:var(--ink-2)}
+.tag.doubt{background:var(--warn-soft);color:var(--warn)}
+.note{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 18px;margin:18px 0;max-width:46em}
+.note>:last-child{margin-bottom:0}
+.note h4{font:500 12.5px/1.5 var(--f-body);margin:0 0 6px;color:var(--ink-2)}
+.note.doubt{border-color:color-mix(in oklab,var(--warn) 35%,var(--line));background:color-mix(in oklab,var(--warn-soft) 55%,var(--surface))}
+.note.doubt h4{color:var(--warn)}
+.eq{font-family:"Times New Roman",Georgia,"Noto Serif SC",serif;font-size:1.08rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:14px 0;overflow-x:auto;white-space:nowrap;display:flex;justify-content:space-between;gap:24px;max-width:46em}
+.eq .no{font:12px var(--f-mono);color:var(--muted);align-self:center}
+.eq .s{color:var(--lag)} .eq .r{color:var(--rt)} .eq .m{color:var(--meta)}
+
+figure.plate{margin:22px 0}
+figure.plate .zoom{display:block;width:100%;padding:10px;background:var(--plate);border:1px solid var(--line);border-radius:8px;cursor:zoom-in}
+figure.plate img{display:block;width:100%;height:auto}
+figure.plate.narrow{max-width:560px}
+figure.plate figcaption{font-size:14px;line-height:1.7;color:var(--ink-2);margin-top:10px;max-width:52em}
+figure.plate figcaption b{font:500 12px var(--f-mono);letter-spacing:.02em;color:var(--muted);margin-right:8px}
+dialog#lb{border:0;padding:0;background:transparent;max-width:min(96vw,1800px);width:96vw}
+dialog#lb::backdrop{background:rgba(4,12,9,.86)}
+dialog#lb .box{background:var(--plate);border-radius:8px;padding:10px;max-height:88vh;overflow:auto}
+dialog#lb img{display:block;width:100%;height:auto}
+dialog#lb .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#E4EEEA;font-size:14px;padding:8px 2px 0}
+dialog#lb button{font:500 13px var(--f-mono);background:#E4EEEA;color:#0F1F1A;border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
+
+.tblwrap{overflow-x:auto;margin:16px 0;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;font-size:14px;line-height:1.6;min-width:100%}
+table.t th,table.t td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.t thead th{font:500 12px/1.4 var(--f-mono);color:var(--muted);border-bottom:1.5px solid var(--ink-2);white-space:nowrap}
+table.t tbody th{font-weight:500;white-space:nowrap;color:var(--ink-2)}
+table.t .num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t tr.best td,table.t tr.best th{font-weight:700}
+table.t tr.sep td,table.t tr.sep th{border-top:1.5px solid var(--ink-2)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.dot.r{background:var(--rt)} .dot.l{background:var(--lag)} .dot.m{background:var(--meta)}
+
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.cards.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:860px){.cards.three{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.cards{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card h4{font-family:var(--f-display);font-weight:700;font-size:.96rem;line-height:1.45;margin:0 0 8px}
+.card p{font-size:14.5px;line-height:1.75;margin:0 0 8px}
+.card p:last-child{margin:0}
+.card.r{border-top:3px solid var(--rt)} .card.l{border-top:3px solid var(--lag)} .card.m{border-top:3px solid var(--meta)}
+.card dl{display:grid;grid-template-columns:72px minmax(0,1fr);gap:4px 10px;margin:0;font-size:13.5px;line-height:1.65}
+.card dt{color:var(--muted)} .card dd{margin:0}
+
+/* lab */
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin:22px 0}
+@media (max-width:560px){.lab{padding:14px 12px}}
+.lab-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 16px;margin-bottom:12px}
+.lab-head h4{font-family:var(--f-display);font-weight:700;font-size:1.02rem;margin:0}
+.lab-head p{margin:0;font-size:13px;color:var(--muted)}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:0 0 12px;font-size:14px}
+.ctrl label{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ctrl .lbl{font:500 12.5px var(--f-mono);color:var(--muted)}
+.ctrl output{font:500 14px var(--f-mono);color:var(--ink);min-width:5.4em;display:inline-block}
+input[type=range]{width:min(320px,62vw);accent-color:var(--rt)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--bg);flex-wrap:wrap}
+.seg button{font:500 13px/1.2 var(--f-body);border:0;background:transparent;color:var(--muted);padding:8px 12px;cursor:pointer;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{font:500 12.5px/1.2 var(--f-body);border:1px solid var(--line);background:var(--bg);color:var(--ink-2);border-radius:999px;padding:5px 10px;cursor:pointer}
+.chips button[aria-pressed="true"]{border-color:var(--lag);color:var(--lag);background:var(--lag-soft)}
+.btn{font:500 13px var(--f-mono);border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:7px;padding:7px 12px;cursor:pointer;min-height:34px}
+.lab svg{display:block;width:100%;height:auto}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tl svg{min-width:660px}
+.tl text,.mp text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+.tl .mono,.mp .mono{font-family:var(--f-mono);font-size:11px;fill:var(--muted)}
+.tl .hd{font-family:var(--f-display);font-weight:700;font-size:12.5px;fill:var(--ink)}
+.lab-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:16px;margin-top:12px;align-items:start}
+@media (max-width:900px){.lab-grid{grid-template-columns:minmax(0,1fr)}}
+.mp{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--ink-2);margin:6px 2px 2px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.legend i.o{background:transparent;border:2px solid var(--lag);border-radius:50%}
+.readout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:420px){.readout{grid-template-columns:minmax(0,1fr)}}
+.readout>div{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.6}
+.readout b{font-family:var(--f-mono);font-weight:500;font-size:17px;color:var(--ink);display:block;line-height:1.4}
+.readout .k{font:500 11px var(--f-mono);letter-spacing:.04em;color:var(--muted)}
+.readout .wide{grid-column:1 / -1}
+.readout .wide b{font:500 14.5px/1.6 var(--f-body)}
+.inputs{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.inputs span{font:500 12px/1 var(--f-mono);padding:6px 8px;border-radius:5px;border:1px solid var(--line)}
+.inputs .r{border-color:var(--rt);color:var(--rt)} .inputs .l{border-color:var(--lag);color:var(--lag)} .inputs .m{border-color:var(--meta);color:var(--meta)}
+.inputs .off{text-decoration:line-through;opacity:.55}
+.say{font-size:14px;line-height:1.75;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:12px 0 0}
+
+/* charts */
+.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 16px 10px;margin:18px 0}
+.chartbox h4{font-family:var(--f-display);font-weight:700;font-size:.97rem;margin:0 0 2px}
+.chartbox .sub{font-size:13px;color:var(--muted);margin:0 0 10px}
+svg.chart{display:block;width:100%;height:auto;min-width:600px}
+svg.chart text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+svg.chart .tick{font:11px var(--f-mono);fill:var(--muted)}
+svg.chart .val{font:11px var(--f-mono);fill:var(--ink-2)}
+svg.chart .val.hi{fill:var(--ink);font-weight:500}
+svg.chart .grid{stroke:var(--line);stroke-width:1}
+svg.chart .base{stroke:var(--ink-2);stroke-width:1}
+svg.chart .glabel{font-size:12.5px;fill:var(--ink)}
+svg.chart .grp{font:500 11px var(--f-mono);fill:var(--muted)}
+.c-rt{fill:var(--rt)} .c-rt2{fill:color-mix(in oklab,var(--rt) 50%,var(--surface))} .c-rt3{fill:color-mix(in oklab,var(--rt) 24%,var(--surface));stroke:var(--rt);stroke-width:1}
+.c-b0{fill:var(--base)} .c-b1{fill:var(--base-2)} .c-lag{fill:var(--lag)} .c-meta{fill:var(--meta)} .c-warn{fill:var(--warn)}
+.bg-rt{background:var(--rt)} .bg-rt2{background:color-mix(in oklab,var(--rt) 50%,var(--surface))} .bg-b0{background:var(--base)} .bg-b1{background:var(--base-2)} .bg-lag{background:var(--lag)}
+details.raw{margin:8px 0 4px;font-size:13.5px}
+details.raw summary{cursor:pointer;color:var(--muted);font:500 12.5px var(--f-mono)}
+details.raw .tblwrap{margin:8px 0}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);font:12.5px/1.55 var(--f-body);padding:8px 10px;border-radius:6px;max-width:280px}
+
+/* 2x2 matrix */
+.mx{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);gap:6px;margin:10px 0 6px;min-width:520px}
+.mx .h{font:500 12px/1.4 var(--f-mono);color:var(--muted);display:flex;align-items:flex-end;justify-content:center;padding:4px}
+.mx .rh{font:500 13px/1.4 var(--f-body);color:var(--ink);display:flex;align-items:center;padding-right:8px;white-space:nowrap}
+.mx .cell{border-radius:8px;padding:12px 14px;border:1px solid var(--line)}
+.mx .cell b{display:block;font:500 26px/1.1 var(--f-mono);color:var(--ink)}
+.mx .cell span{font:12px/1.6 var(--f-mono);color:var(--ink-2)}
+.mx .cell.dk b,.mx .cell.dk span{color:var(--on-rt)}
+
+table.heat{border-collapse:separate;border-spacing:3px;font-size:13px;min-width:420px;width:100%}
+table.heat th{font:500 11.5px/1.3 var(--f-mono);color:var(--muted);text-align:center;padding:6px 4px;white-space:nowrap}
+table.heat th.row{text-align:left;font:500 13px/1.3 var(--f-body);color:var(--ink);white-space:nowrap;padding-right:10px}
+table.heat td{text-align:center;font:500 12.5px var(--f-mono);font-variant-numeric:tabular-nums;border-radius:4px;padding:7px 4px;color:var(--ink)}
+table.heat td.dk{color:var(--on-rt)}
+table.heat tr.avg th.row{font-weight:700}
+table.heat tr.avg td{box-shadow:inset 0 2px 0 var(--ink-2)}
+
+.abl-nav{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.abl-nav button{font:500 12.5px/1.2 var(--f-body);border:1px solid var(--line);background:var(--bg);color:var(--ink-2);border-radius:999px;padding:6px 11px;cursor:pointer}
+.abl-nav button[aria-pressed="true"]{background:var(--rt);border-color:var(--rt);color:var(--on-rt)}
+
+details.faq{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:10px 0;max-width:50em}
+details.faq summary{cursor:pointer;padding:12px 16px;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::after{content:"+";font:500 16px var(--f-mono);color:var(--muted)}
+details.faq[open] summary::after{content:"−"}
+details.faq .a{padding:0 16px 14px;font-size:15px;line-height:1.8}
+details.faq .a p:last-child{margin:0}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0;align-items:start}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.two>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.two h4{font:500 12.5px/1.4 var(--f-mono);letter-spacing:.06em;margin:0 0 10px;color:var(--muted)}
+.two ul{margin:0;padding-left:18px;font-size:14.5px;line-height:1.75}
+.two li{margin-bottom:8px}
+table.cmp{min-width:980px}
+table.cmp td{font-size:13.5px}
+table.cmp th.me,table.cmp td.me{background:color-mix(in oklab,var(--rt-soft) 55%,transparent)}
+details.gl{background:var(--surface);border:1px solid var(--line);border-radius:10px;max-width:52em}
+details.gl summary{cursor:pointer;padding:14px 18px;font-weight:500}
+details.gl dl{margin:0;padding:0 18px 16px;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:8px 18px;font-size:14px;line-height:1.7}
+details.gl dt{font-family:var(--f-mono);font-size:13px;color:var(--ink)}
+details.gl dd{margin:0;color:var(--ink-2)}
+@media (max-width:560px){details.gl dl{grid-template-columns:minmax(0,1fr);gap:2px}details.gl dd{margin-bottom:10px}}
+footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+.vapnav-grp{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-cat{font-size:11.5px;letter-spacing:.04em;opacity:.5}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/">Harness for Robotics</a></span><span class="vapnav-links"><span class="vapnav-grp"><span class="vapnav-cat">上下文</span><a href="../../papers/activevla/">ActiveVLA</a><a href="../../papers/tic-vla/" aria-current="page">TIC-VLA</a><a href="../../papers/ra-vla/">RA-VLA</a></span><span class="vapnav-grp"><span class="vapnav-cat">记忆</span><a href="../../papers/memoryvla/">MemoryVLA</a><a href="../../papers/optimusvla/">OptimusVLA</a><a href="../../papers/soma/">SOMA</a><a href="../../papers/hime/">HiMe</a></span><span class="vapnav-grp"><span class="vapnav-cat">结构化执行</span><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/motormind/">MotorMind</a></span><span class="vapnav-grp"><span class="vapnav-cat">评估与反馈</span><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/tau0-vla/">τ₀-VLA</a></span></span></div></div>
+<!-- /vap:nav -->
+<div class="hero-wrap">
+<header class="hero page">
+  <div class="hero-grid">
+    <div>
+      <p class="kicker">论文精读 · Harness for Robotics · <b>Context Architecture</b>（时序对齐）</p>
+      <h1 class="title"><span class="a">TIC</span><span class="h">-</span>VLA</h1>
+      <p class="entitle">A Think-in-Control Vision-Language-Action Model for Robot Navigation in Dynamic Environments</p>
+      <p class="thesis">VLM 想完一次要好几秒，动作得每 0.1 秒给一次。TIC-VLA 不去等推理，也不假装推理是新鲜的：动作专家每一步除了当前画面，还拿到<strong class="c-lag-t">上一次推理留下的 KV cache</strong>，外加两条元数据，<strong class="c-meta-t">这段语义有多旧（Δt）</strong>、<strong class="c-meta-t">这期间机器人移动了多少（Δx, Δy, Δθ）</strong>。训练时也按这个口径人为注入延迟。</p>
+      <ul class="meta">
+        <li><b>UCLA</b>（Jiaqi Ma 组）</li>
+        <li><b>arXiv</b> 2602.02459v2</li>
+        <li><b>v1</b> 2026-02-02 · <b>v2</b> 2026-05-29</li>
+        <li><b>ICML 2026</b></li>
+        <li><a href="https://arxiv.org/abs/2602.02459" target="_blank" rel="noopener">arXiv</a> · <a href="https://ucla-mobility.github.io/TIC-VLA/" target="_blank" rel="noopener">项目页</a></li>
+      </ul>
+    </div>
+    <figure class="scope">
+<svg viewBox="0 0 520 292" role="img" aria-label="时序示意：VLM 每 2 秒完成一次推理，KV cache 随之更新；动作策略 10 Hz 持续运行；策略读到的延迟 Δt 在 2 到 4 秒之间锯齿变化">
+<path d="M74 20V260M116 20V260M158 20V260M200 20V260M242 20V260M284 20V260M326 20V260M368 20V260M410 20V260M452 20V260M494 20V260M74 20H494M74 60H494M74 100H494M74 140H494M74 180H494M74 220H494M74 260H494" stroke="var(--scr-grid)" stroke-width="1" fill="none"/>
+<path d="M74.0 138v4M82.4 138v4M90.8 138v4M99.2 138v4M107.6 138v4M116.0 138v4M124.4 138v4M132.8 138v4M141.2 138v4M149.6 138v4M158.0 138v4M166.4 138v4M174.8 138v4M183.2 138v4M191.6 138v4M200.0 138v4M208.4 138v4M216.8 138v4M225.2 138v4M233.6 138v4M242.0 138v4M250.4 138v4M258.8 138v4M267.2 138v4M275.6 138v4M284.0 138v4M292.4 138v4M300.8 138v4M309.2 138v4M317.6 138v4M326.0 138v4M334.4 138v4M342.8 138v4M351.2 138v4M359.6 138v4M368.0 138v4M376.4 138v4M384.8 138v4M393.2 138v4M401.6 138v4M410.0 138v4M418.4 138v4M426.8 138v4M435.2 138v4M443.6 138v4M452.0 138v4M460.4 138v4M468.8 138v4M477.2 138v4M485.6 138v4M494.0 138v4" stroke="var(--scr-ax)" stroke-width="1"/>
+<text class="ch" x="6" y="47" style="fill:var(--ph-m)">CH1 VLM</text>
+<text class="ch" x="6" y="99" style="fill:var(--ph-m)">CH2 KV</text>
+<text class="ch" x="6" y="155" style="fill:var(--ph-c)">CH3 π</text>
+<text x="6" y="168" style="fill:var(--ph-c);font-size:9.5px">10 Hz</text>
+<text class="ch" x="6" y="230" style="fill:var(--ph-a)">CH4 Δt</text>
+<polygon points="75,44 80,33 152,33 157,44 152,55 80,55" fill="var(--ph-m)" fill-opacity=".14" stroke="var(--ph-m)" stroke-width="1.2"/>
+<text x="116" y="48" text-anchor="middle" style="fill:var(--ph-m);font-size:10px">obs@0s</text>
+<polygon points="159,44 164,33 236,33 241,44 236,55 164,55" fill="var(--ph-m)" fill-opacity=".14" stroke="var(--ph-m)" stroke-width="1.2"/>
+<text x="200" y="48" text-anchor="middle" style="fill:var(--ph-m);font-size:10px">obs@2s</text>
+<polygon points="243,44 248,33 320,33 325,44 320,55 248,55" fill="var(--ph-m)" fill-opacity=".14" stroke="var(--ph-m)" stroke-width="1.2"/>
+<text x="284" y="48" text-anchor="middle" style="fill:var(--ph-m);font-size:10px">obs@4s</text>
+<polygon points="327,44 332,33 404,33 409,44 404,55 332,55" fill="var(--ph-m)" fill-opacity=".14" stroke="var(--ph-m)" stroke-width="1.2"/>
+<text x="368" y="48" text-anchor="middle" style="fill:var(--ph-m);font-size:10px">obs@6s</text>
+<polygon points="411,44 416,33 488,33 493,44 488,55 416,55" fill="var(--ph-m)" fill-opacity=".14" stroke="var(--ph-m)" stroke-width="1.2"/>
+<text x="452" y="48" text-anchor="middle" style="fill:var(--ph-m);font-size:10px">obs@8s</text>
+<polygon points="75,96 80,85 152,85 157,96 152,107 80,107" fill="var(--scr-ax)" fill-opacity="0" stroke="var(--scr-ax)" stroke-width="1.2" stroke-dasharray="3 3"/>
+<text x="116" y="100" text-anchor="middle" style="fill:var(--scr-txt);font-size:10px">空 · 原地等待</text>
+<polygon points="159,96 164,85 236,85 241,96 236,107 164,107" fill="var(--ph-m)" fill-opacity=".2" stroke="var(--ph-m)" stroke-width="1.2"/>
+<text x="200" y="100" text-anchor="middle" style="fill:var(--ph-m);font-size:10px">S@0s</text>
+<polygon points="243,96 248,85 320,85 325,96 320,107 248,107" fill="var(--ph-m)" fill-opacity=".2" stroke="var(--ph-m)" stroke-width="1.2"/>
+<text x="284" y="100" text-anchor="middle" style="fill:var(--ph-m);font-size:10px">S@2s</text>
+<polygon points="327,96 332,85 404,85 409,96 404,107 332,107" fill="var(--ph-m)" fill-opacity=".42" stroke="var(--ph-m)" stroke-width="1.2"/>
+<text x="368" y="100" text-anchor="middle" style="fill:#FFFFFF;font-size:10px">S@4s</text>
+<polygon points="411,96 416,85 488,85 493,96 488,107 416,107" fill="var(--ph-m)" fill-opacity=".2" stroke="var(--ph-m)" stroke-width="1.2"/>
+<text x="452" y="100" text-anchor="middle" style="fill:var(--ph-m);font-size:10px">S@6s</text>
+<path d="M158 57V82" stroke="var(--ph-m)" stroke-opacity=".7" stroke-dasharray="2 2"/><path d="M158 84l-3-5h6z" fill="var(--ph-m)"/>
+<path d="M242 57V82" stroke="var(--ph-m)" stroke-opacity=".7" stroke-dasharray="2 2"/><path d="M242 84l-3-5h6z" fill="var(--ph-m)"/>
+<path d="M326 57V82" stroke="var(--ph-m)" stroke-opacity=".7" stroke-dasharray="2 2"/><path d="M326 84l-3-5h6z" fill="var(--ph-m)"/>
+<path d="M410 57V82" stroke="var(--ph-m)" stroke-opacity=".7" stroke-dasharray="2 2"/><path d="M410 84l-3-5h6z" fill="var(--ph-m)"/>
+<path d="M74.0 158v-14M78.2 158v-14M82.4 158v-14M86.6 158v-14M90.8 158v-14M95.0 158v-14M99.2 158v-14M103.4 158v-14M107.6 158v-14M111.8 158v-14M116.0 158v-14M120.2 158v-14M124.4 158v-14M128.6 158v-14M132.8 158v-14M137.0 158v-14M141.2 158v-14M145.4 158v-14M149.6 158v-14M153.8 158v-14" stroke="var(--ph-c)" stroke-opacity=".3" stroke-width="1.3"/>
+<path d="M158.0 158v-14M162.2 158v-14M166.4 158v-14M170.6 158v-14M174.8 158v-14M179.0 158v-14M183.2 158v-14M187.4 158v-14M191.6 158v-14M195.8 158v-14M200.0 158v-14M204.2 158v-14M208.4 158v-14M212.6 158v-14M216.8 158v-14M221.0 158v-14M225.2 158v-14M229.4 158v-14M233.6 158v-14M237.8 158v-14M242.0 158v-14M246.2 158v-14M250.4 158v-14M254.6 158v-14M258.8 158v-14M263.0 158v-14M267.2 158v-14M271.4 158v-14M275.6 158v-14M279.8 158v-14M284.0 158v-14M288.2 158v-14M292.4 158v-14M296.6 158v-14M300.8 158v-14M305.0 158v-14M309.2 158v-14M313.4 158v-14M317.6 158v-14M321.8 158v-14M326.0 158v-14M330.2 158v-14M334.4 158v-14M338.6 158v-14M342.8 158v-14M347.0 158v-14M351.2 158v-14M355.4 158v-14M359.6 158v-14M363.8 158v-14M368.0 158v-14M372.2 158v-14M376.4 158v-14M380.6 158v-14M384.8 158v-14M389.0 158v-14M393.2 158v-14M397.4 158v-14M401.6 158v-14M405.8 158v-14M410.0 158v-14M414.2 158v-14M418.4 158v-14M422.6 158v-14M426.8 158v-14M431.0 158v-14M435.2 158v-14M439.4 158v-14M443.6 158v-14M447.8 158v-14M452.0 158v-14M456.2 158v-14M460.4 158v-14M464.6 158v-14M468.8 158v-14M473.0 158v-14M477.2 158v-14M481.4 158v-14M485.6 158v-14M489.8 158v-14M494.0 158v-14" stroke="var(--ph-c)" stroke-width="1.3"/>
+<path d="M74 158H494" stroke="var(--ph-c)" stroke-opacity=".5"/>
+<path d="M74 252 H158" stroke="var(--ph-a)" stroke-opacity=".35" stroke-dasharray="3 3"/>
+<path d="M158 226 L242 200 L242 226 L326 200 L326 226 L410 200 L410 226 L494 200" fill="none" stroke="var(--ph-a)" stroke-width="2" stroke-linejoin="round"/>
+<text x="498" y="230">2s</text><text x="498" y="204">4s</text><text x="498" y="256">0</text>
+<path d="M368 22V262" stroke="var(--ph-c)" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="368" y="15" text-anchor="middle" style="fill:var(--ph-c)">t = 7 s</text>
+<circle cx="368" cy="213" r="3.5" fill="var(--ph-a)"/>
+<path d="M242 186H368 M242 182v8 M368 182v8" stroke="var(--ph-a)" stroke-width="1.4"/>
+<text x="305" y="179" text-anchor="middle" style="fill:var(--ph-a)">Δt = 3 s</text>
+<path d="M242 33V186" stroke="var(--ph-m)" stroke-opacity=".55" stroke-dasharray="1 3"/>
+<text x="74" y="278" text-anchor="middle">0</text>
+<text x="158" y="278" text-anchor="middle">2</text>
+<text x="242" y="278" text-anchor="middle">4</text>
+<text x="326" y="278" text-anchor="middle">6</text>
+<text x="410" y="278" text-anchor="middle">8</text>
+<text x="494" y="278" text-anchor="middle">10 s</text>
+<rect class="scan" x="72" y="20" width="3" height="240" fill="var(--ph-c)" fill-opacity=".10"/>
+</svg>
+
+      <figcaption>按附录算法 3、4 画的时序示意，推理耗时取仿真默认的 2 s（0.5 Hz），不是实验数据。CH2 高亮段是 t = 7 s 时策略实际用的缓存：它来自 4 s 那帧。</figcaption>
+    </figure>
+  </div>
+  <div class="tldr" aria-label="一分钟版">
+    <div><h3>做了什么</h3><p>异步双系统导航 VLA。慢系统 <b>InternVL3-1B</b> 看 t−Δt 时刻往前 9 秒内的 4 帧，生成推理文本和 3 个航点；快系统是 <b>6 层交叉注意力动作专家</b>，10 Hz 运行，输入当前帧、速度状态、VLM 最后一层 KV cache 和 (Δt, Δx, Δy, Δθ)，输出 3 秒 30 步的相对位移。</p></div>
+    <div><h3>怎么训</h3><p>VLM 用 GPT-5 标注的推理文本做 SFT → 动作专家做模仿学习，人为把语义延迟 Δt ~ U(0, 10) s → 在自建的 Isaac 仿真 DynaNav 里用 PPO 只调最后一层交叉注意力和输出 MLP，VLM 真实异步运行并额外注入平均约 5 s 的延迟。训练数据 SCAND 8.7 h + GND 11 h 以上 + DynaNav 5.1 h。</p></div>
+    <div><h3>结果</h3><p>DynaNav 85 条测试：SR <b>55.29</b>，语言导航基线最好的 MobileVLA 32.94，用特权点目标的 NavDP 54.12。同样用 KV 接口，不做延迟建模 SR 只有 <b>30.59</b>，做了是 <b>47.06</b>（均未做 RL）。Unitree Go2 真机 4 个任务各 5 次：0.85，DualVLN 0.50，NaVILA 0.35。</p></div>
+    <div class="flag"><h3>最该留意的</h3><p>模仿学习阶段喂给动作专家的 KV，是用 GPT-5 标注的推理文本算出来的，这些文本生成时看过未来帧；部署时换成 VLM 自己生成的文本。主表只有 TIC-VLA 在 DynaNav 的同类场景里做过 RL。85 条测试只跑一个种子，和 NavDP 的差距是 1 条。基线如何处理推理延迟，论文没有写。</p></div>
+  </div>
+</header>
+</div>
+
+<div class="page layout">
+  <nav class="toc" aria-label="目录">
+    <p>目录</p>
+    <ol>
+      <li><a href="#problem">问题</a></li>
+      <li><a href="#overview">全局</a></li>
+      <li><a href="#interface">延迟接口</a></li>
+      <li><a href="#policy">动作专家</a></li>
+      <li><a href="#training">三阶段训练</a></li>
+      <li><a href="#dynanav">DynaNav</a></li>
+      <li><a href="#setup">实验设置</a></li>
+      <li><a href="#results">结果</a></li>
+      <li><a href="#insight">读懂它</a></li>
+      <li><a href="#limits">局限与疑点</a></li>
+      <li><a href="#topic">放到专题里看</a></li>
+      <li><a href="#glossary">术语表</a></li>
+    </ol>
+  </nav>
+  <main>
+    <section id="problem">
+      <p class="eyebrow">问题 · §1</p>
+      <h2>推理还没想完，世界已经变了</h2>
+      <div class="prose">
+        <p>在有行人走动的环境里按语言指令导航，控制回路要几十 Hz，VLM 推理在机载算力上却要按秒计。论文真机实测（表 3）：同一个 1B 模型，一次推理在 RTX 4060 笔记本 GPU 上要 3430.73 ms，在 Jetson Orin NX 上要 4831.73 ms。</p>
+        <p>论文把已有工作分成三类，认为它们都绕开了这个问题：</p>
+        <ul>
+          <li><strong>经典 VLN</strong>（R2R、VLN-CE 这一类）把导航抽象成离散视点之间的跳转，本体、动力学和时间都不管。</li>
+          <li><strong>NaVid、NaVILA 这类 VLA</strong> 依赖大 GPU，推理时往往停下来等结果，在动态环境里不现实。</li>
+          <li><strong>双系统 / 异步 VLA</strong>（DualVLN、InternVLA-N1）把慢推理和快控制拆开了，但仍默认语义输出是"新鲜的"，等于假设推理延迟可以忽略。</li>
+        </ul>
+        <p>论文的核心论点是：<strong>推理延迟不只是工程上的低效，而是一个建模问题。</strong>语义描述的是 Δt 秒前的机器人和环境，策略却把它当成当前状态来用。如果训练时不表示这个延迟，按同步监督训出来的策略，部署到真实延迟下会明显退化。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig1-hero.jpg" aria-label="放大原文图 1"><img src="fig/fig1-hero.jpg" width="1302" height="1235" alt="原文图 1：TIC-VLA 的两项设计、DynaNav 仿真示例和真机示例" loading="lazy"></button>
+        <figcaption><b>原文 Figure 1</b>上排是两项设计：左边的延迟语义-控制接口（Lang. 到 Action 是一条虚线，表示语义状态是"延迟"的）；中间是 Think 与 Control 的时间关系，一次 Think 之后的多个 Control 步都带着延迟元数据；右边是训练顺序：注入推理延迟 → 模仿学习 → RL 适应。中排是 DynaNav 仿真（仓库 + Spot、户外 + Nova Carter），下排是 Unitree Go2 真机（走廊、户外广场）。每张小图里，右上是指令，左下是 VLM 生成的推理文本开头。</figcaption>
+      </figure>
+      <div class="note">
+        <h4><span class="tag read">解读</span>"Think-in-Control"在 harness 层面改的是什么</h4>
+        <p>它没有让 VLM 变快，也没有改 VLM 看什么。它改的是<strong>控制器看到的语义带不带时间戳</strong>：同一份语义特征，附上"生成于 Δt 秒前、此后机器人移动了 Δp"，让策略自己决定怎么折算。放在本专题的 Context Architecture 一类里，它是唯一一篇处理"上下文是哪一刻的"这个问题的。</p>
+      </div>
+    </section>
+
+    <section id="overview">
+      <p class="eyebrow">方法 · 全局 · §3.2 · 附录 A</p>
+      <h2>一个 1B 的 VLM 慢慢想，一个 6 层交叉注意力专家快快开</h2>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig2-overview.jpg" aria-label="放大原文图 2"><img src="fig/fig2-overview.jpg" width="1800" height="832" alt="原文图 2：TIC-VLA 架构总览，左为语言输入，中为慢 VLM 与快动作专家，右为两阶段训练示意" loading="lazy"></button>
+        <figcaption><b>原文 Figure 2</b>左：系统提示、指令、历史轨迹和任务描述（要求预测未来 3、6、9 秒的航点）。中下：<span class="c-lag-t">延迟视觉输入</span>是 t−Δt−9、−6、−3、t−Δt 四帧，<span class="c-rt-t">实时输入</span>是当前帧 t，两者共用一个 ViT 编码器。中上：语言模型输出 &lt;think&gt; 推理文本和 &lt;answer&gt; 航点，最后一层 KV 连同 Latency (Δt) 和 Ego-motion Offset 组成"Delayed Semantic-Control Interface"（橙色虚框），和视觉 token、机器人状态一起进 Transformer 动作专家，输出 (d<sub>x</sub>, d<sub>y</sub>, d<sub>θ</sub>)。右：IL 阶段的延迟采样示意和 RL 阶段的冻结 / 可训练划分。</figcaption>
+      </figure>
+      <div class="cards three">
+        <div class="card l"><h4><span class="dot l"></span>慢系统 · 推理 VLM</h4><dl>
+          <dt>主干</dt><dd>InternVL3-1B = InternViT-300M + Qwen2.5-0.5B</dd>
+          <dt>读</dt><dd>t−Δt−{9, 6, 3, 0} s 四帧（原始 1920×1080，每帧 256 个视觉 token），指令与历史轨迹</dd>
+          <dt>出</dt><dd>&lt;think&gt; 推理文本 &lt;/think&gt; + 3 个航点 (x, y, heading)，对应未来 3 / 6 / 9 s；也可以只出航点</dd>
+          <dt>频率</dt><dd>仿真（L40S）带推理文本约 0.5 Hz；只做前向取 KV、不解码文本时 4 Hz</dd>
+        </dl></div>
+        <div class="card m"><h4><span class="dot m"></span>接口 · 延迟语义状态</h4><dl>
+          <dt>语义</dt><dd>最后一层 KV cache S<sub>t−Δt</sub>（这次推理整段序列的 K/V）</dd>
+          <dt>时间</dt><dd>Δt：从这次推理所看的那一帧到现在过了多久</dd>
+          <dt>空间</dt><dd>Δp = (Δx, Δy, Δθ)：同一时段里机器人的位姿变化，由两次位姿相减得到（表 14 模拟了里程计漂移）</dd>
+          <dt>更新</dt><dd>VLM 每完成一次推理就整体覆盖缓存（式 2）</dd>
+        </dl></div>
+        <div class="card r"><h4><span class="dot r"></span>快系统 · 动作专家</h4><dl>
+          <dt>结构</dt><dd>6 层交叉注意力 Transformer，30 个可学习 query</dd>
+          <dt>读</dt><dd>当前帧 256 个视觉 token、状态 (v<sub>x</sub>, v<sub>y</sub>, ω<sub>z</sub>)、KV cache、(Δt, Δx, Δy, Δθ)</dd>
+          <dt>出</dt><dd>30 步 × (d<sub>x</sub>, d<sub>y</sub>, d<sub>θ</sub>) = 3 s，累加成轨迹，取目标点交给控制器转成 (v, ω)</dd>
+          <dt>频率</dt><dd>10 Hz，从不等 VLM</dd>
+        </dl></div>
+      </div>
+      <div class="prose">
+        <p>视觉编码器是共享的：同一个 InternViT 既给 VLM 编码延迟帧，也给动作专家编码当前帧。论文的理由是让两边的视觉表示一致。动作专家拿到的当前帧 token 是 896 维，和语言模型同宽，应是已经过 InternVL 投影层的视觉 token（按维度推断，论文没明说）。</p>
+      </div>
+    </section>
+
+    <section id="interface">
+      <p class="eyebrow">方法 · 延迟语义-控制接口 · §3.2 · 附录算法 3、4</p>
+      <h2>把"这段语义有多旧、这期间我走了多远"一起交给控制器</h2>
+      <div class="prose"><p>论文先把延迟定义成系统里的一个变量。<strong>有效推理延迟</strong>是推理耗时加上"上次推理完成后又过了多久"：</p></div>
+      <div class="eq"><span><span class="m">Δt</span> = t<sub>infer</sub> + t<sub>elapse</sub> ≥ 0,&nbsp;&nbsp;&nbsp; 𝒳<sup>vlm</sup><sub>t−Δt</sub> = { x<sub>t−Δt−δ</sub> | δ ∈ {0, 3, 6, 9} }</span><span class="no">§3.2</span></div>
+      <div class="prose"><p>VLM 在 t 时刻读的是锚定在 t−Δt 的四帧，输出 ℛ<sub>t−Δt</sub>（场景理解、关键物体、意图预测、航点），航点也表达在推理开始时刻 t−Δt 的机体系里。动作策略的输出：</p></div>
+      <div class="eq"><span><b>a</b><sub>t</sub> = {a<sub>t</sub><sup>1</sup>, …, a<sub>t</sub><sup>T</sup>} = π<sub>θ</sub>( <span class="s">𝒮<sub>t−Δt</sub></span>, <span class="r">x<sub>t</sub></span>, <span class="r">s<sub>t</sub></span>, <span class="m">Δt</span>, <span class="m">Δ<b>p</b><sub>t</sub></span> ),&nbsp;&nbsp; a<sub>t</sub><sup>i</sup> ∈ ℝ<sup>3</sup></span><span class="no">(1)</span></div>
+      <div class="eq"><span>(𝒮<sup>cache</sup><sub>t</sub>, ℛ<sup>cache</sup><sub>t</sub>) = (𝒮<sub>t</sub>, ℛ<sub>t</sub>) 若推理在 t 完成；否则 = (𝒮<sup>cache</sup><sub>t⁻</sub>, ℛ<sup>cache</sup><sub>t⁻</sub>),&nbsp;&nbsp; 𝒮<sub>t−Δt</sub> = 𝒮<sup>cache</sup><sub>t</sub></span><span class="no">(2)</span></div>
+      <div class="prose">
+        <p>附录的算法 3、4 写清了运行时的细节，有几处正文没提：</p>
+        <ul>
+          <li>每个 10 Hz 时刻先查后台 VLM 任务。完成了，就更新 KV 缓存、文本缓存，以及<strong>这次推理开始时</strong>记下的步数 k<sup>cache</sup> 和位姿 pose<sup>cache</sup>。</li>
+          <li>没有正在跑的任务，就立刻用当前可用的帧启动下一次推理，同时记下 (k<sub>gen</sub>, pose<sub>gen</sub>)。帧不够 9 秒历史时，<code>SampleFramesAvailable</code> 退回到更少的帧。</li>
+          <li>Δt = ElapsedTime(k, k<sup>cache</sup>)，Δp = RelativePose(pose<sup>cache</sup>, pose<sub>k</sub>)。两者都从"这次推理看的那一帧"算起，不是从推理完成时算起。</li>
+          <li>第一个 KV 就绪之前，Δ 全部置 0、<code>kv_ready = False</code>，控制器直接输出 (v, ω) = (0, 0)：机器人原地等第一次推理。</li>
+        </ul>
+      </div>
+
+      <div class="lab" id="tl-lab">
+        <div class="lab-head">
+          <h4>拖动推理耗时，看动作生成时拿到的是哪一刻的语义</h4>
+          <p>调度按附录算法 3、4；路线、行人、0.6 m/s 车速是示意</p>
+        </div>
+        <div class="ctrl">
+          <label><span class="lbl">VLM 单次推理耗时 T</span><input type="range" id="tl-T" min="0.25" max="5" step="0.05" value="2" aria-label="VLM 单次推理耗时"><output id="tl-To">2.00 s</output></label>
+        </div>
+        <div class="ctrl">
+          <span class="lbl">论文里的实测值</span>
+          <div class="chips" id="tl-presets" role="group" aria-label="推理耗时预设">
+            <button type="button" data-t="0.25" aria-pressed="false">不解码文本 · 4 Hz</button>
+            <button type="button" data-t="1.68" aria-pressed="false">A6000 · 1.68 s</button>
+            <button type="button" data-t="2" aria-pressed="true">仿真默认 · 2 s</button>
+            <button type="button" data-t="3.43" aria-pressed="false">RTX 4060 · 3.43 s</button>
+            <button type="button" data-t="4.83" aria-pressed="false">Orin NX · 4.83 s</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <label><span class="lbl">当前时刻 t</span><input type="range" id="tl-t" min="0" max="20" step="0.1" value="9" aria-label="当前时刻"><output id="tl-to">9.0 s</output></label>
+          <button type="button" class="btn" id="tl-play" aria-pressed="false">▶ 播放</button>
+        </div>
+        <div class="ctrl">
+          <div class="seg" role="group" aria-label="执行方式" id="tl-mode">
+            <button type="button" data-m="tic" aria-pressed="true">TIC-VLA · 延迟感知</button>
+            <button type="button" data-m="naive" aria-pressed="false">假设同步 · 异步执行但不给 Δt、Δp</button>
+            <button type="button" data-m="sync" aria-pressed="false">同步阻塞 · TIC-VLA (Sync.)</button>
+          </div>
+        </div>
+        <div class="scroll tl"><svg id="tl-svg" viewBox="0 0 760 250" role="img" aria-label="VLM 推理、KV 缓存、动作策略与 Δt 的时间轴"></svg></div>
+        <div class="lab-grid">
+          <div class="mp">
+            <svg id="mp-svg" viewBox="0 0 400 400" role="img" aria-label="俯视图：机器人当前位姿、语义锚点位姿、VLM 航点和行人"></svg>
+            <div class="legend" id="mp-legend">
+              <span><i style="background:var(--rt)"></i>当前位姿 / 当前帧里的行人</span>
+              <span><i class="o"></i>语义锚点时刻（VLM 看到的）</span>
+              <span><i style="background:var(--meta)"></i>Δp</span>
+              <span><i style="background:var(--lag)"></i>VLM 航点（3 / 6 / 9 s）</span>
+            </div>
+          </div>
+          <div>
+            <div class="readout" id="tl-read"></div>
+            <p class="small muted" style="margin:10px 0 2px">这一步动作专家收到的输入</p>
+            <div class="inputs" id="tl-in"></div>
+          </div>
+        </div>
+        <p class="say" id="tl-say"></p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>Δt 是锯齿，不是常数</h4>
+        <p>按算法 4，如果一次推理耗时 T、完成后立刻启动下一次，那么新缓存到手时 Δt ≈ T，之后线性增长，直到下一次推理完成时接近 2T 再跳回 T（另有最多 0.1 s 的 10 Hz 取整）。所以策略实际看到的 Δt 在 [T, 2T] 之间来回，平均约 1.5T。这也是训练时把 Δt 采成区间而不是固定值的原因：IL 阶段 U(0, 10) s，RL 阶段注入的延迟平均约 50 步（5 s）。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>同一个"effective latency"，两处定义不一样</h4>
+        <p>§3.2 把有效延迟定义为 t<sub>infer</sub> + t<sub>elapse</sub>，也就是上面那条锯齿。附录"Latency control in simulation"一段则把它定义为"从采集观测到语义可用"的时间，即缓存刚到手那一刻的年龄 T，并说默认设置下平均约 2 s；图 5 的横轴（1–5 s）按的是后一种。正文又说仿真里 VLM 以 0.5 Hz 运行。按前一种定义，0.5 Hz 对应的平均 Δt 约 3 s，不是 2 s。读图 5 时要记住：横轴是"到达时的年龄"，策略实际输入的 Δt 还要再大一截。</p>
+      </div>
+    </section>
+
+    <section id="policy">
+      <p class="eyebrow">方法 · 延迟感知动作专家 · §3.2 · 附录 A</p>
+      <h2>30 个时间步 query，对四类 token 做交叉注意力</h2>
+      <figure class="plate narrow">
+        <button class="zoom" type="button" data-src="fig/fig3-policy.jpg" aria-label="放大原文图 3"><img src="fig/fig3-policy.jpg" width="1130" height="1800" alt="原文图 3：(a) 动作专家结构 (b) 价值网络 (c) 三阶段训练 (d) 异步推理时间轴" loading="lazy"></button>
+        <figcaption><b>原文 Figure 3</b>(a) 动作专家：视觉 token、VLM KV cache 各过 MLP，机器人状态和延迟数据加位置嵌入，拼接后作为每层交叉注意力的 K、V；Q 来自动作 query；最后 MLP 输出动作。(b) RL 用的价值网络：视觉 token 过 Conv1D 和平均池化，状态与目标位置过 MLP，拼接后输出 V(s)。(c) 三阶段训练，火焰表示可训练、雪花表示冻结。(d) 闭环异步：VLM 一次推理（Inference time）完成后又过了一段 Elapse time，动作专家在 t 时刻用的是 𝒮<sub>t−Δt</sub>，Δt 是两段之和。</figcaption>
+      </figure>
+      <div class="tblwrap">
+        <table class="t" style="min-width:620px">
+          <thead><tr><th>Key / Value 来源</th><th>内容</th><th>原始维度</th><th>处理</th></tr></thead>
+          <tbody>
+            <tr><th><span class="dot r"></span>当前视觉 token</th><td>共享 InternViT 编码的当前帧</td><td class="num">256 × 896</td><td>MLP 投影到 512</td></tr>
+            <tr><th><span class="dot l"></span>VLM KV cache</th><td>最后一层 Transformer 的 K/V，来自 t−Δt 的那次推理</td><td class="num">N × 256</td><td>MLP 投影到 512；token dropout 0.1</td></tr>
+            <tr><th><span class="dot r"></span>机器人状态</th><td>(v<sub>x</sub>, v<sub>y</sub>, ω<sub>z</sub>)</td><td class="num">3</td><td>编码到 512 + 位置嵌入；dropout 0.5</td></tr>
+            <tr><th><span class="dot m"></span>延迟元数据</th><td>(Δt, Δx, Δy, Δθ)</td><td class="num">4</td><td>编码到 512 + 位置嵌入</td></tr>
+            <tr class="sep"><th>Query</th><td>按时间步索引的可学习嵌入</td><td class="num">30 × 512</td><td>6 层交叉注意力，FFN 2048，输出 MLP</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <p>输出是 30 步的相对增量 (d<sub>x</sub>, d<sub>y</sub>, d<sub>θ</sub>)，覆盖未来 3 秒（10 Hz）。一个累加器（cumsum）把它们积成轨迹点 (x, y, θ)。因为真实数据里没有底层控制量，损失直接比积出来的位姿和真值轨迹：</p>
+      </div>
+      <div class="eq"><span>𝓛<sub>a</sub> = (1/T) Σ<sub>i=1..T</sub> SmoothL1( p̂<sub>t</sub><sup>(i)</sup> − p<sub>t</sub><sup>(i)</sup> ),&nbsp;&nbsp; T = 30</span><span class="no">(4)</span></div>
+      <div class="prose small muted"><p>未披露：KV token 的个数 N（取决于提示词、4×256 视觉 token 和生成文本的长度，是否全部保留没写）；query 之间有没有自注意力；Δt 和 Δp 各自怎么编码（只写了"encoded"）；部署时选哪一步作为目标点（RL 里取 1 秒处）。</p></div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>KV 为什么是 256 维</h4>
+        <p>Qwen2.5-0.5B 用分组查询注意力，公开配置是 2 个 KV 头、每头 64 维，K 和 V 各 128 维，拼在一起正好 256。论文只写了"KV cache 特征从 256 维投影到 512 维"，没有说明拼法，这是按公开配置推的。这也意味着动作专家读到的不是语言模型 896 维的隐状态，而是被压到 256 维的注意力键值。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>价值网络比策略多看了一样东西</h4>
+        <p>图 3(b) 的价值网络输入里有<strong>相对目标位置</strong>，策略没有（策略只靠语言和视觉找目标）。这是 RL 里常见的非对称 critic，只在训练时用，不影响部署时"无特权信息"的说法。</p>
+      </div>
+    </section>
+
+    <section id="training">
+      <p class="eyebrow">方法 · 延迟一致的三阶段训练 · §3.3 · 附录 B、D</p>
+      <h2>先教 VLM 推理，再在人为延迟下模仿，最后在仿真里带着真实延迟强化</h2>
+      <div class="cards three">
+        <div class="card l"><h4>① VLM 监督微调</h4><p>视觉编码器冻结，语言模型全参数训练，自回归交叉熵。目标序列混合两种格式："推理文本 + 航点"和"只有航点"，部署时可以按需要省掉文本。</p><p class="small muted">8 × L40S，每卡 batch 2，lr 2×10⁻⁵，cosine。</p></div>
+        <div class="card m"><h4>② 延迟下的模仿学习</h4><p>把原本时间对齐的示范拆开：采 Δt ~ U(0, 10) s，取 t−Δt 的帧和推理文本，用冻结的 VLM 算出 KV，再配上当前帧、状态和 (Δt, Δx, Δy, Δθ) 去预测 t 时刻的 30 步动作（算法 1）。</p><p class="small muted">每卡 batch 16，lr 2×10⁻⁴，10 epoch，warmup 1000 步。</p></div>
+        <div class="card r"><h4>③ 异步引导下的 RL</h4><p>在 DynaNav 里跑 PPO，VLM 和视觉编码器冻结，只训动作专家<strong>最后一层交叉注意力和输出 MLP</strong>。VLM 在后台真实异步推理，结果放出前再注入随机延迟，平均约 50 个环境步（5 s）。</p><p class="small muted">单张 L40S，400 次迭代，3 个任务每 100 次迭代轮换。</p></div>
+      </div>
+
+      <h3>SFT 数据：GPT-5 标注的指令与推理文本</h3>
+      <div class="prose">
+        <p>原始长序列切成 20 秒一段，只留 RGB 和位姿，统一降到 10 Hz；再按固定步长下采样，大约每 3 秒一个标注样本。标注分两步（附录 B）：</p>
+        <ul>
+          <li><strong>每段一条指令。</strong>取当前、+5、+10、+15、+20 s 五帧和未来轨迹偏移，让 GPT-5 写四种措辞不同、路线相同的祈使句，随机分给样本。提示词要求只写宏观路线和静态地标，不写行人和避让。</li>
+          <li><strong>每帧一段推理。</strong>给 GPT-5 更多上下文：从段首到当前、按 1 s 汇总的历史轨迹，过去 9、6、3 s 的帧，当前帧，以及<strong>未来帧</strong>（+5 到 +20 s）。要求写一段 60 词以内的第一人称文字，覆盖当前处境、关键物体、物体运动、任务进度、接下来 10 s 的计划。</li>
+        </ul>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig7-annot.jpg" aria-label="放大原文图 7"><img src="fig/fig7-annot.jpg" width="1800" height="693" alt="原文图 7：SFT 标注流程，左为每段指令生成，右为每帧推理生成" loading="lazy"></button>
+        <figcaption><b>原文 Figure 7</b>左：Phase 1，五帧加轨迹信息 → GPT-5 → 四种措辞的指令。右：Phase 2，过去（t−9、−6、−3）、当前和未来（t+5 到 t+20）帧，加上以当前机体系表达的关键帧偏移图和逐帧累计轨迹 → GPT-5 → 一段推理文本（例："我在医院大厅走廊交汇处……前方有行人可能进入我的路径……接下来完成转弯，必要时让行"）。</figcaption>
+      </figure>
+
+      <h3>模仿学习：延迟是采出来的</h3>
+      <div class="prose">
+        <p>算法 1 的关键一行是 𝒮<sub>t−Δt</sub> ← f<sub>LM</sub>(𝒱<sup>vlm</sup><sub>t−Δt</sub>, I, ℛ<sub>t−Δt</sub>)：KV 由冻结的语言模型在 t−Δt 的帧、指令和<strong>数据集里的推理文本</strong>上做一次前向得到。附录原话是"策略以延迟的真值推理标注和引导航点为条件，保证拿到正确的高层意图"。动作专家要学的，是把一份正确但过时的语义，结合当前帧和 Δp，折算成现在该怎么走。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>模仿学习用的 KV 和部署时的 KV 不是一回事</h4>
+        <p>训练时的 ℛ<sub>t−Δt</sub> 是 GPT-5 看过未来 5–20 秒画面后写的推理文本，其中"接下来 10 s 的计划"带着未来信息；部署时 KV 来自 VLM 自己生成的文本，可能出错。这正是论文强调的"训练-部署一致"没覆盖到的一环。RL 阶段换成了 VLM 自己生成的输出，算是部分补上，但 RL 只调最后一层。论文没有报告"IL 用模型生成文本算 KV"的对照。另一个没说清的细节：标注样本约 3 秒一个，而 Δt 从连续区间 U(0, 10) 采样，任意 Δt 处的推理文本从哪来没写。</p>
+      </div>
+
+      <h3>RL：真异步 + 人为加延迟</h3>
+      <div class="prose">
+        <p>动作专家每步预测一条短轨迹，取 1 秒后的目标点，换算成期望线速度和角速度，作为高斯策略的均值；标准差是一个可学习的 log σ。rollout 时缓存延迟 KV，优化时复用（算法 2）。奖励：</p>
+      </div>
+      <div class="eq"><span>r<sub>t</sub> = w<sub>g</sub> r<sup>goal</sup> + w<sub>p</sub> r<sup>progress</sup> + w<sub>c</sub> r<sup>collision</sup> + w<sub>s</sub> r<sup>speed</sup>,&nbsp;&nbsp; w<sub>g</sub> = 400, w<sub>p</sub> = 5, w<sub>c</sub> = −100, w<sub>s</sub> = −0.1</span><span class="no">(5)</span></div>
+      <div class="prose">
+        <p>速度项同时惩罚过慢和过快，目标速度 1 m/s。PPO 参数（表 9）：动作 lr 1×10⁻⁵、价值 lr 1×10⁻⁴、每次 rollout 1024 步、γ 0.99、GAE λ 0.95、clip 0.2、梯度裁剪 0.5、熵系数 0.001、每次 5 个 epoch、batch 64。如果 1024 是每次迭代的总步数，400 次迭代合计约 41 万环境步，10 Hz 下约 11 小时仿真时间（我们按表 9 算的）；并行环境数未披露，若 1024 是每个环境的步数则更多。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig10-rl.jpg" aria-label="放大原文图 10"><img src="fig/fig10-rl.jpg" width="1800" height="545" alt="原文图 10：RL 训练用的三个环境和任务：仓库、办公室、医院" loading="lazy"></button>
+        <figcaption><b>原文 Figure 10</b>RL 的三个训练任务：仓库（进 04 号通道走到底右转到墙边）、办公室（穿门进办公区左转停在靠墙的桌子旁）、医院（穿过走廊直走到尽头的自动售货机）。论文说这三个任务和测试任务不同，但场景与 DynaNav 测试集的三类室内场景相同。</figcaption>
+      </figure>
+    </section>
+
+    <section id="dynanav">
+      <p class="eyebrow">DynaNav 基准 · §3.4 · 附录 C、D</p>
+      <h2>85 条带人群的语言导航测试，物理和渲染都在 Isaac 里</h2>
+      <div class="prose">
+        <p>论文认为现有基准测不出延迟问题：R2R、VLN-CE、RxR 场景小、导航是视点跳转、没有物理交互；VLN-PE、GRUtopia 支持具身评测但没有动态行人；SocialHM3D、HA-VLN 有行人但视觉真实感有限。DynaNav 用 Isaac Sim 做评测（30 Hz 仿真，策略每 3 帧出一次动作、中间保持），用 Isaac Lab 做 GPU 并行的 RL 训练；人和机器人、机器人和场景之间都是物理接触。支持轮式 Nova Carter 和四足 Spot 两种机器人，也支持键盘遥操作采数据（310 条、5.1 小时）。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>场景</th><th class="num">条数</th><th class="num">行人数</th><th>特点（附录 C）</th></tr></thead>
+          <tbody>
+            <tr><th>Hospital</th><td class="num">25</td><td class="num">0–60</td><td>长走廊、病房、医疗设备；窄通道、频繁遮挡。目标如售货机、病床、饮水机。</td></tr>
+            <tr><th>Office</th><td class="num">25</td><td class="num">0–60</td><td>互连的房间、走廊、电梯、工位；多步空间指令（转弯、进门、地标），目标常在视野外。</td></tr>
+            <tr><th>Warehouse</th><td class="num">25</td><td class="num">0–60</td><td>长通道和货架，视觉高度重复，要选对通道、认对实例。论文称它是最拥挤、最易混淆的场景。</td></tr>
+            <tr><th>Outdoor</th><td class="num">10</td><td class="num">100–200</td><td>不平地面、坡道、街道、开阔空间，靠远处地标导航；成功阈值放宽。因渲染成本高只做了 10 条。</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose small muted"><p>同一场景里的任务共享语义目标，只改人群密度、机器人平台和超时时间。每条 episode 在新的仿真进程里跑，固定随机种子。成功：超时前到达目标 1.5 m 以内（户外放宽）；碰撞：与行人距离小于 0.5 m，或静态物体接触传感器触发；CR 是发生过至少一次碰撞的 episode 占比。</p></div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig9-bench.jpg" aria-label="放大原文图 9"><img src="fig/fig9-bench.jpg" width="1800" height="1235" alt="原文图 9：DynaNav 基准四类场景的任务指令与画面" loading="lazy"></button>
+        <figcaption><b>原文 Figure 9</b>四行分别是 Hospital、Office、Warehouse、Outdoor，每行 5 个任务示例：画面里有 Nova Carter 或 Spot，红星是目标，蓝箭头是大致路线，下方是指令（如"直走经过轮椅，停在窗边的饮水机旁""进入 01 号通道，最左边那条，走到底"）。</figcaption>
+      </figure>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>成功阈值前后不一</h4>
+        <p>附录 C 说户外场景用放宽的阈值，但没给数值；附录 D 的仿真设置和指标定义都只写了 1.5 m。另外，episode 一进入 1.5 m 就自动终止，正文却把 SR 写成"停在目标 1.5 m 内"：实际不需要策略自己决定停车，经过目标附近就算成功。</p>
+      </div>
+    </section>
+
+    <section id="setup">
+      <p class="eyebrow">实验设置 · §4.1 · 附录 D</p>
+      <h2>训练数据、基线、指标与真机</h2>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>项目</th><th>设置</th></tr></thead>
+          <tbody>
+            <tr><th>训练数据</th><td>SCAND 8.7 h（多种社交环境里的机器人驾驶轨迹）；GND 11 h 以上（多个校园）；DynaNav 仿真 5.1 h（310 条键盘遥操作，四类场景，含行人）</td></tr>
+            <tr><th>仿真评测</th><td>DynaNav 85 条，单张 L40S；动作策略 10 Hz，VLM 异步约 0.5 Hz；每个条件跑一次（固定种子）</td></tr>
+            <tr><th>指标</th><td>NE（终点到目标的距离，越低越好）；SR（%）；SPL（按最短路径长度加权的 SR）；CR（%，越低越好）</td></tr>
+            <tr><th>真机平台</th><td>Unitree Go2，前置 RGB 相机；板载 Jetson Orin NX（25 W）或 RTX 4060 笔记本 GPU（50 W）；基线跑不动时用远程 RTX A6000，由笔记本中转观测和指令；开 FlashAttention</td></tr>
+            <tr><th>真机任务</th><td>室内走廊（行人 + 静态障碍）、杂乱办公室、户外广场、户外不平步道；零样本（无任务专用训练数据）；每任务 5 次；需要人工干预防碰撞即算失败</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>基线</th><th>类型</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><th>BC Policy</th><td>点目标</td><td>RGB + 点目标直接回归动作；不建模延迟；有相对目标位置这一特权信息</td></tr>
+            <tr><th>RL Policy</th><td>点目标</td><td>与价值网络同结构的 PPO 策略，每个环境单独训练，10 个并行环境、各 1M 步</td></tr>
+            <tr><th>NavDP</th><td>点目标</td><td>点目标条件的扩散导航策略</td></tr>
+            <tr class="sep"><th>Uni-NaVid</th><td>语言</td><td>视频 VLA，多种导航任务统一训练</td></tr>
+            <tr><th>NaVILA</th><td>语言</td><td>分层 VLA：语言指令 → 中层语言动作 → 视觉运动策略</td></tr>
+            <tr><th>DualVLN</th><td>语言</td><td>双系统 VLA，慢推理与快控制异步</td></tr>
+            <tr><th>MobileVLA-R1</th><td>语言</td><td>思维链监督的推理型移动机器人 VLA</td></tr>
+            <tr><th>OmniVLA</th><td>语言</td><td>支持语言、目标图像、目标位姿三种条件</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose small muted"><p>语言基线"在同样的训练数据上微调、同样设置下评测"，训练按各自的开源实现。它们在仿真里是阻塞执行还是异步、仿真是否随推理暂停，论文没写。</p></div>
+    </section>
+
+    <section id="results">
+      <p class="eyebrow">结果 · §4.2–4.4 · 附录 E</p>
+      <h2>主表、延迟曲线、接口对照、真机和七组消融</h2>
+      <h3 style="margin-top:0">主结果（表 1）</h3>
+      <div class="chartbox">
+        <h4>DynaNav 85 条，11 个方法</h4>
+        <p class="sub" id="main-sub">按表 1 的分组排列。点目标方法直接拿到目标坐标。</p>
+        <div class="ctrl" style="margin-bottom:6px"><div class="seg" role="group" aria-label="指标" id="main-metric">
+          <button type="button" data-k="1" aria-pressed="true">SR ↑</button>
+          <button type="button" data-k="2" aria-pressed="false">SPL ↑</button>
+          <button type="button" data-k="3" aria-pressed="false">CR ↓</button>
+          <button type="button" data-k="0" aria-pressed="false">NE ↓</button>
+        </div></div>
+        <div class="scroll"><svg class="chart" id="ch-main" viewBox="0 0 720 420"></svg></div>
+        <details class="raw" id="raw-main"><summary>原表数字（表 1）</summary></details>
+      </div>
+      <div class="prose">
+        <p>论文的读法：点目标方法不调用 VLM、没有推理延迟，但直接拿到目标坐标；TIC-VLA 只用第一视角图像和语言。不做 RL 的 TIC-VLA（47.06）已超过 BC（45.88）和 RL（30.59），离 NavDP（54.12）还差 7 个点；做完 RL，SR 55.29 最高、CR 28.24 最低，但 NE 和 SPL 仍是 NavDP 最好（8.61、52.62）。五个语言导航基线的 SR 在 22.35–32.94 之间，CR 都在 45 以上。论文的解释是，它们为更抽象的导航设定设计，应付不了连续控制和动态障碍。阻塞执行的 TIC-VLA (Sync.) 掉到 32.94。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>换算成条数再看</h4>
+        <p>表里所有 SR、CR 都是 85 的整数倍（例如 55.29 = 47/85）。TIC-VLA 成功 47 条，NavDP 46 条，"SR 最高"是 1 条之差；不做 RL 的 TIC-VLA 40 条；MobileVLA 和 TIC-VLA (Sync.) 都是 28 条。单种子、每条跑一次，相差一两条的结论不稳。和语言基线之间相差 12 条以上，这部分比较可信。</p>
+      </div>
+
+      <h3>延迟鲁棒性（原文图 5）</h3>
+      <div class="chartbox">
+        <h4>VLM 推理延迟从 1 s 到 5 s</h4>
+        <p class="sub">横轴是附录意义上的延迟（缓存到手时的年龄）。1 s 靠暂停仿真等推理完成实现；3–5 s 靠在采集观测后推迟 30 / 60 / 90 个仿真帧再启动推理。数字读自原图柱顶标注。</p>
+        <div class="legend"><span><i class="bg-rt"></i>RL 之后</span><span><i class="bg-b0"></i>只有 IL</span></div>
+        <div class="scroll"><svg class="chart" id="ch-lat" viewBox="0 0 760 270"></svg></div>
+        <details class="raw" id="raw-lat"><summary>图中数字</summary></details>
+      </div>
+      <div class="prose">
+        <p>只做 IL 的策略在 2 s 之后掉得快：47.1 → 43.5 → 30.6 → 27.1。RL 后 1–3 s 保持在 52.9–55.3，4 s 48.2，5 s 45.9。碰撞率两条线都几乎不随延迟变化（IL 32.9–36.5，RL 27.1–28.2），论文据此说异步策略的反应能力与推理速度无关。2 s 处的四个数和表 1 的 TIC-VLA / TIC-VLA (no RL) 一致，说明表 1 就是在这个默认延迟下测的。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>RL 的收益随延迟变大</h4>
+        <p>按图中数字算，RL 带来的 SR 提升：1 s +7.0，2 s +8.2，3 s +9.4，4 s +17.6，5 s +18.8。RL 训练时注入的延迟平均约 5 s，提升最大的正是 4–5 s 这一段。但 RL 后 SR 最高的点仍在 2 s，延迟越大绝对性能越低。</p>
+      </div>
+
+      <h3>接口形式 × 延迟建模（表 2）</h3>
+      <div class="chartbox">
+        <h4>用航点还是 KV cache，做不做延迟建模</h4>
+        <p class="sub">"延迟建模"= 输入延迟元数据 + 训练时注入延迟。四行都没有 RL。格子里大字是 SR，小字是 NE / SPL / CR。</p>
+        <div class="scroll"><div class="mx" id="mx"></div></div>
+        <details class="raw" id="raw-mx"><summary>原表数字（表 2）</summary></details>
+      </div>
+      <div class="prose">
+        <p>KV 比航点好得多，延迟建模对 KV 的帮助（SR 30.59 → 47.06）也远大于对航点的帮助（16.47 → 22.35）。论文对航点差的解释：航点稀疏，而且可能和机器人的局部观测对不上；KV 保留了 VLM 更丰富的语义和上下文。附录补充说，航点变体在训练和推理时都会先把延迟航点变换到当前机体系，但"不建模延迟"那一行是否也做了这个变换，没写清。</p>
+      </div>
+
+      <h3><span class="tag read">解读</span>从 30.59 到 55.29，一步一步拆</h3>
+      <div class="chartbox">
+        <h4>同一个 85 条测试集，三张表里的四个数</h4>
+        <p class="sub">第二步假设表 6 的"W/o Motion Offset"只去掉 Δp、保留 Δt 输入和延迟训练，论文没有明说。</p>
+        <div class="scroll"><svg class="chart" id="ch-wf" viewBox="0 0 720 250"></svg></div>
+      </div>
+      <div class="prose"><p>按这个拆法，延迟训练 + Δt 贡献 9 条，Δp 再加 5 条，RL 再加 7 条。延迟建模的两部分合起来（14 条）比 RL（7 条）多一倍。</p></div>
+
+      <h3>真机（表 3、表 10）</h3>
+      <div class="chartbox">
+        <h4>Unitree Go2，4 个任务 × 5 次</h4>
+        <p class="sub">每格 0.05 是 20 次里的 1 次。TIC-VLA 的 4060 和 Orin NX 是本地部署；A6000 是远程，所有基线都在 A6000 上跑。</p>
+        <div class="scroll"><svg class="chart" id="ch-real" viewBox="0 0 720 230"></svg></div>
+        <div class="tblwrap">
+          <table class="t">
+            <thead><tr><th>方法 · 平台</th><th class="num">成功率</th><th class="num">动作策略 (ms)</th><th class="num">VLM 推理 (ms)</th></tr></thead>
+            <tbody>
+              <tr><th>TIC-VLA (no RL) · 4060</th><td class="num">0.70</td><td class="num">—</td><td class="num">—</td></tr>
+              <tr class="best"><th>TIC-VLA · 4060</th><td class="num">0.85</td><td class="num">85.73</td><td class="num">3430.73</td></tr>
+              <tr><th>TIC-VLA · Orin NX</th><td class="num">0.75</td><td class="num">120.27</td><td class="num">4831.73</td></tr>
+              <tr><th>TIC-VLA · A6000</th><td class="num">0.80</td><td class="num">32.70</td><td class="num">1681.66</td></tr>
+              <tr><th>Dual-VLN (7B) · A6000</th><td class="num">0.50</td><td class="num">299.92</td><td class="num">1534.67</td></tr>
+              <tr><th>NaVILA (7B) · A6000</th><td class="num">0.35</td><td class="num" colspan="2" style="text-align:center">4106.62（单系统）</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="sub" style="margin-top:6px">逐任务成功率（表 10，%）</p>
+        <div class="scroll" id="heat-real"></div>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig6-real.jpg" aria-label="放大原文图 6"><img src="fig/fig6-real.jpg" width="1800" height="614" alt="原文图 6：真机硬件、四个任务设置和室内走廊任务的执行过程" loading="lazy"></button>
+        <figcaption><b>原文 Figure 6</b>(a) 硬件：Go2 上有深度相机、RGB 相机、LiDAR 和板载 Orin NX，旁边是 RTX 4060 笔记本和 RTX A6000 台式机。(b) 四个任务及指令，图注名称是 Indoor Hallway / Indoor Office / Outdoor Plaza / Outdoor Walkway（表 10 里后两个叫 Outdoor Campus / Outdoor Sidewalk）。(c) 室内走廊任务的过程：绕开垃圾桶、避让迎面走来的人，到达终点。</figcaption>
+      </figure>
+      <div class="note">
+        <h4><span class="tag read">解读</span>1B 的 VLM 并不比 7B 的快</h4>
+        <p>同在 A6000 上，TIC-VLA 的 VLM 一次推理 1681.66 ms，比 7B 的 DualVLN 慢系统（1534.67 ms）还慢，因为它每次要自回归生成一段推理文本和航点。它快在控制端：动作策略 32.70 ms，DualVLN 299.92 ms。另外，Orin NX 上动作策略单次 120.27 ms，超过 10 Hz 需要的 100 ms，这时策略实际跑多少 Hz，论文没说。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>平台之间的比较混着通信开销</h4>
+        <p>论文把 A6000（0.80）不如 4060（0.85）归因于远程通信开销。但所有基线都在 A6000 上跑，也都背着这份开销。同平台的公平对比是 A6000 上的 0.80 / 0.50 / 0.35。表 3 的运行时间是否包含通信，没写。0.85、0.80、0.75 之间各差 20 次里的 1 次。</p>
+      </div>
+
+      <h3>七组消融</h3>
+      <div class="chartbox">
+        <div class="abl-nav" id="abl-nav" role="group" aria-label="选择消融"></div>
+        <h4 id="abl-title"></h4>
+        <p class="sub" id="abl-sub"></p>
+        <div class="scroll"><svg class="chart" id="ch-abl" viewBox="0 0 720 160"></svg></div>
+        <div id="abl-raw"></div>
+        <p class="small" id="abl-note" style="margin:6px 0 4px"></p>
+      </div>
+
+      <h3>定性结果（原文图 4）</h3>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/fig4-sim.jpg" aria-label="放大原文图 4"><img src="fig/fig4-sim.jpg" width="1800" height="602" alt="原文图 4：医院和办公室场景中 TIC-VLA 的闭环执行和推理文本" loading="lazy"></button>
+        <figcaption><b>原文 Figure 4</b>上：医院场景，Nova Carter 按"出房间右转进走廊，直走到底"执行，t = 2.6 s 到 41.1 s；下：办公室场景，Spot 按"右转沿蓝地毯走到走廊尽头，进入有前台的房间"执行，t = 2.3 s 到 69.1 s。每个气泡是一次 VLM 推理的文本和 3 个航点，红圈是推理里提到的行人或障碍。相邻航点（间隔 3 秒）相距约 0.5–2 米，可以看出仿真里车速大致在 0.2–0.7 m/s。</figcaption>
+      </figure>
+    </section>
+
+    <section id="insight">
+      <p class="eyebrow">读懂它</p>
+      <h2>这篇真正说明了什么</h2>
+      <h3 style="margin-top:0">关键 insight</h3>
+      <div class="cards">
+        <div class="card"><h4>1. 延迟要作为输入，而不是当噪声</h4><p>同一个 KV 接口，加上延迟元数据并在训练时注入延迟，SR 从 30.59 到 47.06（表 2）；单独去掉 Δp 掉到 41.18（表 6）。这组对照是全文最直接支撑核心论点的证据，而且都在不做 RL 的条件下。</p></div>
+        <div class="card"><h4>2. 慢系统交给快系统的东西要"厚"</h4><p>3 个航点做接口，SR 最多 22.35；最后一层 KV 做接口，47.06。航点把 VLM 的理解压成几个坐标，过时之后没法重新解释；KV 里还留着场景、物体和意图的信息，策略可以结合当前帧重新读。</p></div>
+        <div class="card"><h4>3. RL 买的主要是大延迟下的鲁棒性</h4><p>RL 只调最后一层交叉注意力和输出 MLP，在 1–2 s 延迟下提升 7–8 个点，在 4–5 s 下提升 17–19 个点（图 5）。IL 学会了"读时间戳"，RL 把它校准到真实的异步闭环分布上。</p></div>
+        <div class="card"><h4>4. 在这套设置里，小模型 + 显式延迟胜过大模型</h4><p>换成 Qwen2.5-VL 3B，SR 降到 32.94（表 12），论文归因于推理更慢导致感知和动作对不齐；真机上 1B 的 TIC-VLA 也胜过 7B 的 DualVLN 和 NaVILA。各骨干的实际延迟没有报告，这条只能算方向性证据。</p></div>
+      </div>
+      <h3>容易误解的地方</h3>
+      <div class="prose">
+        <ul>
+          <li><strong>"TIC-VLA (Sync.)"不是"不建模延迟的异步版"。</strong>它是阻塞执行：推理时机器人停住，推理完执行 0.5 s 预测轨迹，再停下来等下一次。T = 2 s 时只有 0.5 / 2.5 = 20% 的时间在动。在有超时限制的测试里，它的 32.94 同时反映了"语义新鲜"和"动的时间少"两件事。对应"假设推理与控制同步"的对照是表 2 的 KV ✗ 那一行（30.59）。</li>
+          <li><strong>同步阻塞的"Δt = 0"只对机器人自己成立。</strong>附录把它的 Δt 和 Δp 记为 0，因为机器人在推理时没动；但行人在这 T 秒里照样在走，语义描述的仍是 T 秒前的人群。</li>
+          <li><strong>Δt 不等于推理耗时。</strong>它在 [T, 2T] 之间锯齿变化（见上面的交互）。图 5 横轴是到手时的年龄 T。</li>
+          <li><strong>10 Hz 是动作策略的调用频率。</strong>Orin NX 上实测单次 120.27 ms；0.5 Hz 是仿真里带推理文本时 VLM 的频率，不解码文本时 4 Hz。</li>
+          <li><strong>"零样本"指没有真机任务的专用数据。</strong>训练集里有 SCAND、GND 两个真实世界数据集，真机测试不是 sim-to-real 意义上的零样本。</li>
+        </ul>
+      </div>
+      <h3>FAQ</h3>
+      <details class="faq"><summary>它和 DualVLN 这类双系统 VLA 到底差在哪？</summary><div class="a"><p>架构上都是"慢推理 + 快控制、异步运行"。论文强调的区别是接口：DualVLN 一类假设慢系统的输出是新鲜的；TIC-VLA 把语义的陈旧程度（Δt）和这期间的自身位移（Δp）作为显式输入，并在 IL、RL 两个阶段按部署时的延迟分布训练。表 1 里 DualVLN SR 30.59，与"KV 接口但不建模延迟"的 TIC-VLA 变体（表 2，30.59）恰好相同，但两者骨干、训练流程都不同，不能直接当作同一个对照。</p></div></details>
+      <details class="faq"><summary>Δt 和 Δp 各自管什么？有没有单独去掉 Δt 的实验？</summary><div class="a"><p>Δp 告诉策略"语义生成那一刻我在哪、朝哪"，可以把语义里的空间信息（航点、"前方偏左的行人"）换算到当前机体系；Δt 告诉策略语义有多旧，环境里会动的东西（行人）可能已经走了多远。表 6 只去掉 Δp（47.06 → 41.18）；表 2 把 Δt、Δp 和延迟训练一起去掉（47.06 → 30.59）。没有只去掉 Δt、保留 Δp 的实验。</p></div></details>
+      <details class="faq"><summary>为什么 1 s 延迟反而不比 2 s 好？</summary><div class="a"><p>RL 后 1 s 是 54.1、2 s 是 55.3，相差 1 条 episode，在噪声范围内。另外 1 s 条件是靠"推理开始 1 s 后暂停仿真、推理完再继续"造出来的，环境被冻结的方式和其他条件不同，严格说不是同一种干预。</p></div></details>
+      <details class="faq"><summary>动作专家读得懂 VLM 的推理文本吗？</summary><div class="a"><p>动作专家不读文本，只读最后一层 KV。推理文本的作用是改变 KV：生成了文本，KV 序列里就多了这些 token 的键值。表 4 显示带文本推理 SR 55.29、不带 40.00，但动作专家训练时 KV 一直带着文本，测试时去掉属于分布外输入，所以这组差距不能全算在"推理本身有用"上。</p></div></details>
+      <details class="faq"><summary>这个接口能搬到操作任务上吗？</summary><div class="a"><p>论文把"扩展到操作"列为未来工作，没有实验。<span class="tag read">解读</span>导航里 Δp 是一个 3 维的自身位姿变化，语义里最重要的空间量（目标方向、行人位置）都能用它近似换算；操作里过时的往往是被操作物体的状态，单靠机械臂自身的位移补偿不了，可能需要把"当前帧"这条通路的权重设计得更重。</p></div></details>
+    </section>
+
+    <section id="limits">
+      <p class="eyebrow">局限与疑点</p>
+      <h2>作者承认的，和我们读出来的</h2>
+      <div class="two">
+        <div>
+          <h4>论文自己提到的</h4>
+          <ul>
+            <li>系统还没有为运行效率做充分优化，推理和部署都有提速空间。</li>
+            <li>真机评测规模有限，需要更大的研究来验证鲁棒性。</li>
+            <li>只做了导航，扩展到操作等领域是未来工作。</li>
+            <li>影响声明里提到：在人群中运行仍有误解指令、碰撞、社交上不得体等风险，安全关键场景需要人类监督。</li>
+          </ul>
+        </div>
+        <div>
+          <h4>我们读出来的</h4>
+          <ul>
+            <li><span class="tag doubt">疑点</span>IL 阶段的 KV 由 GPT-5 标注的推理文本算出，这些文本生成时看过未来 5–20 s 的画面；部署时 KV 来自 VLM 自己生成的文本。"延迟一致"没有覆盖这一层。</li>
+            <li><span class="tag doubt">疑点</span>"有效延迟"两处定义不同（t<sub>infer</sub> + t<sub>elapse</sub> 与"观测到可用"）；0.5 Hz 与"平均约 2 s"按前一种定义对不上。</li>
+            <li><span class="tag doubt">疑点</span>只有 TIC-VLA 在 DynaNav 的 office / hospital / warehouse 场景里做了 RL（任务不同、场景相同），基线没有对应的仿真内适应；基线在仿真里如何处理推理延迟没写。</li>
+            <li><span class="tag doubt">疑点</span>Sync. 变体把"语义新鲜"和"80% 时间停车"绑在一起，不是对"同步假设"的干净检验。</li>
+            <li><span class="tag doubt">疑点</span>85 条单种子；表 1 和 NavDP 差 1 条，多数消融差 1–5 条；真机每任务 5 次，0.85 / 0.80 / 0.75 各差 1 次。</li>
+            <li><span class="tag doubt">疑点</span>表 4 的"无推理"对照混入了 KV 分布偏移（动作专家训练时 KV 一直带推理文本）。</li>
+            <li>户外成功阈值"放宽"但没给数值；episode 到达 1.5 m 自动终止，SR 不考察停车。</li>
+            <li>任意 Δt 处的推理文本从哪来没写（标注约 3 s 一个样本，Δt 连续采样）；KV token 个数、Δt / Δp 的编码方式未披露。</li>
+            <li>各 VLM 骨干的推理延迟（表 12）、TIC-VLA RL 的并行环境数未披露；Orin NX 上动作策略达不到 10 Hz，实际频率未说明。</li>
+            <li>真机任务名在图 6 和表 10 不一致（Plaza / Campus，Walkway / Sidewalk）。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="topic">
+      <p class="eyebrow">放到专题里看</p>
+      <h2>Context Architecture 里唯一管"时间"的那一篇</h2>
+      <div class="prose">
+        <p>在 <a href="../../topics/robot-harness/">Harness for Robotics 专题</a>里，TIC-VLA 属于 <strong>Context Architecture</strong>：设计模型每次决策看到什么、以什么形式看到。它的子方向是时序对齐，改的是"看什么"里的"<strong>看哪一刻的</strong>"，不是"记什么"。缓存只保留最近一次推理的结果，下一次推理完成就整块覆盖，不累积历史；Δt 和 Δp 是附在这份上下文上的时间戳和坐标变换。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t cmp">
+          <thead><tr><th></th><th class="me">TIC-VLA</th><th><a href="../../papers/ra-vla/">RA-VLA</a></th><th><a href="../../papers/activevla/">ActiveVLA</a></th><th><a href="../../papers/memoryvla/">MemoryVLA</a></th><th><a href="../../papers/optimusvla/">OptimusVLA</a></th><th><a href="../../papers/soma/">SOMA</a></th><th><a href="../../papers/hime/">HiMe</a></th></tr></thead>
+          <tbody>
+            <tr><th>类别</th><td class="me">Context · 时序对齐</td><td>Context · 检索</td><td>Context · 视觉选择</td><td>Memory</td><td>Memory</td><td>Memory</td><td>Memory</td></tr>
+            <tr><th>改了什么</th><td class="me">语义上下文来自哪一刻，并附时间与位移</td><td>从示范库检索行为相近的片段当上下文</td><td>从点云渲染虚拟视角、放大关键区域</td><td>感知 / 认知双流记忆库</td><td>检索到的轨迹先验 + 已执行动作的一致性记忆</td><td>头部相机扫描建立的物体级空间记忆</td><td>执行器 / 哨兵 / 规划器三层记忆</td></tr>
+            <tr><th>以什么形式</th><td class="me">VLM 最后一层 KV + (Δt, Δx, Δy, Δθ)</td><td>预编码缓存的 VLM 特征 + 状态 + 动作</td><td>渲染图像（正交投影、主动视角、放大）</td><td>记忆 token，key 上加时间步编码</td><td>先验动作分布 + 加性一致性偏置</td><td>外观特征 + 3D 位置编码的记忆 token</td><td>文本子目标 + 多模态键值记忆库</td></tr>
+            <tr><th>进入哪里</th><td class="me">动作专家每层交叉注意力的 K/V</td><td>动作头交叉注意力，每层配一个片段</td><td>VLM 的输入图像</td><td>扩散动作专家的条件</td><td>流匹配的初始噪声与偏置</td><td>交叉注意力增强 VL token 后进 DiT</td><td>执行器（π0.5）的语言条件</td></tr>
+            <tr><th>时间怎么处理</th><td class="me">显式 Δt、Δp；训练注入延迟</td><td>不涉及</td><td>不涉及（预测下一关键帧位姿）</td><td>正弦时间步编码</td><td>Mamba 建模块间动态</td><td>新观测按相似度 EMA 融合</td><td>哨兵每 n 步检查，子任务边界唤醒规划器</td></tr>
+            <tr><th>任务</th><td class="me">动态人群中的语言导航</td><td>操作（LIBERO、UR5e）</td><td>操作（RLBench 等）</td><td>操作</td><td>操作</td><td>视野外物体操作</td><td>长时程操作</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>和 RA-VLA（同类，注入位置最像）：</strong>两者都把 VLM 侧算好的特征当作动作头交叉注意力的 K/V，而不是塞进 VLM 的输入序列。RA-VLA 明确是为了避免上下文变长拖慢推理，TIC-VLA 是为了让快系统不必等慢系统。区别在上下文的来源：RA-VLA 来自离线示范库，按行为相似度检索，和时间无关；TIC-VLA 来自同一 episode 里几秒前的自己，所以要带时间戳。</li>
+          <li><strong>和 ActiveVLA（同类）：</strong>ActiveVLA 改的是空间上的"看哪里、看多细"，代价写在它自己的消融里：加上主动视角选择和 3D 放大，RLBench 上每步推理从 0.26 s 增加到 0.53 s。它预测下一个关键帧位姿，没有连续控制回路，延迟在它的设定里不构成问题。TIC-VLA 处理的正是这个设定之外的情况：上下文变贵、变慢之后，控制端怎么接。</li>
+          <li><strong>和 HiMe（跨类，结构最像）：</strong>两者都是"快执行 + 慢推理"的多速率层级。HiMe 的慢层（GPT-4o 规划器，附录实测 P50 38.59 s）只在哨兵判定子任务完成时被唤醒，交给执行器的是文本子目标，子目标在完成前一直有效，所以论文没有把"规划结果有多旧"当作问题。TIC-VLA 的慢层持续运行，交下来的是稠密特征，在行人中间几秒就过时，所以必须附上 Δt 和 Δp。</li>
+          <li><strong>和 MemoryVLA（跨类）：</strong>两者都给"过去的信息"打时间标签：MemoryVLA 在记忆条目的 key 上加时间步正弦编码，TIC-VLA 把 Δt 作为单独的 token。但 MemoryVLA 累积多步历史，TIC-VLA 只有一份最新语义。</li>
+          <li><strong>和 SOMA（跨类）：</strong>两者都要把"别的时刻 / 视角得到的信息"配准到当前。SOMA 把物体存在 VGGT 估计的全局坐标系里，显式维护；TIC-VLA 只给相对位姿 Δp，折算交给策略去学。</li>
+          <li><strong>和 OptimusVLA（跨类，点到为止）：</strong>它的局部一致性记忆记的是自己已执行的动作块，TIC-VLA 的 Δp 是自己已执行的位移，都属于"本体运动历史"，但一个用来约束动作平滑，一个用来重新解释过时的语义。</li>
+          <li><strong>和（3）结构化执行、（4）评估与反馈两类：</strong><a href="../../papers/acot-vla/">ACoT-VLA</a> 也让动作头读 VLM 的 KV（EAR 每层读同层 KV，IAR 每层用 1 个 query 从降到 128 维的 KV 里抽先验），但它在同一帧上推理（RTX 4090 上 112 ms），论文没写是否异步执行。<span class="tag read">解读</span>两篇的数字在「显式轨迹还是隐式特征」上指向不同方向：TIC-VLA 用 3 个航点做接口 SR 最多 22.35、用 KV 是 47.06，ACoT 在 LIBERO-Plus 上显式粗轨迹（EAR）单独到 83.7、隐式先验（IAR）单独 80.4（基线 75.7）；不过前者的航点是 VLM 解码出的 3 个稀疏点、还会过时，后者由单独的 300M 模块生成 15 点，不能直接比。<a href="../../papers/tau0-vla/">τ₀-VLA</a> 的部署同样是异步双层（高层约每 1 s 刷新子任务缓存，低层约 30 Hz 读缓存），但交下去的是文字子任务，不带延迟信息，搜索期间低层一直按旧子任务执行、搜索耗时也没报告，正是 TIC-VLA 处理的那种情况。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="glossary">
+      <p class="eyebrow">术语表</p>
+      <h2>读这篇会遇到的词</h2>
+      <details class="gl"><summary>展开术语表</summary>
+        <dl>
+          <dt>TIC</dt><dd>Think-in-Control：让控制在"知道推理有多旧"的前提下使用推理结果。</dd>
+          <dt>delayed semantic-control interface</dt><dd>延迟语义-控制接口：延迟的 VLM 语义状态（最后一层 KV）+ 延迟 Δt + 自身位移 Δp。</dd>
+          <dt>Δt</dt><dd>有效推理延迟 = t<sub>infer</sub>（推理耗时）+ t<sub>elapse</sub>（上次推理完成后又过了多久）；附录另有"观测到可用"的定义。</dd>
+          <dt>Δp = (Δx, Δy, Δθ)</dt><dd>ego-motion offset：从语义所依据的那一帧到现在，机器人的相对位姿变化，由位姿估计相减得到。</dd>
+          <dt>KV cache</dt><dd>Transformer 每层的键值缓存。本文取 VLM 最后一层的 K/V 作为语义特征，256 维。</dd>
+          <dt>latency-consistent training</dt><dd>延迟一致训练：IL 时人为采样延迟、RL 时真实异步并注入延迟，使训练输入的延迟分布接近部署。</dd>
+          <dt>dual-system VLA</dt><dd>双系统 VLA：慢的推理模型 + 快的动作模型，通常异步运行。</dd>
+          <dt>action query</dt><dd>按时间步索引的可学习嵌入，本文 30 个，对应 3 s 内每 0.1 s 一步。</dd>
+          <dt>SmoothL1</dt><dd>Huber 型损失，本文用于比较积分出的位姿和真值轨迹。</dd>
+          <dt>PPO / GAE</dt><dd>近端策略优化 / 广义优势估计，本文 RL 阶段的算法。</dd>
+          <dt>DynaNav</dt><dd>本文的 Isaac Sim / Isaac Lab 仿真套件与 85 条测试基准。</dd>
+          <dt>NE / SR / SPL / CR</dt><dd>导航误差 / 成功率 / 按路径长度加权的成功率 / 碰撞率。</dd>
+          <dt>point-goal</dt><dd>点目标导航：直接给目标坐标，本文把这类方法视为有特权信息的参考。</dd>
+          <dt>Sync.</dt><dd>本文的同步阻塞变体：推理时停车，推理完执行 0.5 s，再停。</dd>
+          <dt>GQA</dt><dd>分组查询注意力：多个查询头共享少量 KV 头，Qwen2.5-0.5B 有 2 个 KV 头。</dd>
+          <dt>odometry drift</dt><dd>里程计漂移，影响 Δp 的准确性；本文表 14 注入按距离成比例累积的噪声测试。</dd>
+        </dl>
+      </details>
+    </section>
+  </main>
+</div>
+<footer class="page">
+  <p>图全部来自论文 arXiv 源码（v2）里的原图；表 1–14 的数字取自 tex 表格，图 5 的数字读自原图柱顶标注。时间轴交互的调度逻辑按附录算法 3、4，路线、行人和 0.6 m/s 车速是示意。标「解读」的是我们的判断。</p>
+</footer>
+<dialog id="lb" aria-label="放大查看"><div class="box"><img id="lb-img" alt=""></div><div class="bar"><span id="lb-cap"></span><button type="button" id="lb-close">关闭</button></div></dialog>
+<div class="tip" id="tip" hidden></div>
+<script>
+(function(){
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, text){ const e = document.createElementNS(NS, tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+  function esc(s){ return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  const f2 = v => Number(v).toFixed(2), f1 = v => Number(v).toFixed(1);
+
+  /* tooltip */
+  const tip = $('#tip');
+  function place(x, y){ const r = tip.getBoundingClientRect(); let l = x + 14, t = y + 14; if (l + r.width > innerWidth - 8) l = x - r.width - 14; if (t + r.height > innerHeight - 8) t = y - r.height - 14; tip.style.left = Math.max(8, l) + 'px'; tip.style.top = Math.max(8, t) + 'px'; }
+  document.addEventListener('pointerover', e => { const t = e.target.closest && e.target.closest('[data-tip]'); if (!t) return; tip.textContent = t.getAttribute('data-tip'); tip.hidden = false; place(e.clientX, e.clientY); });
+  document.addEventListener('pointermove', e => { if (tip.hidden) return; if (!(e.target.closest && e.target.closest('[data-tip]'))) { tip.hidden = true; return; } place(e.clientX, e.clientY); });
+
+  /* lightbox */
+  const lb = $('#lb');
+  $$('figure.plate .zoom').forEach(b => b.addEventListener('click', () => { $('#lb-img').src = b.dataset.src; const c = b.parentElement.querySelector('figcaption b'); $('#lb-cap').textContent = c ? c.textContent : ''; if (lb.showModal) lb.showModal(); else lb.setAttribute('open', ''); }));
+  $('#lb-close').addEventListener('click', () => lb.close());
+  lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+
+  /* toc */
+  const links = $$('.toc a');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id)); }), { rootMargin: '-35% 0px -60% 0px' });
+    $$('main section').forEach(s => io.observe(s));
+  }
+
+  function rawTable(host, head, rows){
+    const d = document.createElement('div'); d.className = 'tblwrap';
+    d.innerHTML = '<table class="t"><thead><tr>' + head.map((h, i) => '<th' + (i ? ' class="num"' : '') + '>' + h + '</th>').join('') + '</tr></thead><tbody>' +
+      rows.map(r => '<tr class="' + (r.best ? 'best ' : '') + (r.sep ? 'sep' : '') + '">' + r.cells.map((c, i) => i ? '<td class="num">' + c + '</td>' : '<th>' + c + '</th>').join('') + '</tr>').join('') + '</tbody></table>';
+    host.appendChild(d);
+    return d;
+  }
+
+  /* horizontal bars with optional group headers */
+  function hbars(svg, rows, opt){
+    opt = opt || {};
+    const W = 720, L = opt.left || 170, R = 70, top = 12, rh = opt.rh || 28, max = opt.max || 100, step = opt.step || 20, dp = opt.dp == null ? 2 : opt.dp, tdp = opt.tdp || 0;
+    let H = top + 26; rows.forEach(r => { H += r.h ? 24 : rh; });
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const x = v => L + (W - L - R) * v / max;
+    for (let g = 0; g <= max + 1e-9; g += step) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: top - 4, y2: H - 22, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: H - 6, 'text-anchor': 'middle', class: 'tick' }, g.toFixed(tdp))); }
+    let y = top;
+    rows.forEach(r => {
+      if (r.h) { svg.appendChild(el('text', { x: 8, y: y + 16, class: 'grp' }, r.h)); y += 24; return; }
+      svg.appendChild(el('text', { x: L - 10, y: y + rh / 2 + 4, 'text-anchor': 'end', class: 'glabel', 'font-weight': r.hi ? 700 : 400 }, r.label));
+      svg.appendChild(el('rect', { x: L, y: y + 5, width: Math.max(1, x(r.v) - L), height: rh - 11, rx: 3, class: r.cls, 'data-tip': r.tip || (r.label + '：' + r.v.toFixed(dp)) }));
+      svg.appendChild(el('text', { x: x(r.v) + 6, y: y + rh / 2 + 4, class: 'val' + (r.hi ? ' hi' : '') }, r.v.toFixed(dp) + (r.suffix || '')));
+      y += rh;
+    });
+    svg.appendChild(el('line', { x1: L, x2: L, y1: top - 4, y2: H - 22, class: 'base' }));
+  }
+
+  /* ---------- Table 1 ---------- */
+  const MAIN = [
+    { h: '点目标方法（直接拿到目标坐标）' },
+    { n: 'BC Policy', v: [9.96, 45.88, 41.52, 35.29], c: 'c-b1' },
+    { n: 'RL Policy', v: [12.20, 30.59, 28.45, 36.47], c: 'c-b1' },
+    { n: 'NavDP', v: [8.61, 54.12, 52.62, 30.59], c: 'c-b1' },
+    { h: '语言导航 VLA 基线' },
+    { n: 'Uni-NaVid', v: [15.90, 22.35, 19.61, 49.41], c: 'c-b0' },
+    { n: 'NaVILA', v: [17.20, 28.24, 25.51, 48.24], c: 'c-b0' },
+    { n: 'DualVLN', v: [16.45, 30.59, 27.82, 47.06], c: 'c-b0' },
+    { n: 'OmniVLA', v: [16.53, 31.76, 28.33, 49.41], c: 'c-b0' },
+    { n: 'MobileVLA', v: [16.09, 32.94, 30.31, 45.88], c: 'c-b0' },
+    { h: 'TIC-VLA 变体' },
+    { n: 'TIC-VLA (Sync.)', v: [16.31, 32.94, 29.64, 41.18], c: 'c-rt3' },
+    { n: 'TIC-VLA (no RL)', v: [10.85, 47.06, 42.41, 34.12], c: 'c-rt2' },
+    { n: 'TIC-VLA', v: [10.55, 55.29, 50.29, 28.24], c: 'c-rt', hi: true }
+  ];
+  const MNAME = ['NE', 'SR', 'SPL', 'CR'];
+  const MSUB = {
+    0: 'NE：终点到目标的距离，越低越好。NavDP 最低（8.61）。',
+    1: 'SR：到达目标 1.5 m 内的比例（%）。悬停看条数（× 85）。',
+    2: 'SPL：按最短路径长度加权的成功率。NavDP 最高（52.62）。',
+    3: 'CR：发生过碰撞的 episode 比例（%），越低越好。悬停看条数。'
+  };
+  function drawMain(k){
+    const max = k === 0 ? 20 : 60, step = k === 0 ? 5 : 10;
+    hbars($('#ch-main'), MAIN.map(m => m.h ? { h: m.h } : {
+      label: m.n, v: m.v[k], cls: m.c, hi: m.hi,
+      tip: m.n + ' · ' + MNAME[k] + '：' + f2(m.v[k]) + ((k === 1 || k === 3) ? '（' + Math.round(m.v[k] * 85 / 100) + ' / 85 条）' : '')
+    }), { left: 150, max: max, step: step, rh: 26 });
+    $('#main-sub').textContent = '按表 1 的分组排列。' + MSUB[k];
+  }
+  $$('#main-metric button').forEach(b => b.addEventListener('click', () => { $$('#main-metric button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); drawMain(+b.dataset.k); }));
+  drawMain(1);
+  rawTable($('#raw-main'), ['Method', 'NE ↓', 'SR ↑', 'SPL ↑', 'CR ↓'], MAIN.filter(m => !m.h).map((m, i) => ({ cells: [m.n].concat(m.v.map(f2)), best: m.hi, sep: i === 3 || i === 8 })));
+
+  /* ---------- Figure 5 ---------- */
+  const LAT = { sr: [[47.1, 47.1, 43.5, 30.6, 27.1], [54.1, 55.3, 52.9, 48.2, 45.9]], cr: [[32.9, 34.1, 35.3, 34.1, 36.5], [27.1, 28.2, 28.2, 27.1, 28.2]] };
+  (function(){
+    const svg = $('#ch-lat'), W = 760, H = 270, T = 30, B = 40, pw = (W - 20) / 2;
+    svg.innerHTML = '';
+    [['成功率 SR (%)', LAT.sr, [1, -1]], ['碰撞率 CR (%)', LAT.cr, [-1, 1]]].forEach((p, i) => {
+      const ox = 10 + i * pw + 40, w = pw - 64;
+      const y = v => T + (H - T - B) * (1 - v / 60), x = k => ox + 22 + (w - 44) * k / 4;
+      svg.appendChild(el('text', { x: ox + w / 2, y: 16, 'text-anchor': 'middle', class: 'glabel', 'font-weight': 700 }, p[0]));
+      for (let g = 0; g <= 60; g += 10) { svg.appendChild(el('line', { x1: ox, x2: ox + w, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: ox - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g)); }
+      for (let k = 0; k < 5; k++) svg.appendChild(el('text', { x: x(k), y: H - B + 16, 'text-anchor': 'middle', class: 'tick' }, (k + 1) + ' s'));
+      [['只有 IL', 'var(--base)', '5 4'], ['RL 之后', 'var(--rt)', '']].forEach((s, j) => {
+        const vals = p[1][j], off = p[2][j];
+        svg.appendChild(el('polyline', { points: vals.map((v, k) => x(k) + ',' + y(v)).join(' '), fill: 'none', stroke: s[1], 'stroke-width': 2.2, 'stroke-dasharray': s[2] }));
+        vals.forEach((v, k) => {
+          svg.appendChild(el('circle', { cx: x(k), cy: y(v), r: 4.5, fill: s[1], 'data-tip': p[0] + ' · ' + s[0] + ' · ' + (k + 1) + ' s：' + f1(v) }));
+          svg.appendChild(el('text', { x: x(k), y: y(v) + (off < 0 ? -9 : 17), 'text-anchor': 'middle', class: 'val', 'font-size': 10.5 }, f1(v)));
+        });
+      });
+    });
+    svg.appendChild(el('text', { x: W / 2, y: H - 6, 'text-anchor': 'middle', class: 'tick' }, 'VLM 推理延迟（缓存到手时的年龄）'));
+    rawTable($('#raw-lat'), ['延迟', 'SR · IL', 'SR · RL 后', 'CR · IL', 'CR · RL 后'], [0, 1, 2, 3, 4].map(k => ({ cells: [(k + 1) + ' s', f1(LAT.sr[0][k]), f1(LAT.sr[1][k]), f1(LAT.cr[0][k]), f1(LAT.cr[1][k])] })));
+  })();
+
+  /* ---------- Table 2 matrix ---------- */
+  (function(){
+    const D = { 'Waypoint': { x: [21.17, 16.47, 15.89, 47.06], o: [20.32, 22.35, 18.34, 42.35] }, 'KV Cache': { x: [16.74, 30.59, 28.31, 40.00], o: [10.85, 47.06, 42.41, 34.12] } };
+    let h = '<div></div><div class="h">✗ 不建模延迟</div><div class="h">✓ 延迟感知</div>';
+    Object.keys(D).forEach(r => {
+      h += '<div class="rh">' + (r === 'Waypoint' ? '航点接口' : 'KV cache 接口') + '</div>';
+      ['x', 'o'].forEach(c => {
+        const v = D[r][c], p = Math.round(v[1] / 50 * 85), dk = p > 55;
+        h += '<div class="cell' + (dk ? ' dk' : '') + '" style="background:color-mix(in oklab,var(--rt) ' + p + '%,var(--surface))" data-tip="' + r + ' · ' + (c === 'x' ? '不建模延迟' : '延迟感知') + '：SR ' + f2(v[1]) + '（' + Math.round(v[1] * 85 / 100) + ' / 85 条）"><b>' + f2(v[1]) + '</b><span>NE ' + f2(v[0]) + ' · SPL ' + f2(v[2]) + ' · CR ' + f2(v[3]) + '</span></div>';
+      });
+    });
+    $('#mx').innerHTML = h;
+    rawTable($('#raw-mx'), ['Interface · Latency', 'NE ↓', 'SR ↑', 'SPL ↑', 'CR ↓'], [
+      { cells: ['Waypoint · ✗'].concat(D['Waypoint'].x.map(f2)) }, { cells: ['Waypoint · ✓'].concat(D['Waypoint'].o.map(f2)) },
+      { cells: ['KV Cache · ✗'].concat(D['KV Cache'].x.map(f2)) }, { cells: ['KV Cache · ✓'].concat(D['KV Cache'].o.map(f2)), best: true }]);
+  })();
+
+  /* ---------- waterfall ---------- */
+  (function(){
+    const svg = $('#ch-wf'), W = 720, H = 250, L = 46, R = 16, T = 22, B = 56, max = 60;
+    svg.innerHTML = '';
+    const y = v => T + (H - T - B) * (1 - v / max);
+    for (let g = 0; g <= max; g += 10) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g)); }
+    const S = [
+      { a: 0, b: 30.59, l1: 'KV 接口 · 不建模延迟', l2: '表 2', cls: 'c-b0', t: '30.59' },
+      { a: 30.59, b: 41.18, l1: '+ 延迟训练与 Δt', l2: '表 6 · W/o Motion Offset', cls: 'c-meta', t: '41.18（+10.59）' },
+      { a: 41.18, b: 47.06, l1: '+ Δp', l2: '= TIC-VLA (no RL)', cls: 'c-meta', t: '47.06（+5.88）' },
+      { a: 47.06, b: 55.29, l1: '+ RL', l2: '= TIC-VLA · 表 1', cls: 'c-rt', t: '55.29（+8.23）' }
+    ];
+    const n = S.length, gw = (W - L - R) / n, bw = Math.min(110, gw - 40);
+    S.forEach((s, i) => {
+      const cx = L + gw * i + gw / 2;
+      svg.appendChild(el('rect', { x: cx - bw / 2, y: y(s.b), width: bw, height: Math.max(1, y(s.a) - y(s.b)), rx: 3, class: s.cls, 'data-tip': s.l1 + '：' + s.t + '，约 ' + Math.round(s.b * 85 / 100) + ' / 85 条' }));
+      svg.appendChild(el('text', { x: cx, y: y(s.b) - 6, 'text-anchor': 'middle', class: 'val hi' }, s.t));
+      if (i < n - 1) svg.appendChild(el('line', { x1: cx + bw / 2, x2: cx + gw - bw / 2, y1: y(s.b), y2: y(s.b), stroke: 'var(--ink-2)', 'stroke-dasharray': '3 3' }));
+      svg.appendChild(el('text', { x: cx, y: H - B + 18, 'text-anchor': 'middle', class: 'glabel', 'font-size': 12 }, s.l1));
+      svg.appendChild(el('text', { x: cx, y: H - B + 34, 'text-anchor': 'middle', class: 'tick' }, s.l2));
+    });
+    svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(0), y2: y(0), class: 'base' }));
+  })();
+
+  /* ---------- real world ---------- */
+  hbars($('#ch-real'), [
+    { label: 'TIC-VLA · 4060', v: 0.85, cls: 'c-rt', hi: true, tip: 'TIC-VLA · RTX 4060 笔记本：0.85（17 / 20 次）' },
+    { label: 'TIC-VLA · A6000', v: 0.80, cls: 'c-rt', tip: 'TIC-VLA · 远程 A6000：0.80（16 / 20 次）' },
+    { label: 'TIC-VLA · Orin NX', v: 0.75, cls: 'c-rt', tip: 'TIC-VLA · 板载 Orin NX：0.75（15 / 20 次）' },
+    { label: 'TIC-VLA (no RL) · 4060', v: 0.70, cls: 'c-rt3', tip: 'TIC-VLA 不做 RL · 4060：0.70（14 / 20 次）' },
+    { label: 'Dual-VLN (7B) · A6000', v: 0.50, cls: 'c-b0', tip: 'Dual-VLN (7B) · A6000：0.50（10 / 20 次）' },
+    { label: 'NaVILA (7B) · A6000', v: 0.35, cls: 'c-b0', tip: 'NaVILA (7B) · A6000：0.35（7 / 20 次）' }
+  ], { left: 180, max: 1, step: 0.2, tdp: 1, dp: 2 });
+  (function(){
+    const T = ['Indoor Hallway', 'Indoor Office', 'Outdoor Campus', 'Outdoor Sidewalk'], M = ['TIC-VLA', 'DualVLN', 'NaVILA'];
+    const V = [[80, 40, 20], [80, 20, 0], [80, 60, 60], [100, 80, 60]], A = [85, 50, 35];
+    const cell = v => { const p = Math.round(v * .8); return '<td class="' + (p > 55 ? 'dk' : '') + '" style="background:color-mix(in oklab,var(--rt) ' + p + '%,var(--surface))">' + v + '</td>'; };
+    let h = '<table class="heat"><thead><tr><th></th>' + M.map(m => '<th>' + m + '</th>').join('') + '</tr></thead><tbody>';
+    T.forEach((t, i) => { h += '<tr><th class="row">' + t + '</th>' + V[i].map(cell).join('') + '</tr>'; });
+    h += '<tr class="avg"><th class="row">Average</th>' + A.map(cell).join('') + '</tr></tbody></table>';
+    $('#heat-real').innerHTML = h;
+  })();
+
+  /* ---------- ablations ---------- */
+  const ABL = [
+    { k: '表 4 · 推理文本', t: '表 4 · 测试时要不要生成推理文本', sub: 'RL 之后的模型。不生成文本时 VLM 只做一次前向取 KV，频率从 0.5 Hz 提到 4 Hz。', rows: [['W/o Reasoning', 14.23, 40.00, 34.22, 25.88], ['W/ Reasoning', 10.55, 55.29, 50.29, 28.24]], best: 1,
+      note: '不生成文本 SR 低 15.29 点（13 条），CR 反而低 2.36 点。论文的解释是"动得少、失败多"，不是更安全。<span class="tag doubt">疑点</span>动作专家训练时 KV 一直带着推理文本，测试时去掉属于分布外输入，这组差距混着"推理有用"和"输入分布变了"两个因素。' },
+    { k: '表 5 · 预测时长', t: '表 5 · 动作预测时长', sub: '无 RL。默认 3 s = 30 步。', rows: [['1s', 12.23, 42.35, 38.72, 32.94], ['3s (ours)', 10.85, 47.06, 42.41, 34.12], ['5s', 11.77, 40.00, 36.46, 35.29]], best: 1,
+      note: '1 s 碰撞最少但 SR 低，5 s 也不如 3 s。三者 SR 相差 4–6 条。' },
+    { k: '表 6 · Δp', t: '表 6 · 自身位移 Δp', sub: '无 RL。', rows: [['W/o Motion Offset', 12.97, 41.18, 36.36, 36.47], ['W/ Motion Offset', 10.85, 47.06, 42.41, 34.12]], best: 1,
+      note: '去掉 Δp：SR 少 5 条，NE 从 10.85 升到 12.97。论文的解释：没有 Δp，策略不知道生成语义之后自己走了多远，会把过时的 VLM 特征当成和当前观测对齐。' },
+    { k: '表 11 · 动作头', t: '表 11 · 动作头类型', sub: '无 RL。扩散头用 DDIM 5 步，flow 头 5 步，主干与 query 式对齐容量。', rows: [['Diffusion-based', 14.30, 38.82, 35.41, 41.18], ['Flow-based', 15.04, 32.94, 29.65, 45.88], ['Query-based (Ours)', 10.85, 47.06, 42.41, 34.12]], best: 2,
+      note: '论文结论：更复杂的扩散和 flow 动作头没有带来收益；query 式单次前向延迟最小，RL 微调也更稳。' },
+    { k: '表 12 · VLM 骨干', t: '表 12 · VLM 骨干', sub: '无 RL。', rows: [['SmolVLM2 (500M)', 14.82, 38.82, 31.06, 41.18], ['InternVL3 (1B)', 10.85, 47.06, 42.41, 34.12], ['Qwen2.5-VL (3B)', 13.26, 32.94, 29.98, 35.29]], best: 1,
+      note: '论文的解释：小模型延迟低但表示能力不足，大模型理解更强但延迟大、感知和动作对不齐，1B 是折中。三个骨干各自的推理延迟没有报告。' },
+    { k: '表 13 · 层数', t: '表 13 · 交叉注意力层数', sub: '无 RL。', rows: [['3', 10.98, 45.88, 41.39, 35.29], ['6 (ours)', 10.85, 47.06, 42.41, 34.12], ['12', 10.73, 44.71, 40.77, 37.64]], best: 1,
+      note: '差别在 1–2 条之间；12 层 NE 最低，但 SR、SPL、CR 都更差。' },
+    { k: '表 14 · 里程计漂移', t: '表 14 · 里程计漂移', sub: 'RL 之后的模型。向平移和旋转测量注入与行驶距离成比例、随时间累积的高斯噪声。', rows: [['None', 10.55, 55.29, 50.29, 28.24], ['Typical (0.02 m/m, 1°/m)', 10.66, 55.29, 50.12, 29.41], ['Severe (0.05 m/m, 5°/m)', 11.87, 43.53, 38.41, 35.29]], best: 0,
+      note: 'Δp 来自里程计，这组测的是 Δp 不准时会怎样：典型漂移下 SR 不变（47 条），严重漂移少 10 条。' }
+  ];
+  const anav = $('#abl-nav');
+  ABL.forEach((a, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = a.k; b.setAttribute('aria-pressed', i ? 'false' : 'true'); b.addEventListener('click', () => showAbl(i)); anav.appendChild(b); });
+  function showAbl(i){
+    const a = ABL[i];
+    $$('button', anav).forEach((b, j) => b.setAttribute('aria-pressed', j === i ? 'true' : 'false'));
+    $('#abl-title').textContent = a.t; $('#abl-sub').textContent = a.sub + ' 条形为 SR，悬停看条数。';
+    hbars($('#ch-abl'), a.rows.map((r, j) => ({ label: r[0], v: r[2], cls: j === a.best ? 'c-rt' : 'c-b0', hi: j === a.best, tip: r[0] + '：SR ' + f2(r[2]) + '（' + Math.round(r[2] * 85 / 100) + ' / 85 条）' })), { left: 200, max: 60, step: 10, rh: 30 });
+    const host = $('#abl-raw'); host.innerHTML = '';
+    rawTable(host, ['配置', 'NE ↓', 'SR ↑', 'SPL ↑', 'CR ↓'], a.rows.map((r, j) => ({ cells: [r[0]].concat(r.slice(1).map(f2)), best: j === a.best })));
+    $('#abl-note').innerHTML = a.note;
+  }
+  showAbl(0);
+
+  /* ---------- timeline lab ---------- */
+  const V = 0.6, L1 = 4, RA = 2, LB = Math.PI * RA / 2, L3 = 8, LTOT = L1 + LB + L3, TMAX = 20;
+  function pose(s){
+    s = Math.max(0, Math.min(LTOT, s));
+    if (s <= L1) return { x: s, y: 0, th: 0 };
+    if (s <= L1 + LB) { const p = (s - L1) / RA; return { x: L1 + RA * Math.sin(p), y: RA * (1 - Math.cos(p)), th: p }; }
+    return { x: L1 + RA, y: RA + (s - L1 - LB), th: Math.PI / 2 };
+  }
+  const ped = t => ({ x: 9 - 0.6 * t, y: 0.7 });
+  const snap = t => Math.round(t * 10) / 10;
+  function schedAsync(T){ const J = []; let s = 0; while (s < TMAX + 1e-9) { const e = s + T, c = Math.ceil((e - 1e-9) * 10) / 10; J.push({ s: s, e: e, c: c }); s = c; } return J; }
+  function schedSync(T){ const C = []; let a = 0; while (a < TMAX + 1e-9) { C.push({ s: a, e: a + T, x1: a + T + 0.5 }); a += T + 0.5; } return C; }
+  function arcAsync(J, t){ return V * Math.max(0, t - J[0].c); }
+  function arcSync(C, t){ let d = 0; C.forEach(c => { d += Math.max(0, Math.min(t, c.x1) - c.e); }); return V * d; }
+  function rel(pa, p){ const dx = p.x - pa.x, dy = p.y - pa.y, c = Math.cos(pa.th), s = Math.sin(pa.th); return { x: c * dx + s * dy, y: -s * dx + c * dy }; }
+  function compose(pc, r){ const c = Math.cos(pc.th), s = Math.sin(pc.th); return { x: pc.x + c * r.x - s * r.y, y: pc.y + s * r.x + c * r.y }; }
+  const F5 = { 1: [47.1, 54.1], 2: [47.1, 55.3], 3: [43.5, 52.9], 4: [30.6, 48.2], 5: [27.1, 45.9] };
+  function f5txt(T){
+    if (T >= 0.97 && T <= 5.03 && Math.abs(T - Math.round(T)) < 0.03) { const k = Math.round(T); return '图 5 在 ' + k + ' s：SR 只有 IL ' + F5[k][0] + '，RL 后 ' + F5[k][1] + '。'; }
+    if (T < 1) return '图 5 最低只测到 1 s（SR：IL 47.1，RL 后 54.1）；这个耗时对应表 4 的"不解码文本"，SR 40.00。';
+    const lo = Math.floor(T), hi = Math.ceil(T);
+    return '图 5 只测了整数点：' + lo + ' s 时 SR 为 IL ' + F5[lo][0] + ' / RL 后 ' + F5[lo][1] + '，' + hi + ' s 时为 IL ' + F5[hi][0] + ' / RL 后 ' + F5[hi][1] + '。';
+  }
+
+  const st = { T: 2, t: 9, mode: 'tic', playing: false };
+  const tlsvg = $('#tl-svg'), mpsvg = $('#mp-svg');
+  const X0 = 132, X1 = 748, tx = t => X0 + (X1 - X0) * Math.min(t, TMAX) / TMAX;
+
+  function computeState(){
+    const T = st.T, t = st.t, m = st.mode, o = { T: T, t: t, mode: m };
+    if (m === 'sync') {
+      const C = schedSync(T); o.C = C;
+      const cur = C.find(c => t >= c.s - 1e-9 && t < c.x1 - 1e-9) || C[C.length - 1];
+      o.cur = cur; o.halted = t < cur.e - 1e-9;
+      o.arc = arcSync(C, t);
+      if (!o.halted) { o.ready = true; o.a = cur.s; o.dtTrue = t - cur.s; o.dt = 0; }
+      else { const prev = C[C.indexOf(cur) - 1]; o.ready = !!prev; o.a = prev ? prev.s : null; o.dtTrue = prev ? t - prev.s : 0; o.dt = 0; }
+      o.arcAt = tt => arcSync(C, tt);
+    } else {
+      const J = schedAsync(T); o.J = J;
+      let ci = -1; J.forEach((j, i) => { if (j.c <= t + 1e-9) ci = i; });
+      o.ci = ci; o.ready = ci >= 0;
+      o.fi = J.findIndex(j => j.s <= t + 1e-9 && t < j.c - 1e-9);
+      o.arc = arcAsync(J, t);
+      if (o.ready) { o.a = J[ci].s; o.dt = t - o.a; o.dtTrue = o.dt; o.T1 = J[ci].c - J[ci].s; }
+      o.arcAt = tt => arcAsync(J, tt);
+    }
+    o.pc = pose(o.arc);
+    if (o.ready) {
+      o.pa = pose(o.arcAt(o.a));
+      const r = rel(o.pa, o.pc); o.dp = { x: r.x, y: r.y, th: (o.pc.th - o.pa.th) * 180 / Math.PI };
+      const sa = o.arcAt(o.a);
+      o.wp = [3, 6, 9].map(k => { const w = pose(sa + V * k); const rr = rel(o.pa, w); return { w: w, r: rr, naive: compose(o.pc, rr), k: k }; });
+      o.err = o.wp.reduce((acc, w) => acc + Math.hypot(w.naive.x - w.w.x, w.naive.y - w.w.y), 0) / 3;
+      o.frames = [9, 6, 3, 0].map(d => o.a - d).filter(v => v >= -1e-9);
+      o.pedA = ped(o.a); o.pedC = ped(t);
+      o.pedMove = Math.hypot(o.pedC.x - o.pedA.x, o.pedC.y - o.pedA.y);
+    }
+    return o;
+  }
+
+  function drawTimeline(o){
+    const s = tlsvg; s.innerHTML = '';
+    const lane = (y, txt, sub) => { s.appendChild(el('text', { x: 8, y: y, class: 'hd' }, txt)); if (sub) s.appendChild(el('text', { x: 8, y: y + 14, class: 'mono' }, sub)); };
+    lane(30, 'VLM 推理', o.mode === 'sync' ? '阻塞' : '后台异步');
+    lane(70, 'KV cache', '策略读的语义');
+    lane(102, '动作策略', o.mode === 'sync' ? '推理完调一次' : '10 Hz');
+    lane(150, '策略收到的 Δt', '');
+    for (let k = 0; k <= TMAX; k += 2) { s.appendChild(el('line', { x1: tx(k), x2: tx(k), y1: 12, y2: 206, stroke: 'var(--line)', 'stroke-width': .7 })); s.appendChild(el('text', { x: tx(k), y: 222, 'text-anchor': 'middle', class: 'mono' }, k + (k === TMAX ? ' s' : ''))); }
+    const yD0 = 204, yD1 = 124;
+    let dmax;
+    if (o.mode === 'sync') {
+      dmax = 1;
+      o.C.forEach((c, i) => {
+        if (c.s >= TMAX) return;
+        const isCur = c === o.cur;
+        s.appendChild(el('rect', { x: tx(c.s), y: 14, width: Math.max(1, tx(Math.min(c.e, TMAX)) - tx(c.s)), height: 24, rx: 3, fill: 'var(--lag)', 'fill-opacity': isCur ? .55 : .22, stroke: 'var(--lag)', 'data-tip': '第 ' + (i + 1) + ' 次推理：机器人停住，看 ' + f1(c.s) + ' s 的帧，' + f1(c.s) + ' → ' + f2(c.e) + ' s' }));
+        if (tx(Math.min(c.e, TMAX)) - tx(c.s) > 50) s.appendChild(el('text', { x: tx(c.s) + 5, y: 30, class: 'mono', style: 'fill:var(--ink)' }, '看 ' + f1(c.s) + 's'));
+        s.appendChild(el('rect', { x: tx(c.s), y: 90, width: Math.max(1, tx(Math.min(c.e, TMAX)) - tx(c.s)), height: 16, fill: 'var(--base)', 'fill-opacity': .35, 'data-tip': '停车等推理' }));
+        if (c.e < TMAX) {
+          s.appendChild(el('rect', { x: tx(c.e), y: 90, width: Math.max(1, tx(Math.min(c.x1, TMAX)) - tx(c.e)), height: 16, fill: 'var(--rt)', 'data-tip': '调用一次策略（Δt = 0，Δp = 0），执行 0.5 s 预测轨迹' }));
+          s.appendChild(el('rect', { x: tx(c.e), y: 56, width: Math.max(1, tx(Math.min(c.x1, TMAX)) - tx(c.e)), height: 22, rx: 3, fill: 'var(--lag-soft)', stroke: 'var(--lag)' }));
+        }
+      });
+      if (tx(o.cur.e) - tx(o.cur.s) > 30) s.appendChild(el('text', { x: (tx(o.cur.s) + tx(Math.min(o.cur.e, TMAX))) / 2, y: 102, 'text-anchor': 'middle', class: 'mono', style: 'fill:var(--ink)' }, '停车'));
+      s.appendChild(el('line', { x1: X0, x2: X1, y1: yD0, y2: yD0, stroke: 'var(--meta)', 'stroke-width': 2 }));
+      s.appendChild(el('text', { x: X0 + 6, y: yD0 - 8, class: 'mono', style: 'fill:var(--meta)' }, '按协议记为 0（机器人推理时不动，但行人在动）'));
+    } else {
+      const J = o.J;
+      const T1 = J[0].c - J[0].s; dmax = Math.max(0.6, 2 * T1 * 1.15);
+      J.forEach((j, i) => {
+        if (j.s >= TMAX) return;
+        const cached = i === o.ci, flying = i === o.fi;
+        const w = Math.max(1, tx(Math.min(j.e, TMAX)) - tx(j.s));
+        s.appendChild(el('rect', { x: tx(j.s), y: 14, width: w, height: 24, rx: 3, fill: 'var(--lag)', 'fill-opacity': cached ? .6 : (flying ? .32 : .16), stroke: 'var(--lag)', 'stroke-width': cached ? 2 : 1, 'stroke-dasharray': flying ? '4 3' : '', 'data-tip': '第 ' + (i + 1) + ' 次推理：看 ' + f1(j.s) + ' s 的帧（及其前 3 / 6 / 9 s），' + f1(j.s) + ' → ' + f2(j.e) + ' s，' + f1(j.c) + ' s 的 tick 进缓存' + (cached ? '（当前在用）' : flying ? '（正在推理）' : '') }));
+        if (w > 50) s.appendChild(el('text', { x: tx(j.s) + 5, y: 30, class: 'mono', style: 'fill:var(--ink)' }, '看 ' + f1(j.s) + 's'));
+        if (j.c < TMAX) {
+          const nx = J[i + 1] ? Math.min(J[i + 1].c, TMAX) : TMAX;
+          const kw = Math.max(1, tx(nx) - tx(j.c));
+          s.appendChild(el('rect', { x: tx(j.c), y: 56, width: kw, height: 22, rx: 3, fill: cached ? 'color-mix(in oklab,var(--lag) 40%,var(--surface))' : 'var(--lag-soft)', stroke: 'var(--lag)', 'data-tip': f1(j.c) + ' s 起，缓存是看 ' + f1(j.s) + ' s 那帧得到的 S' }));
+          if (kw > 46) s.appendChild(el('text', { x: tx(j.c) + 5, y: 71, class: 'mono', style: 'fill:var(--ink)' }, 'S@' + f1(j.s)));
+          const d0 = j.c - j.s, d1 = nx - j.s;
+          const yd = v => yD0 - (yD0 - yD1) * Math.min(v, dmax) / dmax;
+          s.appendChild(el('path', { d: 'M' + tx(j.c) + ' ' + yd(d0) + 'L' + tx(nx) + ' ' + yd(d1) + (J[i + 1] && J[i + 1].c < TMAX ? 'L' + tx(nx) + ' ' + yd(J[i + 1].c - J[i + 1].s) : ''), fill: 'none', stroke: o.mode === 'naive' ? 'var(--base)' : 'var(--meta)', 'stroke-width': 2, 'stroke-dasharray': o.mode === 'naive' ? '5 4' : '' }));
+        }
+      });
+      const c0 = J[0].c;
+      s.appendChild(el('rect', { x: tx(0), y: 56, width: Math.max(1, tx(Math.min(c0, TMAX)) - tx(0)), height: 22, rx: 3, fill: 'none', stroke: 'var(--base)', 'stroke-dasharray': '3 3', 'data-tip': '第一个 KV 就绪前：Δ 置 0，控制输出 (0, 0)，原地等待' }));
+      if (tx(c0) - tx(0) > 24) s.appendChild(el('text', { x: tx(0) + 5, y: 71, class: 'mono' }, tx(c0) - tx(0) > 84 ? '空 · 原地等' : '空'));
+      let tk = '', tkd = '';
+      for (let k = 0; k <= TMAX * 10; k++) { const tt = k / 10, seg = 'M' + tx(tt).toFixed(1) + ' 106v-14'; if (tt < c0 - 1e-9) tkd += seg; else tk += seg; }
+      s.appendChild(el('path', { d: tkd, stroke: 'var(--rt)', 'stroke-opacity': .3, 'stroke-width': 1 }));
+      s.appendChild(el('path', { d: tk, stroke: 'var(--rt)', 'stroke-width': 1 }));
+      s.appendChild(el('line', { x1: X0, x2: X1, y1: yD0, y2: yD0, stroke: 'var(--line)' }));
+      [0, T1, 2 * T1].forEach(v => { const yy = yD0 - (yD0 - yD1) * v / dmax; if (v) s.appendChild(el('line', { x1: X0, x2: X1, y1: yy, y2: yy, stroke: 'var(--line)', 'stroke-dasharray': '2 4' })); s.appendChild(el('text', { x: X0 - 6, y: yy + 4, 'text-anchor': 'end', class: 'mono' }, f2(v) + 's')); });
+      if (o.mode === 'naive') s.appendChild(el('text', { x: X0 + 6, y: yD1 + 6, class: 'mono' }, '陈旧度依然存在，但策略看不到'));
+    }
+    /* future fade */
+    if (o.t < TMAX) s.appendChild(el('rect', { x: tx(o.t), y: 10, width: X1 - tx(o.t) + 4, height: 198, fill: 'var(--surface)', 'fill-opacity': .55 }));
+    /* anchor + cursor */
+    const xc = tx(o.t);
+    if (o.ready && o.a != null && !(o.mode === 'sync' && o.halted)) {
+      const xa = tx(o.a);
+      s.appendChild(el('line', { x1: xa, x2: xa, y1: 12, y2: 206, stroke: 'var(--lag)', 'stroke-width': 1.4, 'stroke-dasharray': '4 3' }));
+      s.appendChild(el('path', { d: 'M' + xa + ' 46H' + xc + 'M' + xa + ' 42v8M' + xc + ' 42v8', stroke: 'var(--meta)', 'stroke-width': 1.6 }));
+      const lab = o.mode === 'tic' ? 'Δt = ' + f2(o.dt) + ' s' : (o.mode === 'naive' ? '实际旧 ' + f2(o.dt) + ' s' : (o.halted ? '' : '语义真实年龄 ' + f2(o.dtTrue) + ' s'));
+      if (lab) { const mid = (xa + xc) / 2, wlab = lab.length * 7 + 10; s.appendChild(el('rect', { x: mid - wlab / 2, y: 39, width: wlab, height: 14, rx: 3, fill: 'var(--surface)' })); s.appendChild(el('text', { x: mid, y: 50, 'text-anchor': 'middle', class: 'mono', style: 'fill:var(--meta);font-weight:500' }, lab)); }
+      if (o.mode !== 'sync') { const yd = yD0 - (yD0 - yD1) * Math.min(o.dt, dmax) / dmax; s.appendChild(el('circle', { cx: xc, cy: yd, r: 4.5, fill: o.mode === 'tic' ? 'var(--meta)' : 'var(--base)' })); }
+    }
+    s.appendChild(el('line', { x1: xc, x2: xc, y1: 10, y2: 210, stroke: 'var(--rt)', 'stroke-width': 2 }));
+    s.appendChild(el('text', { x: Math.min(xc, X1 - 20), y: 240, 'text-anchor': 'middle', class: 'mono', style: 'fill:var(--rt);font-weight:500' }, 't = ' + f1(o.t) + ' s'));
+  }
+
+  const MX0 = 38, MY0 = 11, MK = 30, MXMAX = 11.0;
+  const sx = x => MX0 + (x + 1.2) * MK, sy = y => MY0 + (MXMAX - y) * MK;
+  function tri(p, attrs){
+    const pts = [[0.42, 0], [-0.28, 0.24], [-0.28, -0.24]].map(q => { const c = Math.cos(p.th), s = Math.sin(p.th); return sx(p.x + c * q[0] - s * q[1]).toFixed(1) + ',' + sy(p.y + s * q[0] + c * q[1]).toFixed(1); }).join(' ');
+    return el('polygon', Object.assign({ points: pts }, attrs));
+  }
+  function inMap(p){ return p.x >= -1.2 && p.x <= 9.6 && p.y >= -1.6 && p.y <= 11; }
+  function drawMap(o){
+    const s = mpsvg; s.innerHTML = '';
+    const defs = el('defs'); const mk = el('marker', { id: 'ah', viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto-start-reverse' }); mk.appendChild(el('path', { d: 'M0 0L10 5L0 10z', fill: 'var(--meta)' })); defs.appendChild(mk); s.appendChild(defs);
+    let g = '';
+    for (let x = -1; x <= 9; x++) g += 'M' + sx(x) + ' ' + sy(11) + 'V' + sy(-1.6);
+    for (let y = -1; y <= 11; y++) g += 'M' + sx(-1.2) + ' ' + sy(y) + 'H' + sx(9.6);
+    s.appendChild(el('path', { d: g, stroke: 'var(--line)', 'stroke-width': .6, fill: 'none' }));
+    const pts = []; for (let d = 0; d <= LTOT + 1e-9; d += 0.1) { const p = pose(d); pts.push(sx(p.x).toFixed(1) + ',' + sy(p.y).toFixed(1)); }
+    s.appendChild(el('polyline', { points: pts.join(' '), fill: 'none', stroke: 'var(--surface-2)', 'stroke-width': 46, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+    s.appendChild(el('polyline', { points: pts.join(' '), fill: 'none', stroke: 'var(--base-2)', 'stroke-width': 1.2, 'stroke-dasharray': '5 5' }));
+    const tp = []; for (let d = 0; d <= o.arc + 1e-9; d += 0.1) { const p = pose(d); tp.push(sx(p.x).toFixed(1) + ',' + sy(p.y).toFixed(1)); }
+    tp.push(sx(o.pc.x).toFixed(1) + ',' + sy(o.pc.y).toFixed(1));
+    if (tp.length > 1) s.appendChild(el('polyline', { points: tp.join(' '), fill: 'none', stroke: 'var(--rt)', 'stroke-width': 2.5 }));
+    s.appendChild(el('text', { x: sx(0) - 4, y: sy(0) + 34, class: 'mono' }, '起点'));
+    s.appendChild(el('path', { d: 'M' + sx(-0.9) + ' ' + sy(10.4) + 'h' + MK + 'M' + sx(-0.9) + ' ' + (sy(10.4) - 4) + 'v8M' + (sx(-0.9) + MK) + ' ' + (sy(10.4) - 4) + 'v8', stroke: 'var(--ink-2)', 'stroke-width': 1.2 }));
+    s.appendChild(el('text', { x: sx(-0.9) + MK + 6, y: sy(10.4) + 4, class: 'mono' }, '1 m'));
+    if (o.ready) {
+      o.frames.forEach(f => { const p = pose(o.arcAt(f)); s.appendChild(el('rect', { x: sx(p.x) - 3.5, y: sy(p.y) - 3.5, width: 7, height: 7, fill: 'var(--lag)', 'fill-opacity': .7, 'data-tip': 'VLM 输入帧 @ ' + f1(f) + ' s' })); });
+      if (inMap(o.pedA)) s.appendChild(el('circle', { cx: sx(o.pedA.x), cy: sy(o.pedA.y), r: 7, fill: 'none', stroke: 'var(--lag)', 'stroke-width': 2, 'data-tip': '行人在 ' + f1(o.a) + ' s（VLM 看到的位置，示意）' }));
+      if (inMap(o.pedA) && inMap(o.pedC)) s.appendChild(el('line', { x1: sx(o.pedA.x), y1: sy(o.pedA.y), x2: sx(o.pedC.x), y2: sy(o.pedC.y), stroke: 'var(--ink-2)', 'stroke-dasharray': '2 3' }));
+      s.appendChild(tri(o.pa, { fill: 'none', stroke: 'var(--lag)', 'stroke-width': 2, 'data-tip': '语义锚点时刻 ' + f1(o.a) + ' s 的位姿' }));
+      o.wp.forEach(w => {
+        if (o.mode === 'naive') {
+          s.appendChild(el('line', { x1: sx(w.w.x), y1: sy(w.w.y), x2: sx(w.naive.x), y2: sy(w.naive.y), stroke: 'var(--warn)', 'stroke-width': 1.5, 'stroke-dasharray': '3 3' }));
+          s.appendChild(el('circle', { cx: sx(w.naive.x), cy: sy(w.naive.y), r: 5, fill: 'var(--surface)', stroke: 'var(--warn)', 'stroke-width': 2, 'data-tip': w.k + ' s 航点：策略以为在这里（锚点系坐标被当成当前系）' }));
+        }
+        s.appendChild(el('circle', { cx: sx(w.w.x), cy: sy(w.w.y), r: 4.5, fill: 'var(--lag)', 'data-tip': w.k + ' s 航点：锚点系 (' + f2(w.r.x) + ', ' + f2(w.r.y) + ') m，世界里的正确位置' }));
+        s.appendChild(el('text', { x: sx(w.w.x) + 7, y: sy(w.w.y) - 5, class: 'mono', style: 'fill:var(--lag)' }, w.k + 's'));
+      });
+      if (o.mode === 'tic' && Math.hypot(o.pc.x - o.pa.x, o.pc.y - o.pa.y) > 0.25) s.appendChild(el('line', { x1: sx(o.pa.x), y1: sy(o.pa.y), x2: sx(o.pc.x), y2: sy(o.pc.y), stroke: 'var(--meta)', 'stroke-width': 2.2, 'marker-end': 'url(#ah)' }));
+    }
+    const pc = ped(o.t);
+    if (inMap(pc)) { s.appendChild(el('circle', { cx: sx(pc.x), cy: sy(pc.y), r: 7, fill: 'var(--rt)', 'fill-opacity': .85, 'data-tip': '行人在 ' + f1(o.t) + ' s（当前帧 x_t 里，示意）' })); s.appendChild(el('text', { x: sx(pc.x) - 4, y: sy(pc.y) - 12, class: 'mono', style: 'fill:var(--rt)' }, '行人')); }
+    s.appendChild(tri(o.pc, { fill: 'var(--rt)', stroke: 'var(--surface)', 'stroke-width': 1, 'data-tip': '当前位姿 t = ' + f1(o.t) + ' s' }));
+    const lg = $('#mp-legend');
+    lg.innerHTML = '<span><i style="background:var(--rt)"></i>当前位姿 / 当前帧里的行人</span><span><i class="o"></i>语义锚点时刻（VLM 看到的）</span>' + (o.mode === 'tic' ? '<span><i style="background:var(--meta)"></i>Δp</span>' : '') + '<span><i style="background:var(--lag)"></i>VLM 航点的正确位置</span>' + (o.mode === 'naive' ? '<span><i style="background:var(--surface);border:2px solid var(--warn);border-radius:50%"></i>策略以为的航点位置</span>' : '');
+  }
+
+  function card(k, b, sm, wide){ return '<div' + (wide ? ' class="wide"' : '') + '><span class="k">' + k + '</span><b>' + b + '</b>' + (sm ? '<span class="muted">' + sm + '</span>' : '') + '</div>'; }
+  function drawRead(o){
+    let h = '', say = '';
+    const Tt = f2(o.T);
+    if (!o.ready) {
+      h += card('语义锚点 t − Δt', '—', o.mode === 'sync' ? '第一次推理中，机器人停着' : '第一个 KV 还没到');
+      h += card('Δt / Δp', '0 / (0, 0, 0)', '算法 4：缓存未定义时全置 0');
+      h += card('机器人', '原地等待', '算法 3：kv_ready 之前 (v, ω) = (0, 0)');
+      h += card('VLM 单次耗时', Tt + ' s', '第一次推理在 ' + f2(o.T) + ' s 左右完成');
+      say = '第一次推理还没完成。算法 4 在缓存为空时把 Δt、Δp 置 0、返回 kv_ready = False，算法 3 据此让控制器输出零速度：开局要原地等一个推理周期。';
+    } else {
+      const fr = o.frames.map(f1).join('、');
+      h += card('语义锚点 t − Δt', f1(o.a) + ' s', 'VLM 读的帧：' + fr + ' s（' + o.frames.length + ' 帧' + (o.frames.length < 4 ? '，历史不足时退回更少帧' : '') + '）');
+      if (o.mode === 'tic') h += card('Δt（策略收到）', f2(o.dt) + ' s', '本周期在 ' + f1(o.T1) + '–' + f1(2 * o.T1) + ' s 间锯齿变化');
+      else if (o.mode === 'naive') h += card('Δt（策略收到）', '未提供', '实际已经旧了 ' + f2(o.dt) + ' s');
+      else h += card('Δt（策略收到）', '0', o.halted ? '停车推理中' : '按协议记 0；语义真实年龄 ' + f2(o.dtTrue) + ' s');
+      if (o.mode === 'tic') h += card('Δp = (Δx, Δy, Δθ)', '(' + f2(o.dp.x) + ', ' + f2(o.dp.y) + ', ' + f1(o.dp.th) + '°)', '按锚点时刻的机体系；坐标约定论文未写');
+      else if (o.mode === 'naive') h += card('Δp（策略收到）', '未提供', '实际位移 ' + f2(Math.hypot(o.dp.x, o.dp.y)) + ' m、转了 ' + f1(Math.abs(o.dp.th)) + '°');
+      else h += card('Δp（策略收到）', '(0, 0, 0°)', '推理时机器人不动');
+      h += card('行人：锚点帧 → 当前帧', f2(o.pedMove) + ' m', '现在的位置只在当前帧 x_t 里（示意）');
+      if (o.mode === 'naive') h += card('航点错位（平均）', f2(o.err) + ' m', '把锚点系坐标当成当前系');
+      else if (o.mode === 'tic') h += card('航点', '交给策略折算', 'KV 接口里靠学习；航点变体才显式变换');
+      else h += card('运动时间占比', Math.round(50 / (o.T + 0.5)) + '%', '0.5 / (T + 0.5)，附录 D 的协议推算');
+      if (o.mode === 'sync') {
+        const ja = schedAsync(o.T), aa = arcAsync(ja, o.t);
+        h += card('论文里的对应数字', '表 1 · Sync.：SR 32.94，CR 41.18', '到 ' + f1(o.t) + ' s 走了 ' + f2(o.arc) + ' m；同样耗时下异步执行能走 ' + f2(aa) + ' m（示意车速）', true);
+        say = o.halted ? '同步阻塞：VLM 在推理，机器人停着等。推理用的是最新一帧，但行人在这 ' + Tt + ' s 里照样在走。' : '同步阻塞：推理刚完成，策略按 Δt = 0、Δp = 0 调用一次，执行 0.5 s 预测轨迹后再停。语义里的机器人位姿是新鲜的，行人位置却已经旧了 ' + f2(o.dtTrue) + ' s。T = ' + Tt + ' s 时只有 ' + Math.round(50 / (o.T + 0.5)) + '% 的时间在动。';
+      } else if (o.mode === 'naive') {
+        h += card('论文里的对应数字', '表 2 · KV 接口、不建模延迟：SR 30.59', '加上延迟元数据与延迟训练：47.06（均无 RL）', true);
+        say = '异步执行照旧，但策略既没有 Δt 也没有 Δp，训练时也没见过延迟。它只能把 ' + f1(o.a) + ' s 的语义当成现在的：锚点系里的航点被直接套在当前位姿上，平均错开 ' + f2(o.err) + ' m（空心圈）。' + (o.err < 0.15 ? '直线段上平移误差被抵消，转弯前后错位最明显，拖动 t 到 6–12 s 看看。' : '');
+      } else {
+        h += card('论文里的对应数字', f5txt(o.T), '默认设置约 2 s：表 1 TIC-VLA 55.29、不做 RL 47.06', true);
+        say = '动作专家在 ' + f1(o.t) + ' s 生成动作，用的是 ' + f1(o.a) + ' s 那帧推出的 KV，同时知道它旧了 ' + f2(o.dt) + ' s、自己此后移动了 (' + f2(o.dp.x) + ', ' + f2(o.dp.y) + ') m、转了 ' + f1(o.dp.th) + '°。行人的实时位置要靠当前帧 x_t。';
+      }
+    }
+    $('#tl-read').innerHTML = h;
+    $('#tl-say').textContent = say;
+    const offN = o.mode === 'naive' ? ' off' : '';
+    $('#tl-in').innerHTML = '<span class="r">x_t 当前帧</span><span class="r">s_t 速度</span><span class="l">' + (o.ready ? 'S@' + f1(o.a) + ' KV' : 'KV 未就绪') + '</span>' +
+      (o.mode === 'sync' ? '<span class="m">Δt = 0</span><span class="m">Δp = 0</span>' : '<span class="m' + offN + '">Δt</span><span class="m' + offN + '">Δp</span>');
+  }
+
+  function render(){
+    const o = computeState();
+    drawTimeline(o); drawMap(o); drawRead(o);
+    $('#tl-To').textContent = f2(st.T) + ' s';
+    $('#tl-to').textContent = f1(st.t) + ' s';
+    $$('#tl-presets button').forEach(b => b.setAttribute('aria-pressed', Math.abs(+b.dataset.t - st.T) < 0.001 ? 'true' : 'false'));
+  }
+  $('#tl-T').addEventListener('input', e => { st.T = +e.target.value; render(); });
+  $('#tl-t').addEventListener('input', e => { st.t = snap(+e.target.value); stop(); render(); });
+  $$('#tl-presets button').forEach(b => b.addEventListener('click', () => { st.T = +b.dataset.t; $('#tl-T').value = st.T; render(); }));
+  $$('#tl-mode button').forEach(b => b.addEventListener('click', () => { st.mode = b.dataset.m; $$('#tl-mode button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); render(); }));
+  let raf = 0, last = 0;
+  function stop(){ st.playing = false; cancelAnimationFrame(raf); const b = $('#tl-play'); b.textContent = '▶ 播放'; b.setAttribute('aria-pressed', 'false'); }
+  function step(ts){
+    if (!st.playing) return;
+    if (last) { st.t = Math.min(TMAX, st.t + (ts - last) / 1000 * 2); }
+    last = ts; st.t = Math.round(st.t * 100) / 100;
+    $('#tl-t').value = snap(st.t);
+    const keep = st.t; st.t = snap(st.t); render(); st.t = keep;
+    if (st.t >= TMAX) { stop(); return; }
+    raf = requestAnimationFrame(step);
+  }
+  $('#tl-play').addEventListener('click', () => {
+    if (st.playing) { stop(); return; }
+    if (st.t >= TMAX - 0.05) st.t = 0;
+    st.playing = true; last = 0; const b = $('#tl-play'); b.textContent = '❚❚ 暂停'; b.setAttribute('aria-pressed', 'true');
+    raf = requestAnimationFrame(step);
+  });
+  render();
+})();
+</script>
+</body>
+</html>
