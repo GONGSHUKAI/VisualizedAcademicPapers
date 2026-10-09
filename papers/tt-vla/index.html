@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>TT-VLA 精读</title>
+<meta name="description" content="On-the-Fly VLA Adaptation via Test-Time Reinforcement Learning（TT-VLA）中文精读：进度差分奖励、无价值函数的 PPO、回合内 LoRA 更新，ManiSkill3 与真机结果、表格数字核对和疑点。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F7F3EC; --surface:#FDFBF7; --surface-2:#EDE6DA; --ink:#1F1A14; --ink-2:#443B30; --muted:#6F6457; --line:#DDD3C3;
+  --hd:#C2551A; --hd-soft:#F8DFCF; --on-hd:#FFFFFF;
+  --ex:#1E7482; --ex-soft:#D3E9EC;
+  --pos:#2D7A4C; --pos-soft:#D8EDDF;
+  --warn:#AE3328; --warn-soft:#F5D9D4;
+  --base:#B59A55; --base-2:#D7C8A0;
+  --plate:#FFFFFF; --focus:#C2551A;
+  --f-display:"Archivo","Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#15120E; --surface:#1D1914; --surface-2:#28221B; --ink:#EEE7DC; --ink-2:#CBBFAF; --muted:#998C7C; --line:#362E25;
+    --hd:#F08A4E; --hd-soft:#3E2416; --on-hd:#1F0F05;
+    --ex:#5FC0CE; --ex-soft:#123238;
+    --pos:#6CC593; --pos-soft:#173323;
+    --warn:#EF8B7D; --warn-soft:#3D1D19;
+    --base:#BFA466; --base-2:#5E5135;
+    --plate:#F4F0EA; --focus:#F08A4E;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#15120E; --surface:#1D1914; --surface-2:#28221B; --ink:#EEE7DC; --ink-2:#CBBFAF; --muted:#998C7C; --line:#362E25;
+  --hd:#F08A4E; --hd-soft:#3E2416; --on-hd:#1F0F05;
+  --ex:#5FC0CE; --ex-soft:#123238;
+  --pos:#6CC593; --pos-soft:#173323;
+  --warn:#EF8B7D; --warn-soft:#3D1D19;
+  --base:#BFA466; --base-2:#5E5135;
+  --plate:#F4F0EA; --focus:#F08A4E;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:var(--hd);text-underline-offset:3px;text-decoration-thickness:1px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+strong{font-weight:700}
+em{font-style:normal;background:linear-gradient(transparent 62%,var(--hd-soft) 62%)}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+sub,sup{font-size:.72em;line-height:0}
+.page{max-width:1200px;margin:0 auto;padding-inline:24px}
+@media (max-width:560px){.page{padding-inline:16px}}
+.hero{padding-block:44px 24px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:40px;align-items:center}
+@media (max-width:900px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+.kicker{font:500 12px/1.4 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--hd);margin:0 0 14px}
+h1.title{font-family:var(--f-display);font-weight:900;font-size:clamp(3rem,1.8rem + 6vw,6.4rem);line-height:.95;letter-spacing:-.03em;margin:0}
+h1.title .dash{color:var(--hd)}
+.entitle{font-family:var(--f-display);font-weight:500;font-size:clamp(1rem,.9rem + .4vw,1.2rem);line-height:1.45;color:var(--ink-2);margin:14px 0 0}
+.thesis{font-size:clamp(1.05rem,1rem + .35vw,1.22rem);line-height:1.78;margin:20px 0 0;max-width:34em}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin:20px 0 0;padding:0;list-style:none;font:13px/1.6 var(--f-mono);color:var(--muted)}
+.meta b{color:var(--ink-2);font-weight:500}
+.ribbon{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.ribbon svg{display:block;width:100%;height:auto}
+.ribbon svg text{font-family:var(--f-mono);fill:var(--muted);font-size:11px}
+.ribbon svg .lab{font-family:var(--f-body);font-size:12.5px;fill:var(--ink-2)}
+.ribbon figcaption{font:12px/1.6 var(--f-mono);color:var(--muted);margin-top:8px}
+.tldr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:32px}
+@media (max-width:760px){.tldr{grid-template-columns:minmax(0,1fr)}}
+.tldr>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.tldr h3{font:500 12px/1.4 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.tldr p{margin:0;font-size:15px;line-height:1.75}
+.tldr .flag h3{color:var(--warn)}
+.layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:52px;padding-block:20px 80px}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr);gap:0}}
+.toc{position:sticky;top:20px;align-self:start;font-size:14px;line-height:1.5}
+.toc p{font:500 11px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.toc li a{display:block;padding:5px 0 5px 14px;margin-left:-1px;border-left:2px solid transparent;color:var(--muted);text-decoration:none}
+.toc li a:hover{color:var(--ink)}
+.toc li a.on{color:var(--ink);border-left-color:var(--hd);font-weight:500}
+@media (max-width:1000px){
+  .toc{position:static;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .toc p{display:none}
+  .toc ol{display:flex;gap:6px;border:0;white-space:nowrap;padding-bottom:6px}
+  .toc li a{border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin:0;background:var(--surface)}
+  .toc li a.on{border-color:var(--hd)}
+}
+main{min-width:0}
+section{padding-top:56px;scroll-margin-top:12px}
+section:first-child{padding-top:8px}
+.eyebrow{font:500 12px/1.4 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--hd);margin:0 0 8px}
+h2{font-family:var(--f-display);font-weight:800;font-size:clamp(1.35rem,1.1rem + 1.1vw,1.95rem);line-height:1.3;letter-spacing:-.015em;margin:0 0 18px}
+h3{font-family:var(--f-display);font-weight:700;font-size:1.08rem;line-height:1.45;margin:36px 0 10px}
+p{margin:0 0 14px}
+.prose{max-width:44em}
+.prose li{margin-bottom:6px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.tag{display:inline-block;font:500 11px/1 var(--f-mono);padding:4px 6px 3px;border-radius:4px;vertical-align:2px;margin-right:6px;white-space:nowrap}
+.tag.read{border:1px dashed var(--ink-2);color:var(--ink-2)}
+.tag.doubt{background:var(--warn-soft);color:var(--warn)}
+.note{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 18px;margin:18px 0;max-width:46em}
+.note>:last-child{margin-bottom:0}
+.note h4{font:500 12.5px/1.5 var(--f-body);margin:0 0 6px;color:var(--muted)}
+.note.doubt{border-color:color-mix(in oklab,var(--warn) 35%,var(--line));background:color-mix(in oklab,var(--warn-soft) 55%,var(--surface))}
+.note.doubt h4{color:var(--warn)}
+.eq{font-family:"Times New Roman",Georgia,"Noto Serif SC",serif;font-size:1.08rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:14px 0;overflow-x:auto;white-space:nowrap;display:flex;justify-content:space-between;gap:24px;max-width:46em}
+.eq .no{font:12px var(--f-mono);color:var(--muted);align-self:center}
+pre.code{font:12.5px/1.7 var(--f-mono);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;overflow-x:auto;max-width:46em;color:var(--ink-2);margin:14px 0}
+pre.code .c{color:var(--muted)} pre.code .k{color:var(--hd)}
+figure.plate{margin:22px 0}
+figure.plate .zoom{display:block;width:100%;padding:10px;background:var(--plate);border:1px solid var(--line);border-radius:8px;cursor:zoom-in}
+figure.plate img{display:block;width:100%;height:auto}
+figure.plate.narrow{max-width:560px}
+figure.plate figcaption{font-size:14px;line-height:1.7;color:var(--ink-2);margin-top:10px;max-width:52em}
+figure.plate figcaption b{font:500 12px var(--f-mono);color:var(--muted);margin-right:8px}
+dialog#lb{border:0;padding:0;background:transparent;max-width:min(96vw,1800px);width:96vw}
+dialog#lb::backdrop{background:rgba(14,11,8,.86)}
+dialog#lb .box{background:var(--plate);border-radius:8px;padding:10px;max-height:88vh;overflow:auto}
+dialog#lb img{display:block;width:100%;height:auto}
+dialog#lb .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#EEE7DC;font-size:14px;padding:8px 2px 0}
+dialog#lb button{font:500 13px var(--f-mono);background:#EEE7DC;color:#1F1A14;border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
+.tblwrap{overflow-x:auto;margin:16px 0;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;font-size:14px;line-height:1.6;min-width:100%}
+table.t th,table.t td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.t thead th{font:500 12px/1.4 var(--f-mono);color:var(--muted);border-bottom:1.5px solid var(--ink-2);white-space:nowrap}
+table.t tbody th{font-weight:500;white-space:nowrap;color:var(--ink-2)}
+table.t .num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t tr.best td,table.t tr.best th{font-weight:700}
+table.t td.bad{color:var(--warn);font-weight:700}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.cards.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:860px){.cards.three{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.cards{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card h4{font-family:var(--f-display);font-weight:700;font-size:1rem;line-height:1.45;margin:0 0 8px}
+.card p{font-size:14.5px;line-height:1.75;margin:0 0 8px}
+.card p:last-child{margin:0}
+.card.hd{border-top:3px solid var(--hd)} .card.ex{border-top:3px solid var(--ex)} .card.pos{border-top:3px solid var(--pos)}
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin:22px 0}
+.lab-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;margin-bottom:12px}
+.lab-head h4{font-family:var(--f-display);font-weight:700;font-size:1.02rem;margin:0}
+.lab-head p{margin:0;font-size:13px;color:var(--muted)}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:0 0 12px;font-size:14px}
+.ctrl label{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink-2)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--bg);flex-wrap:wrap}
+.seg button{font:500 13px/1 var(--f-body);border:0;background:transparent;color:var(--muted);padding:8px 12px;cursor:pointer;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg.k button{font-family:var(--f-mono)}
+.lab svg{display:block;width:100%;height:auto}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.ep svg{min-width:680px}
+.ep text{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.ep .lab2{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+input[type=range]{accent-color:var(--hd);width:160px}
+.readout{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}
+@media (max-width:640px){.readout{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.readout>div{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.5}
+.readout b{font-family:var(--f-mono);font-weight:500;font-size:17px;color:var(--ink);display:block}
+.readout .k{font:500 11px var(--f-mono);color:var(--muted)}
+.say{font-size:14px;line-height:1.75;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:12px 0 0}
+.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 16px 10px;margin:18px 0}
+.chartbox h4{font-family:var(--f-display);font-weight:700;font-size:1rem;margin:0 0 2px}
+.chartbox .sub{font-size:13px;color:var(--muted);margin:0 0 10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink-2);margin:0 0 6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+svg.chart{display:block;width:100%;height:auto;min-width:620px}
+svg.chart text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+svg.chart .tick{font:11px var(--f-mono);fill:var(--muted)}
+svg.chart .val{font:11px var(--f-mono);fill:var(--ink-2)}
+svg.chart .grid{stroke:var(--line);stroke-width:1}
+svg.chart .base{stroke:var(--ink-2);stroke-width:1}
+svg.chart .glabel{font-size:12.5px;fill:var(--ink)}
+.c-hd{fill:var(--hd)} .c-ex{fill:var(--ex)} .c-pos{fill:var(--pos)} .c-b0{fill:var(--base)} .c-b1{fill:var(--base-2)} .c-warn{fill:var(--warn)}
+.bg-hd{background:var(--hd)} .bg-ex{background:var(--ex)} .bg-pos{background:var(--pos)} .bg-b0{background:var(--base)} .bg-b1{background:var(--base-2)} .bg-warn{background:var(--warn)}
+table.heat{border-collapse:separate;border-spacing:3px;font-size:13px;min-width:820px;width:100%}
+table.heat th{font:500 11px/1.3 var(--f-mono);color:var(--muted);text-align:center;padding:6px 3px;white-space:nowrap}
+table.heat th.row{text-align:left;font:500 13px/1.3 var(--f-body);color:var(--ink);padding-right:10px}
+table.heat th.grp{color:var(--hd);border-bottom:1px solid var(--line)}
+table.heat td{text-align:center;font:500 12px var(--f-mono);font-variant-numeric:tabular-nums;border-radius:4px;padding:7px 3px;color:var(--ink)}
+table.heat td.avg{box-shadow:inset 0 0 0 1.5px var(--ink-2)}
+table.heat td.dk{color:var(--on-hd)}
+table.heat td.fix{outline:2px dashed var(--warn);outline-offset:-2px}
+details.raw{margin:8px 0 4px;font-size:13.5px}
+details.raw summary{cursor:pointer;color:var(--muted);font:500 12.5px var(--f-mono)}
+details.raw .tblwrap{margin:8px 0}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);font:12.5px/1.55 var(--f-body);padding:8px 10px;border-radius:6px;max-width:300px}
+details.faq{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:10px 0;max-width:50em}
+details.faq summary{cursor:pointer;padding:12px 16px;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::after{content:"+";font:500 16px var(--f-mono);color:var(--muted)}
+details.faq[open] summary::after{content:"−"}
+details.faq .a{padding:0 16px 14px;font-size:15px;line-height:1.8}
+details.faq .a p:last-child{margin:0}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0;align-items:start}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.two>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.two h4{font:500 12.5px/1.4 var(--f-body);margin:0 0 10px;color:var(--muted)}
+.two ul{margin:0;padding-left:18px;font-size:14.5px;line-height:1.75}
+.two li{margin-bottom:8px}
+table.cmp{min-width:860px}
+table.cmp td{font-size:13.5px}
+table.cmp th.me,table.cmp td.me{background:color-mix(in oklab,var(--hd-soft) 55%,transparent)}
+details.gl{background:var(--surface);border:1px solid var(--line);border-radius:10px;max-width:52em}
+details.gl summary{cursor:pointer;padding:14px 18px;font-weight:500}
+details.gl dl{margin:0;padding:0 18px 16px;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:8px 18px;font-size:14px;line-height:1.7}
+details.gl dt{font-family:var(--f-mono);font-size:13px;color:var(--ink)}
+details.gl dd{margin:0;color:var(--ink-2)}
+@media (max-width:560px){details.gl dl{grid-template-columns:minmax(0,1fr);gap:2px}details.gl dd{margin-bottom:10px}}
+footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/">Harness for Robotics</a></span><span class="vapnav-links"><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/tt-vla/" aria-current="page">TT-VLA</a><a href="../../papers/tau0-vla/">τ₀-VLA</a><a href="../../papers/motormind/">MotorMind</a></span></div></div>
+<!-- /vap:nav -->
+<header class="hero page">
+  <div class="hero-grid">
+    <div>
+      <p class="kicker">论文精读 · Harness for Robotics · 评估与反馈</p>
+      <h1 class="title">TT<span class="dash">-</span>VLA</h1>
+      <p class="entitle">On-the-Fly VLA Adaptation via Test-Time Reinforcement Learning</p>
+      <p class="thesis">在部署时<strong>边执行边更新策略</strong>：每走一步，冻结的进度估计器 VLAC 给当前画面打一个 0–1 的任务进度分，相邻两步的差就是奖励。每 8 步用去掉价值函数和熵项的 PPO（γ = λ = 0，优势就是这一步的奖励）更新一次 LoRA。每个回合开始时重新载入原始权重。</p>
+      <ul class="meta">
+        <li><b>密苏里大学堪萨斯城分校</b> · 港科大（广州）· 美国海军研究实验室 · Lamar · Meta AI · RIT</li>
+        <li><b>arXiv</b> 2601.06748v3</li>
+        <li><b>v1</b> 2026-01-11 · <b>v3</b> 2026-04-07</li>
+        <li><a href="https://arxiv.org/abs/2601.06748" target="_blank" rel="noopener">arXiv</a>（代码称录用后公开）</li>
+      </ul>
+    </div>
+    <figure class="ribbon">
+      <svg viewBox="0 0 520 260" role="img" aria-label="一个回合内的进度曲线、每步奖励和每 8 步一次的参数更新示意">
+        <g id="rb"></g>
+      </svg>
+      <figcaption>示意：上为进度 p<sub>t</sub>，中为奖励 r<sub>t</sub> = p<sub>t</sub> − p<sub>t−1</sub>，下为每 8 步一次的 LoRA 更新。曲线是构造的，不是实验数据。</figcaption>
+    </figure>
+  </div>
+  <div class="tldr" aria-label="一分钟版">
+    <div><h3>做了什么</h3><p>把 PPO 压到最简：不学价值函数（单回合数据不够、时间也不够），不加熵正则（测试时要尽快贴合当前任务，不要探索），优势直接取即时奖励。奖励来自现成的 VLAC 进度估计器，不需要人工标注或环境成功信号。</p></div>
+    <div><h3>放在 Harness 里看</h3><p>典型的「评估与反馈」：执行后由外部评价器给出稠密信号，直接用来<strong>改策略参数</strong>，在一个回合之内形成闭环。和其他三篇不同，它不改任务结构，只在原 VLA 外面套一层在线学习。</p></div>
+    <div><h3>结果</h3><p>ManiSkill3 上 15 个未见任务、4 个 VLA（Nora、OpenVLA、OpenVLA-RL、TraceVLA），三个维度的平均成功率提升 <b>0.8–3.8</b> 个点。Franka 真机上 OpenVLA 三类任务分别 +3.3、+13.3、+13.3 个点（每类 30 次）。</p></div>
+    <div class="flag"><h3>最该留意的</h3><p>提升大多小于单任务 240 次试验的统计误差。主表至少有 3 个基线数字两位数字颠倒、1 个 Δ 算错，用分项均值可以反推出正确值。没有任何延迟或算力数字。更新间隔、学习率、LoRA 秩都是从一组候选里选的，选择方式没说。</p></div>
+  </div>
+</header>
+
+<div class="page layout">
+  <nav class="toc" aria-label="目录">
+    <p>目录</p>
+    <ol>
+      <li><a href="#problem">问题</a></li>
+      <li><a href="#reward">进度奖励</a></li>
+      <li><a href="#ppo">无价值 PPO</a></li>
+      <li><a href="#theory">理论部分</a></li>
+      <li><a href="#setup">实验设置</a></li>
+      <li><a href="#results">主结果</a></li>
+      <li><a href="#diag">诊断实验</a></li>
+      <li><a href="#real">真机</a></li>
+      <li><a href="#insight">读懂它</a></li>
+      <li><a href="#limits">局限与疑点</a></li>
+      <li><a href="#topic">放到专题里看</a></li>
+      <li><a href="#glossary">术语表</a></li>
+    </ol>
+  </nav>
+  <main>
+    <section id="problem">
+      <p class="eyebrow">问题 · §1–2</p>
+      <h2>训练完就冻结的 VLA，遇到没见过的情况只能硬扛</h2>
+      <div class="prose">
+        <p>VLA 要么用监督微调训练，要么在训练阶段做强化学习（RL4VLA、SimpleVLA-RL、VLA-RL 等），两者都是「训练和部署分离」：一旦部署，参数不再变化。论文要解决的是部署后、在单个回合内，遇到分布偏移（物体被挪走、桌面换了、指令换了说法）时让策略自己调整。</p>
+        <p>语言和视觉模型里已有测试时训练（TTT）：TLM 最小化输入困惑度，TTRL 用多数投票构造伪标签做 RL。论文认为它们不能直接搬到 VLA：自监督目标关注表征一致性，不关注动作好坏；多数投票不反映动作质量。同期的 EVOLVE-VLA 也用任务进度做测试时奖励，但用 GRPO，需要对同一状态采样多条动作，真机上无法复位，算力开销也大。</p>
+      </div>
+      <figure class="plate narrow">
+        <button class="zoom" type="button" data-src="fig/overview.jpg" aria-label="放大原文图 1"><img src="fig/overview.jpg" width="1800" height="1126" alt="原文图 1：TT-VLA 作为插件接到 OpenVLA、Nora、TraceVLA 等预训练 VLA 上，利用环境奖励在测试时适配" loading="lazy"></button>
+        <figcaption><b>原文 Figure 1</b>左：TT-VLA 以「插头」的方式接到现成 VLA（OpenVLA、Nora、TraceVLA……）上，用环境给出的奖励和 VLA 的动作闭环更新。右：同一句指令「拿起勺子」，原模型失败（上），适配后成功（下）。图里的插图是示意。</figcaption>
+      </figure>
+    </section>
+
+    <section id="reward">
+      <p class="eyebrow">方法 · 稠密进度奖励 · §3.2</p>
+      <h2>奖励 = 进度的增量</h2>
+      <div class="prose"><p>把操作建模为 POMDP，策略 a<sub>t</sub> ~ π<sub>θ</sub>(a<sub>t</sub> | o<sub>t−H+1:t</sub>, l)。任务进度 p<sub>t</sub> ∈ [0, 1] 由一个冻结的进度估计器从观测历史和指令给出，每步奖励是它的差分：</p></div>
+      <div class="eq"><span>p<sub>t</sub> = Φ(o<sub>0:t+1</sub>, l),&nbsp;&nbsp;&nbsp; r<sub>t</sub> = p<sub>t</sub> − p<sub>t−1</sub></span><span class="no">(6–7)</span></div>
+      <div class="prose">
+        <p>Φ 用的是 VLAC（Vision-Language-Action-Critic），一个预训练的多模态进度回归器。作者列出三个好处：推理时不需要外部监督；每一步都有反馈，可以在回合中途修正；推进时得正奖励，倒退时得负奖励，抑制来回摆动。</p>
+        <p>稀疏的成功/失败奖励在训练阶段可以用（能重放、能复位），但测试时要等回合结束才知道，回合内无法修正。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>整个方法的上限由 VLAC 决定</h4>
+        <p>差分奖励把估计器的每一点误差都直接变成梯度方向。如果 VLAC 在某个场景下把「夹着香蕉远离盘子」误判为进度增加，策略就会被推向错误方向。论文没有报告 VLAC 在这些任务上的估计质量，没有说明用的是哪个规模的 VLAC，也没有比较其他进度估计器。Φ 的输入写成 o<sub>0:t+1</sub>（含下一帧），算法 1 里又写成 o<sub>0:t</sub>，具体用了多长的历史也不清楚。</p>
+      </div>
+    </section>
+
+    <section id="ppo">
+      <p class="eyebrow">方法 · 无价值函数的 PPO · §3.2 · 算法 1</p>
+      <h2>只留下裁剪项，优势就是即时奖励</h2>
+      <div class="prose"><p>标准 PPO 目标有三项：裁剪策略损失、价值损失、熵正则：</p></div>
+      <div class="eq"><span>L<sup>PPO</sup>(θ) = 𝔼<sub>t</sub>[ L<sup>CLIP</sup><sub>t</sub>(θ) − c<sub>1</sub> L<sup>Value</sup><sub>t</sub>(θ) + c<sub>2</sub> L<sup>entropy</sup><sub>t</sub>(θ) ]</span><span class="no">(3)</span></div>
+      <div class="prose"><p>TT-VLA 取 c<sub>1</sub> = c<sub>2</sub> = 0，再令 GAE 的 γ = λ = 0，于是：</p></div>
+      <div class="eq"><span>L(θ) = 𝔼<sub>t</sub>[ min( ρ<sub>t</sub>(θ) Â<sub>t</sub>, clip(ρ<sub>t</sub>(θ), 1−ε, 1+ε) Â<sub>t</sub> ) ],&nbsp;&nbsp; Â<sub>t</sub> = r<sub>t</sub>,&nbsp; ε = 0.2</span><span class="no">(8–9)</span></div>
+      <div class="cards three">
+        <div class="card hd"><h4>为什么不要价值函数</h4><p>测试时只有一个回合的数据，不够估计回报；更新要在线完成，没有时间同时训练一个价值网络。</p></div>
+        <div class="card hd"><h4>为什么不要熵项</h4><p>熵项鼓励探索，测试时的目标是尽快贴合当前任务，探索在真机上还可能有风险。</p></div>
+        <div class="card hd"><h4>为什么 γ = λ = 0</h4><p>只看每个动作对即时进度的贡献，不估计长期回报。论文的理由是长期回报在这里不可靠，会给无效动作过于乐观的优势。</p></div>
+      </div>
+      <div class="prose"><p>算法 1 的流程（附录 G）：</p></div>
+<pre class="code"><span class="k">for</span> 每个回合:
+    <span class="c"># 每个回合开始都重新载入预训练权重，适配不跨回合累积</span>
+    载入 π_θ;  p_0 ← 0;  缓冲区 B ← ∅;  环境复位
+    <span class="k">for</span> t = 0 … T:            <span class="c"># T = 160 步</span>
+        采样 a_t ~ π_θ，记下 log π_old(a_t)，执行
+        p_t ← Φ(o_0:t, l);  r_t ← p_t − p_{t−1}
+        B 存入 (o, a_t, r_t, log π_old)
+        <span class="k">if</span> t mod K == 0:       <span class="c"># K = 8 最好</span>
+            对 B 中样本算 ρ = exp(log π_θ − log π_old)
+            L = Σ min(ρ·r, clip(ρ, 0.8, 1.2)·r)
+            θ ← θ + η ∇L;  清空 B   <span class="c"># 只更新 LoRA（秩 16 或 32）</span></pre>
+      <div class="lab" id="ep-lab">
+        <div class="lab-head">
+          <h4>一个回合里的奖励、优势和更新</h4>
+          <p>进度曲线是构造的示意；更新间隔对应的成功率来自表 4</p>
+        </div>
+        <div class="ctrl">
+          <span class="muted small">更新间隔 K</span>
+          <div class="seg k" role="group" aria-label="更新间隔" id="ep-k"><button type="button" data-k="1" aria-pressed="false">1</button><button type="button" data-k="4" aria-pressed="false">4</button><button type="button" data-k="8" aria-pressed="true">8</button><button type="button" data-k="16" aria-pressed="false">16</button></div>
+          <div class="seg" role="group" aria-label="优势计算方式" id="ep-adv"><button type="button" data-k="tt" aria-pressed="true">TT-VLA：Â = r</button><button type="button" data-k="gae" aria-pressed="false">GAE：γ 0.99 · λ 0.95 · 截断 8</button></div>
+        </div>
+        <div class="scroll ep"><svg id="ep-svg" viewBox="0 0 760 330" role="img" aria-label="回合内进度、奖励、优势与更新时刻"></svg></div>
+        <div class="readout" id="ep-read"></div>
+        <p class="say" id="ep-say"></p>
+      </div>
+    </section>
+
+    <section id="theory">
+      <p class="eyebrow">方法 · 理论分析 · §3.3</p>
+      <h2>为什么不能把价值函数设成「剩余进度」</h2>
+      <div class="prose"><p>论文给出一个命题、一个推论和一个引理。命题：若奖励是进度差分、价值取剩余进度 V(s<sub>t</sub>) = 1 − p<sub>t−1</sub>、γ = 1，则 TD 误差恒为零：</p></div>
+      <div class="eq"><span>δ<sub>t</sub> = (p<sub>t</sub> − p<sub>t−1</sub>) + γ(1 − p<sub>t</sub>) − (1 − p<sub>t−1</sub>) = (γ − 1)(1 − p<sub>t</sub>)</span><span class="no">命题 1 · 推论 1</span></div>
+      <div class="prose"><p>γ = 1 时 δ<sub>t</sub> = 0，策略梯度没有信号；0 &lt; γ &lt; 1 时 δ<sub>t</sub> &lt; 0，优势被系统性压低。引理则说明 λ = 0 时 Â = δ，γ = 0 且 V ≡ 0 时 Â = r。</p></div>
+      <div class="lab" id="th-lab">
+        <div class="lab-head"><h4>拖动看看 TD 误差</h4><p>按命题的假设计算：V = 1 − p<sub>t−1</sub></p></div>
+        <div class="ctrl">
+          <label>γ <input type="range" id="th-g" min="0" max="1" step="0.01" value="0.99"> <span class="mono" id="th-gv"></span></label>
+          <label>p<sub>t</sub> <input type="range" id="th-p" min="0" max="1" step="0.01" value="0.4"> <span class="mono" id="th-pv"></span></label>
+          <label>本步进度增量 <input type="range" id="th-r" min="-0.1" max="0.1" step="0.005" value="0.02"> <span class="mono" id="th-rv"></span></label>
+        </div>
+        <div class="readout" id="th-read"></div>
+        <p class="say" id="th-say"></p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>这些结论是代数恒等式，不是对方法的证明</h4>
+        <p>命题只说明「如果价值函数恰好等于剩余进度，TD 误差就和动作无关」，也就是这个特定的价值函数会让奖励塑形完全抵消。它并不说明学到的价值函数会收敛到这里，也不说明 γ = 0 是好的选择。引理是 GAE 定义的直接展开。真正支持 γ = λ = 0 的证据是图 4 的实验对比（下文），差距在 1–3 个点。</p>
+      </div>
+    </section>
+
+    <section id="setup">
+      <p class="eyebrow">实验设置 · §4.1 · 附录 C</p>
+      <h2>沿用 RL4VLA 的 15 个未见任务</h2>
+      <div class="prose">
+        <ul>
+          <li><strong>仿真：</strong>ManiSkill 3，WidowX-250S 机械臂，单张 640×480 RGB + 指令，输出末端笛卡尔增量和二值夹爪命令。训练分布：16 种物体、16 种桌面，指令模板「put O on R」，接收物是黄色盘子。用 16,400 条自动生成的示范做预热。</li>
+          <li><strong>15 个未见任务，分三个维度：</strong>Execution（物体与接收物位置范围扩大、机器人初始位姿随机、<em>第 5 步把物体瞬移到新位置</em>）；Vision（5 种新桌面、动态纹理叠加在物体/接收物/机械臂上 0.3 或 0.5 透明度、动态噪声叠加在全图）；Semantics（9 种新物体、16 种新接收物、16 种新指令模板、多物体、多接收物、干扰接收物）。</li>
+          <li><strong>评测：</strong>每个任务 80 次 × 3 个随机种子 = 240 次，每回合固定 160 步。</li>
+          <li><strong>适配超参：</strong>LoRA 秩 ∈ {16, 32}，学习率 ∈ {1e-5, 5e-5, 1e-4}，AdamW，裁剪 ε = 0.2，每 8 步更新。RTX 6000 Ada GPU。</li>
+          <li><strong>基座模型：</strong>Nora（Qwen-2.5-VL-3B + FAST+，在自采的 ManiSkill3 数据上再训 50K 步）；OpenVLA（Llama-2-7B，预热 10K 步）；OpenVLA-RL（RL4VLA 训练阶段 RL 后的 OpenVLA）；TraceVLA（视觉轨迹提示）。全是离散动作 token 的自回归模型。</li>
+          <li><strong>真机：</strong>Franka Research 3，单张 500×480 RGB，OpenVLA 为基座，9 个拾放任务（执行/视觉/语义各 3 个），每个 10 次。</li>
+        </ul>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/pipeline.jpg" aria-label="放大原文图 2"><img src="fig/pipeline.jpg" width="1800" height="406" alt="原文图 2：(a) TT-VLA 流程，(b) 两个雷达图展示各任务的提升" loading="lazy"></button>
+        <figcaption><b>原文 Figure 2</b>(a) 输入初始观测和指令「把烧烤酱瓶放到盘子上」；VLA 逐步输出动作，冻结（雪花）的进度估计器 Φ 给出 p<sub>0</sub>…p<sub>T−1</sub>，差分得到稠密奖励 r，进入无价值 PPO 损失，对 VLA 做测试时 LoRA 更新（火焰表示可训练）。(b) 两个雷达图展示 15 个任务上的提升，论文没有标明对应哪两个模型。</figcaption>
+      </figure>
+      <div class="note">
+        <h4><span class="tag read">解读</span>为什么只支持离散 token 的 VLA</h4>
+        <p>附录 A 解释：flow matching 或扩散动作头没有可算的单步对数似然 log π(a|s)，PPO 的概率比无法计算；动作要经过几十步去噪，内部的随机链和环境时间对不上；末端 MLP 头基本是确定性的。所以 π0、π0.5、GR00T 这类主流连续动作 VLA 都不在适用范围内，论文把它列为未来工作。</p>
+      </div>
+    </section>
+
+    <section id="results">
+      <p class="eyebrow">主结果 · 表 1</p>
+      <h2>60 个格子全部不降，维度平均提升 0.8–3.8 个点</h2>
+      <div class="chartbox">
+        <h4>各维度平均成功率：基座 vs 加 TT-VLA</h4>
+        <p class="sub">每对柱子左为基座，右为加 TT-VLA。数字取自表 1 的 Avg. 列。</p>
+        <div class="legend"><span><i class="bg-b0"></i>基座模型</span><span><i class="bg-hd"></i>+ TT-VLA</span></div>
+        <div class="scroll"><svg class="chart" id="ch-avg" viewBox="0 0 760 270"></svg></div>
+      </div>
+      <div class="chartbox">
+        <h4>15 个任务的绝对提升 Δ（百分点）</h4>
+        <p class="sub">颜色越深提升越大。悬停看原始成功率。虚线框是我们核对后认为表中数字有误的格子，见下方疑点。</p>
+        <div class="scroll" id="heat"></div>
+        <details class="raw" id="raw-main"><summary>原表数字（表 1，成功率 %）</summary></details>
+      </div>
+      <div class="prose">
+        <p>论文强调「在所有基线和任务类别上一致提升」。Nora 在 15 个任务里 14 个有提升，相对提升 5.26%–44.4%；最大的绝对提升是 Nora 的 Table（+6.66）、OpenVLA 的 M Recep（+9.17）和 Obj. Rep.（+6.67）。基线越强提升越小：OpenVLA-RL 的三个维度只有 +2.64 / +1.75 / +1.55。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>四处数字对不上，三处是两位数字颠倒</h4>
+        <p>每格是 240 次试验的成功率，应为 1/240 ≈ 0.417% 的整数倍。用表中给出的 Δ、相对提升和维度均值反推，可以定位到错误：</p>
+        <div class="tblwrap"><table class="t">
+          <thead><tr><th>位置</th><th class="num">表中</th><th class="num">反推应为</th><th>依据</th></tr></thead>
+          <tbody>
+            <tr><th>Nora · Table（基座）</th><td class="num bad">39.72</td><td class="num">37.92</td><td>Δ = 6.66、相对 17.56% 和 Vision 均值 29.92 都只与 37.92 吻合</td></tr>
+            <tr><th>OpenVLA · Table（基座）</th><td class="num bad">54.85</td><td class="num">54.58</td><td>Δ = 2.50 和 Vision 均值 39.83 只与 54.58 吻合；54.58 = 131/240</td></tr>
+            <tr><th>Nora · Instruct（基座）</th><td class="num bad">39.85</td><td class="num">39.58</td><td>Δ = 2.92 和 Semantics 均值 23.57 只与 39.58 吻合</td></tr>
+            <tr><th>OpenVLA · Instruct（Δ）</th><td class="num bad">+0.28</td><td class="num">+0.59</td><td>50.17 − 49.58 = 0.59；相对提升 1.18% 也对应 0.59</td></tr>
+          </tbody>
+        </table></div>
+        <p>另有几个格子（如 OpenVLA M-Obj. OOD 的 32.05、TraceVLA Robot Pose 的 21.50、OpenVLA Noise-s 的 31.33）不是 1/240 的整数倍，但和均值一致，可能是种子间不等量或四舍五入方式不同。这些都不改变结论的方向，但说明表格是手工整理的。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>提升普遍小于统计误差，却没有一个格子下降</h4>
+        <p>成功率在 30%–50% 附近时，240 次试验的标准误约 3 个点，两组之差的标准误约 4.5 个点。表 1 里 60 个 Δ 中 55 个小于 4.5。如果两组独立评测，在真实效应只有 1–3 个点时，理应看到不少负的 Δ；实际上 60 个格子没有一个为负（4 个为 0）。一种可能是两组使用了相同的环境种子配对评测，使噪声大部分抵消。论文没有说明评测是否配对，也没有报告方差或显著性。</p>
+      </div>
+    </section>
+
+    <section id="diag">
+      <p class="eyebrow">诊断实验 · §4.4–4.5 · 图 4 · 表 4–5</p>
+      <h2>三个代表任务上的对照</h2>
+      <div class="prose"><p>诊断实验在 Nora 和 OpenVLA 上，各用一个代表任务：Execution 用 Robot Pose，Vision 用 Table，Semantics 用 Object（附录 D）。下面三张图都加上了不做任何适配的基座分数作参照，它来自表 1。</p></div>
+      <div class="chartbox">
+        <h4>更新间隔 K（表 4）</h4>
+        <p class="sub">每 K 个环境步更新一次。灰色虚线是基座（不适配）的分数。</p>
+        <div class="scroll"><svg class="chart" id="ch-k" viewBox="0 0 760 250"></svg></div>
+      </div>
+      <div class="prose"><p>K = 8 在 6 个组合里 5 个最好（另一个与 K = 4 并列）。值得注意的是 K = 1：OpenVLA 三个任务都<strong>低于</strong>不做适配的基座（40.42 vs 41.25，54.12 vs 54.58，43.33 vs 45.00）。也就是说，更新太频繁会让策略变差。</p></div>
+      <div class="chartbox">
+        <h4>优势估计：GAE vs 即时奖励（原文 Figure 4）</h4>
+        <p class="sub">GAE：γ = 0.99，λ = 0.95，截断长度 8。数字取自原图矢量 PDF 的柱顶标注。</p>
+        <div class="legend"><span><i class="bg-b1"></i>基座（不适配）</span><span><i class="bg-ex"></i>GAE</span><span><i class="bg-hd"></i>TT-VLA（Â = r）</span></div>
+        <div class="scroll"><svg class="chart" id="ch-gae" viewBox="0 0 760 250"></svg></div>
+      </div>
+      <div class="chartbox">
+        <h4>和语言模型的测试时训练方法比（表 5）</h4>
+        <p class="sub">TLM：最小化指令 token 的负对数似然，每 8 步更新。TTRL：每步采 8 个动作 token 多数投票当伪标签，匹配得 1 分，每步更新。两者都用 LoRA 秩 32、学习率 1e-4。</p>
+        <div class="legend"><span><i class="bg-b1"></i>基座（不适配）</span><span><i class="bg-b0"></i>TLM</span><span><i class="bg-ex"></i>TTRL</span><span><i class="bg-hd"></i>TT-VLA</span></div>
+        <div class="scroll"><svg class="chart" id="ch-ttt" viewBox="0 0 760 250"></svg></div>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>加上「不适配」这根柱子，图的意思变了</h4>
+        <p>论文的对比只有 GAE vs Ours、TLM / TTRL vs Ours，没有画出不做适配的基座。补上之后可以看到：GAE 在 Nora Semantics（15.00 vs 17.08）和 OpenVLA Execution（40.42 vs 41.25）上低于基座；TLM、TTRL 在 OpenVLA 的三个任务上全部低于或等于基座。也就是说，大多数测试时更新方式在这里是<strong>有害</strong>的，TT-VLA 是少数能稳定不掉分的设置之一。这一点比「Ours 最好」更有信息量，也说明测试时更新本身有风险。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>超参数在测试任务上选择</h4>
+        <p>K 的消融直接在测试任务上做，选出的 K = 8 用于主表；学习率从三个候选里选、LoRA 秩从两个候选里选，论文没说按什么选、是否每个模型或任务单独选。如果是按测试成功率挑的，表 1 的提升里含有选择偏差。另外，TTRL 被引用为 <code>hu2025test</code>，与 TLM 是同一个引用键，属于引用错误。</p>
+      </div>
+    </section>
+
+    <section id="real">
+      <p class="eyebrow">真机 · §4.3 · 图 3、5</p>
+      <h2>Franka 上三类任务，每类 30 次</h2>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/real-tasks.jpg" aria-label="放大原文图 3"><img src="fig/real-tasks.jpg" width="1800" height="1265" alt="原文图 3：九个真机任务的初始画面与三类任务的成功率" loading="lazy"></button>
+        <figcaption><b>原文 Figure 3</b>三列是香蕉、胡萝卜、茄子放到盘子上；三行分别对应 Execution（不同机器人初始位姿）、Vision（深色背景）、Semantics（换盘子）。右侧柱图：OpenVLA 36.7 → 40.0（+3.3）、20.0 → 33.3（+13.3）、56.7 → 70.0（+13.3）。注意三张柱图的纵轴都是截断的。</figcaption>
+      </figure>
+      <div class="chartbox">
+        <h4>同一份数字，纵轴从 0 开始</h4>
+        <p class="sub">每类 3 个任务 × 10 次 = 30 次。+3.3 是 1 次成功，+13.3 是 4 次。</p>
+        <div class="legend"><span><i class="bg-b0"></i>OpenVLA</span><span><i class="bg-hd"></i>+ TT-VLA</span></div>
+        <div class="scroll"><svg class="chart" id="ch-real" viewBox="0 0 760 230"></svg></div>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/case-banana.jpg" aria-label="放大原文图 5"><img src="fig/case-banana.jpg" width="1800" height="1304" alt="原文图 5：放香蕉的案例，夹爪一度偏离盘子后修正" loading="lazy"></button>
+        <figcaption><b>原文 Figure 5</b>「把香蕉放到盘子上」，按行从左到右。第二行末夹爪带着香蕉越过了盘子，第三行回到盘子上方并放下。论文把这次修正归因于稠密进度奖励带来的快速调整。</figcaption>
+      </figure>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/case-more.jpg" aria-label="放大原文图 S1"><img src="fig/case-more.jpg" width="1800" height="644" alt="原文附录图 S1：三次放香蕉的回合" loading="lazy"></button>
+        <figcaption><b>原文 Figure S1</b>另外三次放香蕉。第一行先放错位置、重新抓起再放好；第二行把香蕉带到盘子后方后改正方向；第三行先越过盘子右侧，再调整放下。</figcaption>
+      </figure>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>真机的证据很薄</h4>
+        <ul style="margin:0;padding-left:18px">
+          <li>附录 C 写执行类任务是「香蕉、柠檬、苹果」，图 3 里却是香蕉、胡萝卜、茄子。</li>
+          <li>Execution 类只差 1 次成功；三张柱图的纵轴都从非零截断（如 30–42），视觉上把差距放大了几倍。</li>
+          <li>案例里的「修正」无法归因：VLA 本身采样就有随机性，没有同一初始状态下不适配的对照回合。</li>
+          <li>没有报告真机上每步的耗时：每步要跑一次 VLAC，每 8 步要对 7B 模型做一次 LoRA 反向传播。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="insight">
+      <p class="eyebrow">读懂它</p>
+      <h2>这篇真正说明了什么</h2>
+      <h3 style="margin-top:0">关键 insight</h3>
+      <div class="cards">
+        <div class="card"><h4>1. 外部评价器可以直接变成梯度</h4><p>不用环境的成功信号、不用标注，只用一个现成的进度估计器就能构造出每步奖励。这是「评估 → 反馈 → 修正」最直接的一种实现：评价信号不经过任何决策层，直接更新动作策略的参数。</p></div>
+        <div class="card"><h4>2. 测试时更新需要非常保守</h4><p>每步更新会掉到基座以下，TLM、TTRL 也大多掉分。TT-VLA 能稳定不掉，靠的是三件事：裁剪比、LoRA、每回合重置。提升小，但至少不伤害原模型。</p></div>
+        <div class="card"><h4>3. γ = 0 把 RL 变成了「奖励加权的行为克隆」</h4><p>优势就是这一步的进度增量，目标函数相当于：让刚才推进了进度的动作更可能出现，让倒退的动作更不可能出现。没有信用分配，也没有对未来的估计，所以更像在线的过滤式模仿。</p></div>
+        <div class="card"><h4>4. 适配不跨回合</h4><p>每个回合都从原始权重开始，只有 160 步、最多 20 次更新可用。它解决的是「这一回合里出了状况」，不是「部署后越用越好」。论文结尾说「迈向自我改进的 VLA」，但实验设置并不支持跨回合的累积改进。</p></div>
+      </div>
+      <h3>容易误解的地方</h3>
+      <div class="prose">
+        <ul>
+          <li><strong>「相对提升 44.4%」是从很低的基数算出来的</strong>（Nora Obj. Rep. 7.50 → 10.83，在 240 次里多了 8 次成功）。绝对提升才是更合适的读法。</li>
+          <li><strong>「无需外部监督」</strong>指的是不需要人类或环境的奖励，但需要一个预训练好的进度估计器 VLAC，它本身是用大量机器人数据训练的。</li>
+          <li><strong>「Mid-episode reposition」</strong>任务在第 5 步瞬移物体，而 K = 8 时第一次更新发生在第 8 步，适配的作用是之后的调整。</li>
+          <li><strong>雷达图（图 2b）和真机柱图</strong>的坐标都不是从零开始，视觉差距比数值差距大。</li>
+        </ul>
+      </div>
+      <h3>FAQ</h3>
+      <details class="faq"><summary>每 8 步一次更新，每次用多少数据？</summary><div class="a"><p>缓冲区里只有最近 8 步的 (o, a, r, log π_old)，更新后清空。按算法 1，每次只做一步梯度更新。8 个样本、奖励都是很小的进度差，梯度噪声很大，这也是为什么需要裁剪和小学习率。</p></div></details>
+      <details class="faq"><summary>OpenVLA 每步输出 7 个动作 token，PPO 的概率比按什么算？</summary><div class="a"><p>论文没有说明。自回归 VLA 的一个动作对应多个 token，log π(a|s) 通常取这些 token 对数概率之和，但论文没写，也没说 Nora 的 FAST+ 序列如何处理。</p></div></details>
+      <details class="faq"><summary>和 EVOLVE-VLA 有什么区别？</summary><div class="a"><p>两者都用任务进度做测试时奖励。EVOLVE-VLA 用 GRPO，需要对同一状态采样一组动作再比较，真机上无法复位，算力开销大。TT-VLA 只用实际执行的那条轨迹，代价是没有组内基线、方差更大。论文没有和 EVOLVE-VLA 做实验对比。</p></div></details>
+      <details class="faq"><summary>为什么强基线（OpenVLA-RL）提升更小？</summary><div class="a"><p>OpenVLA-RL 已经在训练阶段用 RL 优化过，成功率在 64–90%，剩余空间小；论文没有给出解释。另一种可能是 VLAC 的进度估计在接近完成时区分度较低，奖励信号更弱，但这没有被检验。</p></div></details>
+    </section>
+
+    <section id="limits">
+      <p class="eyebrow">局限与疑点</p>
+      <h2>作者承认的，和我们读出来的</h2>
+      <div class="two">
+        <div>
+          <h4>论文自己提到的</h4>
+          <ul>
+            <li>只适用于离散 token 的 VLA，扩散/flow matching 动作头需要后续扩展（附录 A、K）。</li>
+            <li>测试时在线更新可能带来意外或不安全的行为，真机部署需要动作约束、终止条件、保守的更新和人工监督（附录 J）。</li>
+            <li>GRPO 式采样在测试时不现实（附录 F）。</li>
+          </ul>
+        </div>
+        <div>
+          <h4>我们读出来的</h4>
+          <ul>
+            <li><span class="tag doubt">疑点</span>表 1 有 3 处数字颠倒、1 处 Δ 算错。</li>
+            <li><span class="tag doubt">疑点</span>提升大多小于统计误差，却没有一个负值；未说明是否配对评测，没有方差。</li>
+            <li><span class="tag doubt">疑点</span>K、学习率、LoRA 秩在测试任务上选择，选择方式未披露。</li>
+            <li><span class="tag doubt">疑点</span>真机任务名称前后不一致；纵轴截断；Execution 类只差 1 次。</li>
+            <li>没有任何延迟、吞吐或算力数字；VLAC 的规模和准确度未报告。</li>
+            <li>每回合重置权重，适配不累积，和「自我改进」的叙述不符。</li>
+            <li>理论部分是代数恒等式，没有收敛性或改进保证。</li>
+            <li>TTRL 引用错误；没有和 EVOLVE-VLA 实验对比。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="topic">
+      <p class="eyebrow">放到专题里看</p>
+      <h2>评价信号最「底层」的一种用法</h2>
+      <div class="prose">
+        <p>在 <a href="../../topics/robot-harness/">Harness for Robotics 专题</a>里，评估与反馈指在执行前或执行后引入显式的评价信号，用来修正计划、更新状态或调整策略。四篇里，TT-VLA 是唯一一篇用评价信号去<strong>改模型参数</strong>的。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t cmp">
+          <thead><tr><th></th><th class="me">TT-VLA</th><th>τ₀-VLA</th><th>MotorMind</th><th>ACoT-VLA</th></tr></thead>
+          <tbody>
+            <tr><th>评价器</th><td class="me">VLAC 进度估计器（冻结）</td><td>世界模型 + 价值模型（Qwen3.5-9B 微调，5 级打分）</td><td>同一个通用 VLM（Verifier / Monitor）+ 实测状态</td><td>无</td></tr>
+            <tr><th>评价时机</th><td class="me">执行后，每一步</td><td>执行前，对候选子任务的想象结果</td><td>执行中（并行）和执行后</td><td>—</td></tr>
+            <tr><th>评价的对象</th><td class="me">刚执行的低层动作</td><td>尚未执行的高层子任务</td><td>子目标是否达成</td><td>—</td></tr>
+            <tr><th>反馈改变什么</th><td class="me">LoRA 参数（回合内）</td><td>选哪个子任务</td><td>继续 / 停 / 重试 / 重规划</td><td>—</td></tr>
+            <tr><th>能否撤销</th><td class="me">每回合重置</td><td>不执行就不产生后果</td><td>只能事后补救</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>和 τ₀-VLA：</strong>两者是「评估与反馈」的两端。τ₀ 在执行前评价（用想象的后果避免错误承诺），作用在子任务层；TT-VLA 在执行后评价，作用在动作层。τ₀ 的作者在引言里明确说，执行后才发现错误时，「重规划可以响应，但无法收回失败承诺的代价」。TT-VLA 正是在承诺之后修正。</li>
+          <li><strong>和 MotorMind：</strong>都把「进度」当反馈，但 MotorMind 的反馈是离散决策，不改模型；TT-VLA 的反馈是连续梯度。MotorMind 的诊断显示通用 VLM 判断进度的准确率只有 43–76%，这提醒我们 TT-VLA 依赖的进度估计器同样可能不可靠。</li>
+          <li><strong>和 ACoT-VLA：</strong>ACoT 用的是 flow matching 动作头，按 TT-VLA 附录的说法，目前无法直接套用它。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="glossary">
+      <p class="eyebrow">术语表</p>
+      <h2>读这篇会遇到的词</h2>
+      <details class="gl"><summary>展开术语表</summary>
+        <dl>
+          <dt>TTT</dt><dd>Test-Time Training，测试时训练：在推理阶段用无标签的测试数据更新模型。</dd>
+          <dt>VLAC</dt><dd>Vision-Language-Action-Critic，预训练的多模态模型，本文用它回归任务进度。</dd>
+          <dt>PPO</dt><dd>近端策略优化，用裁剪的概率比 ρ 限制每次更新的幅度。</dd>
+          <dt>GAE</dt><dd>广义优势估计，Â = Σ(γλ)<sup>l</sup> δ<sub>t+l</sub>；γ 为折扣，λ 为平滑参数。</dd>
+          <dt>value-free PPO</dt><dd>本文的变体：去掉价值损失和熵项，γ = λ = 0，Â = r。</dd>
+          <dt>LoRA</dt><dd>低秩适配，只训练插入的低秩矩阵，本文秩 16 或 32。</dd>
+          <dt>RL4VLA</dt><dd>研究 RL 对 VLA 泛化影响的工作，本文沿用其 ManiSkill3 任务设置，OpenVLA-RL 来自它。</dd>
+          <dt>TLM / TTRL</dt><dd>两种语言模型的测试时方法：最小化输入困惑度 / 多数投票伪标签做 RL。</dd>
+          <dt>Obj. Rep.</dt><dd>Mid-Episode Object Reposition，第 5 步把物体瞬移到新位置。</dd>
+          <dt>Texture-w / -s，Noise-w / -s</dt><dd>动态纹理或噪声以 0.3（弱）/ 0.5（强）透明度叠加。</dd>
+        </dl>
+      </details>
+    </section>
+  </main>
+</div>
+<footer class="page">
+  <p>图全部来自论文 arXiv 源码（v3）里的原图；表 1、4、5 的数字取自 tex 表格，图 3、4 的数字取自矢量 PDF 的文字层。疑点里「反推应为」的数字是我们用表中其他数字计算的。标「解读」的是我们的判断。</p>
+</footer>
+<dialog id="lb" aria-label="放大查看"><div class="box"><img id="lb-img" alt=""></div><div class="bar"><span id="lb-cap"></span><button type="button" id="lb-close">关闭</button></div></dialog>
+<div class="tip" id="tip" hidden></div>
+<script>
+(function(){
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const NS = 'http://www.w3.org/2000/svg';
+  const F2 = v => (typeof v === 'number' ? v.toFixed(2) : v);
+  function el(tag, attrs, text){ const e = document.createElementNS(NS, tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+  const tip = $('#tip');
+  function place(x, y){ const r = tip.getBoundingClientRect(); let l = x + 14, t = y + 14; if (l + r.width > innerWidth - 8) l = x - r.width - 14; if (t + r.height > innerHeight - 8) t = y - r.height - 14; tip.style.left = Math.max(8, l) + 'px'; tip.style.top = Math.max(8, t) + 'px'; }
+  document.addEventListener('pointerover', e => { const t = e.target.closest && e.target.closest('[data-tip]'); if (!t) return; tip.textContent = t.getAttribute('data-tip'); tip.hidden = false; place(e.clientX, e.clientY); });
+  document.addEventListener('pointermove', e => { if (tip.hidden) return; if (!(e.target.closest && e.target.closest('[data-tip]'))) { tip.hidden = true; return; } place(e.clientX, e.clientY); });
+  const lb = $('#lb');
+  $$('figure.plate .zoom').forEach(b => b.addEventListener('click', () => { $('#lb-img').src = b.dataset.src; const c = b.parentElement.querySelector('figcaption b'); $('#lb-cap').textContent = c ? c.textContent : ''; if (lb.showModal) lb.showModal(); else lb.setAttribute('open', ''); }));
+  $('#lb-close').addEventListener('click', () => lb.close());
+  lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+  const links = $$('.toc a');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id)); }), { rootMargin: '-35% 0px -60% 0px' });
+    $$('main section').forEach(s => io.observe(s));
+  }
+  function rawTable(host, head, rows){
+    const d = document.createElement('div'); d.className = 'tblwrap';
+    d.innerHTML = '<table class="t"><thead><tr>' + head.map((h, i) => '<th' + (i ? ' class="num"' : '') + '>' + h + '</th>').join('') + '</tr></thead><tbody>' +
+      rows.map(r => '<tr' + (r.best ? ' class="best"' : '') + '>' + r.cells.map((c, i) => i ? '<td class="num">' + c + '</td>' : '<th>' + c + '</th>').join('') + '</tr>').join('') + '</tbody></table>';
+    host.appendChild(d);
+  }
+  function seg(host, onPick){ $$('button', host).forEach(b => b.addEventListener('click', () => { $$('button', host).forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); onPick(b.dataset.k); })); }
+  function vgroups(svg, groups, series, opt){
+    opt = opt || {}; const W = opt.W || 760, H = opt.H || 250, L = 40, R = 10, T = opt.T || 22, B = opt.B || 40, lo = opt.lo || 0, hi = opt.max || 100;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+    for (let g = lo; g <= hi + 1e-9; g += (opt.step || 20)) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g)); }
+    const n = groups.length, gw = (W - L - R) / n, bw = Math.min(opt.bw || 24, (gw - 12) / series.length);
+    groups.forEach((gr, i) => {
+      const cx = L + gw * i + gw / 2, x0 = cx - bw * series.length / 2; let lastY = null;
+      if (gr.sep) svg.appendChild(el('line', { x1: L + gw * i, x2: L + gw * i, y1: T - 10, y2: H - 8, stroke: 'var(--ink-2)', 'stroke-dasharray': '3 3' }));
+      series.forEach((s, j) => {
+        const v = gr.vals[j]; if (v == null) return; const yy = y(Math.max(lo, v));
+        let ly = yy - 4; if (j && lastY != null && Math.abs(ly - lastY) < 11) ly = Math.min(ly, lastY - 11); lastY = ly;
+        svg.appendChild(el('rect', { x: x0 + j * bw + 1, y: yy, width: bw - 2, height: Math.max(1, y(lo) - yy), rx: 2, class: s.cls, 'data-tip': gr.name.replace(/\n/g, ' ') + ' · ' + s.name + '：' + F2(v) }));
+        svg.appendChild(el('text', { x: x0 + j * bw + bw / 2, y: ly, 'text-anchor': 'middle', class: 'val', 'font-size': 9.5 }, opt.fmt ? opt.fmt(v) : F2(v)));
+      });
+      gr.name.split('\n').forEach((w, k) => svg.appendChild(el('text', { x: cx, y: H - B + 16 + k * 13, 'text-anchor': 'middle', class: 'glabel', 'font-size': 11.5, 'font-weight': gr.bold ? 700 : 400 }, w)));
+    });
+    svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(lo), y2: y(lo), class: 'base' }));
+    if (opt.title) svg.appendChild(el('text', { x: L, y: 12, class: 'tick' }, opt.title));
+  }
+
+  /* ---------- synthetic progress trace (illustration) ---------- */
+  const TT = 160;
+  const P = (function(){ const p = []; for (let t = 0; t <= TT; t++) { let v = 0.92 / (1 + Math.exp(-(t - 70) / 14)); if (t > 62 && t < 92) v -= 0.12 * Math.sin(Math.PI * (t - 62) / 30); v += 0.012 * Math.sin(t * 1.7) + 0.008 * Math.sin(t * 0.55); p.push(Math.max(0, Math.min(1, v))); } p[0] = 0; return p; })();
+  const R = P.map((v, t) => t ? v - P[t - 1] : 0);
+
+  /* hero ribbon */
+  (function(){
+    const g = $('#rb'), x = t => 30 + 470 * t / TT;
+    g.appendChild(el('text', { x: 30, y: 16, class: 'lab' }, '进度 p_t（VLAC）'));
+    let d = ''; P.forEach((v, t) => { d += (t ? 'L' : 'M') + x(t).toFixed(1) + ' ' + (110 - 80 * v).toFixed(1); });
+    g.appendChild(el('path', { d, fill: 'none', stroke: 'var(--ex)', 'stroke-width': 2 }));
+    g.appendChild(el('text', { x: 30, y: 136, class: 'lab' }, '奖励 r_t = p_t − p_{t−1}'));
+    g.appendChild(el('line', { x1: 30, x2: 500, y1: 176, y2: 176, stroke: 'var(--line)' }));
+    R.forEach((r, t) => { if (!t) return; const h = Math.max(-26, Math.min(26, r * 900)); g.appendChild(el('rect', { x: x(t) - 1, y: h > 0 ? 176 - h : 176, width: 2.2, height: Math.abs(h), fill: h >= 0 ? 'var(--pos)' : 'var(--warn)' })); });
+    g.appendChild(el('text', { x: 30, y: 222, class: 'lab' }, 'LoRA 更新（每 8 步）'));
+    for (let t = 8; t <= TT; t += 8) g.appendChild(el('path', { d: 'M' + x(t) + ' 232 l4 10 h-8 z', fill: 'var(--hd)' }));
+    g.appendChild(el('text', { x: 500, y: 256, 'text-anchor': 'end' }, 't = 160'));
+  })();
+
+  /* ---------- episode lab ---------- */
+  (function(){
+    const KTAB = { 1: [10.83, 40.42, 40.00, 54.12, 15.42, 43.33], 4: [11.25, 41.25, 42.08, 56.25, 17.50, 46.25], 8: [12.50, 42.08, 44.58, 57.08, 18.33, 46.25], 16: [11.25, 42.08, 43.33, 55.42, 17.50, 45.42] };
+    const BASE = [10.83, 41.25, 37.92, 54.58, 17.08, 45.00];
+    let K = 8, mode = 'tt';
+    function adv(){
+      if (mode === 'tt') return R.slice();
+      const g = 0.99, l = 0.95, A = [];
+      for (let t = 0; t <= TT; t++) { let a = 0; for (let k = 0; k < 8 && t + k <= TT; k++) a += Math.pow(g * l, k) * R[t + k]; A.push(t ? a : 0); }
+      return A;
+    }
+    const svg = $('#ep-svg');
+    function draw(){
+      svg.innerHTML = ''; const x = t => 110 + 640 * t / TT;
+      svg.appendChild(el('text', { x: 8, y: 50, class: 'lab2' }, '进度 p_t'));
+      let d = ''; P.forEach((v, t) => { d += (t ? 'L' : 'M') + x(t).toFixed(1) + ' ' + (92 - 76 * v).toFixed(1); }); svg.appendChild(el('path', { d, fill: 'none', stroke: 'var(--ex)', 'stroke-width': 2 }));
+      svg.appendChild(el('rect', { x: x(62), y: 10, width: x(92) - x(62), height: 86, fill: 'var(--warn-soft)', opacity: .5 }));
+      svg.appendChild(el('text', { x: x(64), y: 22 }, '偏离目标，进度回落'));
+      svg.appendChild(el('text', { x: 8, y: 150, class: 'lab2' }, '奖励 r_t'));
+      svg.appendChild(el('line', { x1: x(0), x2: x(TT), y1: 148, y2: 148, stroke: 'var(--line)' }));
+      R.forEach((r, t) => { if (!t) return; const h = Math.max(-34, Math.min(34, r * 1100)); svg.appendChild(el('rect', { x: x(t) - 1.4, y: h > 0 ? 148 - h : 148, width: 2.8, height: Math.abs(h), fill: h >= 0 ? 'var(--pos)' : 'var(--warn)', 'data-tip': 't=' + t + '：r = ' + r.toFixed(4) })); });
+      const A = adv();
+      svg.appendChild(el('text', { x: 8, y: 228, class: 'lab2' }, '优势 Â_t'));
+      svg.appendChild(el('line', { x1: x(0), x2: x(TT), y1: 226, y2: 226, stroke: 'var(--line)' }));
+      A.forEach((a, t) => { if (!t) return; const h = Math.max(-34, Math.min(34, a * 1100)); svg.appendChild(el('rect', { x: x(t) - 1.4, y: h > 0 ? 226 - h : 226, width: 2.8, height: Math.abs(h), fill: h >= 0 ? 'var(--pos)' : 'var(--warn)', opacity: .85, 'data-tip': 't=' + t + '：Â = ' + a.toFixed(4) })); });
+      svg.appendChild(el('text', { x: 8, y: 294, class: 'lab2' }, 'LoRA 更新'));
+      let n = 0; for (let t = K; t <= TT; t += K) { n++; svg.appendChild(el('line', { x1: x(t), x2: x(t), y1: 280, y2: 300, stroke: 'var(--hd)', 'stroke-width': K === 1 ? 1 : 2 })); }
+      for (let t = 0; t <= TT; t += 20) svg.appendChild(el('text', { x: x(t), y: 322, 'text-anchor': 'middle' }, t));
+      let flip = 0, cnt = 0; for (let t = 1; t <= TT; t++) { if (Math.abs(R[t]) > 1e-4) { cnt++; if (Math.sign(A[t]) !== Math.sign(R[t])) flip++; } }
+      const k = KTAB[K];
+      const names = ['Nora · Execution', 'OpenVLA · Execution', 'Nora · Vision', 'OpenVLA · Vision', 'Nora · Semantics', 'OpenVLA · Semantics'];
+      $('#ep-read').innerHTML = '<div><span class="k">每回合更新次数</span><b>' + n + '</b></div><div><span class="k">每次用的样本</span><b>' + K + '</b></div>' +
+        [3, 5].map(i => '<div><span class="k">' + names[i] + '（表 4）</span><b>' + k[i].toFixed(2) + '</b><span class="k">基座 ' + BASE[i].toFixed(2) + '</span></div>').join('');
+      let s = 'K = ' + K + '：160 步里更新 ' + n + ' 次，每次只有 ' + K + ' 个样本。';
+      if (K === 1) s += ' 表 4 中 OpenVLA 三个任务都低于不适配的基座：单样本、单步奖励的梯度噪声太大。';
+      if (K === 8) s += ' 论文默认值，6 个组合里 5 个最好。';
+      if (K === 16) s += ' 更新更少，修正来得更晚，例如第 5 步物体被挪走后，要到第 16 步才第一次更新。';
+      s += mode === 'tt' ? ' 当前优势就是奖励本身：回落区间里每个动作都被直接惩罚。' : ' GAE 会把后面几步的奖励折算进来：回落开始前的动作也会被惩罚，回落末尾的动作会因为随后的回升而被奖励。在这条示意曲线上，有 ' + flip + ' / ' + cnt + ' 步的优势符号与即时奖励相反。';
+      $('#ep-say').textContent = s;
+    }
+    seg($('#ep-k'), v => { K = +v; draw(); }); seg($('#ep-adv'), v => { mode = v; draw(); }); draw();
+  })();
+
+  /* ---------- theory lab ---------- */
+  (function(){
+    function upd(){
+      const g = +$('#th-g').value, p = +$('#th-p').value, dr = +$('#th-r').value;
+      const p0 = Math.max(0, Math.min(1, p - dr)), r = p - p0;
+      const Vt = 1 - p0, Vn = 1 - p, delta = r + g * Vn - Vt;
+      $('#th-gv').textContent = g.toFixed(2); $('#th-pv').textContent = p.toFixed(2); $('#th-rv').textContent = (dr >= 0 ? '+' : '') + dr.toFixed(3);
+      $('#th-read').innerHTML = '<div><span class="k">r_t</span><b>' + r.toFixed(3) + '</b></div><div><span class="k">V(s_t) = 1 − p_{t−1}</span><b>' + Vt.toFixed(3) + '</b></div><div><span class="k">γ·V(s_{t+1})</span><b>' + (g * Vn).toFixed(3) + '</b></div><div><span class="k">δ_t</span><b style="color:' + (Math.abs(delta) < 1e-9 ? 'var(--ink)' : 'var(--warn)') + '">' + delta.toFixed(4) + '</b></div>';
+      $('#th-say').textContent = 'δ_t = (γ − 1)(1 − p_t) = ' + ((g - 1) * (1 - p)).toFixed(4) + '。改变本步进度增量（也就是动作的好坏）不会改变 δ_t：在这个价值函数下，TD 误差只取决于 γ 和当前进度，和动作无关。' + (g === 1 ? ' γ = 1 时它恒为 0。' : ' γ < 1 时它恒为负，进度越低越负。');
+    }
+    ['#th-g', '#th-p', '#th-r'].forEach(s => $(s).addEventListener('input', upd)); upd();
+  })();
+
+  /* ---------- main table ---------- */
+  const TASKS = ['Obj. Pos.', 'Robot Pose', 'Obj. Rep.', 'Table', 'Texture-w', 'Noise-w', 'Texture-s', 'Noise-s', 'M-Obj. OOD', 'Instruct', 'M Recep.', 'Recep.', 'Dist Recep.', 'Object', 'M-Obj. IND'];
+  const DIMS = [['Execution', 0, 3], ['Vision', 3, 8], ['Semantics', 8, 15]];
+  const M = [
+    { n: 'Nora', b: [23.75, 10.83, 7.50, 39.72, 32.50, 36.67, 19.58, 22.92, 10.00, 39.85, 16.67, 28.33, 26.25, 17.08, 27.08], t: [25.00, 12.50, 10.83, 44.58, 34.58, 41.67, 20.83, 27.08, 11.25, 42.50, 18.75, 30.83, 30.00, 18.33, 27.08], d: [1.25, 1.67, 3.33, 6.66, 2.08, 5.00, 1.25, 4.16, 1.25, 2.92, 2.08, 2.50, 3.75, 1.25, 0.00], avg: [[14.03, 16.11], [29.92, 33.75], [23.57, 25.53]], fix: [3, 9] },
+    { n: 'OpenVLA', b: [31.67, 41.25, 36.25, 54.85, 45.42, 40.83, 28.33, 30.00, 28.75, 49.58, 20.42, 33.33, 43.75, 45.00, 49.58], t: [34.58, 42.08, 42.92, 57.08, 47.08, 42.92, 31.25, 31.33, 32.05, 50.17, 29.58, 37.50, 45.00, 46.25, 50.00], d: [2.92, 0.83, 6.67, 2.50, 1.67, 2.08, 2.92, 1.33, 3.30, 0.28, 9.17, 4.17, 1.25, 1.25, 0.42], avg: [[36.39, 39.83], [39.83, 41.93], [38.63, 41.51]], fix: [3, 9] },
+    { n: 'OpenVLA-RL', b: [82.08, 81.25, 81.25, 87.08, 85.00, 85.83, 64.17, 69.17, 62.50, 86.67, 60.00, 79.58, 80.42, 77.50, 77.50], t: [84.17, 82.08, 86.25, 90.00, 86.25, 85.83, 65.83, 72.08, 65.00, 90.00, 61.25, 79.58, 80.83, 78.33, 80.00], d: [2.09, 0.83, 5.00, 2.92, 1.25, 0.00, 1.66, 2.91, 2.50, 3.33, 1.25, 0.00, 0.41, 0.83, 2.50], avg: [[81.53, 84.17], [78.25, 80.00], [74.88, 76.43]], fix: [] },
+    { n: 'TraceVLA', b: [55.00, 18.75, 7.08, 71.67, 67.08, 67.08, 45.83, 45.83, 22.50, 59.17, 27.92, 47.50, 55.83, 45.00, 57.92], t: [57.92, 21.50, 7.50, 72.92, 67.50, 67.92, 46.25, 47.08, 25.00, 60.00, 28.33, 51.25, 55.83, 47.08, 60.00], d: [2.92, 2.75, 0.42, 1.25, 0.42, 0.84, 0.42, 1.25, 2.50, 0.83, 0.41, 3.75, 0.00, 2.08, 2.08], avg: [[26.94, 28.97], [59.50, 60.33], [45.12, 46.78]], fix: [] }
+  ];
+  /* averages chart */
+  vgroups($('#ch-avg'), [].concat.apply([], M.map((m, i) => DIMS.map((d, j) => ({ name: ['执行', '视觉', '语义'][j] + (j === 1 ? '\n' + m.n : ''), vals: m.avg[j], sep: i > 0 && j === 0 })))), [{ name: '基座', cls: 'c-b0' }, { name: '+ TT-VLA', cls: 'c-hd' }], { H: 270, B: 44, bw: 22, step: 20 });
+  /* heat */
+  (function(){
+    let h = '<table class="heat"><thead><tr><th></th>' + DIMS.map(d => '<th class="grp" colspan="' + (d[2] - d[1] + 1) + '">' + d[0] + '</th>').join('') + '</tr><tr><th></th>';
+    DIMS.forEach(d => { for (let i = d[1]; i < d[2]; i++) h += '<th>' + TASKS[i] + '</th>'; h += '<th>Avg.</th>'; });
+    h += '</tr></thead><tbody>';
+    M.forEach(m => {
+      h += '<tr><th class="row">' + m.n + '</th>';
+      DIMS.forEach((d, j) => {
+        for (let i = d[1]; i < d[2]; i++) { const v = m.d[i], p = Math.round(Math.min(1, v / 9.2) * 88); h += '<td class="' + (p > 55 ? 'dk ' : '') + (m.fix.indexOf(i) >= 0 ? 'fix' : '') + '" style="background:color-mix(in oklab,var(--hd) ' + p + '%,var(--surface))" data-tip="' + m.n + ' · ' + TASKS[i] + '：' + m.b[i].toFixed(2) + ' → ' + m.t[i].toFixed(2) + '（表中 Δ ' + v.toFixed(2) + '）">+' + v.toFixed(2) + '</td>'; }
+        const dv = m.avg[j][1] - m.avg[j][0], p = Math.round(Math.min(1, dv / 9.2) * 88);
+        h += '<td class="avg' + (p > 55 ? ' dk' : '') + '" style="background:color-mix(in oklab,var(--hd) ' + p + '%,var(--surface))" data-tip="' + m.n + ' · ' + d[0] + ' 平均：' + m.avg[j][0] + ' → ' + m.avg[j][1] + '">+' + dv.toFixed(2) + '</td>';
+      });
+      h += '</tr>';
+    });
+    $('#heat').innerHTML = h + '</tbody></table>';
+    rawTable($('#raw-main'), ['模型'].concat(TASKS), [].concat.apply([], M.map(m => [{ cells: [m.n].concat(m.b.map(F2)) }, { cells: [m.n + ' + TT-VLA'].concat(m.t.map(F2)), best: true }])));
+  })();
+
+  /* ---------- diagnostics ---------- */
+  const DG = ['Nora\nExecution', 'Nora\nVision', 'Nora\nSemantics', 'OpenVLA\nExecution', 'OpenVLA\nVision', 'OpenVLA\nSemantics'];
+  const BASEV = [10.83, 37.92, 17.08, 41.25, 54.58, 45.00];
+  (function(){
+    const svg = $('#ch-k'); svg.innerHTML = '';
+    const KS = [1, 4, 8, 16];
+    const KV = { 1: [10.83, 40.00, 15.42, 40.42, 54.12, 43.33], 4: [11.25, 42.08, 17.50, 41.25, 56.25, 46.25], 8: [12.50, 44.58, 18.33, 42.08, 57.08, 46.25], 16: [11.25, 43.33, 17.50, 42.08, 55.42, 45.42] };
+    const W = 760, pw = (W - 20) / 6;
+    DG.forEach((nm, i) => {
+      const ox = 14 + i * pw + 26, w = pw - 40; const vals = KS.map(k => KV[k][i]).concat([BASEV[i]]); const lo = Math.floor(Math.min.apply(null, vals) - 1), hi = Math.ceil(Math.max.apply(null, vals) + 1);
+      const y = v => 38 + 162 * (1 - (v - lo) / (hi - lo)), x = k => ox + w * k / 3;
+      nm.split('\n').forEach((t, q) => svg.appendChild(el('text', { x: ox + w / 2, y: 12 + q * 13, 'text-anchor': 'middle', class: 'glabel', 'font-size': 11.5 }, t)));
+      [lo, hi].forEach(g => svg.appendChild(el('text', { x: ox - 4, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g)));
+      svg.appendChild(el('line', { x1: ox, x2: ox + w, y1: y(BASEV[i]), y2: y(BASEV[i]), stroke: 'var(--muted)', 'stroke-dasharray': '4 3', 'data-tip': '基座（不适配）：' + BASEV[i] }));
+      svg.appendChild(el('polyline', { points: KS.map((k, j) => x(j) + ',' + y(KV[k][i])).join(' '), fill: 'none', stroke: 'var(--hd)', 'stroke-width': 2 }));
+      KS.forEach((k, j) => { const v = KV[k][i]; svg.appendChild(el('circle', { cx: x(j), cy: y(v), r: 4, fill: v < BASEV[i] ? 'var(--warn)' : 'var(--hd)', 'data-tip': nm.replace('\n', ' ') + ' · K=' + k + '：' + v.toFixed(2) + (v < BASEV[i] ? '（低于基座）' : '') })); svg.appendChild(el('text', { x: x(j), y: 222, 'text-anchor': 'middle', class: 'tick' }, k)); });
+      svg.appendChild(el('line', { x1: ox, x2: ox + w, y1: 200, y2: 200, class: 'grid' }));
+    });
+    svg.appendChild(el('text', { x: 380, y: 244, 'text-anchor': 'middle', class: 'tick' }, '更新间隔 K（环境步）· 红点表示低于基座'));
+  })();
+  vgroups($('#ch-gae'), DG.map((g, i) => ({ name: g, vals: [BASEV[i], [11.25, 43.33, 15.00, 40.42, 55.00, 43.75][i], [12.50, 44.58, 18.33, 42.08, 57.08, 46.25][i]] })), [{ name: '基座', cls: 'c-b1' }, { name: 'GAE', cls: 'c-ex' }, { name: 'TT-VLA', cls: 'c-hd' }], { B: 44, bw: 22 });
+  vgroups($('#ch-ttt'), DG.map((g, i) => ({ name: g, vals: [BASEV[i], [11.25, 41.25, 16.67, 40.42, 52.50, 42.9][i], [10.42, 39.58, 16.25, 40.83, 51.42, 41.76][i], [12.50, 44.58, 18.33, 42.08, 57.08, 46.25][i]] })), [{ name: '基座', cls: 'c-b1' }, { name: 'TLM', cls: 'c-b0' }, { name: 'TTRL', cls: 'c-ex' }, { name: 'TT-VLA', cls: 'c-hd' }], { B: 44, bw: 20 });
+
+  /* ---------- real ---------- */
+  vgroups($('#ch-real'), [{ name: 'Execution · 11 → 12 / 30', vals: [36.7, 40.0] }, { name: 'Vision · 6 → 10 / 30', vals: [20.0, 33.3] }, { name: 'Semantics · 17 → 21 / 30', vals: [56.7, 70.0] }], [{ name: 'OpenVLA', cls: 'c-b0' }, { name: '+ TT-VLA', cls: 'c-hd' }], { B: 44, bw: 40, fmt: v => v.toFixed(1) + '%' });
+})();
+</script>
+</body>
+</html>

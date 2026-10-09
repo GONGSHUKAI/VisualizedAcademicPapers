@@ -1,0 +1,982 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>ACoT-VLA 精读</title>
+<meta name="description" content="ACoT-VLA: Action Chain-of-Thought for Vision-Language-Action Models 中文精读：显式动作推理器 EAR、隐式动作推理器 IAR、动作引导预测 AGP，LIBERO / LIBERO-Plus / VLABench 与真机结果、消融和疑点。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F4F1EA; --surface:#FCFBF7; --surface-2:#E9E4D8; --ink:#1B1D1A; --ink-2:#3F433D; --muted:#686C64; --line:#D9D4C7;
+  --ex:#A9640F; --ex-soft:#F6E6CC;
+  --im:#2B6A88; --im-soft:#D7E7EF;
+  --hd:#2C7449; --hd-soft:#D9EBDF; --on-hd:#FFFFFF;
+  --warn:#A8361F; --warn-soft:#F5DCD3;
+  --base:#958C7D; --base-2:#C4BCAE;
+  --plate:#FFFFFF; --focus:#2C7449;
+  --f-display:"Bricolage Grotesque","Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#121412; --surface:#1A1D1A; --surface-2:#242823; --ink:#E9EAE4; --ink-2:#C3C6BC; --muted:#8F948A; --line:#30352F;
+    --ex:#E3A04A; --ex-soft:#3A2A14;
+    --im:#72B4D4; --im-soft:#16303C;
+    --hd:#6CC593; --hd-soft:#183324; --on-hd:#0E1A12;
+    --warn:#EE8A70; --warn-soft:#3B1E17;
+    --base:#7D776C; --base-2:#4F4A42;
+    --plate:#F3F1EC; --focus:#6CC593;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#121412; --surface:#1A1D1A; --surface-2:#242823; --ink:#E9EAE4; --ink-2:#C3C6BC; --muted:#8F948A; --line:#30352F;
+  --ex:#E3A04A; --ex-soft:#3A2A14;
+  --im:#72B4D4; --im-soft:#16303C;
+  --hd:#6CC593; --hd-soft:#183324; --on-hd:#0E1A12;
+  --warn:#EE8A70; --warn-soft:#3B1E17;
+  --base:#7D776C; --base-2:#4F4A42;
+  --plate:#F3F1EC; --focus:#6CC593;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:var(--hd);text-underline-offset:3px;text-decoration-thickness:1px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+strong{font-weight:700}
+em{font-style:normal;background:linear-gradient(transparent 62%,var(--ex-soft) 62%)}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+sub,sup{font-size:.72em;line-height:0}
+.page{max-width:1200px;margin:0 auto;padding-inline:24px}
+@media (max-width:560px){.page{padding-inline:16px}}
+
+.hero{padding-block:44px 24px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:40px;align-items:center}
+@media (max-width:900px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+.kicker{font:500 12px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--hd);margin:0 0 14px}
+h1.title{font-family:var(--f-display);font-weight:800;font-size:clamp(3rem,1.8rem + 6vw,6.2rem);line-height:.95;letter-spacing:-.035em;margin:0}
+h1.title .dash{color:var(--ex)}
+.entitle{font-family:var(--f-display);font-weight:500;font-size:clamp(1rem,.9rem + .4vw,1.2rem);line-height:1.45;color:var(--ink-2);margin:14px 0 0}
+.thesis{font-size:clamp(1.05rem,1rem + .35vw,1.22rem);line-height:1.78;margin:20px 0 0;max-width:34em}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin:20px 0 0;padding:0;list-style:none;font:13px/1.6 var(--f-mono);color:var(--muted)}
+.meta b{color:var(--ink-2);font-weight:500}
+.ribbon{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.ribbon svg{display:block;width:100%;height:auto}
+.ribbon svg text{font-family:var(--f-mono);fill:var(--muted);font-size:11px}
+.ribbon svg .lab{font-family:var(--f-body);font-size:12.5px;fill:var(--ink-2)}
+.ribbon figcaption{font:12px/1.6 var(--f-mono);color:var(--muted);margin-top:8px}
+.tldr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:32px}
+@media (max-width:760px){.tldr{grid-template-columns:minmax(0,1fr)}}
+.tldr>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.tldr h3{font:500 12px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.tldr p{margin:0;font-size:15px;line-height:1.75}
+.tldr .flag h3{color:var(--warn)}
+
+.layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:52px;padding-block:20px 80px}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr);gap:0}}
+.toc{position:sticky;top:20px;align-self:start;font-size:14px;line-height:1.5}
+.toc p{font:500 11px/1.4 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.toc li a{display:block;padding:5px 0 5px 14px;margin-left:-1px;border-left:2px solid transparent;color:var(--muted);text-decoration:none}
+.toc li a:hover{color:var(--ink)}
+.toc li a.on{color:var(--ink);border-left-color:var(--hd);font-weight:500}
+@media (max-width:1000px){
+  .toc{position:static;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .toc p{display:none}
+  .toc ol{display:flex;gap:6px;border:0;white-space:nowrap;padding-bottom:6px}
+  .toc li a{border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin:0;background:var(--surface)}
+  .toc li a.on{border-color:var(--hd)}
+}
+main{min-width:0}
+section{padding-top:56px;scroll-margin-top:12px}
+section:first-child{padding-top:8px}
+.eyebrow{font:500 12px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--hd);margin:0 0 8px}
+h2{font-family:var(--f-display);font-weight:700;font-size:clamp(1.35rem,1.1rem + 1.1vw,1.95rem);line-height:1.3;letter-spacing:-.015em;margin:0 0 18px}
+h3{font-family:var(--f-display);font-weight:700;font-size:1.08rem;line-height:1.45;margin:36px 0 10px}
+p{margin:0 0 14px}
+.prose{max-width:44em}
+.prose li{margin-bottom:6px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.tag{display:inline-block;font:500 11px/1 var(--f-mono);letter-spacing:.04em;padding:4px 6px 3px;border-radius:4px;vertical-align:2px;margin-right:6px;white-space:nowrap}
+.tag.read{border:1px dashed var(--ink-2);color:var(--ink-2)}
+.tag.doubt{background:var(--warn-soft);color:var(--warn)}
+.note{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 18px;margin:18px 0;max-width:46em}
+.note>:last-child{margin-bottom:0}
+.note h4{font:500 12.5px/1.5 var(--f-body);margin:0 0 6px;color:var(--muted)}
+.note.doubt{border-color:color-mix(in oklab,var(--warn) 35%,var(--line));background:color-mix(in oklab,var(--warn-soft) 55%,var(--surface))}
+.note.doubt h4{color:var(--warn)}
+.eq{font-family:"Times New Roman",Georgia,"Noto Serif SC",serif;font-size:1.08rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:14px 0;overflow-x:auto;white-space:nowrap;display:flex;justify-content:space-between;gap:24px;max-width:46em}
+.eq .no{font:12px var(--f-mono);color:var(--muted);align-self:center}
+
+figure.plate{margin:22px 0}
+figure.plate .zoom{display:block;width:100%;padding:10px;background:var(--plate);border:1px solid var(--line);border-radius:8px;cursor:zoom-in}
+figure.plate img{display:block;width:100%;height:auto}
+figure.plate.narrow{max-width:520px}
+figure.plate figcaption{font-size:14px;line-height:1.7;color:var(--ink-2);margin-top:10px;max-width:52em}
+figure.plate figcaption b{font:500 12px var(--f-mono);letter-spacing:.03em;color:var(--muted);margin-right:8px}
+dialog#lb{border:0;padding:0;background:transparent;max-width:min(96vw,1800px);width:96vw}
+dialog#lb::backdrop{background:rgba(10,12,10,.85)}
+dialog#lb .box{background:var(--plate);border-radius:8px;padding:10px;max-height:88vh;overflow:auto}
+dialog#lb img{display:block;width:100%;height:auto}
+dialog#lb .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#ECEDE6;font-size:14px;padding:8px 2px 0}
+dialog#lb button{font:500 13px var(--f-mono);background:#ECEDE6;color:#1B1D1A;border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
+
+.tblwrap{overflow-x:auto;margin:16px 0;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;font-size:14px;line-height:1.6;min-width:100%}
+table.t th,table.t td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.t thead th{font:500 12px/1.4 var(--f-mono);color:var(--muted);border-bottom:1.5px solid var(--ink-2);white-space:nowrap}
+table.t tbody th{font-weight:500;white-space:nowrap;color:var(--ink-2)}
+table.t .num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t tr.best td,table.t tr.best th{font-weight:700}
+table.t td.hi{background:color-mix(in oklab,var(--hd-soft) 70%,transparent)}
+table.t td.lo{background:color-mix(in oklab,var(--warn-soft) 70%,transparent)}
+
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.cards.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:860px){.cards.three{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.cards{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card h4{font-family:var(--f-display);font-weight:700;font-size:1rem;line-height:1.45;margin:0 0 8px}
+.card p{font-size:14.5px;line-height:1.75;margin:0 0 8px}
+.card p:last-child{margin:0}
+.card.ex{border-top:3px solid var(--ex)} .card.im{border-top:3px solid var(--im)} .card.hd{border-top:3px solid var(--hd)}
+.card dl{display:grid;grid-template-columns:72px minmax(0,1fr);gap:4px 10px;margin:0;font-size:13.5px;line-height:1.65}
+.card dt{color:var(--muted)} .card dd{margin:0}
+
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin:22px 0}
+.lab-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;margin-bottom:12px}
+.lab-head h4{font-family:var(--f-display);font-weight:700;font-size:1.02rem;margin:0}
+.lab-head p{margin:0;font-size:13px;color:var(--muted)}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:0 0 12px;font-size:14px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--bg);flex-wrap:wrap}
+.seg button{font:500 13px/1 var(--f-body);border:0;background:transparent;color:var(--muted);padding:8px 12px;cursor:pointer;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg.k button{font-family:var(--f-mono);font-size:12.5px}
+.lab svg{display:block;width:100%;height:auto}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.arch svg{min-width:700px}
+.arch text{font-family:var(--f-body);font-size:12.5px;fill:var(--ink-2)}
+.arch .mono{font-family:var(--f-mono);font-size:11px;fill:var(--muted)}
+.arch .hd{font-family:var(--f-display);font-weight:700;font-size:13.5px;fill:var(--ink)}
+.arch .blk{fill:var(--bg);stroke:var(--line);stroke-width:1.2;transition:opacity .25s,stroke .25s}
+.arch .wire{stroke:var(--line);stroke-width:1.6;fill:none;transition:stroke .25s,opacity .25s}
+.arch g.part{transition:opacity .25s}
+.arch g.part.dim{opacity:.28}
+.arch g.part.on .blk{stroke:var(--ink);stroke-width:2}
+.arch .wire.on{stroke:var(--ink)}
+.arch .wire.gt{stroke-dasharray:5 4}
+.hz svg{min-width:640px}
+.hz text{font-family:var(--f-mono);font-size:11px;fill:var(--muted)}
+.hz .lab2{font-family:var(--f-body);font-size:12.5px;fill:var(--ink-2)}
+.readout{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:12px}
+@media (max-width:640px){.readout{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.readout>div{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.5}
+.readout b{font-family:var(--f-mono);font-weight:500;font-size:17px;color:var(--ink);display:block}
+.readout .k{font:500 11px var(--f-mono);color:var(--muted)}
+.readout .d{font:11.5px var(--f-mono);color:var(--hd)}
+.say{font-size:14px;line-height:1.75;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:12px 0 0}
+.steps{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.steps button{font:500 13px/1.2 var(--f-body);border:1px solid var(--line);background:var(--bg);color:var(--ink-2);border-radius:999px;padding:6px 12px;cursor:pointer}
+.steps button[aria-pressed="true"]{background:var(--hd);border-color:var(--hd);color:var(--on-hd)}
+
+.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 16px 10px;margin:18px 0}
+.chartbox h4{font-family:var(--f-display);font-weight:700;font-size:1rem;margin:0 0 2px}
+.chartbox .sub{font-size:13px;color:var(--muted);margin:0 0 10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink-2);margin:0 0 6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+svg.chart{display:block;width:100%;height:auto;min-width:620px}
+svg.chart text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+svg.chart .tick{font:11px var(--f-mono);fill:var(--muted)}
+svg.chart .val{font:11px var(--f-mono);fill:var(--ink-2)}
+svg.chart .val.hi{fill:var(--ink);font-weight:500}
+svg.chart .grid{stroke:var(--line);stroke-width:1}
+svg.chart .base{stroke:var(--ink-2);stroke-width:1}
+svg.chart .glabel{font-size:12.5px;fill:var(--ink)}
+.c-hd{fill:var(--hd)} .c-ex{fill:var(--ex)} .c-im{fill:var(--im)} .c-b0{fill:var(--base)} .c-b1{fill:var(--base-2)} .c-warn{fill:var(--warn)}
+.bg-hd{background:var(--hd)} .bg-ex{background:var(--ex)} .bg-im{background:var(--im)} .bg-b0{background:var(--base)} .bg-b1{background:var(--base-2)}
+details.raw{margin:8px 0 4px;font-size:13.5px}
+details.raw summary{cursor:pointer;color:var(--muted);font:500 12.5px var(--f-mono)}
+details.raw .tblwrap{margin:8px 0}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);font:12.5px/1.55 var(--f-body);padding:8px 10px;border-radius:6px;max-width:280px}
+
+details.faq{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:10px 0;max-width:50em}
+details.faq summary{cursor:pointer;padding:12px 16px;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::after{content:"+";font:500 16px var(--f-mono);color:var(--muted)}
+details.faq[open] summary::after{content:"−"}
+details.faq .a{padding:0 16px 14px;font-size:15px;line-height:1.8}
+details.faq .a p:last-child{margin:0}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0;align-items:start}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.two>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.two h4{font:500 12.5px/1.4 var(--f-body);margin:0 0 10px;color:var(--muted)}
+.two ul{margin:0;padding-left:18px;font-size:14.5px;line-height:1.75}
+.two li{margin-bottom:8px}
+table.cmp{min-width:860px}
+table.cmp td{font-size:13.5px}
+table.cmp th.me,table.cmp td.me{background:color-mix(in oklab,var(--hd-soft) 55%,transparent)}
+details.gl{background:var(--surface);border:1px solid var(--line);border-radius:10px;max-width:52em}
+details.gl summary{cursor:pointer;padding:14px 18px;font-weight:500}
+details.gl dl{margin:0;padding:0 18px 16px;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:8px 18px;font-size:14px;line-height:1.7}
+details.gl dt{font-family:var(--f-mono);font-size:13px;color:var(--ink)}
+details.gl dd{margin:0;color:var(--ink-2)}
+@media (max-width:560px){details.gl dl{grid-template-columns:minmax(0,1fr);gap:2px}details.gl dd{margin-bottom:10px}}
+footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/">Harness for Robotics</a></span><span class="vapnav-links"><a href="../../papers/acot-vla/" aria-current="page">ACoT-VLA</a><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/tau0-vla/">τ₀-VLA</a><a href="../../papers/motormind/">MotorMind</a></span></div></div>
+<!-- /vap:nav -->
+<header class="hero page">
+  <div class="hero-grid">
+    <div>
+      <p class="kicker">论文精读 · Harness for Robotics · 结构化执行</p>
+      <h1 class="title">ACoT<span class="dash">-</span>VLA</h1>
+      <p class="entitle">Action Chain-of-Thought for Vision-Language-Action Models</p>
+      <p class="thesis">把中间推理放进<strong>动作空间</strong>：在 π0.5 上先用一个 300M 的小 Transformer 去噪出一段<strong>粗参考轨迹</strong>（15 个点、隔一帧取一个，覆盖未来约 30 帧），再用每层一个可学习 query 从 VLM 的 KV cache 里抽<strong>隐式动作先验</strong>。动作头用交叉注意力读这两路，最后去噪出要执行的 10 步动作。</p>
+      <ul class="meta">
+        <li><b>北京航空航天大学 · 智元机器人 AgiBot</b></li>
+        <li><b>arXiv</b> 2601.11404v2</li>
+        <li><b>v1</b> 2026-01-16 · <b>v2</b> 2026-03-30</li>
+        <li><a href="https://arxiv.org/abs/2601.11404" target="_blank" rel="noopener">arXiv</a> · <a href="https://github.com/AgibotTech/ACoT-VLA" target="_blank" rel="noopener">代码</a></li>
+      </ul>
+    </div>
+    <figure class="ribbon">
+      <svg viewBox="0 0 520 250" role="img" aria-label="参考轨迹与动作块的时间覆盖示意：参考轨迹 15 个点、步长 2，覆盖 30 帧；动作块 10 个点、步长 1，覆盖 10 帧">
+        <line x1="40" y1="40" x2="490" y2="40" stroke="var(--line)"/>
+        <g id="rb-ticks"></g>
+        <text class="lab" x="40" y="80">EAR · 参考轨迹 · 15 点 × 步长 2</text>
+        <g id="rb-ref"></g>
+        <text class="lab" x="40" y="160">动作头 · 最终动作块 · 10 点 × 步长 1</text>
+        <g id="rb-act"></g>
+        <path d="M30 108 L30 178" stroke="var(--ink-2)" stroke-dasharray="3 3" fill="none"/>
+        <text x="40" y="136">↓ 动作头每步用交叉注意力读取 Z<tspan baseline-shift="super" font-size="8">ex</tspan></text>
+        <text x="40" y="230">LIBERO 默认配置（§4.1）；横轴是未来帧，起点偏移是示意</text>
+      </svg>
+      <figcaption>参考轨迹看得更远、更稀，动作块只覆盖近处 10 帧。按论文 §4.1 的超参数画，不是实验数据。</figcaption>
+    </figure>
+  </div>
+  <div class="tldr" aria-label="一分钟版">
+    <div><h3>做了什么</h3><p>π0.5 的 VLM 不动，加三块：<b>EAR</b>（18 层、约 300M，每层交叉注意力读 VLM 同层 KV，用 flow matching 生成参考轨迹）、<b>IAR</b>（每层 1 个 query，K/V 先降到 128 维再交叉注意力，池化后 18 个向量）、<b>AGP</b>（加噪动作当 query，分别读两路，拼接后自注意力融合，再送入动作头）。</p></div>
+    <div><h3>放在 Harness 里看</h3><p>属于「结构化执行」：推理 → 意图 → 动作，中间接口是一段<strong>动作空间里的粗轨迹</strong>，而不是子任务文本或目标图像。这个接口在模型内部、可微，由同一份示范数据监督，不需要额外标注。</p></div>
+    <div><h3>结果</h3><p>LIBERO 平均 <b>98.5</b>（π0.5 96.9）；LIBERO-Plus 零样本 <b>86.6</b>（π0.5 85.7），在 LIBERO-Plus 上微调 <b>88.0</b>（π0.5◇ 75.7）；VLABench IS/PS <b>63.5/47.4</b>；真机 4 项平均 <b>66.7%</b>（π0.5 61.0%）。延迟 91 → 112 ms。</p></div>
+    <div class="flag"><h3>最该留意的</h3><p>LIBERO 已接近饱和，主表增益 1.6 个点。大幅提升只出现在 LIBERO-Plus 微调设定，而这个设定里的 π0.5 基线冻结了主干，分数比它零样本迁移还低 10 个点。几张消融表用的基线数字互相不一致。真机每任务只有 12–40 次试验，其中 Pour Water 的 22.5% 在 12 次试验下不可能出现。</p></div>
+  </div>
+</header>
+
+<div class="page layout">
+  <nav class="toc" aria-label="目录">
+    <p>目录</p>
+    <ol>
+      <li><a href="#problem">问题</a></li>
+      <li><a href="#overview">全局</a></li>
+      <li><a href="#ear">EAR</a></li>
+      <li><a href="#iar">IAR</a></li>
+      <li><a href="#agp">AGP 与训练</a></li>
+      <li><a href="#setup">实验设置</a></li>
+      <li><a href="#results">结果</a></li>
+      <li><a href="#ablation">消融</a></li>
+      <li><a href="#insight">读懂它</a></li>
+      <li><a href="#limits">局限与疑点</a></li>
+      <li><a href="#topic">放到专题里看</a></li>
+      <li><a href="#glossary">术语表</a></li>
+    </ol>
+  </nav>
+  <main>
+    <section id="problem">
+      <p class="eyebrow">问题</p>
+      <h2>语言 CoT 和视觉 CoT 都是「间接」的引导</h2>
+      <div class="prose">
+        <p>现有 VLA 给动作生成加中间推理，主要有两种做法：</p>
+        <ul>
+          <li><strong>语言 CoT</strong>：先预测子任务文本（π0.5、ThinkAct 一类），再让动作策略执行；</li>
+          <li><strong>视觉 CoT</strong>：先用世界模型合成目标图像或未来帧（CoT-VLA、DreamVLA、WorldVLA 一类），再条件化动作。</li>
+        </ul>
+        <p>论文认为两者都停在<strong>输入空间</strong>：VLM 预训练学的是语义对齐和问答，世界模型给的是像素，离精确的低层动作都还隔着一层，作者称之为 semantic–kinematic gap。他们的主张是：最有效的中间推理应该直接发生在<strong>动作空间</strong>里，也就是先想出一段「大概怎么动」，再据此生成真正执行的动作。</p>
+      </div>
+      <figure class="plate narrow">
+        <button class="zoom" type="button" data-src="fig/cot-spaces.png" aria-label="放大原文图 1"><img src="fig/cot-spaces.png" width="1000" height="924" alt="原文图 1：三种 CoT 范式，语言子任务、目标图像、参考动作" loading="lazy"></button>
+        <figcaption><b>原文 Figure 1</b>三种中间推理放在哪里：(a) 预训练 VLM 输出子任务文本；(b) 世界模型输出目标图像；(c) ACoT 让 VLM 侧输出<strong>参考动作</strong>，和最终动作同属动作空间（图中用同一种绿色底标出）。</figcaption>
+      </figure>
+      <div class="note">
+        <h4><span class="tag read">解读</span>「动作 CoT」本质上是一次粗到细的两段式动作生成</h4>
+        <p>「Chain-of-Thought」这个名字容易让人以为模型在做多步推理。按论文的实现，「思考」就是先采样一段更长、更稀的动作轨迹，再以它为条件生成近处的精细动作。论文自己在 §3.2 也把 EAR 类比为生成模型里的 <em>self-conditioning</em>（把前一次的估计喂回去当条件）。它更接近级联生成，和语言模型里「写出推理步骤」不是一回事。这样理解，后面关于参数量、去噪步数、teacher forcing 的实验就都好读了。</p>
+      </div>
+    </section>
+
+    <section id="overview">
+      <p class="eyebrow">方法 · 全局 · §3.1 · Figure 2</p>
+      <h2>一个 VLM，三条下游支路</h2>
+      <div class="prose">
+        <p>形式化地，策略原本是 a<sub>t:t+H−1</sub> = π<sub>θ</sub>(o<sub>t</sub>, l)。加中间引导 g 后分解为：</p>
+      </div>
+      <div class="eq"><span>π<sub>θ</sub>(a<sub>t:t+H−1</sub>, g | o<sub>t</sub>, l) = π<sub>θ</sub>(a<sub>t:t+H−1</sub> | o<sub>t</sub>, l, g) · π<sub>θ</sub>(g | o<sub>t</sub>, l),&nbsp;&nbsp; g ∈ {g<sub>lang</sub>, g<sub>vis</sub>, g<sub>action</sub>}</span><span class="no">(2)</span></div>
+      <div class="prose"><p>ACoT 只用 g<sub>action</sub>，并把它拆成两部分：显式的 g<sup>ex</sup><sub>action</sub>（参考动作序列）和隐式的 g<sup>im</sup><sub>action</sub>（VLM 表征里蕴含的动作分布）。</p></div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/arch.jpg" aria-label="放大原文图 2"><img src="fig/arch.jpg" width="1800" height="624" alt="原文图 2：ACoT-VLA 架构，左为 VLM 与 KV cache，中上 EAR，中下 IAR，右为 AGP 与动作头" loading="lazy"></button>
+        <figcaption><b>原文 Figure 2</b>左：文本与视觉编码器 → LLM，产出逐层 KV cache。(a) EAR：加噪参考动作经投影后过 N 层「自注意力 + 读 VLM KV 的交叉注意力 + FFN」，输出 Z<sup>ex</sup>。(b) IAR：可学习 query 与降维后的 K、V 做交叉注意力，池化投影成 Z<sup>im</sup>。(c) AGP：加噪动作投影成 query，分别对 Z<sup>ex</sup>、Z<sup>im</sup> 做交叉注意力，相加/拼接后经自注意力送入动作头。注意底部那条线：动作头仍然连着 VLM 的 KV cache。</figcaption>
+      </figure>
+
+      <div class="lab" id="arch-lab">
+        <div class="lab-head">
+          <h4>按步骤走一遍数据流，切换训练与推理</h4>
+          <p>维度与层数来自 §4.1；训练/推理差别来自 §3.4 Teacher Forcing</p>
+        </div>
+        <div class="ctrl">
+          <div class="seg" role="group" aria-label="训练或推理" id="arch-mode">
+            <button type="button" data-m="infer" aria-pressed="true">推理</button>
+            <button type="button" data-m="train" aria-pressed="false">训练</button>
+          </div>
+        </div>
+        <div class="steps" id="arch-steps" role="group" aria-label="数据流步骤"></div>
+        <div class="scroll arch"><svg id="arch-svg" viewBox="0 0 760 330" role="img" aria-label="ACoT-VLA 数据流示意图"></svg></div>
+        <p class="say" id="arch-say"></p>
+      </div>
+    </section>
+
+    <section id="ear">
+      <p class="eyebrow">方法 · 显式动作推理器 EAR · §3.2</p>
+      <h2>一个和动作头差不多大的「草稿生成器」</h2>
+      <div class="prose">
+        <p>VLM 先把观测和指令编码成逐层的 KV cache：(K<sup>VLM</sup><sub>1:N</sub>, V<sup>VLM</sup><sub>1:N</sub>) = VLM(o<sub>t</sub>, l)，N = 18。EAR 记为 π<sup>ref</sup><sub>θ</sub>，输入是长度 H<sup>ref</sup> 的加噪动作序列，第 i 层这样更新：</p>
+      </div>
+      <div class="eq"><span>h̃<sup>ref</sup><sub>i</sub> = Self-Attn(h<sup>ref</sup><sub>i−1</sub>) + CrossAttn(h<sup>ref</sup><sub>i−1</sub>, K<sup>VLM</sup><sub>i</sub>, V<sup>VLM</sup><sub>i</sub>),&nbsp;&nbsp; h<sup>ref</sup><sub>i</sub> = h<sup>ref</sup><sub>i−1</sub> + FFN(h̃<sup>ref</sup><sub>i</sub>)</span><span class="no">(4–5)</span></div>
+      <div class="prose">
+        <p>用 flow matching 训练，输出参考轨迹 a<sup>ref</sup><sub>t:t+H<sup>ref</sup>−1</sub>，再经 MLP 投影成动作嵌入 Z<sup>ex</sup>。</p>
+      </div>
+      <div class="cards three">
+        <div class="card ex"><h4>结构</h4><dl><dt>层数</dt><dd>18，与 VLM 层一一对应</dd><dt>参数</dt><dd>默认 300M，与 π0.5 动作头相同（附录表 9）</dd><dt>注意力</dt><dd>自注意力（时间依赖）+ 交叉注意力（读同层 VLM KV），残差并行</dd></dl></div>
+        <div class="card ex"><h4>输出的轨迹</h4><dl><dt>长度</dt><dd>H<sup>ref</sup> = 15</dd><dt>步长</dt><dd>action shift = 2，隔一帧取一个</dd><dt>覆盖</dt><dd>相当于未来 30 帧（表 5 的 Equi. horizon）</dd><dt>真机</dt><dd>动作头 H = 30，H<sup>ref</sup> 未披露</dd></dl></div>
+        <div class="card ex"><h4>它不是什么</h4><p>不是语言，也不是关键点或末端轨迹的几何表示。它和最终动作用的是同一套动作参数化（LIBERO 是 Delta EEF，真机是绝对关节角），只是更长、更稀。</p></div>
+      </div>
+      <div class="lab" id="hz-lab">
+        <div class="lab-head">
+          <h4>参考轨迹看多远：步长 × 长度的 6 种配置</h4>
+          <p>LIBERO，表 5（EAR only，无 IAR）</p>
+        </div>
+        <div class="ctrl"><div class="seg k" role="group" aria-label="选择参考轨迹配置" id="hz-pick"></div></div>
+        <div class="scroll hz"><svg id="hz-svg" viewBox="0 0 760 170" role="img" aria-label="参考轨迹与动作块覆盖的未来帧"></svg></div>
+        <div class="readout" id="hz-read"></div>
+        <p class="say" id="hz-say"></p>
+      </div>
+    </section>
+
+    <section id="iar">
+      <p class="eyebrow">方法 · 隐式动作推理器 IAR · §3.3</p>
+      <h2>每层只问一个问题：这一层里有多少「动作信息」</h2>
+      <div class="prose">
+        <p>IAR 直接作用在 VLM 的 KV cache 上。对每一层 i，初始化一个可学习矩阵 Q<sub>i</sub> ∈ ℝ<sup>M×d</sup>（M = 1，d = 2048），先把 Q、K、V 都线性投到 d′ = 128 维，再做交叉注意力、平均池化、MLP：</p>
+      </div>
+      <div class="eq"><span>Q′<sub>i</sub> = Q<sub>i</sub>W<sub>Q</sub><sup>(i)</sup>,&nbsp; K′<sub>i</sub> = K<sup>VLM</sup><sub>i</sub>W<sub>K</sub><sup>(i)</sup>,&nbsp; V′<sub>i</sub> = V<sup>VLM</sup><sub>i</sub>W<sub>V</sub><sup>(i)</sup>;&nbsp;&nbsp; z<sup>im</sup><sub>i</sub> = MLP(Pool(CrossAttn(Q′<sub>i</sub>, K′<sub>i</sub>, V′<sub>i</sub>)))</span><span class="no">(7–8)</span></div>
+      <div class="prose"><p>18 层的 z<sup>im</sup><sub>i</sub> 聚合成 Z<sup>im</sup>。IAR 只多出约 0.01B 参数（3.35B → 3.36B）、2 ms 延迟（表 10）。</p></div>
+      <div class="chartbox">
+        <h4>三种从 KV cache 抽信息的方式（表 6）</h4>
+        <p class="sub">LIBERO 平均成功率。Query：可学习 query 直接读原始 KV；Attention Pooling：把 KV 平均成一个 query 再交叉注意力；Downsample：先降维再用可学习矩阵聚合（默认）。</p>
+        <div class="scroll"><svg class="chart" id="ch-iar" viewBox="0 0 720 150"></svg></div>
+        <details class="raw" id="raw-iar"><summary>原表数字（表 6）</summary></details>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>增益几乎全在 LIBERO-Long 上</h4>
+        <p>三种方式在 Spatial、Object、Goal 上的差别都在 1 个点以内；Downsample 的优势主要来自 Long（95.6 vs 92.8）。LIBERO 每个套件 500 次试验，1 个点就是 5 次。论文由此推断「VLM 特征里有对动作预测有害的噪声，降维能滤掉」，这个解释没有其他证据支撑。</p>
+      </div>
+    </section>
+
+    <section id="agp">
+      <p class="eyebrow">方法 · 动作引导预测 AGP 与训练 · §3.4</p>
+      <h2>加噪动作变成 query，去两路先验里各取所需</h2>
+      <div class="prose">
+        <p>常规做法是把加噪动作嵌入直接送进动作头。AGP 把它当作查询 Q<sub>action</sub>，先做两次交叉注意力，再拼接后过一个自注意力融合块：</p>
+      </div>
+      <div class="eq"><span>S<sup>ex</sup> = CrossAttn(Q<sub>action</sub>, Z<sup>ex</sup>, Z<sup>ex</sup>),&nbsp; S<sup>im</sup> = CrossAttn(Q<sub>action</sub>, Z<sup>im</sup>, Z<sup>im</sup>),&nbsp; h̄ = Self-Attn([S<sup>ex</sup>; S<sup>im</sup>])</span><span class="no">(9–11)</span></div>
+      <div class="prose"><p>h̄ 送入动作头 π<sup>head</sup><sub>θ</sub>，去噪出 a<sub>t:t+H−1</sub>。总损失是两个 flow matching MSE 的加权和：</p></div>
+      <div class="eq"><span>𝓛<sub>total</sub> = λ<sub>1</sub> 𝓛<sub>π<sup>ref</sup></sub> + λ<sub>2</sub> 𝓛<sub>π<sup>head</sup></sub>,&nbsp;&nbsp; λ<sub>1</sub> = λ<sub>2</sub> = 0.5</span><span class="no">(12)</span></div>
+      <div class="cards">
+        <div class="card hd"><h4>Teacher forcing：训练时不用 EAR 的输出</h4><p>论文说 EAR 的输出在训练中不稳定，所以训练时 Z<sup>ex</sup> 直接由<strong>真值参考轨迹</strong>（示范里的未来动作）计算，避免干扰动作头。推理时切换为完全自条件：先由 EAR 生成参考轨迹，再引导动作头。</p></div>
+        <div class="card warn" style="border-top:3px solid var(--warn)"><h4><span class="tag read">解读</span>这一设计带来两个后果</h4><p>① <strong>暴露偏差</strong>：动作头训练时只见过完美的参考轨迹，推理时读的是 EAR 的采样结果，误差会被直接放大。论文没有做「训练时用 EAR 预测」的对照。② <strong>目标泄漏</strong>：默认配置下参考轨迹覆盖未来 30 帧、步长 2，动作头要预测的前 10 帧里有一半帧的真值就在条件里。训练时动作头可以只学「插值 + 微调」，所以它的表现更依赖 EAR 推理时的质量。</p></div>
+      </div>
+      <div class="prose small muted"><p>训练配置（§4.1、附录表 8）：8 × H100，bf16，AdamW，梯度裁剪 1.0，EMA 0.999，batch 128。LIBERO 40K 步、LIBERO-Plus 100K、VLABench 60K、真机 50K–240K。论文写的学习率是「warm-up 10K 步，峰值 5e-5，在 10K 步内衰减<strong>到 5e-5</strong>」，峰值和终值相同，应是笔误，实际终值未披露。推理在单张 RTX 4090 上。</p></div>
+    </section>
+
+    <section id="setup">
+      <p class="eyebrow">实验设置 · §4.1 · 附录 A、B</p>
+      <h2>三个仿真基准、四个真机设置</h2>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>数据集</th><th>本体</th><th class="num">自由度</th><th class="num">条数</th><th class="num">帧数</th><th class="num">FPS</th><th>动作空间</th><th class="num">H</th><th>状态</th><th class="num">训练步</th></tr></thead>
+          <tbody>
+            <tr><th>LIBERO</th><td>Franka</td><td class="num">7</td><td class="num">1,693</td><td class="num">273,465</td><td class="num">10</td><td>Delta EEF</td><td class="num">10</td><td>×</td><td class="num">40K</td></tr>
+            <tr><th>LIBERO-Plus</th><td>Franka</td><td class="num">7</td><td class="num">14,347</td><td class="num">2,238,036</td><td class="num">20</td><td>Delta EEF</td><td class="num">10</td><td>×</td><td class="num">100K</td></tr>
+            <tr><th>VLABench</th><td>Franka</td><td class="num">7</td><td class="num">4,713</td><td class="num">528,398</td><td class="num">10</td><td>Abs EEF</td><td class="num">10</td><td>✓</td><td class="num">60K</td></tr>
+            <tr><th>Wipe Stain</th><td>AgiBot G1</td><td class="num">22</td><td class="num">177</td><td class="num">356,316</td><td class="num">30</td><td>Abs Joint</td><td class="num">30</td><td>✓</td><td class="num">50K</td></tr>
+            <tr><th>Pour Water</th><td>AgiBot G1</td><td class="num">22</td><td class="num">1,821</td><td class="num">5,062,506</td><td class="num">30</td><td>Abs Joint</td><td class="num">30</td><td>✓</td><td class="num">240K</td></tr>
+            <tr><th>Open-set Pick</th><td>AgiBot G1</td><td class="num">22</td><td class="num">1,936</td><td class="num">219,824</td><td class="num">30</td><td>Abs Joint</td><td class="num">30</td><td>✓</td><td class="num">50K</td></tr>
+            <tr><th>Open-set Pick</th><td>AgileX</td><td class="num">14</td><td class="num">962</td><td class="num">251,283</td><td class="num">30</td><td>Abs Joint</td><td class="num">30</td><td>✓</td><td class="num">50K</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>LIBERO</strong>：Spatial / Object / Goal / Long 四个套件，各 10 个任务，每任务 50 次评测，共 2,000 次。</li>
+          <li><strong>LIBERO-Plus</strong>：在 LIBERO 上加 7 种扰动（相机视角、机器人初始状态、语言改写、光照、背景纹理、传感器噪声、物体布局），10,030 个评测回合，每回合只跑一次。两种协议：<em>零样本迁移</em>（在 LIBERO 上训练，直接测）和<em>监督微调</em>（在 LIBERO-Plus 训练集上训练）。</li>
+          <li><strong>VLABench</strong>：基于 ManiSkill3，5 个公开赛道，指标是意图分 IS 和进度分 PS。π0、π0.5 与 ACoT 在同一设定下训练。</li>
+          <li><strong>真机</strong>：Wipe Stain 3 个海绵初始位姿 × 4 个污渍位置 × 2 次 = 24 次；Pour Water 6 种壶杯相对位置 × 2 次 = 12 次；Open-set Pick 10 种摆放 × 左右臂 × 2 次 = 40 次，并在 AgileX 上重复。</li>
+        </ul>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/real-tasks.jpg" aria-label="放大原文图 3"><img src="fig/real-tasks.jpg" width="1800" height="1248" alt="原文图 3：真机三个任务的关键帧：擦污渍、倒水、按指令抓取蓝色玩偶" loading="lazy"></button>
+        <figcaption><b>原文 Figure 3</b>AgiBot G1 上的三个任务，每行从左到右按时间。上：拿起海绵擦掉桌上的污渍；中：握住壶把手往杯里倒水，再放回杯垫；下：在多个干扰物中按指令拿起蓝色玩偶。</figcaption>
+      </figure>
+      <div class="note">
+        <h4><span class="tag read">解读</span>◇ 号很关键：LLM 主干冻结</h4>
+        <p>表里带 ◇ 的行表示训练时 LLM 主干冻结。ACoT 在 LIBERO 和 LIBERO-Plus 上同时报告了冻结（Ours◇）与不冻结（Ours）两版；VLABench 只有冻结版；消融大多在冻结设定下做（附录表 7、9 的图注写明）。比较时要看清两边是不是同一种设定。</p>
+      </div>
+    </section>
+
+    <section id="results">
+      <p class="eyebrow">结果 · §4.2 · 表 1–3</p>
+      <h2>LIBERO 接近满分，LIBERO-Plus 上的差距才拉开</h2>
+      <h3>LIBERO（表 1）</h3>
+      <div class="chartbox">
+        <h4>四个套件的平均成功率</h4>
+        <p class="sub">颜色按论文的「引导类型」列。横轴从 70 开始，便于看清顶部差距。悬停看四个套件的分项。</p>
+        <div class="legend"><span><i class="bg-hd"></i>Action（本文）</span><span><i class="bg-im"></i>Visual</span><span><i class="bg-b0"></i>Linguistics</span><span><i class="bg-b1"></i>无引导</span></div>
+        <div class="scroll"><svg class="chart" id="ch-libero" viewBox="0 0 720 700"></svg></div>
+        <details class="raw" id="raw-libero"><summary>原表数字（表 1，成功率 %）</summary></details>
+      </div>
+      <div class="prose">
+        <p>ACoT 两版平均都是 98.5，比 π0.5 的 96.9 高 1.6 个点，比 VLA-Adapter 的 97.3 高 1.2 个点。论文强调 Long 套件提升最明显：不冻结版 97.0，π0.5 92.4。</p>
+      </div>
+
+      <h3>LIBERO-Plus（表 2）</h3>
+      <div class="chartbox">
+        <h4>7 种扰动下的成功率</h4>
+        <p class="sub">上：零样本迁移（在 LIBERO 上训练）；下：在 LIBERO-Plus 上监督微调。* 为用官方权重复现，◇ 为冻结主干。</p>
+        <div class="legend"><span><i class="bg-hd"></i>Ours</span><span><i class="bg-ex"></i>Ours◇</span><span><i class="bg-b0"></i>π0.5（零样本 *，微调 ◇）</span></div>
+        <div class="scroll"><svg class="chart" id="ch-lp-zs" viewBox="0 0 760 270"></svg></div>
+        <div class="scroll"><svg class="chart" id="ch-lp-sft" viewBox="0 0 760 270"></svg></div>
+        <details class="raw" id="raw-lp"><summary>原表数字（表 2，含全部基线）</summary></details>
+      </div>
+      <div class="prose">
+        <p>零样本设定下，不冻结版平均 86.6，比 π0.5* 高 0.9 个点；Robot 初始状态 +3.2、Language +4.2，但 Camera（72.6 vs 75.8）和 Noise（87.8 vs 89.6）反而更低。冻结版 83.6，低于 π0.5*。监督微调设定下差距明显：Camera 96.6 vs 70.3，Noise 95.9 vs 71.8，平均 88.0 vs 75.7。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>微调设定里的 π0.5 基线比它自己的零样本还低 10 个点</h4>
+        <p>同一个 π0.5，在 LIBERO 上训练、直接迁移到 LIBERO-Plus 得 85.7；在 LIBERO-Plus 自己的训练集上训练（冻结主干）反而只有 75.7，Robot 维度从 79.4 掉到 41.7。这说明 π0.5◇ 这一行受冻结主干影响很大，不是一个强基线。论文标题级的「+12.3」来自和这一行比，而 ACoT 的最佳 88.0 只比 π0.5 零样本的 85.7 高 2.3 个点。</p>
+      </div>
+
+      <h3>VLABench（表 3）</h3>
+      <div class="chartbox">
+        <h4>5 个赛道的意图分 IS 与进度分 PS</h4>
+        <p class="sub">三者都冻结主干，同一训练设置，各训 60K 步。</p>
+        <div class="legend"><span><i class="bg-hd"></i>Ours◇</span><span><i class="bg-b0"></i>π0.5◇</span><span><i class="bg-b1"></i>π0◇</span></div>
+        <div class="seg" role="group" aria-label="选择指标" id="vla-metric" style="margin:4px 0 8px"><button type="button" data-k="0" aria-pressed="true">IS 意图分</button><button type="button" data-k="1" aria-pressed="false">PS 进度分</button></div>
+        <div class="scroll"><svg class="chart" id="ch-vla" viewBox="0 0 760 260"></svg></div>
+        <details class="raw" id="raw-vla"><summary>原表数字（表 3）</summary></details>
+      </div>
+      <div class="prose"><p>平均 IS 63.5 / PS 47.4，π0.5◇ 为 60.2 / 43.1。最大增益在 Texture（IS 74.6 vs 62.0，+12.6）；Commonsense 上 IS 52.3、PS 37.8，两项都低于 π0.5◇ 和 π0◇；Instruction 的 IS 也略低。</p></div>
+
+      <h3>真机（Figure 4）</h3>
+      <div class="chartbox">
+        <h4>AgiBot G1 三个任务 + AgileX 一个任务</h4>
+        <p class="sub">数字读自原图柱顶标注。Wipe Stain 24 次，Pour Water 12 次，两个 Open-set Pick 各 40 次。</p>
+        <div class="legend"><span><i class="bg-hd"></i>Ours</span><span><i class="bg-b0"></i>π0.5</span><span><i class="bg-b1"></i>π0</span></div>
+        <div class="scroll"><svg class="chart" id="ch-real" viewBox="0 0 760 270"></svg></div>
+        <details class="raw" id="raw-real"><summary>图中数字与对应的成功次数</summary></details>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>Pour Water 的 22.5% 在 12 次试验下不可能出现</h4>
+        <p>附录 B 写 Pour Water 是 6 种配置各跑 2 次，共 12 次，成功率只能是 1/12 的整数倍（16.7%、25.0%、33.3%…）。图中 π0.5 的 22.5% 对不上；ACoT 的 33.3%（4/12）和 π0 的 25.0%（3/12）能对上。另外 Wipe Stain 的 79.1% 应为 19/24 = 79.2%。G1 Open-set Pick 上 π0.5（80.0%）高于 ACoT（77.5%），四项里 ACoT 只在三项领先。</p>
+      </div>
+      <h3>Sim-to-real（附录表 11）</h3>
+      <div class="chartbox">
+        <h4>Genie Sim 3.0：在仿真数据上训练，在仿真和真机上测</h4>
+        <p class="sub">4 个抓取/整理任务。试验次数未披露。</p>
+        <div class="legend"><span><i class="bg-hd"></i>Ours</span><span><i class="bg-b0"></i>π0.5</span></div>
+        <div class="scroll"><svg class="chart" id="ch-s2r" viewBox="0 0 760 250"></svg></div>
+      </div>
+      <div class="prose"><p>平均：仿真 84.2 vs 75.7，真机 82.9 vs 77.5。Grasp Targets 在仿真里 ACoT 更低（68.0 vs 71.7），Recognize Size 在真机上持平。论文把 sim-to-real 掉分少归因于「动作空间的引导不受视觉域差影响」，这是一个没有单独验证的推测。</p></div>
+    </section>
+
+    <section id="ablation">
+      <p class="eyebrow">消融 · §4.3 · 附录 C</p>
+      <h2>两个模块各自有用，EAR 不是越大越好</h2>
+      <h3>模块消融（表 4、表 7）</h3>
+      <div class="chartbox">
+        <h4>EAR / IAR 的增减</h4>
+        <p class="sub">左：LIBERO 平均；右：LIBERO-Plus 微调设定平均（冻结主干）。</p>
+        <div class="scroll"><svg class="chart" id="ch-mod" viewBox="0 0 760 190"></svg></div>
+        <details class="raw" id="raw-mod"><summary>原表数字（表 4、表 7）</summary></details>
+      </div>
+      <div class="prose"><p>LIBERO 上 EAR、IAR 单独各加 1.4 和 1.2 个点，合起来 1.6；LIBERO-Plus 上 EAR 单独 +8.0，IAR 单独 +4.7，合起来 +8.4。两个模块的收益明显不是相加关系，EAR 占了大头。</p></div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>三张 LIBERO 消融表用了两个不同的基线</h4>
+        <p>表 4（模块消融）和表 6（IAR 方式）的 Baseline 是 98.8 / 98.2 / 98.0 / 92.4，平均 96.9，和表 1 里 π0.5 的数字完全相同。表 5（参考轨迹配置）和表 9（参数/步数）的 Baseline 却是 98.6 / 99.0 / 96.4 / 92.2，平均 96.6。另一方面，表 4 的 #1（EAR only）与表 5 的「步长 2 × 15」、表 9 的 #4 完全一致，而表 9 的图注写明主干冻结。也就是说，表 4 很可能是拿冻结主干的变体去和未冻结的 π0.5 数字比。论文没有说明两个基线分别是什么。</p>
+      </div>
+
+      <h3>参数量与去噪步数对齐后的比较（表 9）</h3>
+      <div class="lab" id="pd-lab">
+        <div class="lab-head"><h4>同样 600M、同样 20 个去噪步，EAR 还有没有用</h4><p>表 9，均无 IAR、冻结主干；LIBERO-Plus 为微调设定</p></div>
+        <div class="ctrl"><div class="seg" role="group" aria-label="选择比较" id="pd-pick">
+          <button type="button" data-k="0" aria-pressed="true">动作头加大 vs 加 EAR</button>
+          <button type="button" data-k="1" aria-pressed="false">EAR 规模 150M–500M</button>
+        </div></div>
+        <div class="scroll"><svg class="chart" id="ch-pd" viewBox="0 0 760 240"></svg></div>
+        <p class="say" id="pd-say"></p>
+        <details class="raw" id="raw-pd"><summary>原表数字（表 9）</summary></details>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>这是全文最有说服力的一组对照</h4>
+        <p>把动作头直接加到 600M（#1）或再把去噪步数翻倍（#2），LIBERO-Plus 都不涨（74.9、75.1 vs 75.7）。同样 600M 的参数、同样 10 + 10 步拆成「EAR + 动作头」（#4），LIBERO-Plus 到 83.7。这至少说明增益不是单纯来自参数和算力，而是来自「先生成一段长程草稿、再以它为条件」这种结构。但它也说明了 ACoT 的本质：一个两段式级联生成器。EAR 加到 500M（超过动作头）反而掉到 80.9，作者解释为过拟合，没有进一步验证。</p>
+      </div>
+
+      <h3>延迟（表 10）</h3>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>配置</th><th>EAR</th><th>IAR</th><th class="num">参数</th><th class="num">延迟</th><th class="num">LIBERO</th><th class="num">LIBERO-Plus</th></tr></thead>
+          <tbody>
+            <tr><th>Baseline（π0.5）</th><td></td><td></td><td class="num">3.35B</td><td class="num">91 ms</td><td class="num">96.9</td><td class="num">75.7</td></tr>
+            <tr><th>#1</th><td>✓</td><td></td><td class="num">3.80B</td><td class="num">110 ms</td><td class="num">98.3</td><td class="num">83.7</td></tr>
+            <tr><th>#2</th><td></td><td>✓</td><td class="num">3.36B</td><td class="num">93 ms</td><td class="num">98.1</td><td class="num">80.4</td></tr>
+            <tr class="best"><th>#3</th><td>✓</td><td>✓</td><td class="num">3.81B</td><td class="num">112 ms</td><td class="num">98.5</td><td class="num">84.1</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose small muted"><p>单张 RTX 4090，端到端。EAR 多出 0.45B 参数、19 ms；论文没写动作块是否异步执行、实际控制频率是多少。</p></div>
+    </section>
+
+    <section id="insight">
+      <p class="eyebrow">读懂它</p>
+      <h2>这篇真正说明了什么</h2>
+      <h3 style="margin-top:0">关键 insight</h3>
+      <div class="cards">
+        <div class="card"><h4>1. 中间接口可以是「同模态」的</h4><p>语言子任务、目标图像都需要一个翻译回动作的过程。ACoT 的中间产物和最终输出同属一个动作空间，动作头读它时不需要跨模态对齐，这是作者论证的核心。证据是表 9：同样参数和步数下，拆成两段比一段大模型好。</p></div>
+        <div class="card"><h4>2. 草稿要比成品看得更远</h4><p>默认参考轨迹覆盖 30 帧、动作块只有 10 帧。表 5 里所有配置都比基线好，但差别都在 0.4 个点以内，LIBERO 上无法区分哪种更好。「看得更远」这个设计意图论文没有做对照证明。</p></div>
+        <div class="card"><h4>3. 收益集中在扰动和长程任务上</h4><p>LIBERO 前三个套件基本饱和，提升主要在 Long；LIBERO-Plus 上主要在 Camera、Robot 初始状态和 Noise 三个维度。这和「参考轨迹提供运动先验、减少观测到动作映射的歧义」的说法一致。</p></div>
+        <div class="card"><h4>4. IAR 是一个便宜的附加项</h4><p>10M 量级参数、2 ms 延迟，LIBERO-Plus 上单独 +4.7。它从每层 KV 里只抽 1 个 128 维向量，和动作头再做一次交叉注意力，可以看作一种轻量的逐层特征读取。</p></div>
+      </div>
+      <h3>容易误解的地方</h3>
+      <div class="prose">
+        <ul>
+          <li><strong>「Chain-of-Thought」不是多步推理。</strong>没有显式的思考链，也没有多轮生成。EAR 一次去噪出一段轨迹，动作头再去噪一次。</li>
+          <li><strong>「SOTA」的幅度。</strong>LIBERO 上 ACoT 98.5 对 VLA-Adapter 97.3、OpenVLA-OFT 97.1，差 1.2–1.4 个点，在 2,000 次试验下约 25 次成功之差。</li>
+          <li><strong>「+12.3」只在一种设定下成立。</strong>见 LIBERO-Plus 疑点。零样本设定只领先 0.9。</li>
+          <li><strong>EAR 不是一个独立规划器。</strong>它和动作头同时训练、共用 VLM 的 KV，而且训练时根本不把自己的输出交给动作头（teacher forcing）。</li>
+        </ul>
+      </div>
+      <h3>FAQ</h3>
+      <details class="faq"><summary>训练时用真值参考轨迹，那 EAR 学到的东西怎么传给动作头？</summary><div class="a"><p>训练时传不过去。EAR 和动作头各自有 flow matching 损失，动作头训练时读的是真值轨迹的嵌入。只有推理时，EAR 的采样结果才第一次被动作头读到。两者通过共享的 MLP 投影（把参考轨迹编码成 Z<sup>ex</sup>）对齐表示空间。论文没有报告 EAR 单独输出的质量，也没有测「推理时也喂真值参考」的上界。</p></div></details>
+      <details class="faq"><summary>为什么 EAR 的参数量要和动作头差不多？</summary><div class="a"><p>表 9 试了 150M / 250M / 300M / 500M，LIBERO-Plus 分别是 81.7 / 83.1 / 83.7 / 80.9。300M 最好，但 150M 和 250M 的差距在 2 个点以内。超过动作头的 500M 掉分，作者归因于过拟合生成有偏的参考轨迹。</p></div></details>
+      <details class="faq"><summary>真机为什么用 30 步动作块？参考轨迹是多长？</summary><div class="a"><p>附录表 8 给出真机动作头 H = 30、绝对关节控制、带状态输入。参考轨迹的长度和步长在真机设置里没有给出（§4.1 的 15 / 2 只针对默认设定）。</p></div></details>
+      <details class="faq"><summary>和同样做「先粗后细」的方法有什么区别？</summary><div class="a"><p>论文的相关工作只对比了语言 CoT 和视觉 CoT，没有讨论动作空间的级联/分层生成方法，也没有和它们做实验比较。就机制而言，ACoT 的两段都条件在同一个 VLM 上、通过交叉注意力连接，这是它的具体做法。</p></div></details>
+    </section>
+
+    <section id="limits">
+      <p class="eyebrow">局限与疑点</p>
+      <h2>作者承认的，和我们读出来的</h2>
+      <div class="two">
+        <div>
+          <h4>论文自己提到的（附录 D）</h4>
+          <ul>
+            <li>推理模块带来额外计算开销，资源受限的平台部署有压力。</li>
+            <li>当前动作表示是关节角或末端位姿序列，缺少显式几何结构（以物体为中心的协调、接触几何），ACoT 的潜力可能没完全发挥；未来想让 ACoT 在可解释的 3D 空间里推理。</li>
+          </ul>
+        </div>
+        <div>
+          <h4>我们读出来的</h4>
+          <ul>
+            <li><span class="tag doubt">疑点</span>LIBERO 消融表有两套 Baseline 数字（96.9 与 96.6），表 4 的变体是冻结主干、基线可能不是。</li>
+            <li><span class="tag doubt">疑点</span>LIBERO-Plus 微调设定的 π0.5◇ 比它的零样本结果低 10 个点，大幅增益是和弱基线比出来的。</li>
+            <li><span class="tag doubt">疑点</span>真机 Pour Water 的 22.5% 与 12 次试验矛盾；G1 Open-set Pick 上 π0.5 更高。</li>
+            <li><span class="tag doubt">疑点</span>学习率「从 5e-5 衰减到 5e-5」是笔误，终值不明。</li>
+            <li>Teacher forcing 带来暴露偏差和目标泄漏，没有对照实验。</li>
+            <li>没有展示 EAR 生成的参考轨迹本身，也没有分析它和最终动作的偏差。</li>
+            <li>VLABench 的 Commonsense 赛道 IS、PS 都低于两个基线，论文没有讨论。</li>
+            <li>Sim-to-real 实验的试验次数未披露。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="topic">
+      <p class="eyebrow">放到专题里看</p>
+      <h2>结构化执行里「最内层」的一种接口</h2>
+      <div class="prose">
+        <p>在 <a href="../../topics/robot-harness/">Harness for Robotics 专题</a>里，结构化执行指把任务拆成「推理 → 意图/子任务 → 动作」，并用明确的中间接口把高层决策和低层控制接起来。ACoT 的接口在<strong>模型内部</strong>：一段动作空间的粗轨迹，端到端训练，不经过语言。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t cmp">
+          <thead><tr><th></th><th class="me">ACoT-VLA</th><th>MotorMind</th><th>τ₀-VLA</th><th>TT-VLA</th></tr></thead>
+          <tbody>
+            <tr><th>专题分类</th><td class="me">结构化执行</td><td>结构化执行</td><td>评估与反馈</td><td>评估与反馈</td></tr>
+            <tr><th>中间接口</th><td class="me">15 点粗参考轨迹 + 18 个隐式先验向量</td><td>参数化的 move / rotate / gripper 指令批</td><td>自然语言子任务 + 执行记忆</td><td>无（直接改策略参数）</td></tr>
+            <tr><th>接口在哪里</th><td class="me">模型内部，可微</td><td>模型外部，JSON</td><td>两个模型之间，文本</td><td>—</td></tr>
+            <tr><th>需要训练吗</th><td class="me">端到端训练</td><td>不训练，冻结通用 VLM</td><td>高低层分别训练</td><td>测试时在线更新 LoRA</td></tr>
+            <tr><th>闭环信号</th><td class="me">无显式评价，靠每个动作块重新观测</td><td>Monitor 打断 + Verifier 判定</td><td>世界模型想象 + 价值模型打分</td><td>进度估计器给稠密奖励</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>和 MotorMind：</strong>两者都认为「语言子任务到动作」这一步太粗。MotorMind 的回答是让通用 VLM 直接输出带数值的中层动作，交给确定性控制器；ACoT 的回答是在 VLA 内部多生成一段粗轨迹。前者零样本、可解释、慢（单回合 200 多秒）；后者需要示范数据训练、快（112 ms 一次推理）。</li>
+          <li><strong>和 τ₀-VLA：</strong>τ₀ 的中间接口是语言子任务，正好是 ACoT 批评的「语言 CoT」。但 τ₀ 处理的是数分钟、最长 12 分钟的长程任务，需要在子任务层面做记忆和搜索；ACoT 的轨迹只覆盖未来 30 帧（LIBERO 10 Hz 下约 3 秒）。两者其实在不同的时间尺度上工作，可以叠加。</li>
+          <li><strong>和 TT-VLA：</strong>ACoT 没有任何外部评价信号，参考轨迹错了也没有机制发现；TT-VLA 正好补这一块，但它目前只支持离散 token 的 VLA，ACoT 这种 flow matching 头不能直接用。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="glossary">
+      <p class="eyebrow">术语表</p>
+      <h2>读这篇会遇到的词</h2>
+      <details class="gl"><summary>展开术语表</summary>
+        <dl>
+          <dt>ACoT</dt><dd>Action Chain-of-Thought，把中间推理表示成动作空间的粗轨迹。</dd>
+          <dt>EAR</dt><dd>Explicit Action Reasoner，18 层 Transformer，用 flow matching 生成参考轨迹，每层读 VLM 同层 KV。</dd>
+          <dt>IAR</dt><dd>Implicit Action Reasoner，每层 1 个可学习 query，在降到 128 维的 K、V 上做交叉注意力，抽出隐式动作先验。</dd>
+          <dt>AGP</dt><dd>Action-Guided Prediction，加噪动作作为 query 分别读 Z<sup>ex</sup>、Z<sup>im</sup>，融合后送入动作头。</dd>
+          <dt>Z<sup>ex</sup> / Z<sup>im</sup></dt><dd>显式参考轨迹的嵌入 / 18 层隐式先验向量的集合。</dd>
+          <dt>action shift</dt><dd>相对示范轨迹的时间步长：1 为逐帧，2 为隔一帧取一个。</dd>
+          <dt>Equi. horizon</dt><dd>等效视野 = 步长 × 长度，即参考轨迹覆盖的未来帧数。</dd>
+          <dt>teacher forcing</dt><dd>训练时用真值参考轨迹代替 EAR 的输出喂给动作头；推理时改用 EAR 的输出。</dd>
+          <dt>◇</dt><dd>表中标记，表示训练时 LLM 主干冻结。</dd>
+          <dt>LIBERO-Plus</dt><dd>在 LIBERO 上加 7 种扰动的鲁棒性基准，10,030 个评测回合。</dd>
+          <dt>IS / PS</dt><dd>VLABench 的意图分（Intention Score）与进度分（Progress Score）。</dd>
+          <dt>self-conditioning</dt><dd>生成模型中把上一轮的估计作为额外条件输入，论文以此类比 EAR。</dd>
+        </dl>
+      </details>
+    </section>
+  </main>
+</div>
+<footer class="page">
+  <p>图全部来自论文 arXiv 源码（v2）里的原图；表 1–11 的数字取自 tex 表格，真机结果读自原文 Figure 4 柱顶标注。标「解读」的是我们的判断。</p>
+</footer>
+<dialog id="lb" aria-label="放大查看"><div class="box"><img id="lb-img" alt=""></div><div class="bar"><span id="lb-cap"></span><button type="button" id="lb-close">关闭</button></div></dialog>
+<div class="tip" id="tip" hidden></div>
+<script>
+(function(){
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const NS = 'http://www.w3.org/2000/svg';
+  const FMT = v => (typeof v === 'number' ? v.toFixed(1) : v);
+  function el(tag, attrs, text){ const e = document.createElementNS(NS, tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+
+  /* tooltip */
+  const tip = $('#tip');
+  function place(x, y){ const r = tip.getBoundingClientRect(); let l = x + 14, t = y + 14; if (l + r.width > innerWidth - 8) l = x - r.width - 14; if (t + r.height > innerHeight - 8) t = y - r.height - 14; tip.style.left = Math.max(8, l) + 'px'; tip.style.top = Math.max(8, t) + 'px'; }
+  document.addEventListener('pointerover', e => { const t = e.target.closest && e.target.closest('[data-tip]'); if (!t) return; tip.textContent = t.getAttribute('data-tip'); tip.hidden = false; place(e.clientX, e.clientY); });
+  document.addEventListener('pointermove', e => { if (tip.hidden) return; if (!(e.target.closest && e.target.closest('[data-tip]'))) { tip.hidden = true; return; } place(e.clientX, e.clientY); });
+
+  /* lightbox */
+  const lb = $('#lb');
+  $$('figure.plate .zoom').forEach(b => b.addEventListener('click', () => { $('#lb-img').src = b.dataset.src; const c = b.parentElement.querySelector('figcaption b'); $('#lb-cap').textContent = c ? c.textContent : ''; if (lb.showModal) lb.showModal(); else lb.setAttribute('open', ''); }));
+  $('#lb-close').addEventListener('click', () => lb.close());
+  lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+
+  /* toc */
+  const links = $$('.toc a');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id)); }), { rootMargin: '-35% 0px -60% 0px' });
+    $$('main section').forEach(s => io.observe(s));
+  }
+
+  function rawTable(host, head, rows){
+    const d = document.createElement('div'); d.className = 'tblwrap';
+    d.innerHTML = '<table class="t"><thead><tr>' + head.map((h, i) => '<th' + (i ? ' class="num"' : '') + '>' + h + '</th>').join('') + '</tr></thead><tbody>' +
+      rows.map(r => '<tr' + (r.best ? ' class="best"' : '') + '>' + r.cells.map((c, i) => i ? '<td class="num">' + c + '</td>' : '<th>' + c + '</th>').join('') + '</tr>').join('') + '</tbody></table>';
+    host.appendChild(d);
+  }
+  function seg(host, onPick){ $$('button', host).forEach(b => b.addEventListener('click', () => { $$('button', host).forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); onPick(b.dataset.k); })); }
+
+  /* horizontal bars */
+  function hbars(svg, rows, opt){
+    opt = opt || {}; const W = opt.W || 720, L = opt.left || 190, R = 56, top = 14, rh = opt.rh || 28, lo = opt.lo || 0, hi = opt.max || 100;
+    const H = top + rows.length * rh + 26; svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const x = v => L + (W - L - R) * (v - lo) / (hi - lo);
+    for (let g = lo; g <= hi + 1e-9; g += (opt.step || 20)) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: top - 6, y2: H - 22, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: H - 6, 'text-anchor': 'middle', class: 'tick' }, g)); }
+    rows.forEach((r, i) => {
+      const y = top + i * rh;
+      svg.appendChild(el('text', { x: L - 10, y: y + rh / 2 + 4, 'text-anchor': 'end', class: 'glabel', 'font-weight': r.hi ? 700 : 400 }, r.label));
+      svg.appendChild(el('rect', { x: L, y: y + 4, width: Math.max(1, x(r.v) - L), height: rh - 9, rx: 3, class: r.cls, 'data-tip': r.tip || (r.label + '：' + r.v) }));
+      svg.appendChild(el('text', { x: x(r.v) + 6, y: y + rh / 2 + 4, class: 'val' + (r.hi ? ' hi' : '') }, FMT(r.v)));
+    });
+    svg.appendChild(el('line', { x1: L, x2: L, y1: top - 6, y2: H - 22, class: 'base' }));
+  }
+
+  /* vertical grouped bars */
+  function vgroups(svg, groups, series, opt){
+    opt = opt || {}; const W = opt.W || 760, H = opt.H || 260, L = 40, R = 10, T = opt.T || 22, B = opt.B || 40, lo = opt.lo || 0, hi = opt.max || 100;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+    for (let g = lo; g <= hi + 1e-9; g += (opt.step || 20)) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g)); }
+    const n = groups.length, gw = (W - L - R) / n, bw = Math.min(opt.bw || 24, (gw - 12) / series.length);
+    groups.forEach((gr, i) => {
+      const cx = L + gw * i + gw / 2, x0 = cx - bw * series.length / 2; let lastY = null;
+      if (gr.sep) svg.appendChild(el('line', { x1: L + gw * i, x2: L + gw * i, y1: T - 10, y2: H - 8, stroke: 'var(--ink-2)', 'stroke-dasharray': '3 3' }));
+      series.forEach((s, j) => {
+        const v = gr.vals[j]; if (v == null) return; const yy = y(Math.max(lo, v));
+        let ly = yy - 4; if (j && lastY != null && Math.abs(ly - lastY) < 11) ly = Math.min(ly, lastY - 11); lastY = ly;
+        svg.appendChild(el('rect', { x: x0 + j * bw + 1, y: yy, width: bw - 2, height: Math.max(1, y(lo) - yy), rx: 2, class: s.cls, 'data-tip': gr.name.replace('\n', ' ') + ' · ' + s.name + '：' + v }));
+        if (opt.vals !== false) svg.appendChild(el('text', { x: x0 + j * bw + bw / 2, y: ly, 'text-anchor': 'middle', class: 'val', 'font-size': 9.5 }, FMT(v)));
+      });
+      gr.name.split('\n').forEach((w, k) => svg.appendChild(el('text', { x: cx, y: H - B + 16 + k * 13, 'text-anchor': 'middle', class: 'glabel', 'font-size': 11.5, 'font-weight': gr.bold ? 700 : 400 }, w)));
+    });
+    svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(lo), y2: y(lo), class: 'base' }));
+    if (opt.title) svg.appendChild(el('text', { x: L, y: 12, class: 'tick' }, opt.title));
+    (opt.headers || []).forEach(h => svg.appendChild(el('text', { x: L + gw * h.at + 4, y: 12, class: 'tick' }, h.text)));
+  }
+
+  /* ---------- hero ribbon ---------- */
+  (function(){
+    const x = f => 44 + f * 14.6;
+    const tk = $('#rb-ticks');
+    for (let f = 0; f <= 30; f += 5) { tk.appendChild(el('line', { x1: x(f), x2: x(f), y1: 36, y2: 44, stroke: 'var(--muted)' })); tk.appendChild(el('text', { x: x(f), y: 28, 'text-anchor': 'middle' }, f === 0 ? 't' : 't+' + f)); }
+    const rf = $('#rb-ref');
+    rf.appendChild(el('line', { x1: x(0), x2: x(28), y1: 104, y2: 104, stroke: 'var(--ex)', 'stroke-width': 2, opacity: .5 }));
+    for (let k = 0; k < 15; k++) rf.appendChild(el('circle', { cx: x(k * 2), cy: 104, r: 5.5, fill: 'var(--ex)' }));
+    const ac = $('#rb-act');
+    ac.appendChild(el('line', { x1: x(0), x2: x(9), y1: 184, y2: 184, stroke: 'var(--hd)', 'stroke-width': 2, opacity: .5 }));
+    for (let k = 0; k < 10; k++) ac.appendChild(el('circle', { cx: x(k), cy: 184, r: 5, fill: 'var(--hd)' }));
+    ac.appendChild(el('rect', { x: x(0) - 8, y: 172, width: x(9) - x(0) + 16, height: 24, rx: 6, fill: 'none', stroke: 'var(--hd)', 'stroke-dasharray': '3 3' }));
+    ac.appendChild(el('text', { x: x(9) + 16, y: 188 }, '执行这一段'));
+  })();
+
+  /* ---------- architecture stepper ---------- */
+  (function(){
+    const svg = $('#arch-svg');
+    function box(g, x, y, w, h, title, sub, col){
+      g.appendChild(el('rect', { x, y, width: w, height: h, rx: 8, class: 'blk', style: col ? 'fill:color-mix(in oklab,' + col + ' 14%,var(--bg))' : '' }));
+      g.appendChild(el('text', { x: x + 10, y: y + 20, class: 'hd' }, title));
+      (sub || []).forEach((s, i) => g.appendChild(el('text', { x: x + 10, y: y + 38 + i * 15, class: 'mono' }, s)));
+    }
+    const parts = {};
+    function part(id){ const g = el('g', { class: 'part', id: 'p-' + id }); svg.appendChild(g); parts[id] = g; return g; }
+    const wires = {};
+    function wire(id, d, cls){ const p = el('path', { d, class: 'wire' + (cls ? ' ' + cls : ''), 'marker-end': 'url(#arw)' }); svg.appendChild(p); wires[id] = p; return p; }
+    const defs = el('defs'); const mk = el('marker', { id: 'arw', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto-start-reverse' }); mk.appendChild(el('path', { d: 'M0 0 L10 5 L0 10 z', fill: 'var(--muted)' })); defs.appendChild(mk); svg.appendChild(defs);
+
+    wire('in-vlm', 'M120 165 L150 165');
+    wire('vlm-ear', 'M300 120 C 320 120, 320 70, 345 70');
+    wire('vlm-iar', 'M300 210 C 320 210, 320 255, 345 255');
+    wire('ear-agp', 'M545 70 C 565 70, 565 140, 585 140');
+    wire('iar-agp', 'M545 255 C 565 255, 565 190, 585 190');
+    wire('gt-agp', 'M470 20 C 570 20, 575 110, 590 128', 'gt');
+    wire('vlm-head', 'M225 255 L225 312 L650 312 L650 290');
+
+    box(part('in'), 10, 120, 110, 90, '输入', ['多视角图像 224²', '语言指令', '（VLABench/真机', ' 另有状态）']);
+    box(part('vlm'), 150, 80, 150, 175, 'VLM · π0.5', ['SigLIP + Gemma 2B', 'N = 18 层, d = 2048', '', '→ 逐层 KV cache', '  (K, V)₁…₁₈']);
+    box(part('ear'), 345, 30, 200, 92, 'EAR · 参考轨迹', ['18 层 · ~300M · FM', '读同层 KV · 去噪 ã^ref', '15 点 × 步长 2 → MLP → Z^ex'], 'var(--ex)');
+    box(part('iar'), 345, 210, 200, 92, 'IAR · 隐式先验', ['每层 Q_i: 1 × 2048', 'Q/K/V → 128 维, CrossAttn', 'Pool + MLP → Z^im (18 个)'], 'var(--im)');
+    box(part('agp'), 585, 105, 165, 185, 'AGP + 动作头', ['加噪动作 → Q_action', 'CrossAttn(Z^ex)', 'CrossAttn(Z^im)', '拼接 → Self-Attn → h̄', '', '动作头 300M · FM', '→ a_{t:t+9}（真机 30 步）'], 'var(--hd)');
+    const gtl = el('g', { class: 'part', id: 'p-gt' }); svg.appendChild(gtl); parts.gt = gtl;
+    gtl.appendChild(el('rect', { x: 360, y: 6, width: 112, height: 22, rx: 5, fill: 'var(--warn-soft)', stroke: 'var(--warn)' }));
+    gtl.appendChild(el('text', { x: 368, y: 21, class: 'mono', style: 'fill:var(--warn)' }, '真值参考轨迹'));
+
+    const STEPS = [
+      { n: '① 编码', on: ['in', 'vlm'], w: ['in-vlm'], s: { infer: 'VLM 编码多视角图像和指令，留下 18 层的 KV cache。之后三条支路都只读这份缓存，VLM 只跑一次。', train: '训练时 VLM 同样只前向一次。表里带 ◇ 的设定下，VLM 主干冻结，只训练 EAR、IAR、AGP 与动作头。' } },
+      { n: '② EAR 打草稿', on: ['vlm', 'ear'], w: ['vlm-ear'], s: { infer: 'EAR 从纯噪声出发，每层自注意力 + 读同层 VLM KV 的交叉注意力，去噪 10 步（表 9 默认），得到 15 个点、步长 2 的参考轨迹，经 MLP 编码为 Z^ex。', train: 'EAR 用自己的 flow matching 损失 𝓛_ref 训练，目标是示范里未来 30 帧中每隔一帧的动作，权重 λ₁ = 0.5。' } },
+      { n: '③ IAR 读先验', on: ['vlm', 'iar'], w: ['vlm-iar'], s: { infer: '对 18 层的每一层，用 1 个可学习 query 在降到 128 维的 K、V 上做交叉注意力，池化 + MLP 得到 z_i，合成 Z^im。不需要去噪，只多 2 ms。', train: 'IAR 没有单独的损失，只通过动作头的损失端到端训练。' } },
+      { n: '④ AGP 融合', on: ['ear', 'iar', 'agp'], w: ['ear-agp', 'iar-agp'], s: { infer: '动作头每个去噪步里，加噪动作被投影成 Q_action，分别对 Z^ex 和 Z^im 做交叉注意力，两路结果拼接后过一个自注意力块得到 h̄。', train: '训练时 Z^ex 不来自 EAR 的输出，而是由真值参考轨迹计算（teacher forcing），见红色虚线。' } },
+      { n: '⑤ 动作头输出', on: ['agp', 'vlm'], w: ['vlm-head'], s: { infer: 'h̄ 送入动作头（300M，与 π0.5 的动作专家相同规模），按原图它仍然连着 VLM 的 KV cache，再去噪 10 步得到 10 步动作（LIBERO）。EAR 加动作头共 20 步去噪，端到端 112 ms（RTX 4090）。', train: '动作头用 flow matching 损失 𝓛_head 训练，权重 λ₂ = 0.5。因为条件里的参考轨迹是真值，它学到的是「在完美草稿上细化」，推理时要面对 EAR 的误差。' } }
+    ];
+    let mode = 'infer', step = 0;
+    const sh = $('#arch-steps');
+    STEPS.forEach((s, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = s.n; b.setAttribute('aria-pressed', i ? 'false' : 'true'); b.addEventListener('click', () => { step = i; draw(); }); sh.appendChild(b); });
+    function draw(){
+      $$('button', sh).forEach((b, i) => b.setAttribute('aria-pressed', i === step ? 'true' : 'false'));
+      const s = STEPS[step];
+      Object.keys(parts).forEach(k => { const on = s.on.indexOf(k) >= 0 || (k === 'gt' && mode === 'train' && step === 3); parts[k].classList.toggle('on', on); parts[k].classList.toggle('dim', !on); });
+      parts.gt.style.display = mode === 'train' ? '' : 'none';
+      wires['gt-agp'].style.display = mode === 'train' ? '' : 'none';
+      wires['ear-agp'].style.opacity = mode === 'train' ? .25 : 1;
+      Object.keys(wires).forEach(k => wires[k].classList.toggle('on', s.w.indexOf(k) >= 0 || (k === 'gt-agp' && step === 3)));
+      $('#arch-say').textContent = s.s[mode];
+    }
+    seg($('#arch-mode'), () => {}); $$('#arch-mode button').forEach(b => b.addEventListener('click', () => { mode = b.dataset.m; draw(); }));
+    draw();
+  })();
+
+  /* ---------- horizon lab ---------- */
+  (function(){
+    const BASE = [98.6, 99.0, 96.4, 92.2, 96.6];
+    const CF = [
+      { s: 1, h: 10, v: [99.4, 99.4, 98.8, 95.0, 98.2] },
+      { s: 2, h: 5, v: [99.6, 99.6, 98.4, 94.4, 98.0] },
+      { s: 1, h: 30, v: [99.2, 99.2, 97.6, 95.6, 97.9] },
+      { s: 2, h: 15, v: [99.0, 99.4, 98.0, 96.6, 98.3], def: true },
+      { s: 2, h: 30, v: [99.4, 99.0, 98.2, 95.0, 97.9] },
+      { s: 3, h: 30, v: [98.8, 99.4, 97.4, 96.2, 98.0] }
+    ];
+    const pick = $('#hz-pick');
+    CF.forEach((c, i) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.k = i; b.textContent = c.s + '×' + c.h + (c.def ? ' 默认' : ''); b.setAttribute('aria-pressed', c.def ? 'true' : 'false'); pick.appendChild(b); });
+    const svg = $('#hz-svg');
+    function draw(i){
+      const c = CF[i]; svg.innerHTML = '';
+      const x0 = 120, x1 = 740, F = 90, x = f => x0 + (x1 - x0) * f / F;
+      for (let f = 0; f <= F; f += 10) { svg.appendChild(el('line', { x1: x(f), x2: x(f), y1: 22, y2: 150, stroke: 'var(--line)' })); svg.appendChild(el('text', { x: x(f), y: 166, 'text-anchor': 'middle' }, f)); }
+      svg.appendChild(el('text', { x: 10, y: 14 }, '未来帧（LIBERO 10 Hz，10 帧 ≈ 1 秒）'));
+      svg.appendChild(el('text', { x: 10, y: 60, class: 'lab2' }, 'EAR 参考轨迹'));
+      const eq = c.s * c.h;
+      svg.appendChild(el('rect', { x: x(0), y: 46, width: x(eq) - x(0), height: 22, rx: 4, fill: 'var(--ex-soft)' }));
+      for (let k = 0; k < c.h; k++) svg.appendChild(el('circle', { cx: x(k * c.s), cy: 57, r: c.h > 20 ? 3.2 : 4.5, fill: 'var(--ex)', 'data-tip': '参考点 ' + (k + 1) + ' / ' + c.h + '：第 ' + (k * c.s) + ' 帧' }));
+      svg.appendChild(el('text', { x: x(eq) + 6, y: 61 }, '覆盖 ' + eq + ' 帧'));
+      svg.appendChild(el('text', { x: 10, y: 118, class: 'lab2' }, '动作头输出'));
+      svg.appendChild(el('rect', { x: x(0), y: 104, width: x(10) - x(0), height: 22, rx: 4, fill: 'var(--hd-soft)' }));
+      for (let k = 0; k < 10; k++) svg.appendChild(el('circle', { cx: x(k), cy: 115, r: 3.2, fill: 'var(--hd)' }));
+      svg.appendChild(el('text', { x: x(10) + 6, y: 119 }, '10 帧'));
+      const overlap = Math.min(c.h, Math.ceil(10 / c.s));
+      const names = ['Spatial', 'Object', 'Goal', 'Long', 'Avg.'];
+      $('#hz-read').innerHTML = names.map((n, k) => '<div><span class="k">' + n + '</span><b>' + c.v[k].toFixed(1) + '</b><span class="d">' + (c.v[k] - BASE[k] >= 0 ? '+' : '') + (c.v[k] - BASE[k]).toFixed(1) + ' vs 基线</span></div>').join('');
+      let s = '步长 ' + c.s + '、长度 ' + c.h + '：参考轨迹覆盖未来 ' + eq + ' 帧，其中 ' + overlap + ' 个点落在动作头要预测的 10 帧之内（训练时这些点就是真值）。';
+      if (c.def) s += ' 这是论文默认配置，Long 套件 96.6 为 6 种配置中最高。';
+      if (eq === 10) s += ' 参考轨迹和动作块覆盖同一段时间，EAR 相当于先给出一版完整答案。';
+      if (eq >= 60) s += ' 参考轨迹远超动作块，大部分点只提供远期意图。';
+      s += ' 基线为表 5 自己的 Baseline（平均 96.6）。6 种配置的平均分落在 97.9–98.3，差距在 0.4 个点以内。';
+      $('#hz-say').textContent = s;
+    }
+    seg(pick, k => draw(+k)); draw(3);
+  })();
+
+  /* ---------- IAR strategies ---------- */
+  const IAR = [
+    { n: 'Baseline', v: [98.8, 98.2, 98.0, 92.4], a: 96.9, cls: 'c-b0' },
+    { n: 'Query', v: [98.8, 99.0, 97.2, 92.8], a: 97.0, cls: 'c-im' },
+    { n: 'Attention Pooling', v: [99.4, 98.6, 98.2, 92.8], a: 97.3, cls: 'c-im' },
+    { n: 'Downsample（默认）', v: [99.2, 99.2, 98.2, 95.6], a: 98.1, cls: 'c-hd', hi: true }
+  ];
+  hbars($('#ch-iar'), IAR.map(r => ({ label: r.n, v: r.a, cls: r.cls, hi: r.hi, tip: r.n + '：Spatial ' + r.v[0] + ' · Object ' + r.v[1] + ' · Goal ' + r.v[2] + ' · Long ' + r.v[3] + ' · Avg ' + r.a })), { left: 170, lo: 95, max: 99, step: 1, rh: 26 });
+  rawTable($('#raw-iar'), ['方法', 'Spatial', 'Object', 'Goal', 'Long', 'Avg.'], IAR.map(r => ({ cells: [r.n].concat(r.v, [r.a]), best: r.hi })));
+
+  /* ---------- LIBERO ---------- */
+  const LIB = [
+    ['Diffusion Policy', '–', 78.3, 92.5, 68.3, 50.5, 72.4], ['Octo', '–', 78.9, 85.7, 84.6, 51.1, 75.1],
+    ['CoT-VLA', 'Visual', 87.5, 91.6, 87.6, 69.0, 81.1], ['WorldVLA (256²)', 'Visual', 85.6, 89.0, 82.6, 59.0, 79.1], ['WorldVLA (512²)', 'Visual', 87.6, 96.2, 83.4, 60.0, 81.8],
+    ['DreamVLA', 'Visual', 97.5, 94.0, 89.5, 89.5, 92.6], ['UniVLA', 'Visual', 95.4, 98.8, 93.6, 94.0, 95.5], ['F1', 'Visual', 98.2, 97.8, 95.4, 91.3, 95.7], ['GE-Act', 'Visual', 98.2, 97.6, 95.8, 94.4, 96.5],
+    ['TraceVLA', 'Linguistics', 84.6, 85.2, 75.1, 54.1, 74.8], ['OpenVLA', 'Linguistics', 84.7, 88.4, 79.2, 53.7, 76.5], ['UniAct', 'Linguistics', 77.0, 87.0, 77.0, 70.0, 77.8], ['SpatialVLA', 'Linguistics', 88.2, 89.9, 78.6, 55.5, 78.1],
+    ['ThinkAct', 'Linguistics', 88.3, 91.4, 87.1, 70.9, 84.4], ['π0-FAST', 'Linguistics', 96.4, 96.8, 88.6, 60.2, 85.5], ['FPC-VLA', 'Linguistics', 87.0, 92.0, 86.2, 82.2, 86.9], ['SmolVLA', 'Linguistics', 93.0, 94.0, 91.0, 77.0, 88.8],
+    ['GR00T-N1', 'Linguistics', 94.4, 97.6, 93.0, 90.6, 93.9], ['π0', 'Linguistics', 96.8, 98.8, 95.8, 85.2, 94.1], ['GO-1', 'Linguistics', 96.2, 97.8, 96.0, 89.2, 94.8], ['DD-VLA', 'Linguistics', 97.2, 98.6, 97.4, 92.0, 96.3],
+    ['MemoryVLA', 'Linguistics', 98.4, 98.4, 96.4, 93.4, 96.7], ['π0.5', 'Linguistics', 98.8, 98.2, 98.0, 92.4, 96.9], ['OpenVLA-OFT', 'Linguistics', 97.6, 98.4, 97.9, 94.5, 97.1], ['VLA-Adapter', 'Linguistics', 97.8, 99.2, 97.2, 95.0, 97.3],
+    ['Ours◇', 'Action', 99.4, 99.6, 98.8, 96.0, 98.5], ['Ours', 'Action', 98.6, 99.0, 99.4, 97.0, 98.5]
+  ];
+  const GC = { 'Action': 'c-hd', 'Visual': 'c-im', 'Linguistics': 'c-b0', '–': 'c-b1' };
+  hbars($('#ch-libero'), LIB.slice().sort((a, b) => b[6] - a[6]).map(r => ({ label: r[0], v: r[6], cls: GC[r[1]], hi: r[1] === 'Action', tip: r[0] + '（' + r[1] + '）Spatial ' + r[2] + ' · Object ' + r[3] + ' · Goal ' + r[4] + ' · Long ' + r[5] + ' · Avg ' + r[6] })), { left: 150, lo: 70, max: 100, step: 5, rh: 24 });
+  rawTable($('#raw-libero'), ['方法', '引导', 'Spatial', 'Object', 'Goal', 'Long', 'Avg.'], LIB.map(r => ({ cells: r, best: r[1] === 'Action' })));
+
+  /* ---------- LIBERO-Plus ---------- */
+  const DIM = ['Camera', 'Robot', 'Language', 'Light', 'Background', 'Noise', 'Layout', 'Avg.'];
+  const LPZ = { p05: [75.8, 79.4, 83.3, 95.5, 95.0, 89.6, 87.0, 85.7], oursF: [68.9, 80.3, 84.1, 95.6, 93.1, 81.5, 88.3, 83.6], ours: [72.6, 82.6, 87.5, 97.7, 96.5, 87.8, 88.1, 86.6] };
+  const LPS = { p05: [70.3, 41.7, 81.1, 97.3, 94.6, 71.8, 84.9, 75.7], oursF: [91.2, 62.5, 80.3, 95.1, 91.5, 88.3, 84.9, 84.1], ours: [96.6, 70.4, 79.7, 95.1, 97.1, 95.9, 85.0, 88.0] };
+  const LPSER = [{ name: 'π0.5', cls: 'c-b0' }, { name: 'Ours◇', cls: 'c-ex' }, { name: 'Ours', cls: 'c-hd' }];
+  vgroups($('#ch-lp-zs'), DIM.map((d, i) => ({ name: d, vals: [LPZ.p05[i], LPZ.oursF[i], LPZ.ours[i]], bold: d === 'Avg.', sep: d === 'Avg.' })), LPSER, { title: '零样本迁移 · π0.5 为官方权重复现（*）', lo: 40, step: 20 });
+  vgroups($('#ch-lp-sft'), DIM.map((d, i) => ({ name: d, vals: [LPS.p05[i], LPS.oursF[i], LPS.ours[i]], bold: d === 'Avg.', sep: d === 'Avg.' })), LPSER, { title: '监督微调 · π0.5 为冻结主干（◇）', lo: 40, step: 20 });
+  rawTable($('#raw-lp'), ['方法 · 引导'].concat(DIM), [
+    { cells: ['<i>零样本迁移</i>', '', '', '', '', '', '', '', ''] },
+    { cells: ['WorldVLA · Visual', 0.1, 27.9, 41.6, 43.7, 17.1, 10.9, 38.0, 25.0] }, { cells: ['OpenVLA · Ling.', 0.8, 3.5, 23.0, 8.1, 34.8, 15.2, 28.5, 15.6] },
+    { cells: ['NORA · Ling.', 2.2, 37.0, 65.1, 45.7, 58.6, 12.8, 62.1, 39.0] }, { cells: ['UniVLA · Ling.', 1.8, 46.2, 69.6, 69.0, 81.0, 21.2, 31.9, 42.9] },
+    { cells: ['π0-Fast · Ling.', 65.1, 21.6, 61.0, 73.2, 73.2, 74.4, 68.8, 61.6] }, { cells: ['RIPT-VLA · Ling.', 55.2, 31.2, 77.6, 88.4, 91.6, 73.5, 74.2, 68.4] },
+    { cells: ['OpenVLA-OFT · Ling.', 56.4, 31.9, 79.5, 88.7, 93.3, 75.8, 74.2, 69.6] }, { cells: ['π0* · Ling.', 61.0, 40.8, 63.5, 89.3, 84.1, 80.1, 76.4, 69.4] },
+    { cells: ['π0.5* · Ling.'].concat(LPZ.p05) }, { cells: ['Ours◇ · Action'].concat(LPZ.oursF) }, { cells: ['Ours · Action'].concat(LPZ.ours), best: true },
+    { cells: ['<i>监督微调</i>', '', '', '', '', '', '', '', ''] },
+    { cells: ['π0◇ · Ling.', 79.6, 21.1, 72.5, 84.7, 86.2, 68.3, 69.4, 67.4] }, { cells: ['π0.5◇ · Ling.'].concat(LPS.p05) },
+    { cells: ['Ours◇ · Action'].concat(LPS.oursF) }, { cells: ['Ours · Action'].concat(LPS.ours), best: true }
+  ]);
+
+  /* ---------- VLABench ---------- */
+  const VT = ['In-dist.', 'Category', 'Commonsense', 'Instruction', 'Texture', 'Avg.'];
+  const VD = { p0: [[67.8, 62.7], [44.0, 33.6], [54.9, 43.0], [58.0, 38.7], [50.6, 42.5], [55.0, 44.1]], p05: [[75.0, 60.8], [49.6, 35.3], [57.5, 41.6], [57.1, 30.3], [62.0, 47.4], [60.2, 43.1]], ours: [[79.8, 66.1], [54.1, 38.9], [52.3, 37.8], [56.8, 39.6], [74.6, 54.6], [63.5, 47.4]] };
+  function drawVla(m){ vgroups($('#ch-vla'), VT.map((t, i) => ({ name: t, vals: [VD.p0[i][m], VD.p05[i][m], VD.ours[i][m]], bold: t === 'Avg.', sep: t === 'Avg.' })), [{ name: 'π0◇', cls: 'c-b1' }, { name: 'π0.5◇', cls: 'c-b0' }, { name: 'Ours◇', cls: 'c-hd' }], { lo: 0, max: 90, step: 15, title: m ? 'PS 进度分' : 'IS 意图分' }); }
+  seg($('#vla-metric'), k => drawVla(+k)); drawVla(0);
+  rawTable($('#raw-vla'), ['方法'].concat([].concat.apply([], VT.map(t => [t + ' IS', t + ' PS']))), [
+    { cells: ['π0◇'].concat([].concat.apply([], VD.p0)) }, { cells: ['π0.5◇'].concat([].concat.apply([], VD.p05)) }, { cells: ['Ours◇'].concat([].concat.apply([], VD.ours)), best: true }
+  ]);
+
+  /* ---------- real world ---------- */
+  const RW = [
+    { name: 'G1 · Wipe Stain\n(24 次)', vals: [75.0, 79.1, 83.3], n: 24 },
+    { name: 'G1 · Pour Water\n(12 次)', vals: [25.0, 22.5, 33.3], n: 12 },
+    { name: 'G1 · Open-set Pick\n(40 次)', vals: [12.5, 80.0, 77.5], n: 40 },
+    { name: 'AgileX · Open-set Pick\n(40 次)', vals: [22.5, 62.5, 72.5], n: 40 },
+    { name: '平均', vals: [33.8, 61.0, 66.7], bold: true, sep: true }
+  ];
+  vgroups($('#ch-real'), RW, [{ name: 'π0', cls: 'c-b1' }, { name: 'π0.5', cls: 'c-b0' }, { name: 'Ours', cls: 'c-hd' }], { step: 20 });
+  rawTable($('#raw-real'), ['任务', 'π0', 'π0.5', 'Ours'], RW.map(r => ({ cells: [r.name.replace('\n', ' ')].concat(r.vals.map(v => r.n ? v + '%（≈' + (v * r.n / 100).toFixed(1) + '/' + r.n + '）' : v + '%')), best: r.bold })));
+
+  /* ---------- sim2real ---------- */
+  vgroups($('#ch-s2r'), [
+    { name: 'Select\nColor', vals: [86.0, 98.8] }, { name: 'Recognize\nSize', vals: [93.0, 96.0] }, { name: 'Grasp\nTargets', vals: [71.7, 68.0] }, { name: 'Organize\nObjects', vals: [52.0, 74.0] }, { name: '平均', vals: [75.7, 84.2], bold: true },
+    { name: 'Select\nColor', vals: [85.0, 94.0], sep: true }, { name: 'Recognize\nSize', vals: [94.0, 94.0] }, { name: 'Grasp\nTargets', vals: [70.8, 75.0] }, { name: 'Organize\nObjects', vals: [60.0, 68.4] }, { name: '平均', vals: [77.5, 82.9], bold: true }
+  ], [{ name: 'π0.5', cls: 'c-b0' }, { name: 'Ours', cls: 'c-hd' }], { lo: 40, step: 20, bw: 20, T: 30, headers: [{ at: 0, text: '仿真（Genie Sim 3.0）' }, { at: 5, text: '真机' }] });
+
+  /* ---------- module ablation ---------- */
+  (function(){
+    const svg = $('#ch-mod'); svg.innerHTML = '';
+    const rows = [['Baseline', 96.9, 75.7, 'c-b0'], ['+ EAR', 98.3, 83.7, 'c-ex'], ['+ IAR', 98.1, 80.4, 'c-im'], ['+ EAR + IAR', 98.5, 84.1, 'c-hd']];
+    const panels = [{ x: 110, w: 250, lo: 95, hi: 99, step: 1, k: 1, t: 'LIBERO 平均' }, { x: 470, w: 250, lo: 70, hi: 90, step: 5, k: 2, t: 'LIBERO-Plus 平均（微调）' }];
+    panels.forEach(p => {
+      const x = v => p.x + p.w * (v - p.lo) / (p.hi - p.lo);
+      svg.appendChild(el('text', { x: p.x, y: 14, class: 'tick' }, p.t));
+      for (let g = p.lo; g <= p.hi; g += p.step) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: 22, y2: 160, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: 176, 'text-anchor': 'middle', class: 'tick' }, g)); }
+      rows.forEach((r, i) => {
+        const y = 26 + i * 33;
+        if (p.k === 1) svg.appendChild(el('text', { x: p.x - 10, y: y + 18, 'text-anchor': 'end', class: 'glabel' }, r[0]));
+        svg.appendChild(el('rect', { x: p.x, y: y + 4, width: x(r[p.k]) - p.x, height: 22, rx: 3, class: r[3], 'data-tip': r[0] + ' · ' + p.t + '：' + r[p.k] }));
+        svg.appendChild(el('text', { x: x(r[p.k]) + 5, y: y + 19, class: 'val' }, r[p.k]));
+      });
+    });
+    rawTable($('#raw-mod'), ['配置', 'Spatial', 'Object', 'Goal', 'Long', 'LIBERO Avg.', 'LP Camera', 'Robot', 'Lang.', 'Light', 'Bg.', 'Noise', 'Layout', 'LP Avg.'], [
+      { cells: ['Baseline', 98.8, 98.2, 98.0, 92.4, 96.9, 70.3, 41.7, 81.1, 97.3, 94.6, 71.8, 84.9, 75.7] },
+      { cells: ['#1 EAR', 99.0, 99.4, 98.0, 96.6, 98.3, 88.7, 63.5, 80.4, 94.0, 90.2, 89.5, 84.2, 83.7] },
+      { cells: ['#2 IAR', 99.2, 99.2, 98.2, 95.6, 98.1, 80.7, 48.7, 82.6, 97.7, 90.9, 84.3, 86.0, 80.4] },
+      { cells: ['#3 EAR + IAR', 99.4, 99.6, 98.8, 96.0, 98.5, 91.2, 62.5, 80.3, 95.1, 91.5, 88.3, 84.9, 84.1], best: true }
+    ]);
+  })();
+
+  /* ---------- params / denoise ---------- */
+  (function(){
+    const T9 = [
+      { n: 'Baseline', hp: '300M', hd: 10, ep: '–', ed: '–', lib: 96.6, lp: 75.7 },
+      { n: '#1', hp: '600M', hd: 10, ep: '–', ed: '–', lib: 97.6, lp: 74.9 },
+      { n: '#2', hp: '600M', hd: 20, ep: '–', ed: '–', lib: 97.5, lp: 75.1 },
+      { n: '#3', hp: '300M', hd: 5, ep: '300M', ed: 5, lib: 97.9, lp: 83.9 },
+      { n: '#4', hp: '300M', hd: 10, ep: '300M', ed: 10, lib: 98.3, lp: 83.7 },
+      { n: '#5', hp: '300M', hd: 10, ep: '150M', ed: 10, lib: 97.6, lp: 81.7 },
+      { n: '#6', hp: '300M', hd: 10, ep: '250M', ed: 10, lib: 97.5, lp: 83.1 },
+      { n: '#7', hp: '300M', hd: 10, ep: '500M', ed: 10, lib: 97.0, lp: 80.9 }
+    ];
+    const SETS = [
+      { rows: [0, 1, 2, 3, 4], say: '#1 把动作头加到 600M，#2 再把去噪步数加到 20：LIBERO 略升，LIBERO-Plus 反而低于基线。#3（各 300M、各 5 步）与 #1 的总参数和总步数相同，#4（各 10 步）与 #2 相同。加入 EAR 后 LIBERO-Plus 升到 83.9 / 83.7。' },
+      { rows: [0, 5, 6, 4, 7], say: '固定动作头 300M、各 10 步，只改 EAR 的隐层宽度。150M 81.7、250M 83.1、300M 83.7、500M 80.9。全部高于无 EAR 的基线，但不单调；EAR 超过动作头时掉分。' }
+    ];
+    function draw(k){
+      const S = SETS[k]; const g = S.rows.map(i => T9[i]);
+      vgroups($('#ch-pd'), g.map(r => ({ name: r.n + '\n头 ' + r.hp + '×' + r.hd + (r.ep !== '–' ? '\nEAR ' + r.ep + '×' + r.ed : ''), vals: [r.lib, r.lp] })), [{ name: 'LIBERO', cls: 'c-b0' }, { name: 'LIBERO-Plus', cls: 'c-hd' }], { lo: 70, max: 100, step: 5, bw: 30, B: 52 });
+      $('#pd-say').textContent = S.say;
+    }
+    seg($('#pd-pick'), k => draw(+k)); draw(0);
+    rawTable($('#raw-pd'), ['配置', '动作头参数', '动作头步数', 'EAR 参数', 'EAR 步数', 'LIBERO Avg.', 'LIBERO-Plus Avg.'], T9.map(r => ({ cells: [r.n, r.hp, r.hd, r.ep, r.ed, r.lib, r.lp], best: r.n === '#4' })));
+  })();
+})();
+</script>
+</body>
+</html>

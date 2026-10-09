@@ -7,6 +7,13 @@
       "path": ["生成模型", "机器人", "力与触觉"],
       "summary": "力和触觉怎样进入机器人基础模型：从 VLA 的输入条件，到世界模型里的快速修正通道和要预测的未来观测。",
       "page": "topics/force-tactile/"
+    },
+    {
+      "id": "robot-harness",
+      "title": "Harness for Robotics",
+      "path": ["机器人", "基础模型", "Harness"],
+      "summary": "包在机器人基础模型外面或内部的执行框架：任务怎么分层、用什么接口交接，执行前后用什么评价信号修正。目前收录结构化执行与评估反馈两类。",
+      "page": "topics/robot-harness/"
     }
   ],
   "papers": [
@@ -93,6 +100,54 @@
       "topics": ["force-tactile"],
       "summary": "视频、触觉、动作三专家的非对称 MoT 世界动作模型：未来触觉和未来视频一起生成，当前触觉在力空间经交叉注意力读入；UniVTAC 84.5%，8 个真机任务平均 46.3%（π0.5 30.0%）。",
       "added": "2026-09-28"
+    },
+    {
+      "slug": "acot-vla",
+      "title": "ACoT-VLA",
+      "full_title": "ACoT-VLA: Action Chain-of-Thought for Vision-Language-Action Models",
+      "arxiv": "2601.11404",
+      "version": "v2",
+      "date": "2026-01",
+      "org": "北航、智元 AgiBot",
+      "topics": ["robot-harness"],
+      "summary": "结构化执行：π0.5 先用 EAR 去噪出一段 15 点、步长 2 的粗参考轨迹，再用 IAR 从 VLM 的 KV 里抽隐式先验，动作头读两者生成动作；LIBERO 98.5（π0.5 96.9），LIBERO-Plus 微调设定 88.0（75.7）。",
+      "added": "2026-10-09"
+    },
+    {
+      "slug": "motormind",
+      "title": "MotorMind",
+      "full_title": "MotorMind: Scaffolding General Vision Language Models for Zero-Shot Robot Manipulation",
+      "arxiv": "2609.38078",
+      "version": "v1",
+      "date": "2026-09",
+      "org": "UIUC",
+      "topics": ["robot-harness"],
+      "summary": "结构化执行：冻结的通用 VLM 分饰规划、执行、监控、验证、记忆，输出带数值的中层动作交给确定性控制器，监控异步并行；LIBERO-PRO 零样本 66.7% / 扰动 53.8%，但每回合约 223 秒。",
+      "added": "2026-10-09"
+    },
+    {
+      "slug": "tt-vla",
+      "title": "TT-VLA",
+      "full_title": "On-the-Fly VLA Adaptation via Test-Time Reinforcement Learning",
+      "arxiv": "2601.06748",
+      "version": "v3",
+      "date": "2026-01",
+      "org": "UMKC、港科大（广州）、Meta AI 等",
+      "topics": ["robot-harness"],
+      "summary": "评估与反馈：VLAC 进度估计的差分做每步奖励，无价值函数的 PPO 每 8 步更新一次 LoRA，每回合重置；4 个 VLA、15 个未见任务上维度平均提升 0.8–3.8 个点。",
+      "added": "2026-10-09"
+    },
+    {
+      "slug": "tau0-vla",
+      "title": "τ₀-VLA",
+      "full_title": "τ0-VLA: a Hierarchical Robot Foundation Model with World-Model-Guided Test-Time Computation",
+      "arxiv": "2608.16885",
+      "version": "v1",
+      "date": "2026-08",
+      "org": "智元 Agibot Finch、上海创智学院、港中文",
+      "topics": ["robot-harness"],
+      "summary": "评估与反馈：带执行记忆的高层在不确定时做子任务束搜索，世界模型想象后果、价值模型打分后再提交；分层 + 记忆让四个长程真机任务平均成功率 27.5% → 45.0%，搜索再加 2–3 次成功 / 10。",
+      "added": "2026-10-09"
     }
   ]
 }

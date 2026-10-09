@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>τ₀-VLA 精读</title>
+<meta name="description" content="τ0-VLA: a Hierarchical Robot Foundation Model with World-Model-Guided Test-Time Computation 中文精读：带执行记忆的高层策略、世界模型引导的子任务束搜索、40 维统一动作空间的低层 VLA，长程真机任务结果与疑点。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&family=Fragment+Mono&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F6F1E8; --surface:#FCF9F3; --surface-2:#ECE3D3; --ink:#22190F; --ink-2:#4A3E30; --muted:#74675A; --line:#DDD1BE;
+  --hd:#8A4B14; --hd-soft:#F1E0CC; --on-hd:#FFFFFF;
+  --ex:#A87808; --ex-soft:#F5E9C8;
+  --im:#1F7F79; --im-soft:#D3EBE8;
+  --warn:#A8352A; --warn-soft:#F5D9D4;
+  --base:#9A9182; --base-2:#CBC3B5;
+  --plate:#FFFFFF; --focus:#8A4B14;
+  --f-display:"Newsreader","Noto Serif SC","Songti SC","Noto Sans SC",Georgia,serif;
+  --f-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"Fragment Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#15110C; --surface:#1D1812; --surface-2:#29221A; --ink:#F0E8DC; --ink-2:#CFC2AF; --muted:#9D907E; --line:#3A3127;
+    --hd:#E3A066; --hd-soft:#3D2817; --on-hd:#1E1006;
+    --ex:#E5BE55; --ex-soft:#3A2E10;
+    --im:#5FC4BC; --im-soft:#123532;
+    --warn:#EF8B7D; --warn-soft:#3D1D19;
+    --base:#7E766A; --base-2:#4E473D;
+    --plate:#F4F0EA; --focus:#E3A066;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#15110C; --surface:#1D1812; --surface-2:#29221A; --ink:#F0E8DC; --ink-2:#CFC2AF; --muted:#9D907E; --line:#3A3127;
+  --hd:#E3A066; --hd-soft:#3D2817; --on-hd:#1E1006;
+  --ex:#E5BE55; --ex-soft:#3A2E10;
+  --im:#5FC4BC; --im-soft:#123532;
+  --warn:#EF8B7D; --warn-soft:#3D1D19;
+  --base:#7E766A; --base-2:#4E473D;
+  --plate:#F4F0EA; --focus:#E3A066;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:var(--hd);text-underline-offset:3px;text-decoration-thickness:1px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+strong{font-weight:700}
+em{font-style:normal;background:linear-gradient(transparent 62%,var(--ex-soft) 62%)}
+code,.mono{font-family:var(--f-mono);font-size:.86em}
+sub,sup{font-size:.72em;line-height:0}
+.page{max-width:1200px;margin:0 auto;padding-inline:24px}
+@media (max-width:560px){.page{padding-inline:16px}}
+.hero{padding-block:44px 24px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:40px;align-items:center}
+@media (max-width:900px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+.kicker{font:12px/1.4 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--hd);margin:0 0 14px}
+h1.title{font-family:var(--f-display);font-weight:700;font-size:clamp(3.2rem,2rem + 6vw,6.6rem);line-height:.95;letter-spacing:-.02em;margin:0}
+h1.title .dash{color:var(--ex);font-style:italic}
+.entitle{font-family:var(--f-display);font-weight:500;font-style:italic;font-size:clamp(1.05rem,.95rem + .4vw,1.3rem);line-height:1.45;color:var(--ink-2);margin:14px 0 0}
+.thesis{font-size:clamp(1.05rem,1rem + .35vw,1.22rem);line-height:1.78;margin:20px 0 0;max-width:34em}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin:20px 0 0;padding:0;list-style:none;font:13px/1.6 var(--f-mono);color:var(--muted)}
+.meta b{color:var(--ink-2);font-weight:500}
+.ribbon{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.ribbon svg{display:block;width:100%;height:auto}
+.ribbon svg text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+.ribbon svg .m{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.ribbon figcaption{font:12px/1.6 var(--f-mono);color:var(--muted);margin-top:8px}
+.tldr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:32px}
+@media (max-width:760px){.tldr{grid-template-columns:minmax(0,1fr)}}
+.tldr>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.tldr h3{font:12px/1.4 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.tldr p{margin:0;font-size:15px;line-height:1.75}
+.tldr .flag h3{color:var(--warn)}
+.layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:52px;padding-block:20px 80px}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr);gap:0}}
+.toc{position:sticky;top:20px;align-self:start;font-size:14px;line-height:1.5}
+.toc p{font:11px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.toc li a{display:block;padding:5px 0 5px 14px;margin-left:-1px;border-left:2px solid transparent;color:var(--muted);text-decoration:none}
+.toc li a:hover{color:var(--ink)}
+.toc li a.on{color:var(--ink);border-left-color:var(--hd);font-weight:500}
+@media (max-width:1000px){
+  .toc{position:static;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .toc p{display:none}
+  .toc ol{display:flex;gap:6px;border:0;white-space:nowrap;padding-bottom:6px}
+  .toc li a{border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin:0;background:var(--surface)}
+  .toc li a.on{border-color:var(--hd)}
+}
+main{min-width:0}
+section{padding-top:56px;scroll-margin-top:12px}
+section:first-child{padding-top:8px}
+.eyebrow{font:12px/1.4 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--hd);margin:0 0 8px}
+h2{font-family:var(--f-display);font-weight:700;font-size:clamp(1.45rem,1.15rem + 1.2vw,2.1rem);line-height:1.3;margin:0 0 18px}
+h3{font-family:var(--f-display);font-weight:700;font-size:1.2rem;line-height:1.45;margin:36px 0 10px}
+p{margin:0 0 14px}
+.prose{max-width:44em}
+.prose li{margin-bottom:6px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.tag{display:inline-block;font:11px/1 var(--f-mono);padding:4px 6px 3px;border-radius:4px;vertical-align:2px;margin-right:6px;white-space:nowrap}
+.tag.read{border:1px dashed var(--ink-2);color:var(--ink-2)}
+.tag.doubt{background:var(--warn-soft);color:var(--warn)}
+.note{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 18px;margin:18px 0;max-width:46em}
+.note>:last-child{margin-bottom:0}
+.note h4{font:500 12.5px/1.5 var(--f-body);margin:0 0 6px;color:var(--muted)}
+.note.doubt{border-color:color-mix(in oklab,var(--warn) 35%,var(--line));background:color-mix(in oklab,var(--warn-soft) 55%,var(--surface))}
+.note.doubt h4{color:var(--warn)}
+.eq{font-family:"Times New Roman",Georgia,"Noto Serif SC",serif;font-size:1.08rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:14px 0;overflow-x:auto;white-space:nowrap;display:flex;justify-content:space-between;gap:24px;max-width:46em}
+.eq .no{font:12px var(--f-mono);color:var(--muted);align-self:center}
+figure.plate{margin:22px 0}
+figure.plate .zoom{display:block;width:100%;padding:10px;background:var(--plate);border:1px solid var(--line);border-radius:8px;cursor:zoom-in}
+figure.plate img{display:block;width:100%;height:auto}
+figure.plate figcaption{font-size:14px;line-height:1.7;color:var(--ink-2);margin-top:10px;max-width:52em}
+figure.plate figcaption b{font:12px var(--f-mono);color:var(--muted);margin-right:8px}
+dialog#lb{border:0;padding:0;background:transparent;max-width:min(96vw,1800px);width:96vw}
+dialog#lb::backdrop{background:rgba(14,10,6,.86)}
+dialog#lb .box{background:var(--plate);border-radius:8px;padding:10px;max-height:88vh;overflow:auto}
+dialog#lb img{display:block;width:100%;height:auto}
+dialog#lb .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#F0E8DC;font-size:14px;padding:8px 2px 0}
+dialog#lb button{font:13px var(--f-mono);background:#F0E8DC;color:#22190F;border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
+.tblwrap{overflow-x:auto;margin:16px 0;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;font-size:14px;line-height:1.6;min-width:100%}
+table.t th,table.t td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.t thead th{font:12px/1.4 var(--f-mono);color:var(--muted);border-bottom:1.5px solid var(--ink-2);white-space:nowrap}
+table.t tbody th{font-weight:500;white-space:nowrap;color:var(--ink-2)}
+table.t .num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t tr.best td,table.t tr.best th{font-weight:700}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.cards.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:960px){.cards.four{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){.cards,.cards.four{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card h4{font-family:var(--f-display);font-weight:700;font-size:1.08rem;line-height:1.4;margin:0 0 8px}
+.card p{font-size:14.5px;line-height:1.75;margin:0 0 8px}
+.card p:last-child{margin:0}
+.card .who{font:11.5px var(--f-mono);color:var(--muted);display:block;margin-bottom:4px}
+.card.p{border-top:3px solid var(--hd)} .card.w{border-top:3px solid var(--ex)} .card.v{border-top:3px solid var(--im)} .card.f{border-top:3px solid var(--ink-2)}
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin:22px 0}
+.lab-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;margin-bottom:12px}
+.lab-head h4{font-family:var(--f-display);font-weight:700;font-size:1.12rem;margin:0}
+.lab-head p{margin:0;font-size:13px;color:var(--muted)}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:0 0 12px;font-size:14px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--bg);flex-wrap:wrap}
+.seg button{font:500 13px/1 var(--f-body);border:0;background:transparent;color:var(--muted);padding:8px 12px;cursor:pointer;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg.k button{font-family:var(--f-mono)}
+.lab svg{display:block;width:100%;height:auto}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tree svg{min-width:680px}
+.tree text{font-family:var(--f-body);font-size:11.5px;fill:var(--ink-2)}
+.tree .m{font-family:var(--f-mono);font-size:10px;fill:var(--muted)}
+.mem svg{min-width:640px}
+.mem text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+.mem .m{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.readout{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}
+@media (max-width:640px){.readout{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.readout>div{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.5}
+.readout b{font-family:var(--f-mono);font-weight:500;font-size:18px;color:var(--ink);display:block}
+.readout .k{font:11px var(--f-mono);color:var(--muted)}
+.say{font-size:14px;line-height:1.75;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:12px 0 0}
+.slot{display:grid;grid-template-columns:repeat(40,minmax(0,1fr));gap:2px;margin:12px 0 4px}
+.slot i{display:block;height:26px;border-radius:2px}
+.slotlab{display:flex;flex-wrap:wrap;gap:4px 14px;font:12px var(--f-mono);color:var(--muted)}
+.slotlab i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 16px 10px;margin:18px 0}
+.chartbox h4{font-family:var(--f-display);font-weight:700;font-size:1.1rem;margin:0 0 2px}
+.chartbox .sub{font-size:13px;color:var(--muted);margin:0 0 10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink-2);margin:0 0 6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+svg.chart{display:block;width:100%;height:auto;min-width:620px}
+svg.chart text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+svg.chart .tick{font:11px var(--f-mono);fill:var(--muted)}
+svg.chart .val{font:11px var(--f-mono);fill:var(--ink-2)}
+svg.chart .grid{stroke:var(--line);stroke-width:1}
+svg.chart .base{stroke:var(--ink-2);stroke-width:1}
+svg.chart .glabel{font-size:12.5px;fill:var(--ink)}
+.c-ling{fill:var(--ink-2);opacity:.75} .c-hd{fill:var(--hd)} .c-ex{fill:var(--ex)} .c-im{fill:var(--im)} .c-b0{fill:var(--base)} .c-b1{fill:var(--base-2)} .c-warn{fill:var(--warn)}
+.bg-hd{background:var(--hd)} .bg-ex{background:var(--ex)} .bg-im{background:var(--im)} .bg-b0{background:var(--base)} .bg-b1{background:var(--base-2)} .bg-ink{background:var(--ink-2)}
+details.raw{margin:8px 0 4px;font-size:13.5px}
+details.raw summary{cursor:pointer;color:var(--muted);font:12.5px var(--f-mono)}
+details.raw .tblwrap{margin:8px 0}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);font:12.5px/1.55 var(--f-body);padding:8px 10px;border-radius:6px;max-width:300px}
+details.faq{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:10px 0;max-width:50em}
+details.faq summary{cursor:pointer;padding:12px 16px;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::after{content:"+";font:16px var(--f-mono);color:var(--muted)}
+details.faq[open] summary::after{content:"−"}
+details.faq .a{padding:0 16px 14px;font-size:15px;line-height:1.8}
+details.faq .a p:last-child{margin:0}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0;align-items:start}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.two>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.two h4{font:500 12.5px/1.4 var(--f-body);margin:0 0 10px;color:var(--muted)}
+.two ul{margin:0;padding-left:18px;font-size:14.5px;line-height:1.75}
+.two li{margin-bottom:8px}
+table.cmp{min-width:860px}
+table.cmp td{font-size:13.5px}
+table.cmp th.me,table.cmp td.me{background:color-mix(in oklab,var(--hd-soft) 55%,transparent)}
+details.gl{background:var(--surface);border:1px solid var(--line);border-radius:10px;max-width:52em}
+details.gl summary{cursor:pointer;padding:14px 18px;font-weight:500}
+details.gl dl{margin:0;padding:0 18px 16px;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:8px 18px;font-size:14px;line-height:1.7}
+details.gl dt{font-family:var(--f-mono);font-size:13px;color:var(--ink)}
+details.gl dd{margin:0;color:var(--ink-2)}
+@media (max-width:560px){details.gl dl{grid-template-columns:minmax(0,1fr);gap:2px}details.gl dd{margin-bottom:10px}}
+footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/">Harness for Robotics</a></span><span class="vapnav-links"><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/tau0-vla/" aria-current="page">τ₀-VLA</a><a href="../../papers/motormind/">MotorMind</a></span></div></div>
+<!-- /vap:nav -->
+<header class="hero page">
+  <div class="hero-grid">
+    <div>
+      <p class="kicker">论文精读 · Harness for Robotics · 评估与反馈</p>
+      <h1 class="title">τ<sub style="font-size:.5em;line-height:0">0</sub><span class="dash">-</span>VLA</h1>
+      <p class="entitle">a Hierarchical Robot Foundation Model with World-Model-Guided Test-Time Computation</p>
+      <p class="thesis">长程任务里最要命的不是动作做不准，而是<strong>选错了下一个子任务</strong>。τ₀-VLA 的高层先读执行记忆提出子任务；对把握不大的决策，再展开一次<strong>「提议 → 想象 → 评分」的束搜索</strong>：世界模型画出每个候选子任务完成时的画面，价值模型打分，反思模型综合后才把子任务交给低层 VLA 执行。</p>
+      <ul class="meta">
+        <li><b>智元 Agibot Finch</b> · 上海创智学院 · 港中文（通讯作者 Jianlan Luo）</li>
+        <li><b>arXiv</b> 2608.16885v1</li>
+        <li><b>v1</b> 2026-08-17</li>
+        <li><a href="https://arxiv.org/abs/2608.16885" target="_blank" rel="noopener">arXiv</a> · <a href="https://tau0-vla.github.io/" target="_blank" rel="noopener">项目页</a></li>
+      </ul>
+    </div>
+    <figure class="ribbon">
+      <svg viewBox="0 0 520 270" role="img" aria-label="子任务束搜索示意：根节点展开三个候选，世界模型想象结果，价值模型打分，保留两个，再展开一层">
+        <g id="rb"></g>
+      </svg>
+      <figcaption>按原文 Figure 1 的「做奶茶」例子画：深度 1 的三个候选和分数取自原图，深度 2 的分支是示意。</figcaption>
+    </figure>
+  </div>
+  <div class="tldr" aria-label="一分钟版">
+    <div><h3>做了什么</h3><p>高层：四个模型。提议模型和价值、反思模型都从 Qwen3.5-9B 微调，世界模型从图像编辑模型 Step1X-Edit 训练。低层：Qwen3.5-2B + MoT 动作专家，40 维统一状态/动作空间，在 40,115 小时真机数据上训练。高层每约 1 秒刷新一次子任务，低层以约 30 Hz 执行。</p></div>
+    <div><h3>放在 Harness 里看</h3><p>两类都沾：子任务 + 执行记忆是「结构化执行」的接口；它的核心贡献是「评估与反馈」：<strong>在执行之前</strong>用想象的后果给候选打分，而不是等执行出错再补救。执行后的真实观测再写回记忆，形成闭环。</p></div>
+    <div><h3>结果</h3><p>四个长程真机任务，仅加分层与记忆（不搜索）平均成功率 27.5% → <b>45.0%</b>；开启搜索后三项任务成功次数 5→7、6→9、5→7（每格 10 次）。离线下一子任务准确率，书本整理分布外 50.0% → <b>74.0%</b>。</p></div>
+    <div class="flag"><h3>最该留意的</h3><p>每格只有 10 次试验。实际用的 N、B、D 和搜索耗时都没给，只给了 PFLOPs。评测协议提到「记忆消融」，但没有结果。基线怎么微调没说。两张图里同一个 Plan Once 基线数字对不上。</p></div>
+  </div>
+</header>
+
+<div class="page layout">
+  <nav class="toc" aria-label="目录">
+    <p>目录</p>
+    <ol>
+      <li><a href="#problem">问题</a></li>
+      <li><a href="#hier">分层结构</a></li>
+      <li><a href="#search">测试时搜索</a></li>
+      <li><a href="#memory">执行记忆</a></li>
+      <li><a href="#low">低层策略</a></li>
+      <li><a href="#setup">实验设置</a></li>
+      <li><a href="#results">结果</a></li>
+      <li><a href="#ttc">搜索的收益</a></li>
+      <li><a href="#insight">读懂它</a></li>
+      <li><a href="#limits">局限与疑点</a></li>
+      <li><a href="#topic">放到专题里看</a></li>
+      <li><a href="#glossary">术语表</a></li>
+    </ol>
+  </nav>
+  <main>
+    <section id="problem">
+      <p class="eyebrow">问题 · §1</p>
+      <h2>做错的子任务，执行得再完美也没用</h2>
+      <div class="prose">
+        <p>打扫房间、做饭、调饮品这类任务要持续几分钟到十几分钟，由一连串有后果的决策组成：机器人要随时判断哪些已经完成、还剩什么、现在该做哪个子任务。论文的观察是：</p>
+        <ul>
+          <li>多数分层 VLA（π0.5、Hi Robot、GR00T 等）的高层每次决策只做<strong>一次前向</strong>，直接从当前观测和历史映射到下一个子任务，不比较候选，也不看候选会导致什么状态；</li>
+          <li>没有执行前的评估，错误只能在执行改变了环境之后才被发现，重规划能响应，但收不回失败承诺的代价；</li>
+          <li>动作层面的搜索只能看到局部物理后果，纯语言推理能看很远但不落地。<strong>子任务</strong>介于两者之间：足够稀疏，值得多花算力；又足够长，执行后的状态变化看得出来。</li>
+        </ul>
+        <p>所以论文把「生成下一个子任务」当成一个可以按难度分配算力的推理问题，类似语言模型的测试时计算（o1、DeepSeek-R1）。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/teaser.jpg" aria-label="放大原文图 1"><img src="fig/teaser.jpg" width="1800" height="857" alt="原文图 1：左为预训练数据，中为高层测试时搜索，下为低层 VLA，右为能力展示" loading="lazy"></button>
+        <figcaption><b>原文 Figure 1</b>左：预训练数据包括遥操作、自主运行和 UMI 数据。中：做奶茶时问「下一步做什么」，VLM 提议（P）、世界模型想象结果（W）、价值模型打分（V）；深度 1 保留「拿勺子」「拿杯子」，淘汰「放杯子」；深度 2 继续展开，最后由 VLM 反思（F）得出「拿勺子」。下：选中的子任务交给低层 VLA。右：长程移动操作、精细操作、跨本体。</figcaption>
+      </figure>
+    </section>
+
+    <section id="hier">
+      <p class="eyebrow">方法 · 分层结构 · §3–4.1</p>
+      <h2>高层决定「做哪个」，低层决定「怎么做」</h2>
+      <div class="prose"><p>低层 VLA 把多视角观测 o<sub>t</sub>、本体状态 s<sub>t</sub>、语言指令 c<sub>t</sub> 和控制元数据 η（本体类型、控制模式、是否全身控制）映射为 H 步动作块。直接执行时 c<sub>t</sub> 就是整句任务指令 ℓ。分层时，高层策略 μ 每一步读取：</p></div>
+      <div class="eq"><span>h<sub>t</sub> = (ℓ, 𝓜<sub>t−1</sub>, z<sup>⋆</sup><sub>t−1</sub>, o<sub>t</sub>),&nbsp;&nbsp; (𝓜<sub>t</sub>, z<sup>⋆</sup><sub>t</sub>) = μ(h<sub>t</sub>),&nbsp;&nbsp; <b>a</b><sub>t:t+H−1</sub> = π<sub>θ</sub>(o<sub>t</sub>, s<sub>t</sub>, z<sup>⋆</sup><sub>t</sub>, η)</span><span class="no">(2–4)</span></div>
+      <div class="prose"><p>𝓜 是执行记忆，z<sup>⋆</sup> 是当前子任务。若新子任务和上一步相同，低层继续执行；不同，低层就开始执行新的子任务。部署时两层异步流水：后台进程约每 1 秒刷新一次缓存的子任务，控制循环以约 30 Hz 读缓存出动作，高层慢或失败只会推迟子任务的刷新。</p></div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/framework.jpg" aria-label="放大原文图 2"><img src="fig/framework.jpg" width="1800" height="742" alt="原文图 2：高层策略、低层策略与世界模型引导的测试时搜索" loading="lazy"></button>
+        <figcaption><b>原文 Figure 2</b>(a) 高层：Qwen3.5-9B 读多视角观测、任务「做奶茶」、执行记忆「已放好杯子」，输出思考、更新后的记忆和候选子任务「拿勺子」。(b) 低层：Qwen3.5-2B + MoT 动作专家，读元信息、机器人状态、加噪动作和子任务。(c) 束搜索：三个候选经世界模型得到想象画面，价值模型打分（0.95 / 0.50 / 0.95），保留 top-B，展开到深度 D 后反思并提交。示例保留分支：拿勺子 → 舀果冻 → 倒果冻。</figcaption>
+      </figure>
+    </section>
+
+    <section id="search">
+      <p class="eyebrow">方法 · 世界模型引导的测试时计算 · §4.2 · 附录 C</p>
+      <h2>四个模型，一个束搜索</h2>
+      <div class="cards four">
+        <div class="card p"><span class="who">提议模型 P · Qwen3.5-9B</span><h4>更新记忆，提出子任务</h4><p>(z<sup>dir</sup><sub>t</sub>, 𝓜<sub>t</sub>) = P(h<sub>t</sub>)。输出 &lt;think&gt; / &lt;memory&gt; / &lt;subtask&gt; 三段。同一次前向的 token 置信度决定是否启动搜索。</p></div>
+        <div class="card w"><span class="who">世界模型 𝒲 · Step1X-Edit 初始化</span><h4>想象子任务完成时的画面</h4><p>ô = 𝒲(õ, z)：输入一张头部相机图和候选子任务，输出子任务结束时的头部相机图。用真实示范里子任务起止两帧训练。</p></div>
+        <div class="card v"><span class="who">价值模型 V · Qwen3.5-9B</span><h4>看想象画面打分</h4><p>v = V(ℓ, z, ô)。做成五选一的 VQA：从「明显错误」到「明显正确」，映射到 0.05–0.95。</p></div>
+        <div class="card f"><span class="who">反思模型 F · Qwen3.5-9B</span><h4>综合保留的分支</h4><p>z<sup>⋆</sup> = F(h̄<sub>t</sub>, 𝒞<sub>t</sub>)。读真实上下文和最终束里每条分支的子任务序列、想象终态、累计分数。输出可以不在候选集里。</p></div>
+      </div>
+      <div class="prose">
+        <p><strong>束搜索。</strong>根分支的上下文是 h<sub>t</sub>。在每一层 d，对每个保留分支独立调用提议模型 N 次；对每个候选，世界模型从该分支的画面（根用真实头部图，其余用上一层的想象图）想象结果，价值模型打分，累计分数 S(b ⊕ z) = S(b) + v。所有子分支按累计分数全局取 top-B，扩展到深度 D。分支内的记忆只在分支里用，不覆盖真实的执行记忆。</p>
+        <p><strong>自适应路由。</strong>从提议模型的同一次前向取两个统计量：所有生成 token 的平均概率 u<sup>all</sup>，以及 &lt;memory&gt; 段 token 的平均 logit 差（第一名减第二名）u<sup>mem</sup>。任一低于阈值就进搜索：</p>
+      </div>
+      <div class="eq"><span>g<sub>t</sub> = 𝟙[ u<sup>all</sup><sub>t</sub> ≤ δ<sub>all</sub>  ∨  u<sup>mem</sup><sub>t</sub> ≤ δ<sub>mem</sub> ]</span><span class="no">附录 C.3</span></div>
+      <div class="prose small muted"><p>统计量和规则各任务共用，阈值在每个任务的留出数据上单独校准。论文没有报告实际有多少比例的决策进了搜索。</p></div>
+
+      <div class="lab" id="bs-lab">
+        <div class="lab-head"><h4>调 N、B、D，看一次搜索要调用多少次模型</h4><p>调用次数按算法 1 计算；分数为示意</p></div>
+        <div class="ctrl">
+          <span class="muted small">分支数 N</span><div class="seg k" role="group" aria-label="分支数" id="bs-n"><button type="button" data-k="2" aria-pressed="false">2</button><button type="button" data-k="3" aria-pressed="true">3</button><button type="button" data-k="4" aria-pressed="false">4</button></div>
+          <span class="muted small">束宽 B</span><div class="seg k" role="group" aria-label="束宽" id="bs-b"><button type="button" data-k="1" aria-pressed="false">1</button><button type="button" data-k="2" aria-pressed="true">2</button><button type="button" data-k="3" aria-pressed="false">3</button></div>
+          <span class="muted small">深度 D</span><div class="seg k" role="group" aria-label="深度" id="bs-d"><button type="button" data-k="1" aria-pressed="false">1</button><button type="button" data-k="2" aria-pressed="true">2</button><button type="button" data-k="3" aria-pressed="false">3</button></div>
+        </div>
+        <div class="scroll tree"><svg id="bs-svg" viewBox="0 0 760 320" role="img" aria-label="束搜索树"></svg></div>
+        <div class="readout" id="bs-read"></div>
+        <p class="say" id="bs-say"></p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>搜索比较的是「想象出来的画面」</h4>
+        <p>价值模型从来不看真实的未来，它看的是世界模型从一张头部相机图编辑出的终态图。这有两个风险：世界模型画错了，价值模型就基于错误画面打分；深度 ≥ 2 时，下一层是在想象图上继续想象，误差会累积。反思模型的作用之一是在最后用真实上下文把关，它的输出可以不在候选集里。论文没有评估世界模型想象的准确性。</p>
+      </div>
+    </section>
+
+    <section id="memory">
+      <p class="eyebrow">方法 · 执行记忆与数据构造 · §5.4 · 附录 B.4</p>
+      <h2>只扰动输入记忆，就能教模型纠错</h2>
+      <div class="prose">
+        <p>高层数据从已有示范自动生成：任务指令（L1）、阶段描述（L2）、可执行子任务标注（L3）。用 Gemma4-31B-it 预标注 &lt;think&gt;（场景、进度、约束、失败）和 &lt;memory&gt;（压缩已完成阶段、保留当前子任务细节），从头部和两个手腕三路视频抽关键帧，组装成 VQA 样本。</p>
+        <p>为了让模型在部署时能处理「记忆和画面对不上」，作者<strong>只扰动输入里的记忆</strong>，目标仍从示范里读出正确值，派生出五类样本，不需要额外标注：</p>
+      </div>
+      <div class="lab" id="mem-lab">
+        <div class="lab-head"><h4>五类训练样本</h4><p>附录表 B2；𝓜<sub>n</sub> 为进入第 n 段时的记忆</p></div>
+        <div class="ctrl"><div class="seg" role="group" aria-label="样本类别" id="mem-pick"></div></div>
+        <div class="scroll mem"><svg id="mem-svg" viewBox="0 0 760 200" role="img" aria-label="样本类别示意"></svg></div>
+        <p class="say" id="mem-say"></p>
+      </div>
+      <div class="prose small muted"><p>质量控制：先人工抽查发现「跨任务污染」（标注模型把别的任务的约束写进来，比如水果上架任务里出现奶茶的约束），再写成程序过滤器，在 326 万样本的验证集上残留污染为零；空 &lt;subtask&gt; 的脏数据按任务脏比例分三档处理，丢掉 11.74% 的回合，保留 4,040 万个干净样本。</p></div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>承诺了记忆消融，但没有结果</h4>
+        <p>引言写「我们进一步给出对执行记忆、带后果的搜索和算力-准确率权衡的详细实证分析」，附录 C.1 的评测协议也写「记忆消融只改变是否提供执行记忆」。但正文和附录里都找不到记忆消融的结果。和「记忆」相关的证据只有主表里分层系统和直接执行的对比，以及 Clean Room、Stir Fry 的定性描述。分层系统同时引入了子任务分解和记忆，两者的贡献分不开。</p>
+      </div>
+    </section>
+
+    <section id="low">
+      <p class="eyebrow">方法 · 低层策略 · §4.3 · §5.2 · 附录 B.2</p>
+      <h2>一个 VLA，40 维统一动作空间</h2>
+      <div class="prose"><p>低层是 Qwen3.5-2B 视觉语言主干 + MoT 动作专家（每个全注意力层里动作 token 和主干 token 共同注意，参数分开），条件 flow matching 训练，动作块 H = 30，10 步 Euler 积分。不同本体都映射到 40 维状态/动作空间，用逐样本掩码选有效通道，掩码同时作用在加噪路径和损失上。</p></div>
+      <div class="slot" id="slot" aria-label="40 维动作空间布局"></div>
+      <div class="slotlab" id="slotlab"></div>
+      <div class="prose small muted" style="margin-top:8px"><p>末端动作是相对当前位姿的增量（位置增量在当前末端坐标系下），关节动作是相对当前关节角的偏移。每臂不足 8 个关节的从前往后填，其余掩掉。</p></div>
+      <div class="cards">
+        <div class="card p"><h4>三阶段训练</h4><p>① 知识隔离共训：动作损失的梯度在主干接口处截断，同时训练多模态数据。② 端到端共训：去掉隔离，保留多模态数据作辅助。③ 任务特定适配：每个部署任务用少量示范微调（条数未披露）。</p></div>
+        <div class="card w"><h4>40,115 小时数据</h4><p>自采约 23.4K 小时：AGIBOT G1 21.9K、G2 585、ARX AC One 578、Franka 347；公开数据约 16.7K 小时，其中开源 UMI 数据 9.25K。另外穿插视觉语言数据（指令跟随、定位、空间与深度推理）。</p></div>
+      </div>
+      <div class="chartbox">
+        <h4>低层训练数据构成（附录 B.3）</h4>
+        <p class="sub">单位：千小时。「其他公开」= 16.7K − 9.25K UMI，论文未细分。</p>
+        <div class="scroll"><svg class="chart" id="ch-data" viewBox="0 0 760 120"></svg></div>
+      </div>
+    </section>
+
+    <section id="setup">
+      <p class="eyebrow">实验设置 · §5.1 · 附录 B</p>
+      <h2>四个长程任务，最长 12 分钟</h2>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/tasks.jpg" aria-label="放大原文图 3"><img src="fig/tasks.jpg" width="1800" height="1179" alt="原文图 3：六个真机评测任务的关键帧" loading="lazy"></button>
+        <figcaption><b>原文 Figure 3</b>(a) 打扫房间：收两件脏衣服进洗衣篮、挂手提包、把毯子递给人、扔掉茶几上的零食袋。(b) 准备食材：开冰箱取番茄和鸡蛋，打蛋、搅拌、放回工具。(c) 番茄炒蛋：切番茄、开电磁炉、放油和蛋液、翻炒、加番茄和盐、装盘、收拾。(d) 做奶茶：放杯、加两种小料、倒奶和茶、封盖、插吸管。(e) 收衣服（ARX AC One）。(f) 整理化妆台（双 Franka）。</figcaption>
+      </figure>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>任务</th><th>平台</th><th class="num">里程碑</th><th class="num">典型时长</th><th class="num">时限</th><th>用途</th></tr></thead>
+          <tbody>
+            <tr><th>Clean Room</th><td>AGIBOT G1（移动）</td><td class="num">25</td><td class="num">约 8 min</td><td class="num">20 min</td><td>主表 + 搜索实验</td></tr>
+            <tr><th>Prepare Ingredients</th><td>AGIBOT G1（移动）</td><td class="num">14</td><td class="num">约 4 min</td><td class="num">20 min</td><td>主表</td></tr>
+            <tr><th>Tomato and Egg Stir Fry</th><td>AGIBOT G1（移动）</td><td class="num">22</td><td class="num">约 10 min</td><td class="num">20 min</td><td>主表</td></tr>
+            <tr><th>Make Milk Tea</th><td>AGIBOT G1</td><td class="num">13</td><td class="num">约 3 min</td><td class="num">10 min</td><td>主表 + 搜索实验</td></tr>
+            <tr><th>Book Organization</th><td>ARX AC One</td><td class="num">3</td><td class="num">约 1 min</td><td class="num">5 min</td><td>搜索实验（分布内/外初始排列）</td></tr>
+            <tr><th>Collect Laundry</th><td>ARX AC One（移动）</td><td class="num">5</td><td class="num">约 1 min</td><td class="num">5 min</td><td>低层跨本体</td></tr>
+            <tr><th>Tidy Makeup Table</th><td>双臂 Franka FR3</td><td class="num">2 / 2 / 4</td><td class="num">共约 30 s</td><td class="num">各 5 min</td><td>低层指令跟随</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>成功率 SR：</strong>所有必需里程碑和终止条件都完成才算成功；某个子任务失败后自主重试成功，仍算成功。番茄炒蛋里重复加盐是禁止动作，直接判失败。</li>
+          <li><strong>进度 Progress：</strong>每个里程碑首次完成得 1 分，重试后完成或部分完成得 0.5 分，前置里程碑没完成则后续不得分（按依赖图），再对里程碑和试验取平均。</li>
+          <li><strong>离线子任务预测：</strong>在标注好的子任务边界样本上预测下一个子任务，用 GPT-5.4 作语义裁判，分「等价 / 相邻 / 错误」三档，只有「等价」算对；每个样本两次零温度调用，不一致再加调用多数投票。</li>
+          <li><strong>基线：</strong>GR00T N1.7、LingBot-VLA、π0.5，以及不带高层的 τ₀-VLA（直接给整句指令）。基线的微调数据和步数没有描述。</li>
+          <li>每个方法、每个任务 10 次独立真机试验，每次试验前复位到相同初始状态。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="results">
+      <p class="eyebrow">结果 · §5.2–5.3 · 表 1–2</p>
+      <h2>分层带来的提升，比搜索带来的更大</h2>
+      <h3>长程任务（表 1）</h3>
+      <div class="chartbox">
+        <h4>四个长程任务：成功率与进度</h4>
+        <p class="sub">每格 10 次。最后一行（分层系统）不开搜索，即 Plan Once。悬停看成功次数。</p>
+        <div class="ctrl"><div class="seg" role="group" aria-label="指标" id="main-pick"><button type="button" data-k="0" aria-pressed="true">成功率 SR</button><button type="button" data-k="1" aria-pressed="false">进度 Progress</button></div></div>
+        <div class="legend"><span><i class="bg-b1"></i>GR00T N1.7</span><span><i class="bg-ink"></i>LingBot-VLA</span><span><i class="bg-b0"></i>π0.5</span><span><i class="bg-ex"></i>τ₀-VLA（直接执行）</span><span><i class="bg-hd"></i>τ₀-VLA（分层，Plan Once）</span></div>
+        <div class="scroll"><svg class="chart" id="ch-main" viewBox="0 0 760 270"></svg></div>
+        <details class="raw" id="raw-main"><summary>原表数字（表 1）</summary></details>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>Clean Room：</strong>分层系统跨房间保持进度；没有记忆的失败集中在挂手提包和后面的整理阶段。</li>
+          <li><strong>Prepare Ingredients：</strong>失败多发生在拿蛋、打蛋、搅拌，前面错了后面全受阻，记录已完成阶段特别有用（2/10 → 4/10）。</li>
+          <li><strong>番茄炒蛋：</strong>瓶颈是加盐。加盐后画面几乎没变化，直接执行的策略会重复加或干脆跳过；分层系统把「已加盐」写进记忆，0/10 → 4/10。</li>
+          <li><strong>做奶茶：</strong>两种 τ₀ 都 5/10，失败在封盖和插吸管，属于最后的接触操作。</li>
+        </ul>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>低层本身领先不多</h4>
+        <p>只比低层：直接执行的 τ₀-VLA 与 π0.5 在 Clean Room（4 vs 4）、Prepare Ingredients（2 vs 2）、Stir Fry（0 vs 0）的成功次数相同，只在做奶茶上多 2 次；Prepare Ingredients 的进度还低于 π0.5（66.43 vs 73.93）。平均成功率从 27.5% 到 45.0% 的提升主要来自高层的分解和记忆。番茄炒蛋这个例子很有说服力：「是否已经加过盐」看画面看不出来，必须有记忆。</p>
+      </div>
+      <h3>跨本体的低层（表 2）</h3>
+      <div class="chartbox">
+        <h4>Collect Laundry（ARX AC One）与 Tidy Makeup Table（双 Franka）</h4>
+        <p class="sub">都是直接执行整句指令，不用高层。每格 10 次。</p>
+        <div class="legend"><span><i class="bg-b1"></i>GR00T N1.7</span><span><i class="bg-ink"></i>LingBot-VLA</span><span><i class="bg-b0"></i>π0.5</span><span><i class="bg-ex"></i>τ₀-VLA</span></div>
+        <div class="scroll"><svg class="chart" id="ch-emb" viewBox="0 0 760 250"></svg></div>
+      </div>
+      <div class="prose"><p>τ₀ 四组里成功 10 / 10 / 9 / 10 次，进度都在 92.5% 以上。π0.5 成功 9 / 9 / 8 / 7 次，GR00T 在 Cotton Pad 上同为 10/10。失败模式：LingBot-VLA 抓不起 T 恤、倾向选离得近的物体；GR00T 撞到床脚、在抽屉动作时停顿；π0.5 偶尔松开再抓、关抽屉不顺。</p></div>
+    </section>
+
+    <section id="ttc">
+      <p class="eyebrow">测试时计算的收益 · §5.4 · 图 4–5 · 表 3</p>
+      <h2>离线准确率涨得多，真机成功次数涨 2–3 次</h2>
+      <div class="chartbox">
+        <h4>下一子任务预测准确率（原文 Figure 4）</h4>
+        <p class="sub">Plan Once：高层一次前向；Best-of-N：采 N 个候选，用同一个世界模型和价值模型选最高分（只看一步）；TTC：多层束搜索 + 反思。数字取自矢量 PDF 的柱顶标注。</p>
+        <div class="legend"><span><i class="bg-b0"></i>Plan Once</span><span><i class="bg-ex"></i>Best-of-N</span><span><i class="bg-hd"></i>TTC</span></div>
+        <div class="scroll"><svg class="chart" id="ch-ol" viewBox="0 0 760 250"></svg></div>
+      </div>
+      <div class="chartbox">
+        <h4>真机闭环：Plan Once vs TTC（表 3）</h4>
+        <p class="sub">每格 10 次，低层不变。Book Organization 用随机打乱的初始排列，不分分布内外。</p>
+        <div class="legend"><span><i class="bg-b0"></i>Plan Once</span><span><i class="bg-hd"></i>TTC</span></div>
+        <div class="scroll"><svg class="chart" id="ch-cl" viewBox="0 0 760 230"></svg></div>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/ttc-scaling.png" aria-label="放大原文图 5"><img src="fig/ttc-scaling.png" width="1600" height="673" alt="原文图 5：测试时算力与子任务预测准确率的关系，做奶茶与书本整理" loading="lazy"></button>
+        <figcaption><b>原文 Figure 5</b>横轴是每个样本的测试时算力（PFLOPs），每个点是一种搜索配置，橙色虚线是饱和指数拟合，灰色虚线是 Plan Once。做奶茶从 64.7% 涨到约 87%；书本整理从 55.3% 涨到约 79%。算力在 0.5–1.5 PFLOPs 之间涨得最快，之后趋于平缓。</figcaption>
+      </figure>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>Book Organization 的 Plan Once 有三个数字</h4>
+        <p>Figure 4 里书本整理的 Plan Once 是分布内 66.0%、分布外 50.0%，Figure 5 的 Plan Once 基线却是 55.3%，和两者都对不上。如果是两组按样本量加权合并，分布外样本要占约三分之二，论文没有说明。Figure 5 里书本整理的最高点约 79%，而 Figure 4 的 TTC 是 88.0%（分布内）和 74.0%（分布外），两图用的配置和样本集是否相同也没写。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>算力给了 PFLOPs，没给秒数</h4>
+        <p>论文没有说明实验中 N、B、D 取多少，只在图注里画了 N = 3、B = 2 的示例；也没有报告一次搜索的墙钟时间。按上面的计数，N = 3、B = 2、D = 3 一次搜索就要 15 次图像生成。部署时高层约每 1 秒刷新一次，在搜索没算完之前，低层一直按旧的子任务执行。搜索的延迟对闭环表现有多大影响，论文没有分析。闭环里每格 10 次试验，5/10 → 7/10 的差距也在统计误差以内。</p>
+      </div>
+    </section>
+
+    <section id="insight">
+      <p class="eyebrow">读懂它</p>
+      <h2>这篇真正说明了什么</h2>
+      <h3 style="margin-top:0">关键 insight</h3>
+      <div class="cards">
+        <div class="card"><h4>1. 在「子任务」这一层花算力</h4><p>动作层搜索只能看到局部后果，纯语言推理看得远但不落地。子任务稀疏，值得多算；时间足够长，结果在画面上看得出来，可以用世界模型想象、用价值模型比较。这是论文最核心的设计论点。</p></div>
+        <div class="card"><h4>2. 执行前评估，减少「错误承诺」</h4><p>MotorMind、TT-VLA 都是执行后才知道对错。τ₀ 在子任务提交之前先比较候选的后果。代价是要训练一个世界模型和一个价值模型，评估的是想象，不是现实。</p></div>
+        <div class="card"><h4>3. 记忆是长程任务的刚需</h4><p>加盐这种「做了但看不出来」的步骤，单看当前画面无法判断是否完成。分层系统把番茄炒蛋从 0/10 提到 4/10。记忆扰动的数据构造（滞后、超前、未察觉的失败）不需要额外标注，是可以复用的做法。</p></div>
+        <div class="card"><h4>4. 按置信度决定要不要搜索</h4><p>多数决策直接用提议模型的输出，只有 token 置信度低时才搜索。这让「多花算力」变成按需分配，但阈值是逐任务校准的，进搜索的比例也没报告。</p></div>
+      </div>
+      <h3>容易误解的地方</h3>
+      <div class="prose">
+        <ul>
+          <li><strong>主表的分层系统没开搜索。</strong>27.5% → 45.0% 来自分层和记忆；搜索的闭环效果只在另外三个任务、每格 10 次上测过。</li>
+          <li><strong>「成功」允许重试。</strong>子任务失败后自主重试成功仍记为成功，只在进度分里扣半分。</li>
+          <li><strong>离线准确率由 GPT-5.4 判定。</strong>「等价」要求手臂、动作、物体、目的地都一致，「相邻」（顺序可交换的合理步骤）不算对。</li>
+          <li><strong>世界模型只看一张头部相机图。</strong>不看腕部相机，也不看本体状态。</li>
+        </ul>
+      </div>
+      <h3>FAQ</h3>
+      <details class="faq"><summary>Best-of-N 和 TTC 都用同样的世界模型和价值模型，差别在哪？</summary><div class="a"><p>Best-of-N 只采一层候选，按价值模型的分数直接选最高的。TTC 多了两样：多层展开（看几步之后的想象状态，用累计分数排序），以及反思模型（读保留分支的路径、想象终态和分数，重新生成子任务，可以修正候选的措辞或选择不在候选里的子任务）。离线准确率上 TTC 比 Best-of-N 高 5–17 个点。</p></div></details>
+      <details class="faq"><summary>价值模型怎么训练？用的标签从哪来？</summary><div class="a"><p>先用提议模型和世界模型从真实观测出发反复交替，生成多步的想象轨迹，作为离线数据集。每个候选对照该状态的真实下一步来打五档标签。反思模型用同样的离线轨迹，目标是真实的下一个子任务。所以两者学的都是「接近示范里的下一步」，而不是任务回报。</p></div></details>
+      <details class="faq"><summary>和 π0.7 的世界模型有什么不同？</summary><div class="a"><p>论文相关工作里的区分：π0.7 的世界模型为<strong>已经选定</strong>的子任务生成子目标图像，影响的是「怎么执行」；τ₀ 在提交之前对<strong>多个候选</strong>想象后果，影响的是「执行哪个」。</p></div></details>
+      <details class="faq"><summary>为什么书本整理适合测搜索？</summary><div class="a"><p>四本书按高矮排序，每步交换两本。初始排列不同，正确的交换顺序就不同，没有固定的计划可背。分布外初始排列没在训练中出现过，Plan Once 只有 50%，搜索到 74%；闭环 6/10 → 9/10，是三个任务里提升最大的。</p></div></details>
+    </section>
+
+    <section id="limits">
+      <p class="eyebrow">局限与疑点</p>
+      <h2>作者承认的，和我们读出来的</h2>
+      <div class="two">
+        <div>
+          <h4>论文自己提到的</h4>
+          <ul>
+            <li>测试时算力的收益会饱和，适中的预算性价比最高（Figure 5）。</li>
+            <li>做奶茶剩下的失败在封盖和插吸管，最后的接触操作是主要瓶颈。</li>
+            <li>数据标注的跨任务污染问题，通过程序过滤器解决。</li>
+          </ul>
+          <p class="small muted" style="margin-top:8px">正文没有单独的局限性章节。</p>
+        </div>
+        <div>
+          <h4>我们读出来的</h4>
+          <ul>
+            <li><span class="tag doubt">疑点</span>承诺的记忆消融没有结果；分层和记忆的贡献分不开。</li>
+            <li><span class="tag doubt">疑点</span>实际 N、B、D 未披露；没有搜索延迟和进搜索比例。</li>
+            <li><span class="tag doubt">疑点</span>书本整理 Plan Once 在两图中分别为 66.0 / 50.0 与 55.3。</li>
+            <li><span class="tag doubt">疑点</span>基线的微调数据和步数没有描述；τ₀ 第三阶段任务微调的示范数也未披露。</li>
+            <li>每格 10 次试验，多数差距在统计误差内。</li>
+            <li>世界模型想象的准确性没有评估；深度 ≥ 2 时在想象上继续想象。</li>
+            <li>离线准确率依赖 GPT-5.4 裁判，没有人工一致性校验。</li>
+            <li>路由阈值逐任务在留出数据上校准，换新任务时如何设置不清楚。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="topic">
+      <p class="eyebrow">放到专题里看</p>
+      <h2>「执行前评估」的代表</h2>
+      <div class="prose">
+        <p>在 <a href="../../topics/robot-harness/">Harness for Robotics 专题</a>里，τ₀ 属于评估与反馈：评价信号来自世界模型和价值模型，作用在<strong>尚未执行</strong>的子任务上；执行后的真实观测通过记忆写回，形成闭环。它同时具备结构化执行的骨架：任务 → 子任务（语言接口）→ 动作块。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t cmp">
+          <thead><tr><th></th><th class="me">τ₀-VLA</th><th>TT-VLA</th><th>MotorMind</th><th>ACoT-VLA</th></tr></thead>
+          <tbody>
+            <tr><th>评价在执行的</th><td class="me">之前（想象）</td><td>之后（每一步）</td><td>之中 + 之后</td><td>无</td></tr>
+            <tr><th>评价器</th><td class="me">世界模型 + 五档价值模型</td><td>VLAC 进度估计</td><td>通用 VLM + 实测状态</td><td>—</td></tr>
+            <tr><th>改变什么</th><td class="me">选哪个子任务；记忆</td><td>策略参数</td><td>继续 / 停 / 重试 / 重规划</td><td>—</td></tr>
+            <tr><th>记忆</th><td class="me">训练出来的、可自我纠正的 &lt;memory&gt;</td><td>无（每回合重置）</td><td>后台 Memory 便条</td><td>无</td></tr>
+            <tr><th>任务时长</th><td class="me">1–10 分钟（最长 12）</td><td>160 步</td><td>平均约 4 分钟</td><td>数秒到数十秒</td></tr>
+            <tr><th>需要训练</th><td class="me">高层 4 个模型 + 低层 VLA</td><td>不训练评价器，在线更新 LoRA</td><td>都不训练</td><td>端到端训练</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>和 MotorMind：</strong>两者的高层都在做「下一步做什么、做完没有」，都有执行记忆。MotorMind 的诊断显示通用 VLM 判断进度只有 43–76% 准确，τ₀ 的做法是专门训练记忆更新，并用扰动数据教它纠错。MotorMind 不训练、靠执行后的检查和重试；τ₀ 训练、靠执行前的搜索。</li>
+          <li><strong>和 TT-VLA：</strong>同属评估与反馈，但一个在承诺前、在子任务层，一个在承诺后、在动作层。两者可以叠加：τ₀ 选对子任务，TT-VLA 在执行这个子任务时微调动作。不过 τ₀ 的低层是 flow matching，TT-VLA 目前用不上。</li>
+          <li><strong>和 ACoT-VLA：</strong>τ₀ 的子任务接口正是 ACoT 批评的「语言 CoT」。但两者处理的时间尺度不同：ACoT 的参考轨迹只覆盖未来约 3 秒，τ₀ 的子任务要持续几十秒。ACoT 式的动作草稿完全可以放进 τ₀ 的低层。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="glossary">
+      <p class="eyebrow">术语表</p>
+      <h2>读这篇会遇到的词</h2>
+      <details class="gl"><summary>展开术语表</summary>
+        <dl>
+          <dt>TTC</dt><dd>Test-Time Computation，测试时计算：推理时为困难决策分配更多算力，本文指世界模型引导的子任务束搜索。</dd>
+          <dt>Plan Once</dt><dd>高层每个决策点只做一次前向，不搜索。仍是分层系统，区别于不用高层的直接执行。</dd>
+          <dt>Best-of-N</dt><dd>采 N 个候选，用世界模型和价值模型打分后选最高分，只看一步。</dd>
+          <dt>N / B / D</dt><dd>束搜索的分支数、束宽、深度。</dd>
+          <dt>𝓜（执行记忆）</dt><dd>文本形式的执行历史摘要，由提议模型每步更新。</dd>
+          <dt>z<sup>dir</sup> / z<sup>⋆</sup></dt><dd>提议模型的直接提议 / 最终交给低层的子任务。</dd>
+          <dt>g<sub>t</sub></dt><dd>路由开关，0 走快速路径，1 进搜索。</dd>
+          <dt>Step1X-Edit</dt><dd>图像编辑模型，本文的世界模型从它初始化。</dd>
+          <dt>MoT</dt><dd>Mixture-of-Transformers，动作专家与主干共享注意力、参数分开。</dd>
+          <dt>knowledge insulation</dt><dd>知识隔离：动作损失的梯度不回传到 VLM 主干，保护预训练能力。</dd>
+          <dt>Progress</dt><dd>按里程碑依赖图计分的进度，首次完成 1 分，重试后完成 0.5 分。</dd>
+        </dl>
+      </details>
+    </section>
+  </main>
+</div>
+<footer class="page">
+  <p>图全部来自论文 arXiv 源码（v1）里的原图；表 1–3 的数字取自 tex 表格，Figure 4 的数字取自矢量 PDF 的文字层。束搜索交互中的调用次数按论文算法计算，分数为示意。标「解读」的是我们的判断。</p>
+</footer>
+<dialog id="lb" aria-label="放大查看"><div class="box"><img id="lb-img" alt=""></div><div class="bar"><span id="lb-cap"></span><button type="button" id="lb-close">关闭</button></div></dialog>
+<div class="tip" id="tip" hidden></div>
+<script>
+(function(){
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const NS = 'http://www.w3.org/2000/svg';
+  const FMT = v => (typeof v === 'number' ? (Number.isInteger(v) ? String(v) : v.toFixed(v * 100 % 10 ? 2 : 1)) : v);
+  function el(tag, attrs, text){ const e = document.createElementNS(NS, tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+  const tip = $('#tip');
+  function place(x, y){ const r = tip.getBoundingClientRect(); let l = x + 14, t = y + 14; if (l + r.width > innerWidth - 8) l = x - r.width - 14; if (t + r.height > innerHeight - 8) t = y - r.height - 14; tip.style.left = Math.max(8, l) + 'px'; tip.style.top = Math.max(8, t) + 'px'; }
+  document.addEventListener('pointerover', e => { const t = e.target.closest && e.target.closest('[data-tip]'); if (!t) return; tip.textContent = t.getAttribute('data-tip'); tip.hidden = false; place(e.clientX, e.clientY); });
+  document.addEventListener('pointermove', e => { if (tip.hidden) return; if (!(e.target.closest && e.target.closest('[data-tip]'))) { tip.hidden = true; return; } place(e.clientX, e.clientY); });
+  const lb = $('#lb');
+  $$('figure.plate .zoom').forEach(b => b.addEventListener('click', () => { $('#lb-img').src = b.dataset.src; const c = b.parentElement.querySelector('figcaption b'); $('#lb-cap').textContent = c ? c.textContent : ''; if (lb.showModal) lb.showModal(); else lb.setAttribute('open', ''); }));
+  $('#lb-close').addEventListener('click', () => lb.close());
+  lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+  const links = $$('.toc a');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id)); }), { rootMargin: '-35% 0px -60% 0px' });
+    $$('main section').forEach(s => io.observe(s));
+  }
+  function rawTable(host, head, rows){
+    const d = document.createElement('div'); d.className = 'tblwrap';
+    d.innerHTML = '<table class="t"><thead><tr>' + head.map((h, i) => '<th' + (i ? ' class="num"' : '') + '>' + h + '</th>').join('') + '</tr></thead><tbody>' +
+      rows.map(r => '<tr' + (r.best ? ' class="best"' : '') + '>' + r.cells.map((c, i) => i ? '<td class="num">' + c + '</td>' : '<th>' + c + '</th>').join('') + '</tr>').join('') + '</tbody></table>';
+    host.appendChild(d);
+  }
+  function seg(host, onPick){ $$('button', host).forEach(b => b.addEventListener('click', () => { $$('button', host).forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); onPick(b.dataset.k); })); }
+  function vgroups(svg, groups, series, opt){
+    opt = opt || {}; const W = opt.W || 760, H = opt.H || 250, L = 40, R = 10, T = opt.T || 22, B = opt.B || 40, lo = opt.lo || 0, hi = opt.max || 100;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+    for (let g = lo; g <= hi + 1e-9; g += (opt.step || 20)) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g)); }
+    const n = groups.length, gw = (W - L - R) / n, bw = Math.min(opt.bw || 24, (gw - 12) / series.length);
+    groups.forEach((gr, i) => {
+      const cx = L + gw * i + gw / 2, x0 = cx - bw * series.length / 2; let lastY = null;
+      if (gr.sep) svg.appendChild(el('line', { x1: L + gw * i, x2: L + gw * i, y1: T - 10, y2: H - 8, stroke: 'var(--ink-2)', 'stroke-dasharray': '3 3' }));
+      series.forEach((s, j) => {
+        const v = gr.vals[j]; if (v == null) return; const yy = y(Math.max(lo, v));
+        let ly = yy - 4; if (j && lastY != null && Math.abs(ly - lastY) < 11) ly = Math.min(ly, lastY - 11); lastY = ly;
+        svg.appendChild(el('rect', { x: x0 + j * bw + 1, y: yy, width: bw - 2, height: Math.max(1, y(lo) - yy), rx: 2, class: s.cls, 'data-tip': gr.name.replace(/\n/g, ' ') + ' · ' + s.name + '：' + (gr.tips ? gr.tips[j] : FMT(v)) }));
+        svg.appendChild(el('text', { x: x0 + j * bw + bw / 2, y: ly, 'text-anchor': 'middle', class: 'val', 'font-size': 9.5 }, opt.fmt ? opt.fmt(v) : FMT(v)));
+      });
+      gr.name.split('\n').forEach((w, k) => svg.appendChild(el('text', { x: cx, y: H - B + 16 + k * 13, 'text-anchor': 'middle', class: 'glabel', 'font-size': 11.5, 'font-weight': gr.bold ? 700 : 400 }, w)));
+    });
+    svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(lo), y2: y(lo), class: 'base' }));
+  }
+
+  /* ---------- hero ribbon ---------- */
+  (function(){
+    const g = $('#rb');
+    function node(x, y, label, score, keep, dim){
+      g.appendChild(el('rect', { x: x - 58, y: y - 16, width: 116, height: 32, rx: 7, fill: keep ? 'var(--ex-soft)' : 'var(--surface)', stroke: keep ? 'var(--ex)' : 'var(--line)', 'stroke-dasharray': keep ? '' : '4 3', opacity: dim ? .55 : 1 }));
+      g.appendChild(el('text', { x: x, y: y + 4, 'text-anchor': 'middle', style: keep ? '' : 'fill:var(--muted)' }, label));
+      if (score != null) g.appendChild(el('text', { x: x + 62, y: y + 4, class: 'm' }, score));
+    }
+    g.appendChild(el('rect', { x: 200, y: 10, width: 120, height: 30, rx: 15, fill: 'var(--hd)' }));
+    g.appendChild(el('text', { x: 260, y: 30, 'text-anchor': 'middle', style: 'fill:var(--on-hd);font-weight:700' }, '下一步做什么？'));
+    [[80, '拿勺子', '0.95', 1], [255, '放杯子', '0.50', 0], [420, '拿杯子', '0.95', 1]].forEach(n => { g.appendChild(el('path', { d: 'M260 40 C 260 60, ' + n[0] + ' 60, ' + n[0] + ' 80', fill: 'none', stroke: 'var(--line)', 'stroke-width': 1.5 })); node(n[0], 96, n[1], n[2], n[3]); });
+    g.appendChild(el('text', { x: 6, y: 100, class: 'm' }, 'D=1'));
+    [[30, 80, '…'], [80, 80, '舀果冻'], [130, 80, '…'], [370, 420, '…'], [420, 420, '放杯子'], [470, 420, '…']].forEach((n, i) => { g.appendChild(el('path', { d: 'M' + n[1] + ' 112 L' + n[0] + ' 150', stroke: 'var(--line)', 'stroke-width': 1.2 })); });
+    node(80, 166, '舀果冻', null, 1, 1); node(420, 166, '放杯子', null, 1, 1);
+    g.appendChild(el('text', { x: 6, y: 170, class: 'm' }, 'D=2'));
+    g.appendChild(el('path', { d: 'M80 182 C 80 210, 260 200, 260 222 M420 182 C 420 210, 260 200, 260 222', fill: 'none', stroke: 'var(--ex)', 'stroke-width': 1.5 }));
+    g.appendChild(el('rect', { x: 170, y: 222, width: 180, height: 32, rx: 7, fill: 'var(--hd-soft)', stroke: 'var(--hd)' }));
+    g.appendChild(el('text', { x: 260, y: 243, 'text-anchor': 'middle' }, '反思 → 提交「拿勺子」'));
+  })();
+
+  /* ---------- beam lab ---------- */
+  (function(){
+    let N = 3, Bw = 2, D = 2;
+    const svg = $('#bs-svg');
+    function rnd(seed){ let s = seed; return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; }; }
+    function draw(){
+      svg.innerHTML = '';
+      const r = rnd(N * 100 + Bw * 10 + D);
+      const levels = [[{ x: 380, S: 0, keep: true, id: 'root' }]];
+      let props = 0;
+      for (let d = 1; d <= D; d++) {
+        const parents = levels[d - 1].filter(n => n.keep); const kids = [];
+        parents.forEach(p => { for (let i = 0; i < N; i++) { let v = [0.05, 0.275, 0.5, 0.725, 0.95][Math.floor(r() * 5)]; if (d === 1 && N === 3) v = [0.95, 0.50, 0.95][i]; kids.push({ p, v, S: p.S + v }); props++; } });
+        const sorted = kids.slice().sort((a, b) => b.S - a.S); sorted.forEach((k, i) => { k.keep = i < Bw; });
+        const W = 720; kids.forEach((k, i) => { k.x = 20 + W * (i + .5) / kids.length; });
+        levels.push(kids);
+      }
+      const yOf = d => 30 + d * (230 / Math.max(D, 1));
+      svg.appendChild(el('circle', { cx: 380, cy: 30, r: 13, fill: 'var(--hd)' }));
+      svg.appendChild(el('text', { x: 400, y: 34, class: 'm' }, '根：真实观测 o_t'));
+      for (let d = 1; d <= D; d++) {
+        svg.appendChild(el('text', { x: 4, y: yOf(d) + 4, class: 'm' }, 'D=' + d));
+        levels[d].forEach(k => {
+          const py = k.p.id === 'root' ? 30 : yOf(d - 1);
+          svg.appendChild(el('line', { x1: k.p.x, y1: py + 10, x2: k.x, y2: yOf(d) - 10, stroke: k.keep ? 'var(--ex)' : 'var(--line)', 'stroke-width': k.keep ? 1.6 : 1 }));
+          svg.appendChild(el('rect', { x: k.x - 9, y: yOf(d) - 9, width: 18, height: 18, rx: 4, fill: k.keep ? 'var(--ex)' : 'var(--surface)', stroke: k.keep ? 'var(--ex)' : 'var(--base)', 'data-tip': '深度 ' + d + ' 候选：v = ' + k.v.toFixed(2) + '，累计 S = ' + k.S.toFixed(2) + (k.keep ? '（保留）' : '（淘汰）') }));
+          if (levels[d].length <= 12) svg.appendChild(el('text', { x: k.x, y: yOf(d) + 22, 'text-anchor': 'middle', class: 'm' }, k.v.toFixed(2)));
+        });
+      }
+      svg.appendChild(el('rect', { x: 300, y: 292, width: 160, height: 24, rx: 6, fill: 'var(--hd-soft)', stroke: 'var(--hd)' }));
+      svg.appendChild(el('text', { x: 380, y: 308, 'text-anchor': 'middle' }, '反思模型 F → z⋆'));
+      const imgs = props;
+      $('#bs-read').innerHTML = '<div><span class="k">提议模型调用</span><b>' + (props + 1) + '</b><span class="k">含 1 次直接提议</span></div><div><span class="k">世界模型生成图像</span><b>' + imgs + '</b></div><div><span class="k">价值模型调用</span><b>' + imgs + '</b></div><div><span class="k">反思模型调用</span><b>1</b></div>';
+      $('#bs-say').textContent = 'N = ' + N + '、B = ' + Bw + '、D = ' + D + '：第 1 层展开 ' + N + ' 个候选，之后每层最多 ' + (Bw * N) + ' 个（只展开保留下来的 ' + Bw + ' 条），共 ' + props + ' 个候选，每个都要一次图像生成和一次价值打分。Plan Once 只需要 1 次提议调用。' + (D === 1 ? ' D = 1 时它和 Best-of-N 很像，区别只在于最后由反思模型生成，而不是直接取最高分。' : '') + ' 论文没有披露实验用的 N、B、D，也没有报告墙钟时间；Figure 5 的横轴是 0–3.5 PFLOPs / 样本。';
+    }
+    seg($('#bs-n'), v => { N = +v; draw(); }); seg($('#bs-b'), v => { Bw = +v; draw(); }); seg($('#bs-d'), v => { D = +v; draw(); }); draw();
+  })();
+
+  /* ---------- memory families ---------- */
+  (function(){
+    const FAM = [
+      { k: 'within', n: 'within-subtask · 58%', pos: [0.15, 0.85], seg: 1, inp: 'n', tgt: 'n', sub: '第 n 段', s: '对齐情况：在第 n 段任意位置采样，输入记忆 𝓜_n，目标记忆仍是 𝓜_n，目标子任务是第 n 段。代表正常推进。' },
+      { k: 'transition', n: 'transition · 15%', pos: [0.8, 1.0], seg: 1, inp: 'n', tgt: 'n+1', sub: '第 n+1 段', s: '在第 n 段末尾采样：输入 𝓜_n，目标是 𝓜_{n+1}，子任务换成第 n+1 段。教模型在完成后开始新子任务。' },
+      { k: 'catchup', n: 'catch-up · 10%', pos: [0, 0.2], seg: 1, inp: 'n−1', tgt: 'n', sub: '第 n 段', s: '记忆滞后：在第 n 段开头采样，但输入的是上一段的 𝓜_{n−1}（记忆还没跟上画面），目标是 𝓜_n。教模型根据画面把记忆补上。' },
+      { k: 'rollback', n: 'rollback · 12%', pos: [0.6, 0.95], seg: 1, inp: 'n+1…n+3', tgt: 'n', sub: '重试第 n 段', s: '记忆超前：在第 n 段后部采样，输入的却是 𝓜_{n+1…n+3}（记忆以为已经做完了），目标回滚到 𝓜_n，重试第 n 段。比例被限制在 10–15%，以免模型学会不信任正确的记忆。' },
+      { k: 'error', n: 'error-think · 5%', pos: [0.5, 0.55], seg: 1, inp: 'n', tgt: '按失败类型', sub: '恢复步骤', s: '未察觉的失败：在标注的失败帧采样，<think> 先指出失败再修正记忆。可恢复的失败（如空抓）记忆不变、重试；破坏了先前进度的失败（如掉落）回滚到前一个子任务。' }
+    ];
+    const host = $('#mem-pick');
+    FAM.forEach((f, i) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.k = i; b.textContent = f.n; b.setAttribute('aria-pressed', i ? 'false' : 'true'); host.appendChild(b); });
+    const svg = $('#mem-svg');
+    function draw(i){
+      const f = FAM[i]; svg.innerHTML = '';
+      const segs = ['n−1', 'n', 'n+1', 'n+2'], x0 = 60, w = 160;
+      segs.forEach((s, j) => { svg.appendChild(el('rect', { x: x0 + j * w, y: 40, width: w - 4, height: 34, rx: 5, fill: j === f.seg ? 'var(--hd-soft)' : 'var(--surface-2)', stroke: j === f.seg ? 'var(--hd)' : 'var(--line)' })); svg.appendChild(el('text', { x: x0 + j * w + w / 2 - 2, y: 62, 'text-anchor': 'middle' }, '第 ' + s + ' 段')); });
+      svg.appendChild(el('text', { x: 4, y: 62, class: 'm' }, '示范'));
+      const a = x0 + f.seg * w + f.pos[0] * (w - 4), b = x0 + f.seg * w + f.pos[1] * (w - 4);
+      svg.appendChild(el('rect', { x: a, y: 80, width: Math.max(4, b - a), height: 10, rx: 3, fill: 'var(--ex)' }));
+      svg.appendChild(el('text', { x: (a + b) / 2, y: 106, 'text-anchor': 'middle', class: 'm' }, '采样位置'));
+      svg.appendChild(el('text', { x: 4, y: 140, class: 'm' }, '输入记忆'));
+      svg.appendChild(el('rect', { x: 100, y: 124, width: 180, height: 26, rx: 5, fill: f.inp === f.tgt ? 'var(--im-soft)' : 'var(--warn-soft)', stroke: f.inp === f.tgt ? 'var(--im)' : 'var(--warn)' }));
+      svg.appendChild(el('text', { x: 190, y: 142, 'text-anchor': 'middle' }, '𝓜_' + f.inp));
+      svg.appendChild(el('path', { d: 'M286 137 L346 137', stroke: 'var(--ink-2)', 'stroke-width': 1.5, 'marker-end': 'url(#ma)' }));
+      const df = el('defs'); const mk = el('marker', { id: 'ma', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto' }); mk.appendChild(el('path', { d: 'M0 0 L10 5 L0 10 z', fill: 'var(--ink-2)' })); df.appendChild(mk); svg.appendChild(df);
+      svg.appendChild(el('text', { x: 360, y: 124, class: 'm' }, '目标'));
+      svg.appendChild(el('rect', { x: 352, y: 128, width: 170, height: 26, rx: 5, fill: 'var(--im-soft)', stroke: 'var(--im)' }));
+      svg.appendChild(el('text', { x: 437, y: 146, 'text-anchor': 'middle' }, '𝓜_' + f.tgt));
+      svg.appendChild(el('rect', { x: 540, y: 128, width: 170, height: 26, rx: 5, fill: 'var(--hd-soft)', stroke: 'var(--hd)' }));
+      svg.appendChild(el('text', { x: 625, y: 146, 'text-anchor': 'middle' }, '子任务：' + f.sub));
+      svg.appendChild(el('text', { x: 100, y: 184, class: 'm' }, f.inp === f.tgt ? '输入与目标一致' : '输入被扰动，目标从示范读出'));
+      $('#mem-say').textContent = f.s;
+    }
+    seg(host, k => draw(+k)); draw(0);
+  })();
+
+  /* ---------- 40-D slots ---------- */
+  (function(){
+    const S = [['左末端位置', 3, 'var(--hd)'], ['左末端姿态 Rot6D', 6, 'color-mix(in oklab,var(--hd) 60%,var(--surface))'], ['右末端位置', 3, 'var(--im)'], ['右末端姿态 Rot6D', 6, 'color-mix(in oklab,var(--im) 60%,var(--surface))'], ['左夹爪', 1, 'var(--ex)'], ['右夹爪', 1, 'color-mix(in oklab,var(--ex) 60%,var(--surface))'], ['腰部', 2, 'var(--warn)'], ['底盘平面速度', 2, 'color-mix(in oklab,var(--warn) 55%,var(--surface))'], ['左臂关节 ×8', 8, 'var(--base)'], ['右臂关节 ×8', 8, 'var(--base-2)']];
+    let h = '', lab = '', d = 1;
+    S.forEach(s => { for (let i = 0; i < s[1]; i++) h += '<i style="background:' + s[2] + '" data-tip="第 ' + (d + i) + ' 维：' + s[0] + '"></i>'; lab += '<span><i style="background:' + s[2] + '"></i>' + s[0] + '（' + d + (s[1] > 1 ? '–' + (d + s[1] - 1) : '') + '）</span>'; d += s[1]; });
+    $('#slot').innerHTML = h; $('#slotlab').innerHTML = lab;
+  })();
+
+  /* ---------- data composition ---------- */
+  (function(){
+    const svg = $('#ch-data');
+    const D = [['G1', 21.9, 'c-hd'], ['G2', 0.585, 'c-hd'], ['ARX', 0.578, 'c-hd'], ['Franka', 0.347, 'c-hd'], ['UMI（开源）', 9.25, 'c-ex'], ['其他公开', 16.7 - 9.25, 'c-b0']];
+    const L = 20, W = 740, tot = 23.4 + 16.7, x = v => L + (W - L) * v / tot; let acc = 0;
+    D.forEach((d, i) => { svg.appendChild(el('rect', { x: x(acc), y: 30, width: Math.max(1.5, x(acc + d[1]) - x(acc) - 1), height: 34, class: d[2], opacity: i >= 1 && i <= 3 ? .6 : 1, 'data-tip': d[0] + '：' + d[1].toFixed(d[1] < 1 ? 3 : 2) + 'K 小时' })); if (d[1] > 3) svg.appendChild(el('text', { x: x(acc) + 6, y: 52, style: 'fill:var(--bg)', 'font-size': 12 }, d[0] + ' ' + d[1].toFixed(2) + 'K')); acc += d[1]; });
+    svg.appendChild(el('text', { x: x(0), y: 20, class: 'tick' }, '自采 23.4K（G1 / G2 / ARX / Franka）'));
+    svg.appendChild(el('text', { x: x(23.4), y: 20, class: 'tick' }, '公开 16.7K'));
+    svg.appendChild(el('text', { x: x(21.9) + 2, y: 84, class: 'tick' }, '↑ G2 0.585 · ARX 0.578 · Franka 0.347'));
+    svg.appendChild(el('text', { x: W, y: 108, 'text-anchor': 'end', class: 'tick' }, '合计约 40.1K 小时（论文写 40,115 小时）'));
+  })();
+
+  /* ---------- main table ---------- */
+  const TK = ['Clean Room', 'Prepare\nIngredients', 'Tomato & Egg\nStir Fry', 'Make Milk Tea', '平均'];
+  const MT = [
+    { n: 'GR00T N1.7', c: 'c-b1', sr: [0, 1, 0, 0], avg: 2.5, pr: [59.80, 68.57, 24.32, 28.46, 45.29] },
+    { n: 'LingBot-VLA', c: 'c-ling', sr: [0, 0, 0, 0], avg: 0, pr: [66.60, 35.00, 12.27, 63.85, 44.43] },
+    { n: 'π0.5', c: 'c-b0', sr: [4, 2, 0, 3], avg: 22.5, pr: [86.20, 73.93, 49.77, 82.31, 73.05] },
+    { n: 'τ₀-VLA（直接执行）', c: 'c-ex', sr: [4, 2, 0, 5], avg: 27.5, pr: [92.80, 66.43, 65.00, 96.15, 80.10] },
+    { n: 'τ₀-VLA（分层 · Plan Once）', c: 'c-hd', sr: [5, 4, 4, 5], avg: 45.0, pr: [94.80, 82.86, 81.82, 91.92, 87.85] }
+  ];
+  const SER = [{ name: 'GR00T N1.7', cls: 'c-b1' }, { name: 'LingBot-VLA', cls: 'c-ling' }, { name: 'π0.5', cls: 'c-b0' }, { name: 'τ₀-VLA 直接执行', cls: 'c-ex' }, { name: 'τ₀-VLA 分层', cls: 'c-hd' }];
+  function drawMain(m){
+    vgroups($('#ch-main'), TK.map((t, i) => ({ name: t, sep: i === 4, bold: i === 4, vals: MT.map(r => m ? r.pr[i] : (i < 4 ? r.sr[i] * 10 : r.avg)), tips: MT.map(r => m ? r.pr[i].toFixed(2) + '%' : (i < 4 ? r.sr[i] + '/10' : r.avg + '%')) })), SER, { H: 270, B: 44, bw: 20, fmt: v => m ? v.toFixed(1) : String(v) });
+  }
+  seg($('#main-pick'), k => drawMain(+k)); drawMain(0);
+  rawTable($('#raw-main'), ['方法', 'Clean Room SR', 'Progress', 'Prep. Ingr. SR', 'Progress', 'Stir Fry SR', 'Progress', 'Milk Tea SR', 'Progress', 'Avg. SR', 'Avg. Progress'], MT.map(r => ({ cells: [r.n].concat([].concat.apply([], [0, 1, 2, 3].map(i => [r.sr[i] + '/10', r.pr[i].toFixed(2) + '%'])), [r.avg.toFixed(2) + '%', r.pr[4].toFixed(2) + '%']), best: r.c === 'c-hd' })));
+
+  /* ---------- embodiments ---------- */
+  const EM = [{ n: 'GR00T N1.7', sr: [4, 10, 8, 7], pr: [76.00, 87.50, 77.50, 52.50] }, { n: 'LingBot-VLA', sr: [2, 9, 3, 3], pr: [35.00, 67.50, 22.50, 33.75] }, { n: 'π0.5', sr: [9, 9, 8, 7], pr: [88.00, 85.00, 85.00, 73.75] }, { n: 'τ₀-VLA', sr: [10, 10, 9, 10], pr: [97.00, 95.00, 92.50, 95.00] }];
+  vgroups($('#ch-emb'), ['Collect Laundry\nT-shirt', 'Tidy Makeup\nCotton Pad', 'Tidy Makeup\nEyelash Curler', 'Tidy Makeup\nMakeup Puff'].map((t, i) => ({ name: t, vals: EM.map(r => r.sr[i] * 10), tips: EM.map(r => r.sr[i] + '/10，进度 ' + r.pr[i].toFixed(2) + '%') })), [{ name: 'GR00T N1.7', cls: 'c-b1' }, { name: 'LingBot-VLA', cls: 'c-ling' }, { name: 'π0.5', cls: 'c-b0' }, { name: 'τ₀-VLA', cls: 'c-ex' }], { B: 44, bw: 24, fmt: v => (v / 10) + '/10' });
+
+  /* ---------- open loop / closed loop ---------- */
+  vgroups($('#ch-ol'), [{ n: 'Make Milk Tea', v: [64.7, 70.0, 87.3] }, { n: 'Book Org.\n分布内', v: [66.0, 83.0, 88.0] }, { n: 'Book Org.\n分布外', v: [50.0, 57.5, 74.0] }, { n: 'Clean Room', v: [72.0, 74.0, 87.0] }].map(g => ({ name: g.n, vals: g.v })), [{ name: 'Plan Once', cls: 'c-b0' }, { name: 'Best-of-N', cls: 'c-ex' }, { name: 'TTC', cls: 'c-hd' }], { lo: 40, step: 10, B: 44, bw: 30, fmt: v => v.toFixed(1) });
+  vgroups($('#ch-cl'), [{ n: 'Make Milk Tea', v: [5, 7], p: [91.92, 95.38] }, { n: 'Book Organization', v: [6, 9], p: [66.67, 93.33] }, { n: 'Clean Room', v: [5, 7], p: [94.80, 97.60] }].map(g => ({ name: g.n + '\n进度 ' + g.p[0] + ' → ' + g.p[1], vals: g.v.map(x => x * 10), tips: g.v.map((x, j) => x + '/10，进度 ' + g.p[j] + '%') })), [{ name: 'Plan Once', cls: 'c-b0' }, { name: 'TTC', cls: 'c-hd' }], { B: 44, bw: 40, fmt: v => (v / 10) + '/10' });
+})();
+</script>
+</body>
+</html>
