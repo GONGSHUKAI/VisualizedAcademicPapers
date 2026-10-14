@@ -269,6 +269,19 @@
       "category": "memory",
       "summary": "给 π0.5 外挂两块记忆，都接在 flow 的去噪起点上：检索同类示范轨迹的均值和方差代替高斯噪声，按相似度定噪声和步数；Mamba 读上一个动作块再加偏置。LIBERO 平均 98.6（π0.5 96.9），NFE 3.2 vs 10。",
       "added": "2026-10-09"
+    },
+    {
+      "slug": "robottt",
+      "title": "RoboTTT",
+      "full_title": "RoboTTT: Context Scaling for Robot Policies",
+      "arxiv": "2607.15275",
+      "version": "v1",
+      "date": "2026-07",
+      "org": "NVIDIA、Stanford、UT Austin",
+      "topics": ["robot-harness"],
+      "category": "feedback",
+      "summary": "评估与反馈：GR00T N1.7 动作头每层加测试时训练（TTT）层，快权重部署时也做梯度更新，上下文扩到 8K 步；DAgger Distillation 把「失败 → 人的纠正」蒸馏进快权重。三个装配任务平均完成分 79（GR00T 42，GDN 56），预训练上下文 1K → 8K 平均分 43.9 → 71.5。",
+      "added": "2026-10-10"
     }
   ]
 }

@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>RoboTTT 精读</title>
+<meta name="description" content="RoboTTT: Context Scaling for Robot Policies 中文精读：把测试时训练（TTT）的快权重放进 GR00T N1.7 的动作头，上下文扩到 8K 步；序列动作强制、截断 BPTT、DAgger Distillation、上下文长度扩展曲线与疑点。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F2F3EE; --surface:#FBFBF8; --surface-2:#E5E7DF; --ink:#181B16; --ink-2:#3D433A; --muted:#656C60; --line:#D5D9CD;
+  --hd:#2E7A55; --hd-soft:#D6EBDF; --on-hd:#FFFFFF;
+  --ex:#A9762F; --ex-soft:#F3E4CC;
+  --pos:#3D6FA3; --pos-soft:#DAE6F2;
+  --warn:#AE3328; --warn-soft:#F5D9D4;
+  --base:#8C9389; --base-2:#C3C8BE;
+  --plate:#FFFFFF; --focus:#2E7A55;
+  --f-display:"Space Grotesk","Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#111410; --surface:#191D17; --surface-2:#232921; --ink:#E8EBE3; --ink-2:#C0C6B9; --muted:#8C9486; --line:#2D342B;
+    --hd:#62C496; --hd-soft:#173326; --on-hd:#0B1C13;
+    --ex:#E2AE62; --ex-soft:#3A2C14;
+    --pos:#7FB0E3; --pos-soft:#172A3D;
+    --warn:#EF8B7D; --warn-soft:#3D1D19;
+    --base:#767E72; --base-2:#4A5247;
+    --plate:#F3F4EF; --focus:#62C496;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#111410; --surface:#191D17; --surface-2:#232921; --ink:#E8EBE3; --ink-2:#C0C6B9; --muted:#8C9486; --line:#2D342B;
+  --hd:#62C496; --hd-soft:#173326; --on-hd:#0B1C13;
+  --ex:#E2AE62; --ex-soft:#3A2C14;
+  --pos:#7FB0E3; --pos-soft:#172A3D;
+  --warn:#EF8B7D; --warn-soft:#3D1D19;
+  --base:#767E72; --base-2:#4A5247;
+  --plate:#F3F4EF; --focus:#62C496;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:var(--hd);text-underline-offset:3px;text-decoration-thickness:1px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+strong{font-weight:700}
+em{font-style:normal;background:linear-gradient(transparent 62%,var(--hd-soft) 62%)}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+sub,sup{font-size:.72em;line-height:0}
+.page{max-width:1200px;margin:0 auto;padding-inline:24px}
+@media (max-width:560px){.page{padding-inline:16px}}
+.hero{padding-block:44px 24px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:40px;align-items:center}
+@media (max-width:900px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+.kicker{font:500 12px/1.4 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--hd);margin:0 0 14px}
+h1.title{font-family:var(--f-display);font-weight:900;font-size:clamp(3rem,1.8rem + 6vw,6.4rem);line-height:.95;letter-spacing:-.03em;margin:0}
+h1.title .dash{color:var(--hd)}
+.entitle{font-family:var(--f-display);font-weight:500;font-size:clamp(1rem,.9rem + .4vw,1.2rem);line-height:1.45;color:var(--ink-2);margin:14px 0 0}
+.thesis{font-size:clamp(1.05rem,1rem + .35vw,1.22rem);line-height:1.78;margin:20px 0 0;max-width:34em}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin:20px 0 0;padding:0;list-style:none;font:13px/1.6 var(--f-mono);color:var(--muted)}
+.meta b{color:var(--ink-2);font-weight:500}
+.ribbon{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.ribbon svg{display:block;width:100%;height:auto}
+.ribbon svg text{font-family:var(--f-mono);fill:var(--muted);font-size:11px}
+.ribbon svg .lab{font-family:var(--f-body);font-size:12.5px;fill:var(--ink-2)}
+.ribbon figcaption{font:12px/1.6 var(--f-mono);color:var(--muted);margin-top:8px}
+.tldr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:32px}
+@media (max-width:760px){.tldr{grid-template-columns:minmax(0,1fr)}}
+.tldr>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.tldr h3{font:500 12px/1.4 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.tldr p{margin:0;font-size:15px;line-height:1.75}
+.tldr .flag h3{color:var(--warn)}
+.layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:52px;padding-block:20px 80px}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr);gap:0}}
+.toc{position:sticky;top:20px;align-self:start;font-size:14px;line-height:1.5}
+.toc p{font:500 11px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.toc li a{display:block;padding:5px 0 5px 14px;margin-left:-1px;border-left:2px solid transparent;color:var(--muted);text-decoration:none}
+.toc li a:hover{color:var(--ink)}
+.toc li a.on{color:var(--ink);border-left-color:var(--hd);font-weight:500}
+@media (max-width:1000px){
+  .toc{position:static;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .toc p{display:none}
+  .toc ol{display:flex;gap:6px;border:0;white-space:nowrap;padding-bottom:6px}
+  .toc li a{border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin:0;background:var(--surface)}
+  .toc li a.on{border-color:var(--hd)}
+}
+main{min-width:0}
+section{padding-top:56px;scroll-margin-top:12px}
+section:first-child{padding-top:8px}
+.eyebrow{font:500 12px/1.4 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--hd);margin:0 0 8px}
+h2{font-family:var(--f-display);font-weight:800;font-size:clamp(1.35rem,1.1rem + 1.1vw,1.95rem);line-height:1.3;letter-spacing:-.015em;margin:0 0 18px}
+h3{font-family:var(--f-display);font-weight:700;font-size:1.08rem;line-height:1.45;margin:36px 0 10px}
+p{margin:0 0 14px}
+.prose{max-width:44em}
+.prose li{margin-bottom:6px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.tag{display:inline-block;font:500 11px/1 var(--f-mono);padding:4px 6px 3px;border-radius:4px;vertical-align:2px;margin-right:6px;white-space:nowrap}
+.tag.read{border:1px dashed var(--ink-2);color:var(--ink-2)}
+.tag.doubt{background:var(--warn-soft);color:var(--warn)}
+.note{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 18px;margin:18px 0;max-width:46em}
+.note>:last-child{margin-bottom:0}
+.note h4{font:500 12.5px/1.5 var(--f-body);margin:0 0 6px;color:var(--muted)}
+.note.doubt{border-color:color-mix(in oklab,var(--warn) 35%,var(--line));background:color-mix(in oklab,var(--warn-soft) 55%,var(--surface))}
+.note.doubt h4{color:var(--warn)}
+.eq{font-family:"Times New Roman",Georgia,"Noto Serif SC",serif;font-size:1.08rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:14px 0;overflow-x:auto;white-space:nowrap;display:flex;justify-content:space-between;gap:24px;max-width:46em}
+.eq .no{font:12px var(--f-mono);color:var(--muted);align-self:center}
+pre.code{font:12.5px/1.7 var(--f-mono);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;overflow-x:auto;max-width:46em;color:var(--ink-2);margin:14px 0}
+pre.code .c{color:var(--muted)} pre.code .k{color:var(--hd)}
+figure.plate{margin:22px 0}
+figure.plate .zoom{display:block;width:100%;padding:10px;background:var(--plate);border:1px solid var(--line);border-radius:8px;cursor:zoom-in}
+figure.plate img{display:block;width:100%;height:auto}
+figure.plate.narrow{max-width:560px}
+figure.plate figcaption{font-size:14px;line-height:1.7;color:var(--ink-2);margin-top:10px;max-width:52em}
+figure.plate figcaption b{font:500 12px var(--f-mono);color:var(--muted);margin-right:8px}
+dialog#lb{border:0;padding:0;background:transparent;max-width:min(96vw,1800px);width:96vw}
+dialog#lb::backdrop{background:rgba(14,11,8,.86)}
+dialog#lb .box{background:var(--plate);border-radius:8px;padding:10px;max-height:88vh;overflow:auto}
+dialog#lb img{display:block;width:100%;height:auto}
+dialog#lb .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#EEE7DC;font-size:14px;padding:8px 2px 0}
+dialog#lb button{font:500 13px var(--f-mono);background:#EEE7DC;color:#1F1A14;border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
+.tblwrap{overflow-x:auto;margin:16px 0;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;font-size:14px;line-height:1.6;min-width:100%}
+table.t th,table.t td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.t thead th{font:500 12px/1.4 var(--f-mono);color:var(--muted);border-bottom:1.5px solid var(--ink-2);white-space:nowrap}
+table.t tbody th{font-weight:500;white-space:nowrap;color:var(--ink-2)}
+table.t .num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t tr.best td,table.t tr.best th{font-weight:700}
+table.t td.bad{color:var(--warn);font-weight:700}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.cards.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:860px){.cards.three{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.cards{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card h4{font-family:var(--f-display);font-weight:700;font-size:1rem;line-height:1.45;margin:0 0 8px}
+.card p{font-size:14.5px;line-height:1.75;margin:0 0 8px}
+.card p:last-child{margin:0}
+.card.hd{border-top:3px solid var(--hd)} .card.ex{border-top:3px solid var(--ex)} .card.pos{border-top:3px solid var(--pos)}
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin:22px 0}
+.lab-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;margin-bottom:12px}
+.lab-head h4{font-family:var(--f-display);font-weight:700;font-size:1.02rem;margin:0}
+.lab-head p{margin:0;font-size:13px;color:var(--muted)}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:0 0 12px;font-size:14px}
+.ctrl label{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink-2)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--bg);flex-wrap:wrap}
+.seg button{font:500 13px/1 var(--f-body);border:0;background:transparent;color:var(--muted);padding:8px 12px;cursor:pointer;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg.k button{font-family:var(--f-mono)}
+.lab svg{display:block;width:100%;height:auto}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.ep svg{min-width:680px}
+.ep text{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.ep .lab2{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+input[type=range]{accent-color:var(--hd);width:160px}
+.readout{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}
+@media (max-width:640px){.readout{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.readout>div{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.5}
+.readout b{font-family:var(--f-mono);font-weight:500;font-size:17px;color:var(--ink);display:block}
+.readout .k{font:500 11px var(--f-mono);color:var(--muted)}
+.say{font-size:14px;line-height:1.75;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:12px 0 0}
+.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 16px 10px;margin:18px 0}
+.chartbox h4{font-family:var(--f-display);font-weight:700;font-size:1rem;margin:0 0 2px}
+.chartbox .sub{font-size:13px;color:var(--muted);margin:0 0 10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink-2);margin:0 0 6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+svg.chart{display:block;width:100%;height:auto;min-width:620px}
+svg.chart text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+svg.chart .tick{font:11px var(--f-mono);fill:var(--muted)}
+svg.chart .val{font:11px var(--f-mono);fill:var(--ink-2)}
+svg.chart .grid{stroke:var(--line);stroke-width:1}
+svg.chart .base{stroke:var(--ink-2);stroke-width:1}
+svg.chart .glabel{font-size:12.5px;fill:var(--ink)}
+.c-hd{fill:var(--hd)} .c-ex{fill:var(--ex)} .c-pos{fill:var(--pos)} .c-b0{fill:var(--base)} .c-b1{fill:var(--base-2)} .c-warn{fill:var(--warn)}
+.bg-hd{background:var(--hd)} .bg-ex{background:var(--ex)} .bg-pos{background:var(--pos)} .bg-b0{background:var(--base)} .bg-b1{background:var(--base-2)} .bg-warn{background:var(--warn)}
+table.heat{border-collapse:separate;border-spacing:3px;font-size:13px;min-width:820px;width:100%}
+table.heat th{font:500 11px/1.3 var(--f-mono);color:var(--muted);text-align:center;padding:6px 3px;white-space:nowrap}
+table.heat th.row{text-align:left;font:500 13px/1.3 var(--f-body);color:var(--ink);padding-right:10px}
+table.heat th.grp{color:var(--hd);border-bottom:1px solid var(--line)}
+table.heat td{text-align:center;font:500 12px var(--f-mono);font-variant-numeric:tabular-nums;border-radius:4px;padding:7px 3px;color:var(--ink)}
+table.heat td.avg{box-shadow:inset 0 0 0 1.5px var(--ink-2)}
+table.heat td.dk{color:var(--on-hd)}
+table.heat td.fix{outline:2px dashed var(--warn);outline-offset:-2px}
+details.raw{margin:8px 0 4px;font-size:13.5px}
+details.raw summary{cursor:pointer;color:var(--muted);font:500 12.5px var(--f-mono)}
+details.raw .tblwrap{margin:8px 0}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);font:12.5px/1.55 var(--f-body);padding:8px 10px;border-radius:6px;max-width:300px}
+details.faq{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:10px 0;max-width:50em}
+details.faq summary{cursor:pointer;padding:12px 16px;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::after{content:"+";font:500 16px var(--f-mono);color:var(--muted)}
+details.faq[open] summary::after{content:"−"}
+details.faq .a{padding:0 16px 14px;font-size:15px;line-height:1.8}
+details.faq .a p:last-child{margin:0}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0;align-items:start}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.two>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.two h4{font:500 12.5px/1.4 var(--f-body);margin:0 0 10px;color:var(--muted)}
+.two ul{margin:0;padding-left:18px;font-size:14.5px;line-height:1.75}
+.two li{margin-bottom:8px}
+table.cmp{min-width:860px}
+table.cmp td{font-size:13.5px}
+table.cmp th.me,table.cmp td.me{background:color-mix(in oklab,var(--hd-soft) 55%,transparent)}
+details.gl{background:var(--surface);border:1px solid var(--line);border-radius:10px;max-width:52em}
+details.gl summary{cursor:pointer;padding:14px 18px;font-weight:500}
+details.gl dl{margin:0;padding:0 18px 16px;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:8px 18px;font-size:14px;line-height:1.7}
+details.gl dt{font-family:var(--f-mono);font-size:13px;color:var(--ink)}
+details.gl dd{margin:0;color:var(--ink-2)}
+@media (max-width:560px){details.gl dl{grid-template-columns:minmax(0,1fr);gap:2px}details.gl dd{margin-bottom:10px}}
+footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important}}
+.tlx svg{min-width:660px}
+.tlx text{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.tlx .lab2{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+.tlx .m{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.ribbon svg .m{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+.vapnav-grp{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-cat{font-size:11.5px;letter-spacing:.04em;opacity:.5}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/">Harness for Robotics</a></span><span class="vapnav-links"><span class="vapnav-grp"><span class="vapnav-cat">上下文</span><a href="../../papers/activevla/">ActiveVLA</a><a href="../../papers/tic-vla/">TIC-VLA</a><a href="../../papers/ra-vla/">RA-VLA</a></span><span class="vapnav-grp"><span class="vapnav-cat">记忆</span><a href="../../papers/memoryvla/">MemoryVLA</a><a href="../../papers/optimusvla/">OptimusVLA</a><a href="../../papers/soma/">SOMA</a><a href="../../papers/hime/">HiMe</a></span><span class="vapnav-grp"><span class="vapnav-cat">结构化执行</span><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/motormind/">MotorMind</a></span><span class="vapnav-grp"><span class="vapnav-cat">评估与反馈</span><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/robottt/" aria-current="page">RoboTTT</a><a href="../../papers/tau0-vla/">τ₀-VLA</a></span></span></div></div>
+<!-- /vap:nav -->
+<header class="hero page">
+  <div class="hero-grid">
+    <div>
+      <p class="kicker">论文精读 · Harness for Robotics · 评估与反馈</p>
+      <h1 class="title">Robo<span class="dash">TTT</span></h1>
+      <p class="entitle">Context Scaling for Robot Policies</p>
+      <p class="thesis">在 GR00T N1.7 动作头的每一层加一个<strong>测试时训练（TTT）层</strong>：一个小 MLP 的权重（快权重）在部署时也做梯度下降，把走过的每一步压进权重里，下一步再从权重里读出来。这样上下文能拉到 <strong>8K 步（30 Hz 下约 4.5 分钟）</strong>，每步的计算量不随历史变长。再用 <strong>DAgger Distillation</strong> 让它学会「自己的失败动作 → 人的纠正」，部署时自己改错。</p>
+      <ul class="meta">
+        <li><b>NVIDIA</b> · Stanford · UT Austin（Fei-Fei Li、Yuke Zhu、Jim Fan 共同指导）</li>
+        <li><b>arXiv</b> 2607.15275v1</li>
+        <li><b>v1</b> 2026-07-16</li>
+        <li><a href="https://arxiv.org/abs/2607.15275" target="_blank" rel="noopener">arXiv</a></li>
+      </ul>
+    </div>
+    <figure class="ribbon">
+      <svg viewBox="0 0 520 260" role="img" aria-label="快权重沿时间传递示意：每一步先用当前 token 更新快权重，再用更新后的权重输出">
+        <g id="rb"></g>
+      </svg>
+      <figcaption>示意：每一步先用当前步的 token 对快权重做一次梯度更新（W<sub>t−1</sub> → W<sub>t</sub>），再用 W<sub>t</sub> 给出这一步的输出。状态大小固定，不随步数增长。</figcaption>
+    </figure>
+  </div>
+  <div class="tldr" aria-label="一分钟版">
+    <div><h3>做了什么</h3><p>动作头 16 层 DiT 每层在注意力之后加 TTT 层：注意力只看当前一步，TTT 层负责跨时间。每层的快模型是两层 MLP，经 tanh 门控（初始 0.001）加回主干。训练靠两件事：每个动作块独立采噪声水平（序列动作强制），以及分段截断反传（TBPTT）让显存不随序列长度增长。</p></div>
+    <div><h3>放在 Harness 里看</h3><p>归入「评估与反馈」：部署时每一步的观测和动作都在<strong>更新策略的一部分参数</strong>；DAgger Distillation 用人的纠正作为训练时的评价信号，让策略在测试时根据自己犯过的错调整。严格说，测试时的更新信号是自监督重建损失，不是显式的打分，见文末的讨论。</p></div>
+    <div><h3>结果</h3><p>三个双臂装配任务平均任务完成分 <b>79</b>（单步 GR00T 42，最强基线 GDN 56）；5 分钟的 Gear Bot 唯一出现完整成功（2/10）。单个人类视频一次模仿 <b>6/10</b>（GDN 0/10）。预训练上下文 1K → 8K，平均分 43.9 → <b>71.5</b>。</p></div>
+    <div class="flag"><h3>最该留意的</h3><p>主图里 Pup Go Car 的分数已经包含 DAgger 数据训练（序列模型用了 DAgger Distillation），只在一张图注里说明；不用 DAgger 时这项是 66 对 53。「推理时延不随上下文增长」没有任何时延数字。上下文扩展曲线每个点只有一次预训练，512 步处 GDN 还略高于 RoboTTT。</p></div>
+  </div>
+</header>
+
+<div class="page layout">
+  <nav class="toc" aria-label="目录">
+    <p>目录</p>
+    <ol>
+      <li><a href="#problem">问题</a></li>
+      <li><a href="#ttt">TTT 机制</a></li>
+      <li><a href="#arch">放进 VLA</a></li>
+      <li><a href="#train">长序列训练</a></li>
+      <li><a href="#context">从上下文学</a></li>
+      <li><a href="#setup">实验设置</a></li>
+      <li><a href="#results">主结果</a></li>
+      <li><a href="#scaling">上下文扩展</a></li>
+      <li><a href="#dagger">DAgger Distillation</a></li>
+      <li><a href="#ablation">消融</a></li>
+      <li><a href="#insight">读懂它</a></li>
+      <li><a href="#limits">局限与疑点</a></li>
+      <li><a href="#topic">放到专题里看</a></li>
+      <li><a href="#glossary">术语表</a></li>
+    </ol>
+  </nav>
+  <main>
+    <section id="problem">
+      <p class="eyebrow">问题 · §1</p>
+      <h2>机器人策略几乎都只看当前一帧</h2>
+      <div class="prose">
+        <p>GR00T、π0、π0.5、OpenVLA 这些主流 VLA 只看当前观测，少数看 2–8 帧。语言模型那边，上下文长度早已是一条重要的扩展方向。论文认为，长时程推理可以交给外部记忆（关键帧、语言），但有些能力离不开<strong>长的视觉-运动上下文</strong>：</p>
+        <ul>
+          <li>看一段人类演示视频，然后照着做（一次模仿）；</li>
+          <li>从自己这一回合的执行历史里改进（在线改进）；</li>
+          <li>多阶段长任务里分清「现在做到哪一步了」。</li>
+        </ul>
+        <p>直接拼历史帧有两个麻烦：模型容易抓住虚假相关（论文里 GR00T 加一帧历史，在 Pup Go Car 上从 57 降到 39.5）；Transformer 带 KV cache 推理，计算随历史线性增长，几分钟的 30 Hz 控制根本跑不动。普通 RNN 状态是向量，容量太小。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/teaser.jpg" aria-label="放大原文图 1"><img src="fig/teaser.jpg" width="1797" height="1800" alt="原文图 1：长时程装配、从人类视频一次模仿、在线改进、外部扰动下的恢复" loading="lazy"></button>
+        <figcaption><b>原文 Figure 1</b>四种能力。上：5 分钟的 Gear Bot 装配。中：上排是人手在电路板上装元件的演示视频（俯视和仰视两路），下排是机器人只凭这段视频复现同样的装配（同一句提示词，目标只能从视频里看出来）。下一：拧车顶螺丝没对准（⊗），抬起重来，又没对准，再调整后成功。最下：人把装好的车顶或轮胎拆掉（红框），机器人回到之前的阶段重新装。</figcaption>
+      </figure>
+    </section>
+
+    <section id="ttt">
+      <p class="eyebrow">方法 · 测试时训练的机制 · §2</p>
+      <h2>状态是一个小网络的权重，用梯度下降来写</h2>
+      <div class="prose"><p>对 token 序列做 Q、K、V 投影。快权重 W 参数化一个小网络 f<sub>W</sub>（线性层或 MLP）。每一步先<strong>更新</strong>：让 f<sub>W</sub> 把 K<sub>t</sub> 映射到 V<sub>t</sub>，做一步梯度下降；再<strong>应用</strong>：用更新后的权重处理 Q<sub>t</sub>。</p></div>
+      <div class="eq"><span>W<sub>t</sub> ← W<sub>t−1</sub> − η ∇<sub>W</sub> ‖ f<sub>W<sub>t−1</sub></sub>(K<sub>t</sub>) − V<sub>t</sub> ‖²,&nbsp;&nbsp;&nbsp; O<sub>t</sub> = f<sub>W<sub>t</sub></sub>(Q<sub>t</sub>)</span><span class="no">(1–2)</span></div>
+      <div class="prose"><p>投影矩阵 θ<sub>Q</sub>、θ<sub>K</sub>、θ<sub>V</sub> 和快权重初值 W<sub>0</sub> 是普通参数（慢权重），用外层任务损失训练；W<sub>0</sub> 要通过「梯度的梯度」来学。学习率 η 也是学出来的（在固定基础学习率 0.1 之上）。</p></div>
+      <div class="cards three">
+        <div class="card hd"><h4>vs. 全注意力</h4><p>注意力保留所有历史的 K、V，每步都要对它们做一次注意力，计算随历史线性增长。TTT 把历史压进固定大小的权重，每步的计算量不变。</p></div>
+        <div class="card hd"><h4>vs. RNN / 线性注意力</h4><p>LSTM 的状态是一个向量；Gated DeltaNet（论文里的 GDN 基线）的状态是矩阵，但用线性的关联规则更新。TTT 的状态是一个非线性 MLP 的权重，用真正的梯度下降更新，容量和表达力更强。</p></div>
+        <div class="card hd"><h4>vs. 「测试时训练」的其他用法</h4><p>论文特意区分：EVOLVE-VLA、TTT-Parkour、TT-VLA 等工作也叫测试时训练，但它们是在测试任务上微调整个模型（或 LoRA）。RoboTTT 只更新这一小块快权重，而且更新是模型前向的一部分，训练和推理用的是同一套机制。</p></div>
+      </div>
+    </section>
+
+    <section id="arch">
+      <p class="eyebrow">方法 · 模型结构 · §3.1 · 附录 A.1</p>
+      <h2>注意力管「这一步」，TTT 层管「跨步」</h2>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/arch.jpg" aria-label="放大原文图 2"><img src="fig/arch.jpg" width="1800" height="690" alt="原文图 2：RoboTTT 的序列训练与推理" loading="lazy"></button>
+        <figcaption><b>原文 Figure 2</b>左：序列训练。每个时间步的寄存器 token（紫）、本体 token（黄绿）、加噪动作（灰，各自的噪声水平不同）先经过本步内的自注意力和对 VLM token 的交叉注意力，再沿时间铺平送进 TTT 层；快权重从初值 W<sub>0</sub> 起，每个小批更新一次（W<sub>1</sub>、W<sub>2</sub> … W<sub>T/H</sub>）。斜线格是被屏蔽损失的 token。右：推理。从学到的 W<sub>0</sub> 开始，每次推理更新一次快权重并传给下一次（t = 1 → t = 1 + H）。雪花表示冻结的部分。</figcaption>
+      </figure>
+      <div class="prose">
+        <p>动作头输入一条 T 步的轨迹 [R<sub>1</sub>, Φ<sub>1</sub>, q<sub>1</sub>, Ã<sub>1</sub>, …, R<sub>T</sub>, Φ<sub>T</sub>, q<sub>T</sub>, Ã<sub>T</sub>]：Φ 是 VLM 输出的视觉语言 token，q 是本体状态，Ã 是加噪动作块，R 是每步前面加的 N = 16 个可学习寄存器 token。</p>
+        <ul>
+          <li><strong>注意力只在一步之内：</strong>R、q、Ã 做自注意力，并交叉注意力读<strong>这一步</strong>的 Φ。</li>
+          <li><strong>TTT 层跨时间：</strong>每步注意力的输出 [R<sub>t</sub>, q<sub>t</sub>, Ã<sub>t</sub>] 沿时间拼起来送进 TTT 层。VL token Φ 太多，不直接进 TTT，由 16 个寄存器 token 携带视觉语言信息跨时间传递。</li>
+          <li><strong>门控：</strong>每层学一个向量 α ∈ ℝ<sup>d</sup>，初始化为 0.001，输出 O = tanh(α) ⊙ O<sub>TTT</sub> + O<sub>attn</sub>。训练开始时 TTT 几乎不起作用，保住预训练 GR00T 的能力。</li>
+          <li><strong>规模：</strong>原 DiT 538M 参数，16 层各加约 10M，共 690M。快模型是带 GeLU 的两层 MLP，用普通梯度下降（不用 Muon 等更复杂的优化器）。位置编码 RoPE，θ = 10000。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="train">
+      <p class="eyebrow">方法 · 长序列训练 · §3.2</p>
+      <h2>两个让长序列训得动的技巧</h2>
+      <div class="prose"><p>训练样本是一整条轨迹（或其中连续的一段，最长到最大上下文），在序列里一边更新快权重，一边在每一步算 flow matching 损失，再对时间取平均：</p></div>
+      <div class="eq"><span>𝓛<sub>fm</sub>(ξ; W<sub>0</sub>) = (1/T) Σ<sub>t</sub> 𝔼<sub>τ<sub>t</sub>, ε</sub> ‖ v<sub>θ</sub>(Φ<sub>t</sub>, A<sub>t</sub><sup>τ<sub>t</sub></sup>, q<sub>t</sub>; W<sub>t−1</sub>) − (A<sub>t</sub> − ε) ‖²,&nbsp;&nbsp; τ<sub>t</sub> = s(1 − u), u ~ Beta(1.5, 1), s = 0.999</span><span class="no">(4)</span></div>
+      <div class="cards">
+        <div class="card ex"><h4>序列动作强制：每个动作块单独采噪声水平</h4><p>如果整条序列共用一个噪声水平 τ（类似全序列扩散），整段要么都很简单（低噪声）、要么都很难（高噪声），训练不稳定。每一步的 τ<sub>t</sub> 独立采样后才稳定，作者说这和 Diffusion Forcing 的发现一致。消融里去掉这一条，Pup Go Car 只剩约 2 分，几乎无法推进任务。</p></div>
+        <div class="card ex"><h4>截断反传（TBPTT）：显存只看段长</h4><p>完整 BPTT 要存每一步的激活，显存随序列长度增长。TBPTT 把序列切成段，梯度只在段内流动；但快权重本身跨段继续传递（只是在段边界处切断梯度），所以 TTT 仍覆盖整条序列。W<sub>0</sub> 只从第一段拿到梯度。</p></div>
+      </div>
+      <figure class="plate" style="max-width:560px">
+        <button class="zoom" type="button" data-src="fig/tbptt.png" aria-label="放大原文图 4"><img src="fig/tbptt.png" width="1045" height="593" alt="原文图 4：截断反传示意" loading="lazy"></button>
+        <figcaption><b>原文 Figure 4</b>梯度在段边界处截断，快权重跨段继续传递，TTT 在整条序列上持续进行。</figcaption>
+      </figure>
+      <div class="prose small muted"><p>配方（附录 A.2）：预训练混合桌面双臂机器人数据和 EgoScale 第一人称人类视频，挑长轨迹；上下文长度逐步加到目标（如 8K），30K 步，16 张 GB200，<strong>只训新加的序列层（TTT 或 GDN），GR00T 其余部分冻结</strong>。后训练每个任务 1K 上下文、20K 步、8 张 GB200，全部参数微调。AdamW，权重衰减 1e-5；预训练 WSD 调度峰值 2e-5，后训练余弦调度峰值 5e-5。4K 及以下全局 batch 64，以上为 16。</p></div>
+      <div class="lab" id="ctx-lab">
+        <div class="lab-head"><h4>8K 步有多长？和任务时长、训练窗口放在一起看</h4><p>30 Hz 控制；平均分来自原文 Figure 8（读自矢量图）</p></div>
+        <div class="ctrl"><span class="muted small">预训练上下文</span><div class="seg k" role="group" aria-label="预训练上下文长度" id="ctx-pick"></div></div>
+        <div class="scroll tlx"><svg id="ctx-svg" viewBox="0 0 760 250" role="img" aria-label="上下文长度、任务时长与训练窗口"></svg></div>
+        <div class="readout" id="ctx-read"></div>
+        <p class="say" id="ctx-say"></p>
+      </div>
+    </section>
+
+    <section id="context">
+      <p class="eyebrow">方法 · 从上下文里学 · §3.3</p>
+      <h2>快权重和慢权重的更新可以分开</h2>
+      <div class="prose"><p>在某些时间步屏蔽 flow matching 损失，这些步就只更新快权重、不提供模仿目标，变成「纯上下文」。论文用这个机制做了两件事：</p></div>
+      <div class="cards">
+        <div class="card pos"><h4>从视频里一次模仿</h4><p>Circuit 任务有约 80 种装配配置。训练时把同一配置的一段人类演示视频（机器人不动，人用手装）和一条机器人轨迹拼成一条序列：视频部分只更新快权重，动作损失只在机器人部分上算。所有配置用同一句提示词「assemble circuit」，目标配置只能从视频里看出来。测试时给一段<strong>没见过的配置</strong>的人类视频，再让机器人装。</p></div>
+        <div class="card pos"><h4>DAgger Distillation</h4><p>DAgger 式数据：机器人执行时出错，人接管纠正。标准 DAgger 只拿人的纠正动作去微调，扔掉机器人的错误动作。DAgger Distillation 两样都用、但分工不同：<strong>整条交互历史（含错误动作）都更新快权重，损失只算在人的纠正上</strong>。模型学到的是「看到自己这样失败 → 这样纠正」，而不是孤立地模仿纠正动作。作者称之为 Algorithm Distillation 在机器人上的一个实例。</p></div>
+      </div>
+      <div class="lab" id="dd-lab">
+        <div class="lab-head"><h4>同一条 DAgger 轨迹，三种用法</h4><p>示意轨迹；分数来自原文 Figure 10（Pup Go Car，读自矢量图）</p></div>
+        <div class="ctrl"><div class="seg" role="group" aria-label="DAgger 数据的用法" id="dd-pick">
+          <button type="button" data-k="human" aria-pressed="false">标准 DAgger（只用人的动作）</button>
+          <button type="button" data-k="full" aria-pressed="false">全轨迹都当模仿目标</button>
+          <button type="button" data-k="dd" aria-pressed="true">DAgger Distillation</button>
+        </div></div>
+        <div class="scroll tlx"><svg id="dd-svg" viewBox="0 0 760 200" role="img" aria-label="DAgger 轨迹中哪些动作块更新快权重、哪些计算损失"></svg></div>
+        <div class="readout" id="dd-read"></div>
+        <p class="say" id="dd-say"></p>
+      </div>
+    </section>
+
+    <section id="setup">
+      <p class="eyebrow">实验设置 · §4 · 附录 B</p>
+      <h2>三个双臂装配任务，最长 5 分钟</h2>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/tasks.jpg" aria-label="放大原文图 5"><img src="fig/tasks.jpg" width="1800" height="792" alt="原文图 5：三个评测任务的执行过程" loading="lazy"></button>
+        <figcaption><b>原文 Figure 5</b>上：Pup Go Car，玩具车装车顶和第一个轮子，平均 2 分钟。中：Circuit，电路板上装 2–3 个元件，目标配置由提示词或一段人类视频指定，约 1 分钟。下：Gear Bot，十个阶段、约 5 分钟的完整装配。</figcaption>
+      </figure>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>任务</th><th class="num">数据</th><th class="num">平均时长</th><th class="num">试验</th><th>评分细则（附录 B）</th></tr></thead>
+          <tbody>
+            <tr><th>Pup Go Car</th><td class="num">8 h</td><td class="num">约 2 min</td><td class="num">20</td><td>累进里程碑 0.05 → 1.0：拿车顶、放上、对准螺丝、拿电钻、拧紧、交接、翻车、装轮、拧紧、交回；轮子最多尝试两次</td></tr>
+            <tr><th>Circuit</th><td class="num">6 h</td><td class="num">约 1 min</td><td class="num">20</td><td>每个元件等分（1/2、1/3 或 1/4），有开关或按钮时打开也算一份；装配顺序错了不给分。约 80 种配置，训练 20 种，测试其余 60 种</td></tr>
+            <tr><th>Gear Bot</th><td class="num">5 h</td><td class="num">约 5 min</td><td class="num">10</td><td>每次翻底盘、每个齿轮或轮子、装「机器人头」、用遥控器开动各 +0.1，共十项</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>平台：</strong>YAM 双臂桌面机器人，四个 RealSense D405（俯视、仰视、左右腕），480p；RTX 5090 推理，控制频率 30 Hz。每种方法从记录下来的同一组初始物体摆放开始。</li>
+          <li><strong>基线：</strong>GR00T N1.7（单步上下文）；GR00T N1.7 Hist.（多一帧历史）；GDN：把 RoboTTT 的 TTT 层换成 Gated DeltaNet，位置、门控、参数量都对齐，用同样的预训练。</li>
+          <li><strong>训练预算：</strong>所有方法用同样的任务数据后训练；序列模型 1K 上下文，非序列模型训练到相同的计算量。</li>
+          <li><strong>指标：</strong>完整成功次数，以及按细则给分的任务完成分（0–1，报告为百分数）。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="results">
+      <p class="eyebrow">主结果 · §4 · 原文 Figure 7、Table 1</p>
+      <h2>平均完成分 79，单步 GR00T 42，GDN 56</h2>
+      <div class="chartbox">
+        <h4>三个任务的任务完成分</h4>
+        <p class="sub">原图没有数值标注，按矢量图柱高读出，取整（Pup Go Car 的 GR00T 57、Hist. 39.5 和三个平均值与正文一致）。悬停看完整成功次数。</p>
+        <div class="legend"><span><i class="bg-hd"></i>RoboTTT</span><span><i class="bg-b0"></i>GR00T N1.7</span><span><i class="bg-b1"></i>GR00T N1.7 Hist.</span><span><i class="bg-ex"></i>GDN</span></div>
+        <div class="scroll"><svg class="chart" id="ch-main" viewBox="0 0 760 260"></svg></div>
+        <details class="raw" id="raw-main"><summary>数字（完成分读自 Figure 7，成功次数来自 Table 1）</summary></details>
+      </div>
+      <div class="prose">
+        <p>RoboTTT 在每个任务上的完整成功次数都最多：Pup Go Car 9/20，Circuit 13/20，Gear Bot 2/10（其余方法 Gear Bot 都是 0）。论文从回放里总结了三点：</p>
+        <ul>
+          <li><strong>跟踪进度：</strong>多阶段装配里很多阶段长得很像，基线会做错动作或跳过阶段；快权重保留了历史里的关键特征，能分清现在是哪一阶段。</li>
+          <li><strong>有策略地恢复：</strong>Pup Go Car 拧车顶螺丝时电钻没对准，RoboTTT 会抬手、重新对准再试；基线则直接进入下一阶段，好像刚才成功了。</li>
+          <li><strong>更精确：</strong>插元件、卡扣这类细活更准，作者归因于长上下文缓解了部分可观测性：物体当前被挡住时，以前看到过它的画面还在。</li>
+        </ul>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>Pup Go Car 的主结果已经用了 DAgger 数据</h4>
+        <p>Figure 8 的图注写「本图所有评测早于主结果里 Pup Go Car 用的 DAgger 训练」。把 Figure 7 和 Figure 10 对照：主图里 Pup Go Car 的 RoboTTT 89、GDN 57 正好是两者 <em>DAgger Distillation</em> 之后的分数，GR00T 57、Hist. 39.5 是它们<em>标准 DAgger</em> 之后的分数。不用任何 DAgger 数据时，这一项是 RoboTTT 66、GR00T 53、GDN 44、Hist. 39。也就是说，主图 Pup Go Car 上 32 个点的领先里，有一大半来自 DAgger Distillation 这套训练方法（只有序列模型能用），不只是来自长上下文本身。正文主结果段落没有提这一点。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>「拼历史帧没用」只在一个任务上成立</h4>
+        <p>论文以 Pup Go Car 为例说明直接拼历史帧会引入虚假相关（Hist. 39.5 对 GR00T 57）。但在 Circuit（54 对 23）和 Gear Bot（54 对 47）上，多一帧历史都是有帮助的，平均分 Hist. 49 也高于 GR00T 42。正文的措辞是「不能稳定带来帮助」，这是准确的，但读者容易记成「历史帧有害」。</p>
+      </div>
+      <h3>一次模仿与扰动恢复（Table 2、3）</h3>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/one-shot.jpg" aria-label="放大原文图 9"><img src="fig/one-shot.jpg" width="1800" height="594" alt="原文图 9：从人类视频一次模仿电路装配" loading="lazy"></button>
+        <figcaption><b>原文 Figure 9</b>一段连续录像：人手演示一个没见过的配置（第 1–3 帧），场景复位（第 4 帧），RoboTTT 复现同样的装配（第二行）。所有配置用同一句提示词，目标只能从视频中得知。</figcaption>
+      </figure>
+      <div class="chartbox">
+        <h4>一次模仿（Circuit，10 次）与外部扰动（Pup Go Car，各 20 次）</h4>
+        <p class="sub">一次模仿只和 GDN 比：GR00T 不读历史，GR00T Hist. 只看得到一帧，装不下一段视频。扰动实验里，人在机器人装好车顶或轮子后把它拆掉，策略要回到之前的阶段重装；所有方法都和 30 分钟的扰动数据一起训练。</p>
+        <div class="legend"><span><i class="bg-hd"></i>RoboTTT</span><span><i class="bg-b0"></i>GR00T N1.7</span><span><i class="bg-b1"></i>GR00T N1.7 Hist.</span><span><i class="bg-ex"></i>GDN</span></div>
+        <div class="scroll"><svg class="chart" id="ch-os" viewBox="0 0 760 250"></svg></div>
+      </div>
+      <div class="prose"><p>一次模仿：RoboTTT 完成分 65%、完整成功 6/10；GDN 33%、0/10，常常拿错元件或装错顺序。作者的解读是：循环记忆能把信息存进去，但不太会用；TTT 是在历史上用梯度下降训练出来的一个小网络，查询时能把演示过的配置取出来。扰动：车顶 15/20（GDN 13，GR00T 10，Hist. 3），轮胎 18/20（GDN 同为 18）。</p></div>
+    </section>
+
+    <section id="scaling">
+      <p class="eyebrow">上下文长度扩展 · 原文 Figure 8</p>
+      <h2>预训练上下文越长，闭环分越高</h2>
+      <div class="chartbox">
+        <h4>三个任务的平均完成分 vs 预训练上下文长度</h4>
+        <p class="sub">读自矢量图的点位。所有点都在 1K 上下文下后训练，且早于 Pup Go Car 的 DAgger 训练。虚线：单步上下文（GR00T）与短上下文（GR00T Hist.）。</p>
+        <div class="legend"><span><i class="bg-hd"></i>RoboTTT</span><span><i class="bg-ex"></i>GDN</span><span><i class="bg-b0"></i>单步上下文</span><span><i class="bg-b1"></i>短上下文</span></div>
+        <div class="scroll"><svg class="chart" id="ch-sc" viewBox="0 0 760 290"></svg></div>
+        <details class="raw" id="raw-sc"><summary>点位数字（读自矢量图）</summary></details>
+      </div>
+      <div class="prose">
+        <p>RoboTTT 从 1K 的 43.9 涨到 8K 的 71.5（+63%），比最强的短上下文基线 45.6 高 57%，曲线还没有饱和。GDN 没有这个趋势，8K 时 44.3。作者的解释：TTT 的快权重用梯度下降更新，初值 W<sub>0</sub> 和更新动态都由外层损失元学习，更长的训练序列意味着更多步更新来塑造它们；GDN 的线性关联状态没有这种元学习。</p>
+        <p>1K 以下 RoboTTT 不如更长的版本，作者归因于回合比训练窗口长：1K 步约 34 秒，比最短的任务还短，部署时快权重会被更新到训练中没见过的远处，位置编码也会外推到没见过的位置。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>「1K 以下仍优于 GDN」和图不完全一致；曲线每点只有一次运行</h4>
+        <p>正文说 1K 以下 RoboTTT「在相同长度下仍优于 GDN」，但 512 步处 GDN 约 40.2、RoboTTT 约 39.3，几乎相同且 GDN 略高；128 → 256 RoboTTT 还略降（30.8 → 28.9）。每个点是一次预训练 + 一次后训练 + 三个任务共 50 次试验，没有误差棒。另外，图中的单步 / 短上下文参考线（37.6 / 45.6）和用 Figure 10 里「DAgger 之前」分数还原出的平均分（约 40.9 / 49.0）对不上，说明是不同批次的评测。整体趋势（1K → 8K 明显上升）是清楚的，细处不宜过度解读。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>扩展的是预训练长度，后训练一直是 1K</h4>
+        <p>所有模型的任务后训练都只用 1K 上下文，而三个任务分别持续约 1、2、5 分钟（约 1.8K、3.6K、9K 步）。8K 预训练带来的好处，是让快权重的初值和更新规则见过更长的序列，在部署时被一路更新几千步也不跑偏。这和语言模型「先在长序列上预训练，再在短任务上微调」的做法类似。</p>
+      </div>
+    </section>
+
+    <section id="dagger">
+      <p class="eyebrow">DAgger Distillation · 原文 Figure 10–11</p>
+      <h2>错误动作当上下文，纠正动作当目标</h2>
+      <div class="chartbox">
+        <h4>同一批 100 条 DAgger 轨迹的四种用法（Pup Go Car）</h4>
+        <p class="sub">50 条用 RoboTTT 采、50 条用 GR00T 采，合在一起训练所有方法。实心柱读自矢量图；斜线柱、交叉线柱为填充图案，读自渲染图，约 ±1。</p>
+        <div class="legend"><span><i class="bg-hd"></i>DAgger Distillation</span><span><i class="bg-ex"></i>标准 DAgger（只用人的动作）</span><span><i class="bg-pos"></i>全轨迹当模仿目标</span><span><i class="bg-b1"></i>DAgger 之前</span></div>
+        <div class="scroll"><svg class="chart" id="ch-dd" viewBox="0 0 760 250"></svg></div>
+      </div>
+      <div class="prose">
+        <p>标准 DAgger 平均提升 9%（两个序列模型 13%）；DAgger Distillation 提升 33%：RoboTTT +36%（66 → 89），GDN +29%（44 → 57）。对 GR00T，把机器人的错误动作也当模仿目标，和只用人的纠正结果一样（都是 57）：错误动作作为<strong>目标</strong>没有价值，作为<strong>上下文</strong>才有价值。回放显示 DAgger Distillation 的收益大多来自做错之后的恢复。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/dagger-rollout.jpg" aria-label="放大原文图 11"><img src="fig/dagger-rollout.jpg" width="1800" height="650" alt="原文图 11：拧螺丝进度随时间的曲线，两次掉回 0 后第三次成功" loading="lazy"></button>
+        <figcaption><b>原文 Figure 11</b>横轴是时间，纵轴是拧车顶螺丝的进度（%），插图是对应时刻的画面。进度先升到约 40%，电钻没对准螺丝，抬起后掉回 0；第二次升到约 50% 又没对准、掉回 0；第三次调整后一路升到 100%。论文图注：没对准（第 1–3 帧）→ 抬起重试，更近但仍没对准（第 4–5 帧）→ 再调整后成功（第 6–8 帧）。</figcaption>
+      </figure>
+      <div class="note">
+        <h4><span class="tag read">解读</span>GDN 也能吃到大部分好处</h4>
+        <p>GDN 用 DAgger Distillation 也提升了 29%，说明这套数据用法对任何序列模型策略都适用，不依赖 TTT。RoboTTT 多出的 7 个百分点，可以算作 TTT 机制本身在这里的贡献。标准 DAgger 在 GR00T Hist. 上几乎没用（39 → 40）。</p>
+      </div>
+    </section>
+
+    <section id="ablation">
+      <p class="eyebrow">消融 · 原文 Figure 12</p>
+      <h2>非线性快模型和序列动作强制都关键</h2>
+      <div class="chartbox">
+        <h4>Pup Go Car 任务完成分</h4>
+        <p class="sub">读自矢量图柱长。上三行是消融，下三行是开发过程中逐步加组件。完整 RoboTTT = 加寄存器 token 这一行（未用 DAgger）。</p>
+        <div class="scroll"><svg class="chart" id="ch-abl" viewBox="0 0 720 230"></svg></div>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>去掉序列动作强制：</strong>约 2 分，动作不准，任务几乎无法推进。</li>
+          <li><strong>快模型换成线性层：</strong>48，比 MLP 版本（66）低 27%，但仍高于同等 token 数的 GR00T（44）。非线性快模型最重要，和视觉、语言里 TTT 的发现一致。</li>
+          <li><strong>逐步加 token：</strong>TTT 只处理本体 token 时 45；再让动作 token 也进 TTT，56（+23%，知道自己之前做了什么，更好地把握环境动态）；再加 16 个寄存器 token，66（+18%）。</li>
+          <li><strong>寄存器 token 对 GR00T 没用：</strong>同样数量的寄存器加到 GR00T 上只有 44，低于不加的 53（Figure 10 里「DAgger 之前」的分数）。说明它们只有配合 TTT 的跨时间建模才有用。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="insight">
+      <p class="eyebrow">读懂它</p>
+      <h2>这篇真正说明了什么</h2>
+      <h3 style="margin-top:0">关键 insight</h3>
+      <div class="cards">
+        <div class="card"><h4>1. 「记住多少」可以学出来，不必手工指定</h4><p>该保留多长、哪些历史，事先很难定。RoboTTT 不手工选关键帧或摘要，而是让快权重在部署时自己决定写入什么、覆盖什么。作者的说法是：有了足够有表达力的序列模型，长上下文的用法可以学，而不用手工设计。</p></div>
+        <div class="card"><h4>2. 状态的更新规则决定了能不能扩展</h4><p>GDN 和 RoboTTT 状态大小都固定、位置和参数量都对齐，区别只在更新规则（线性关联 vs 梯度下降更新的非线性 MLP）。上下文从 1K 加到 8K，前者不涨、后者涨 63%；一次模仿 0/10 对 6/10。这是全文最干净的一组对照。</p></div>
+        <div class="card"><h4>3. 失败也是有用的数据，但要当上下文用</h4><p>DAgger Distillation 和标准 DAgger 用的是同一批数据，差别只在损失掩码。机器人的错误动作当模仿目标毫无帮助，当上下文能带来 20 多个点。这把「评估与反馈」从部署时挪到了训练时：人的纠正就是评价信号，被蒸馏进了快权重的更新方式里。</p></div>
+        <div class="card"><h4>4. 训练和推理是同一套机制</h4><p>和 TT-VLA 在部署时临时加一个 RL 更新不同，RoboTTT 的「测试时更新」本身就是模型前向的一部分，训练时就按同样方式在序列上做了无数次，初值和学习率都是为此元学习出来的。所以它不会像 TT-VLA 那样出现「更新太频繁反而掉分」的问题。</p></div>
+      </div>
+      <h3>容易误解的地方</h3>
+      <div class="prose">
+        <ul>
+          <li><strong>「测试时训练」不等于在测试任务上微调。</strong>慢权重在部署时完全冻结，只有每层那个约 10M 参数的快 MLP 在变，而且每个回合都从学到的 W<sub>0</sub> 重新开始。</li>
+          <li><strong>8K 是预训练长度。</strong>任务后训练只有 1K；部署时快权重一路更新到回合结束（最长约 9K 步），没有上限。</li>
+          <li><strong>VLM 看不到历史。</strong>VLM 每一步只处理当前图像和语言；跨时间的信息全在动作头里，由 16 个寄存器 token 带着视觉语言信息进入 TTT 层。</li>
+          <li><strong>完成分不等于成功率。</strong>79 是按细则给分的平均，完整成功次数是 9/20、13/20、2/10。</li>
+        </ul>
+      </div>
+      <h3>FAQ</h3>
+      <details class="faq"><summary>推理时每一步要做一次反向传播吗？很慢吧？</summary><div class="a"><p>要对快模型（两层 MLP）做一次梯度更新，16 层每层一个。论文的说法是「推理时延不随上下文增长」，因为每步的计算量固定。但它没有给出每步耗时，也没有和 GR00T N1.7 原版比较，只说在 RTX 5090 上以 30 Hz 控制。动作块长度 H 和去噪步数 k 也没有披露，所以每秒实际要跑多少次推理、每次多长都不清楚。</p></div></details>
+      <details class="faq"><summary>为什么需要寄存器 token？</summary><div class="a"><p>每步 VLM 输出的 VL token 很多，直接送进 TTT 层太贵。16 个寄存器 token 在每步的注意力里读取所有 token（包括交叉注意力读 VL token），再把这一步的信息带进 TTT 层。消融里加寄存器提升 18%；同样的寄存器加到不跨时间的 GR00T 上反而降分。</p></div></details>
+      <details class="faq"><summary>为什么只冻结 GR00T、只训新层来预训练？</summary><div class="a"><p>附录写明：预训练只调新加的序列层（TTT 或 GDN），其余冻结；后训练才全部微调。配合 tanh 门控（初值 0.001），目的是不破坏 GR00T 已有的能力。这也意味着「上下文扩展」实验里，变的只有序列层看过多长的序列。</p></div></details>
+      <details class="faq"><summary>一次模仿的「没见过的配置」有多难？</summary><div class="a"><p>Circuit 约 80 种配置，训练用 20 种（每种 5–20 段人类视频），测试在其余配置上。配置由元件组合和左右两侧的装配顺序决定；顺序错了不给分。GDN 完成分 33% 但没有一次完整成功，主要错在拿错元件或顺序装反。</p></div></details>
+    </section>
+
+    <section id="limits">
+      <p class="eyebrow">局限与疑点</p>
+      <h2>作者承认的，和我们读出来的</h2>
+      <div class="two">
+        <div>
+          <h4>论文自己提到的</h4>
+          <ul>
+            <li>训练上下文越长，训练成本越高；可以采用 TNT 等更新的 TTT 训练技巧。</li>
+            <li>TTT 层的内层目标沿用通用的键值重建损失，可以探索面向机器人的目标。</li>
+            <li>不能处理部署中遇到的所有失败；下一步可以结合强化学习直接优化任务成功。</li>
+            <li>1K 以下的版本回合比训练窗口长，快权重更新到训练中没见过的远处。</li>
+          </ul>
+        </div>
+        <div>
+          <h4>我们读出来的</h4>
+          <ul>
+            <li><span class="tag doubt">疑点</span>主图 Pup Go Car 已含 DAgger 训练（序列模型用 DAgger Distillation），只在 Figure 8 图注里说明。</li>
+            <li><span class="tag doubt">疑点</span>「推理时延不随上下文增长」没有任何时延数字；动作块长度 H、去噪步数 k、推理时每次更新覆盖几个时间步都未披露。</li>
+            <li><span class="tag doubt">疑点</span>扩展曲线每点一次运行，512 步处 GDN 略高；参考线与其他图还原出的数字对不上。</li>
+            <li>真机每格 20 次（Gear Bot 与一次模仿 10 次），没有方差或显著性。</li>
+            <li>只有一个平台（YAM 双臂）、三个任务，都是装配类。</li>
+            <li>相关工作把 TT-VLA 描述成「在测试任务上收集额外数据微调整个模型」，与 TT-VLA 的实际做法（回合内用进度奖励在线更新 LoRA，不额外收数据）不符。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="topic">
+      <p class="eyebrow">放到专题里看</p>
+      <h2>反馈写进权重，而且训练时就学会了怎么写</h2>
+      <div class="prose">
+        <p>在 <a href="../../topics/robot-harness/">Harness for Robotics 专题</a>里，RoboTTT 归入（4）评估与反馈：部署时，执行产生的每一步观测和动作都在更新策略的快权重；训练时，DAgger Distillation 用人的纠正作为评价信号，教会快权重「看到这种失败就这样改」。</p>
+        <p><span class="tag read">解读</span>需要说明它和（4）的定义并不完全吻合：（4）要求「显式评价信号」，而 RoboTTT 在测试时的更新信号是自监督的键值重建损失，没有任何打分；显式的评价（人的纠正）只出现在训练时。从机制看，它同样接近（2）持久状态与记忆：快权重就是一种跨步保存执行历史的状态。我们按「在回合内根据执行结果改变策略参数」这一点，把它和 TT-VLA 放在一起。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t cmp">
+          <thead><tr><th></th><th class="me">RoboTTT</th><th>TT-VLA</th><th>τ₀-VLA</th><th>MemoryVLA（2）</th></tr></thead>
+          <tbody>
+            <tr><th>测试时变的是什么</th><td class="me">每层约 10M 的快 MLP 权重</td><td>LoRA 参数</td><td>执行记忆（文本）与子任务选择</td><td>特征记忆库（token）</td></tr>
+            <tr><th>更新信号</th><td class="me">自监督键值重建损失（每步）</td><td>VLAC 进度差分做 PPO 奖励（每 8 步）</td><td>世界模型想象 + 价值打分（执行前）</td><td>门控写入，无损失</td></tr>
+            <tr><th>显式评价出现在</th><td class="me">训练时：人的纠正（DAgger Distillation）</td><td>测试时：进度估计器</td><td>测试时：价值模型</td><td>无</td></tr>
+            <tr><th>训练与测试是否同一机制</th><td class="me">是，更新规则和初值都元学习过</td><td>否，部署时额外加一层 RL</td><td>搜索组件单独训练</td><td>是</td></tr>
+            <tr><th>跨回合</th><td class="me">每回合从 W<sub>0</sub> 重来</td><td>每回合重置</td><td>记忆随回合清空</td><td>随回合清空</td></tr>
+            <tr><th>动作头</th><td class="me">flow matching DiT（GR00T）</td><td>只支持离散 token</td><td>flow matching（MoT）</td><td>扩散 DiT</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>和 TT-VLA：</strong>两篇都在部署时改模型参数，但思路相反。TT-VLA 在一个训练好的 VLA 外面临时加 RL 更新，靠外部进度估计器给奖励，更新太频繁会掉到基座以下；RoboTTT 的更新是模型本身的一部分，训练时就以同样的方式在长序列上做过，不需要外部评价器。TT-VLA 只支持离散 token 的自回归 VLA，RoboTTT 正好建在 flow matching 的 GR00T 上。</li>
+          <li><strong>和 τ₀-VLA：</strong>τ₀ 在执行前评价、改的是选哪个子任务；RoboTTT 在执行后吸收结果、改的是动作头的权重。τ₀ 的「记忆滞后 / 超前 / 未察觉失败」扰动样本，和 RoboTTT 的 DAgger Distillation 想解决的是同一类问题：让策略在自己出错之后知道该做什么。</li>
+          <li><strong>和（2）类的 MemoryVLA、OptimusVLA：</strong>它们把历史存成 token 库或已执行的动作块，容量有上限或要合并；RoboTTT 把历史压进权重，容量由 MLP 决定，不需要删除或合并的规则。RoboTTT 的消融里「让动作 token 进 TTT」提升 23%，和 OptimusVLA 读已执行动作块的思路相通。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="glossary">
+      <p class="eyebrow">术语表</p>
+      <h2>读这篇会遇到的词</h2>
+      <details class="gl"><summary>展开术语表</summary>
+        <dl>
+          <dt>TTT</dt><dd>Test-Time Training，测试时训练：一小部分参数（快权重）在训练和推理时都用自监督损失做梯度更新。</dd>
+          <dt>快权重 / 慢权重</dt><dd>快权重在推理时也被更新；慢权重（普通参数）推理时冻结。</dd>
+          <dt>W<sub>0</sub></dt><dd>快权重的初值，每个回合从它开始，通过「梯度的梯度」元学习。</dd>
+          <dt>寄存器 token</dt><dd>每步前面加的 16 个可学习 token，在注意力里读取本步信息，再带进 TTT 层。</dd>
+          <dt>序列动作强制</dt><dd>sequence action forcing：序列训练时每个动作块独立采 flow matching 的噪声水平。</dd>
+          <dt>TBPTT</dt><dd>截断反传：梯度只在段内流动，快权重跨段传递。</dd>
+          <dt>DAgger</dt><dd>机器人执行、人在出错时接管纠正的数据采集方式；标准做法只用人的纠正微调。</dd>
+          <dt>DAgger Distillation</dt><dd>整条交互历史都更新快权重，损失只算在人的纠正上。</dd>
+          <dt>GDN</dt><dd>Gated DeltaNet，线性复杂度的循环记忆层，状态用门控 delta 规则更新，不做梯度下降。</dd>
+          <dt>Algorithm Distillation</dt><dd>把一个学习过程（这里是人纠正机器人的过程）蒸馏进模型的上下文学习能力里。</dd>
+          <dt>YAM</dt><dd>本文使用的双臂桌面机器人平台。</dd>
+        </dl>
+      </details>
+    </section>
+  </main>
+</div>
+<footer class="page">
+  <p>图全部来自论文 arXiv 源码（v1）里的原图；Table 1–3 的数字取自 tex 表格。Figure 7、8、10、12 原图没有数值标注，数字按矢量 PDF 中柱子和点的坐标换算，与正文给出的平均值、百分比核对一致；Figure 10 的图案填充柱读自渲染图。标「解读」的是我们的判断。</p>
+</footer>
+<dialog id="lb" aria-label="放大查看"><div class="box"><img id="lb-img" alt=""></div><div class="bar"><span id="lb-cap"></span><button type="button" id="lb-close">关闭</button></div></dialog>
+<div class="tip" id="tip" hidden></div>
+<script>
+(function(){
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, text){ const e = document.createElementNS(NS, tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+  const tip = $('#tip');
+  function place(x, y){ const r = tip.getBoundingClientRect(); let l = x + 14, t = y + 14; if (l + r.width > innerWidth - 8) l = x - r.width - 14; if (t + r.height > innerHeight - 8) t = y - r.height - 14; tip.style.left = Math.max(8, l) + 'px'; tip.style.top = Math.max(8, t) + 'px'; }
+  document.addEventListener('pointerover', e => { const t = e.target.closest && e.target.closest('[data-tip]'); if (!t) return; tip.textContent = t.getAttribute('data-tip'); tip.hidden = false; place(e.clientX, e.clientY); });
+  document.addEventListener('pointermove', e => { if (tip.hidden) return; if (!(e.target.closest && e.target.closest('[data-tip]'))) { tip.hidden = true; return; } place(e.clientX, e.clientY); });
+  const lb = $('#lb');
+  $$('figure.plate .zoom').forEach(b => b.addEventListener('click', () => { $('#lb-img').src = b.dataset.src; const c = b.parentElement.querySelector('figcaption b'); $('#lb-cap').textContent = c ? c.textContent : ''; if (lb.showModal) lb.showModal(); else lb.setAttribute('open', ''); }));
+  $('#lb-close').addEventListener('click', () => lb.close());
+  lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+  const links = $$('.toc a');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id)); }), { rootMargin: '-35% 0px -60% 0px' });
+    $$('main section').forEach(s => io.observe(s));
+  }
+  function rawTable(host, head, rows){
+    const d = document.createElement('div'); d.className = 'tblwrap';
+    d.innerHTML = '<table class="t"><thead><tr>' + head.map((h, i) => '<th' + (i ? ' class="num"' : '') + '>' + h + '</th>').join('') + '</tr></thead><tbody>' +
+      rows.map(r => '<tr' + (r.best ? ' class="best"' : '') + '>' + r.cells.map((c, i) => i ? '<td class="num">' + c + '</td>' : '<th>' + c + '</th>').join('') + '</tr>').join('') + '</tbody></table>';
+    host.appendChild(d);
+  }
+  function seg(host, onPick){ $$('button', host).forEach(b => b.addEventListener('click', () => { $$('button', host).forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); onPick(b.dataset.k); })); }
+  function vgroups(svg, groups, series, opt){
+    opt = opt || {}; const W = opt.W || 760, H = opt.H || 250, L = 40, R = 10, T = opt.T || 22, B = opt.B || 40, lo = opt.lo || 0, hi = opt.max || 100;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+    for (let g = lo; g <= hi + 1e-9; g += (opt.step || 20)) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g)); }
+    const n = groups.length, gw = (W - L - R) / n, bw = Math.min(opt.bw || 24, (gw - 12) / series.length);
+    groups.forEach((gr, i) => {
+      const cx = L + gw * i + gw / 2, x0 = cx - bw * series.length / 2; let lastY = null;
+      if (gr.sep) svg.appendChild(el('line', { x1: L + gw * i, x2: L + gw * i, y1: T - 10, y2: H - 8, stroke: 'var(--ink-2)', 'stroke-dasharray': '3 3' }));
+      series.forEach((s, j) => {
+        const v = gr.vals[j]; if (v == null) return; const yy = y(Math.max(lo, v));
+        let ly = yy - 4; if (j && lastY != null && Math.abs(ly - lastY) < 11) ly = Math.min(ly, lastY - 11); lastY = ly;
+        svg.appendChild(el('rect', { x: x0 + j * bw + 1, y: yy, width: bw - 2, height: Math.max(1, y(lo) - yy), rx: 2, class: s.cls, 'data-tip': gr.name.replace(/\n/g, ' ') + ' · ' + s.name + '：' + (gr.tips ? gr.tips[j] : v) }));
+        svg.appendChild(el('text', { x: x0 + j * bw + bw / 2, y: ly, 'text-anchor': 'middle', class: 'val', 'font-size': 9.5 }, opt.fmt ? opt.fmt(v, gr, j) : v));
+      });
+      gr.name.split('\n').forEach((w, k) => svg.appendChild(el('text', { x: cx, y: H - B + 16 + k * 13, 'text-anchor': 'middle', class: 'glabel', 'font-size': 11.5, 'font-weight': gr.bold ? 700 : 400 }, w)));
+    });
+    svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(lo), y2: y(lo), class: 'base' }));
+    if (opt.title) svg.appendChild(el('text', { x: L, y: 12, class: 'tick' }, opt.title));
+  }
+
+  /* ---------- hero ribbon ---------- */
+  (function(){
+    const g = $('#rb');
+    const xs = [60, 170, 280, 390];
+    g.appendChild(el('text', { x: 10, y: 22, class: 'lab' }, '时间 →'));
+    xs.forEach((x, i) => {
+      const lab = i === 3 ? '…' : 't = ' + (i + 1);
+      g.appendChild(el('text', { x: x + 30, y: 22, 'text-anchor': 'middle', class: 'm' }, lab));
+      if (i === 3) { g.appendChild(el('text', { x: x + 30, y: 120, 'text-anchor': 'middle', class: 'lab' }, '… 8K 步')); return; }
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) g.appendChild(el('rect', { x: x + 6 + c * 16, y: 92 + r * 16, width: 14, height: 14, rx: 2, fill: 'color-mix(in oklab,var(--hd) ' + (30 + i * 25) + '%,var(--surface))' }));
+      g.appendChild(el('text', { x: x + 30, y: 162, 'text-anchor': 'middle', class: 'm' }, 'W' + (i + 1)));
+      ['R', 'q', 'Ã'].forEach((t, k) => { g.appendChild(el('rect', { x: x + k * 21, y: 34, width: 18, height: 18, rx: 3, fill: k === 0 ? 'var(--ex-soft)' : 'var(--surface-2)', stroke: 'var(--line)' })); g.appendChild(el('text', { x: x + k * 21 + 9, y: 47, 'text-anchor': 'middle', class: 'm' }, t)); });
+      g.appendChild(el('path', { d: 'M' + (x + 30) + ' 56 L' + (x + 30) + ' 86', stroke: 'var(--ink-2)', 'stroke-width': 1.2, 'marker-end': 'url(#ra)' }));
+      g.appendChild(el('text', { x: x + 36, y: 76, class: 'm' }, '∇ 更新'));
+      g.appendChild(el('path', { d: 'M' + (x + 30) + ' 168 L' + (x + 30) + ' 196', stroke: 'var(--hd)', 'stroke-width': 1.2, 'marker-end': 'url(#ra)' }));
+      g.appendChild(el('rect', { x: x + 4, y: 200, width: 52, height: 22, rx: 5, fill: 'var(--hd-soft)', stroke: 'var(--hd)' }));
+      g.appendChild(el('text', { x: x + 30, y: 215, 'text-anchor': 'middle', class: 'm' }, '动作块'));
+      if (i < 2) g.appendChild(el('path', { d: 'M' + (x + 58) + ' 116 L' + (xs[i + 1]) + ' 116', stroke: 'var(--hd)', 'stroke-width': 2, 'marker-end': 'url(#ra)' }));
+    });
+    g.appendChild(el('path', { d: 'M278 116 L388 116', stroke: 'var(--hd)', 'stroke-width': 2, 'stroke-dasharray': '4 3' }));
+    const df = el('defs'); const mk = el('marker', { id: 'ra', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto' }); mk.appendChild(el('path', { d: 'M0 0 L10 5 L0 10 z', fill: 'var(--ink-2)' })); df.appendChild(mk); g.appendChild(df);
+    g.appendChild(el('text', { x: 460, y: 104, class: 'lab' }, '快权重'));
+    g.appendChild(el('text', { x: 460, y: 122, class: 'lab' }, '跨步传递'));
+    g.appendChild(el('text', { x: 10, y: 250, class: 'm' }, '每步计算量固定 · 每回合从 W₀ 开始'));
+  })();
+
+  /* ---------- context lab ---------- */
+  (function(){
+    const L = ['128', '256', '512', '1K', '2K', '4K', '8K'], N = [128, 256, 512, 1024, 2048, 4096, 8192];
+    const RT = [30.8, 28.9, 39.3, 43.9, 54.3, 60.3, 71.5], GD = [1.5, 18.0, 40.2, 34.6, 42.6, 35.5, 44.3];
+    const host = $('#ctx-pick');
+    L.forEach((l, i) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.k = i; b.textContent = l; b.setAttribute('aria-pressed', i === 6 ? 'true' : 'false'); host.appendChild(b); });
+    const svg = $('#ctx-svg');
+    function draw(i){
+      svg.innerHTML = '';
+      const x0 = 150, x1 = 740, MAX = 9600, x = s => x0 + (x1 - x0) * s / MAX;
+      for (let s = 0; s <= 9000; s += 1800) { svg.appendChild(el('line', { x1: x(s), x2: x(s), y1: 16, y2: 222, stroke: 'var(--line)' })); svg.appendChild(el('text', { x: x(s), y: 238, 'text-anchor': 'middle', class: 'm' }, (s / 30 / 60) + ' min')); }
+      const rows = [['Circuit（约 1 min）', 1800, 'var(--base-2)'], ['Pup Go Car（约 2 min）', 3600, 'var(--base-2)'], ['Gear Bot（约 5 min）', 9000, 'var(--base-2)']];
+      rows.forEach((r, k) => { const y = 24 + k * 30; svg.appendChild(el('text', { x: 8, y: y + 14, class: 'lab2' }, r[0])); svg.appendChild(el('rect', { x: x0, y, width: x(r[1]) - x0, height: 18, rx: 4, fill: r[2] })); });
+      svg.appendChild(el('text', { x: 8, y: 132, class: 'lab2' }, '后训练窗口'));
+      svg.appendChild(el('rect', { x: x0, y: 118, width: x(1024) - x0, height: 18, rx: 4, fill: 'var(--ex)' }));
+      svg.appendChild(el('text', { x: x(1024) + 6, y: 132, class: 'm' }, '1K ≈ 34 s'));
+      svg.appendChild(el('text', { x: 8, y: 172, class: 'lab2' }, '预训练窗口'));
+      svg.appendChild(el('rect', { x: x0, y: 158, width: Math.max(2, x(N[i]) - x0), height: 18, rx: 4, fill: 'var(--hd)' }));
+      svg.appendChild(el('text', { x: x(N[i]) + 6, y: 172, class: 'm' }, L[i] + ' ≈ ' + (N[i] / 30).toFixed(0) + ' s'));
+      svg.appendChild(el('text', { x: 8, y: 212, class: 'lab2' }, '部署时快权重'));
+      svg.appendChild(el('path', { d: 'M' + x0 + ' 204 L' + x(9000) + ' 204', stroke: 'var(--hd)', 'stroke-width': 2, 'stroke-dasharray': '5 4' }));
+      svg.appendChild(el('text', { x: x0 + 4, y: 218, class: 'm' }, '一直更新到回合结束，没有窗口'));
+      const ratio = (9000 / N[i]).toFixed(1);
+      $('#ctx-read').innerHTML = '<div><span class="k">RoboTTT 平均分</span><b>' + RT[i].toFixed(1) + '</b></div><div><span class="k">GDN 平均分</span><b>' + GD[i].toFixed(1) + '</b></div><div><span class="k">单步 / 短上下文</span><b>37.6 / 45.6</b></div><div><span class="k">Gear Bot ÷ 预训练窗口</span><b>' + ratio + '×</b></div>';
+      let s = '预训练窗口 ' + L[i] + ' 步，约 ' + (N[i] / 30).toFixed(0) + ' 秒。';
+      if (N[i] < 1024) s += ' 比后训练窗口还短，也比最短的任务（Circuit 约 1 分钟）短，部署时快权重会被更新到预训练里从没见过的远处。论文认为这是 1K 以下表现差的原因。';
+      else if (N[i] < 8192) s += ' 预训练见过的序列已经比后训练长，但仍短于 Gear Bot 的 5 分钟。';
+      else s += ' 接近 Gear Bot 的长度（约 9K 步）。曲线到这里还在上升。';
+      if (i === 2) s += ' 这一点 GDN（40.2）略高于 RoboTTT（39.3），与正文「1K 以下仍优于 GDN」不完全一致。';
+      $('#ctx-say').textContent = s;
+    }
+    seg(host, k => draw(+k)); draw(6);
+  })();
+
+  /* ---------- DAgger lab ---------- */
+  (function(){
+    const SEQ = ['R', 'R', 'R', 'R', 'H', 'H', 'R', 'R', 'R', 'H', 'H', 'H', 'R', 'R'];
+    const DATA = { human: { n: '标准 DAgger', v: [['RoboTTT', 66, 73], ['GDN', 44, 51], ['GR00T N1.7', 53, 57], ['GR00T Hist.', 39, 40]] }, full: { n: '全轨迹当目标', v: [['GR00T N1.7', 53, 57]] }, dd: { n: 'DAgger Distillation', v: [['RoboTTT', 66, 89], ['GDN', 44, 57]] } };
+    const svg = $('#dd-svg');
+    function draw(m){
+      svg.innerHTML = '';
+      const x0 = 150, w = 40;
+      svg.appendChild(el('text', { x: 8, y: 34, class: 'lab2' }, '执行的动作块'));
+      svg.appendChild(el('text', { x: 8, y: 94, class: 'lab2' }, '更新快权重'));
+      svg.appendChild(el('text', { x: 8, y: 154, class: 'lab2' }, '计算模仿损失'));
+      SEQ.forEach((s, i) => {
+        const x = x0 + i * w;
+        svg.appendChild(el('rect', { x: x + 2, y: 18, width: w - 4, height: 24, rx: 4, fill: s === 'H' ? 'var(--pos)' : 'var(--warn-soft)', stroke: s === 'H' ? 'var(--pos)' : 'var(--warn)', 'data-tip': s === 'H' ? '人的纠正动作' : '机器人自己的动作（其中有错误）' }));
+        svg.appendChild(el('text', { x: x + w / 2, y: 34, 'text-anchor': 'middle', class: 'm', style: s === 'H' ? 'fill:var(--bg)' : '' }, s === 'H' ? '人' : '机'));
+        const ctxOn = m === 'dd';
+        svg.appendChild(el('rect', { x: x + 2, y: 78, width: w - 4, height: 24, rx: 4, fill: ctxOn ? 'var(--hd)' : 'var(--surface-2)', opacity: ctxOn ? 1 : .6 }));
+        const loss = m === 'full' ? true : s === 'H';
+        svg.appendChild(el('rect', { x: x + 2, y: 138, width: w - 4, height: 24, rx: 4, fill: loss ? 'var(--ex)' : 'var(--surface-2)', opacity: loss ? 1 : .6 }));
+      });
+      const note = m === 'dd' ? '整条历史（含错误）都进快权重' : (m === 'human' ? '非序列模型没有快权重；序列模型只在纠正片段上训练' : 'GR00T 没有快权重，所有动作都当模仿目标');
+      svg.appendChild(el('text', { x: x0, y: 122, class: 'm' }, note));
+      svg.appendChild(el('text', { x: x0, y: 186, class: 'm' }, m === 'full' ? '机器人自己的错误动作也被当成要模仿的' : '只有人的纠正被当成要模仿的'));
+      const d = DATA[m];
+      $('#dd-read').innerHTML = d.v.map(r => '<div><span class="k">' + r[0] + '</span><b>' + r[1] + ' → ' + r[2] + '</b><span class="k">+' + Math.round((r[2] / r[1] - 1) * 100) + '%</span></div>').join('');
+      const S = { human: '标准 DAgger：只拿人的纠正片段微调，机器人自己的错误动作被扔掉。四个模型平均提升约 9%，序列模型约 13%。', full: '把整条轨迹（包括机器人出错的动作）都当模仿目标。论文只在 GR00T 上跑了这一种，结果和只用人的动作完全一样（57）：错误动作作为目标没有价值。', dd: 'DAgger Distillation：错误动作和纠正动作都进入快权重（上下文），损失只算在纠正上。模型学到的是「刚才这样错了 → 接下来这样改」。只有序列模型能用：RoboTTT +36%，GDN +29%。主图 Pup Go Car 的 RoboTTT 和 GDN 分数就是这一行。' };
+      $('#dd-say').textContent = S[m] + ' 机器人与人的片段排列是示意，数字来自原文 Figure 10。';
+    }
+    seg($('#dd-pick'), k => draw(k)); draw('dd');
+  })();
+
+  /* ---------- main chart ---------- */
+  const M = [['RoboTTT', 'c-hd', [89, 78, 71, 79], ['9/20', '13/20', '2/10']], ['GR00T N1.7', 'c-b0', [57, 23, 47, 42], ['3/20', '3/20', '0/10']], ['GR00T N1.7 Hist.', 'c-b1', [39.5, 54, 54, 49], ['0/20', '8/20', '0/10']], ['GDN', 'c-ex', [57, 53, 59, 56], ['3/20', '8/20', '0/10']]];
+  vgroups($('#ch-main'), ['Pup Go Car', 'Circuit\n（未见配置）', 'Gear Bot', '平均'].map((t, i) => ({ name: t, sep: i === 3, bold: i === 3, vals: M.map(m => m[2][i]), tips: M.map(m => m[2][i] + (i < 3 ? '，完整成功 ' + m[3][i] : '')) })), M.map(m => ({ name: m[0], cls: m[1] })), { H: 260, B: 44, bw: 28 });
+  rawTable($('#raw-main'), ['方法', 'Pup Go Car', 'Circuit', 'Gear Bot', '平均', '成功 Pup', '成功 Circuit', '成功 Gear'], M.map((m, i) => ({ cells: [m[0]].concat(m[2], m[3]), best: i === 0 })));
+
+  /* ---------- one-shot & perturbation ---------- */
+  vgroups($('#ch-os'), [
+    { name: '一次模仿\n完成分', vals: [65, null, null, 33], tips: ['65%，完整成功 6/10', '', '', '33%，完整成功 0/10'] },
+    { name: '一次模仿\n完整成功', vals: [60, null, null, 0], tips: ['6/10', '', '', '0/10'] },
+    { name: '车顶被拆\n恢复', vals: [75, 50, 15, 65], tips: ['15/20', '10/20', '3/20', '13/20'], sep: true },
+    { name: '轮胎被拆\n恢复', vals: [90, 55, 25, 90], tips: ['18/20', '11/20', '5/20', '18/20'] }
+  ], M.map(m => ({ name: m[0], cls: m[1] })), { B: 44, bw: 30, fmt: (v, gr, j) => gr.tips[j].split('，')[0] });
+
+  /* ---------- scaling ---------- */
+  (function(){
+    const svg = $('#ch-sc'); svg.innerHTML = '';
+    const L = ['128', '256', '512', '1K', '2K', '4K', '8K'], RT = [30.8, 28.9, 39.3, 43.9, 54.3, 60.3, 71.5], GD = [1.5, 18.0, 40.2, 34.6, 42.6, 35.5, 44.3];
+    const W = 760, H = 290, X0 = 60, X1 = 730, T = 16, B = 40, x = i => X0 + (X1 - X0) * i / 6, y = v => T + (H - T - B) * (1 - v / 80);
+    for (let v = 0; v <= 80; v += 20) { svg.appendChild(el('line', { x1: X0, x2: X1, y1: y(v), y2: y(v), class: 'grid' })); svg.appendChild(el('text', { x: X0 - 8, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, v)); }
+    L.forEach((l, i) => svg.appendChild(el('text', { x: x(i), y: H - B + 18, 'text-anchor': 'middle', class: 'tick' }, l)));
+    svg.appendChild(el('text', { x: (X0 + X1) / 2, y: H - 6, 'text-anchor': 'middle', class: 'tick' }, '预训练上下文长度（步，30 Hz）'));
+    [[37.6, 'var(--base)', '6 3', '单步 37.6'], [45.6, 'var(--base-2)', '2 3', '短上下文 45.6']].forEach(r => { svg.appendChild(el('line', { x1: X0, x2: X1, y1: y(r[0]), y2: y(r[0]), stroke: r[1], 'stroke-width': 2, 'stroke-dasharray': r[2] })); svg.appendChild(el('text', { x: X1, y: y(r[0]) - 5, 'text-anchor': 'end', class: 'tick' }, r[3])); });
+    [[RT, 'var(--hd)', 'RoboTTT'], [GD, 'var(--ex)', 'GDN']].forEach(s => {
+      svg.appendChild(el('polyline', { points: s[0].map((v, i) => x(i) + ',' + y(v)).join(' '), fill: 'none', stroke: s[1], 'stroke-width': 2.4 }));
+      s[0].forEach((v, i) => { svg.appendChild(el('circle', { cx: x(i), cy: y(v), r: 5, fill: s[1], 'data-tip': s[2] + ' · ' + L[i] + '：' + v.toFixed(1) })); svg.appendChild(el('text', { x: x(i), y: y(v) + (s[2] === 'GDN' ? 16 : -9), 'text-anchor': 'middle', class: 'val', 'font-size': 10 }, v.toFixed(1))); });
+    });
+    rawTable($('#raw-sc'), ['方法'].concat(L), [{ cells: ['RoboTTT'].concat(RT.map(v => v.toFixed(1))), best: true }, { cells: ['GDN'].concat(GD.map(v => v.toFixed(1))) }, { cells: ['单步上下文（GR00T）'].concat(L.map(() => '37.6')) }, { cells: ['短上下文（GR00T Hist.）'].concat(L.map(() => '45.6')) }]);
+  })();
+
+  /* ---------- DAgger results ---------- */
+  vgroups($('#ch-dd'), [
+    { name: 'RoboTTT', vals: [89, 73, null, 66] }, { name: 'GDN', vals: [57, 51, null, 44] },
+    { name: 'GR00T N1.7', vals: [null, 57, 57, 53] }, { name: 'GR00T N1.7 Hist.', vals: [null, 40, null, 39] }
+  ], [{ name: 'DAgger Distillation', cls: 'c-hd' }, { name: '标准 DAgger', cls: 'c-ex' }, { name: '全轨迹', cls: 'c-pos' }, { name: 'DAgger 之前', cls: 'c-b1' }], { bw: 30, B: 40 });
+
+  /* ---------- ablation ---------- */
+  (function(){
+    const svg = $('#ch-abl'); svg.innerHTML = '';
+    const rows = [['GR00T N1.7 + 寄存器 token', 44, 'c-b0'], ['去掉序列动作强制', 2, 'c-warn'], ['快模型换成线性层', 48, 'c-ex'], ['TTT 只处理本体 token', 45, 'c-b1'], ['+ 动作 token', 56, 'c-b1'], ['+ 寄存器 token（完整 RoboTTT）', 66, 'c-hd']];
+    const L = 210, W = 720, x = v => L + (W - L - 50) * v / 70;
+    for (let g = 0; g <= 70; g += 10) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: 6, y2: 200, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: 216, 'text-anchor': 'middle', class: 'tick' }, g)); }
+    rows.forEach((r, i) => { const yy = 8 + i * 32 + (i >= 3 ? 6 : 0); svg.appendChild(el('text', { x: L - 10, y: yy + 17, 'text-anchor': 'end', class: 'glabel', 'font-weight': i === 5 ? 700 : 400 }, r[0])); svg.appendChild(el('rect', { x: L, y: yy + 4, width: Math.max(2, x(r[1]) - L), height: 20, rx: 3, class: r[2], 'data-tip': r[0] + '：约 ' + r[1] })); svg.appendChild(el('text', { x: x(r[1]) + 6, y: yy + 18, class: 'val' }, r[1])); });
+    svg.appendChild(el('line', { x1: 10, x2: W - 10, y1: 108, y2: 108, stroke: 'var(--line)', 'stroke-dasharray': '3 3' }));
+  })();
+})();
+</script>
+</body>
+</html>

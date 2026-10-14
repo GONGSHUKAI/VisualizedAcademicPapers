@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="icon" href="data:,">
-<title>Harness for Robotics · 十一篇精读</title>
-<meta name="description" content="Harness for Robotics 专题：上下文架构、持久状态与记忆、结构化执行、评估与反馈四类，共 11 篇论文的中文精读索引与横向对照。">
+<title>Harness for Robotics · 十二篇精读</title>
+<meta name="description" content="Harness for Robotics 专题：上下文架构、持久状态与记忆、结构化执行、评估与反馈四类，共 12 篇论文的中文精读索引与横向对照。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
@@ -163,19 +163,19 @@ footer p{margin:0 0 8px;max-width:60em}
 </head>
 <body>
 <!-- vap:nav -->
-<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/" aria-current="page">Harness for Robotics</a></span><span class="vapnav-links"><span class="vapnav-grp"><span class="vapnav-cat">上下文</span><a href="../../papers/activevla/">ActiveVLA</a><a href="../../papers/tic-vla/">TIC-VLA</a><a href="../../papers/ra-vla/">RA-VLA</a></span><span class="vapnav-grp"><span class="vapnav-cat">记忆</span><a href="../../papers/memoryvla/">MemoryVLA</a><a href="../../papers/optimusvla/">OptimusVLA</a><a href="../../papers/soma/">SOMA</a><a href="../../papers/hime/">HiMe</a></span><span class="vapnav-grp"><span class="vapnav-cat">结构化执行</span><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/motormind/">MotorMind</a></span><span class="vapnav-grp"><span class="vapnav-cat">评估与反馈</span><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/tau0-vla/">τ₀-VLA</a></span></span></div></div>
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/" aria-current="page">Harness for Robotics</a></span><span class="vapnav-links"><span class="vapnav-grp"><span class="vapnav-cat">上下文</span><a href="../../papers/activevla/">ActiveVLA</a><a href="../../papers/tic-vla/">TIC-VLA</a><a href="../../papers/ra-vla/">RA-VLA</a></span><span class="vapnav-grp"><span class="vapnav-cat">记忆</span><a href="../../papers/memoryvla/">MemoryVLA</a><a href="../../papers/optimusvla/">OptimusVLA</a><a href="../../papers/soma/">SOMA</a><a href="../../papers/hime/">HiMe</a></span><span class="vapnav-grp"><span class="vapnav-cat">结构化执行</span><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/motormind/">MotorMind</a></span><span class="vapnav-grp"><span class="vapnav-cat">评估与反馈</span><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/robottt/">RoboTTT</a><a href="../../papers/tau0-vla/">τ₀-VLA</a></span></span></div></div>
 <!-- /vap:nav -->
 <div class="wrap">
 <header class="top">
-  <div class="eyebrow">Harness for Robotics · 11 papers</div>
+  <div class="eyebrow">Harness for Robotics · 12 papers</div>
   <h1>Harness for Robotics</h1>
   <p class="lede">Harness 指包在模型外面（或模型内部）的那层执行框架：每一步让模型看到什么、跨步记住什么、任务怎么拆、拆完以什么接口交给下一层、执行时用什么信号判断对错、判断之后改什么。本专题按这个视角读机器人基础模型的论文。</p>
-  <p class="lede">本页按四类收录 11 篇：<strong>（1）上下文架构</strong>（ActiveVLA、TIC-VLA、RA-VLA）、<strong>（2）持久状态与记忆</strong>（MemoryVLA、OptimusVLA、SOMA、HiMe）、<strong>（3）结构化执行</strong>（ACoT-VLA、MotorMind）、<strong>（4）评估与反馈</strong>（TT-VLA、τ₀-VLA）。每篇有单独的精读页，下面是四类的定义、各篇的位置、索引和横向对照。</p>
+  <p class="lede">本页按四类收录 12 篇：<strong>（1）上下文架构</strong>（ActiveVLA、TIC-VLA、RA-VLA）、<strong>（2）持久状态与记忆</strong>（MemoryVLA、OptimusVLA、SOMA、HiMe）、<strong>（3）结构化执行</strong>（ACoT-VLA、MotorMind）、<strong>（4）评估与反馈</strong>（TT-VLA、RoboTTT、τ₀-VLA）。每篇有单独的精读页，下面是四类的定义、各篇的位置、索引和横向对照。</p>
 </header>
 
 <section id="cats" aria-labelledby="h-cats">
   <h2 id="h-cats">四类 harness</h2>
-  <p class="sub">分类按专题定义，每篇归入一类，归类取它们的主要贡献。有几篇跨类：SOMA 的记忆要靠一次主动扫描才建得起来，和（1）的「看哪里」耦合；OptimusVLA 的全局记忆其实是跨回合的轨迹检索，机制上接近 RA-VLA；τ₀-VLA 与 MotorMind 都带执行记忆，也沾（2）。</p>
+  <p class="sub">分类按专题定义，每篇归入一类，归类取它们的主要贡献。有几篇跨类：SOMA 的记忆要靠一次主动扫描才建得起来，和（1）的「看哪里」耦合；OptimusVLA 的全局记忆其实是跨回合的轨迹检索，机制上接近 RA-VLA；τ₀-VLA 与 MotorMind 都带执行记忆，也沾（2）；RoboTTT 的快权重本身就是跨步的状态，测试时的更新信号是自监督的，显式评价只出现在训练时，同样贴着（2）。</p>
   <div class="cats">
     <div class="cat cx">
       <div class="no">（1）</div>
@@ -213,6 +213,7 @@ footer p{margin:0 0 8px;max-width:60em}
       <p>在执行前或执行后引入显式评价信号，根据结果修正计划、更新状态或适应策略，形成闭环。</p>
       <ul>
         <li><a href="../../papers/tt-vla/">TT-VLA</a>：执行后，用进度估计的差分做奖励，在回合内更新策略参数。</li>
+        <li><a href="../../papers/robottt/">RoboTTT</a>：执行后，每一步的观测和动作都写进动作头的快权重；训练时用人的纠正（DAgger Distillation）教它怎样根据失败调整。</li>
         <li><a href="../../papers/tau0-vla/">τ₀-VLA</a>：执行前，用世界模型想象候选子任务的后果、价值模型打分，再提交。</li>
       </ul>
     </div>
@@ -278,10 +279,10 @@ footer p{margin:0 0 8px;max-width:60em}
 </section>
 
 <section id="map" aria-labelledby="h-map">
-  <h2 id="h-map">（3）（4）四篇在两条轴上的位置<span class="tag-interp">解读</span></h2>
+  <h2 id="h-map">（3）（4）五篇在两条轴上的位置<span class="tag-interp">解读</span></h2>
   <p class="sub">横轴：中间接口离电机指令有多近；纵轴：评价信号作用在执行之前还是之后。位置是我们的归纳，不是论文的说法。窄屏下可左右滑动。</p>
   <div class="map"><div class="map-scroll">
-    <svg viewBox="0 0 900 380" role="img" aria-label="四篇论文在接口粒度与评价时机两条轴上的位置">
+    <svg viewBox="0 0 900 380" role="img" aria-label="五篇论文在接口粒度与评价时机两条轴上的位置">
       <line x1="140" y1="330" x2="880" y2="330" stroke="var(--rule-2)"/>
       <line x1="140" y1="30" x2="140" y2="330" stroke="var(--rule-2)"/>
       <text class="m" x="140" y="352">语言子任务</text>
@@ -312,6 +313,12 @@ footer p{margin:0 0 8px;max-width:60em}
         <text x="634" y="320">15 点粗轨迹，不评价</text>
       </g>
       <g>
+        <rect x="660" y="140" width="210" height="76" rx="8" fill="var(--ef-soft)" stroke="var(--ef)"/>
+        <text class="n" x="674" y="162">RoboTTT</text>
+        <text x="674" y="184">每步观测写进快权重（自监督）</text>
+        <text x="674" y="204">纠正方式在训练时学好</text>
+      </g>
+      <g>
         <rect x="690" y="226" width="180" height="58" rx="8" fill="var(--ef-soft)" stroke="var(--ef)"/>
         <text class="n" x="704" y="248">TT-VLA</text>
         <text x="704" y="270">每步进度差 → LoRA 梯度</text>
@@ -332,6 +339,7 @@ footer p{margin:0 0 8px;max-width:60em}
     <li class="me"><div class="d">2026-02 · 2602.20200</div><div><div class="n"><a href="../../papers/optimusvla/">OptimusVLA</a></div><div class="route me">（2）记忆 · 先验与动作历史</div></div><div><p class="role">记忆接在去噪起点上</p><p>检索同类示范轨迹代替高斯噪声，Mamba 读已执行的动作块再加偏置，步数随相似度变。</p></div></li>
     <li class="me"><div class="d">2026-05 · 2605.22283</div><div><div class="n"><a href="../../papers/soma/">SOMA</a></div><div class="route me">（2）记忆 · 空间状态</div></div><div><p class="role">记忆是一张物体地图</p><p>头部相机扫一圈，把视野外的物体写成带 3D 框的 token，操作中门控刷新。</p></div></li>
     <li class="me"><div class="d">2026-07 · 2607.03449</div><div><div class="n"><a href="../../papers/hime/">HiMe</a></div><div class="route me">（2）记忆 · 任务状态</div></div><div><p class="role">记忆放在策略外面，用语言管理</p><p>GPT-4o 只在子任务交接时增改删图文记忆，π0.5 只拿到一句子目标。</p></div></li>
+    <li class="ef"><div class="d">2026-07 · 2607.15275</div><div><div class="n"><a href="../../papers/robottt/">RoboTTT</a></div><div class="route ef">（4）评估与反馈 · 写进快权重</div></div><div><p class="role">执行历史压进权重，部署时也在学</p><p>动作头每层加 TTT 层，上下文扩到 8K 步；DAgger Distillation 让它学会根据自己的失败纠正。</p></div></li>
     <li class="ef"><div class="d">2026-08 · 2608.16885</div><div><div class="n"><a href="../../papers/tau0-vla/">τ₀-VLA</a></div><div class="route ef">（4）评估与反馈 · 执行前</div></div><div><p class="role">评价发生在承诺之前</p><p>带执行记忆的高层；不确定时做世界模型引导的子任务束搜索。</p></div></li>
     <li class="cx"><div class="d">2026-08 · 2608.25585</div><div><div class="n"><a href="../../papers/ra-vla/">RA-VLA</a></div><div class="route cx">（1）上下文 · 检索</div></div><div><p class="role">上下文是检索来的示范片段</p><p>按动作阶段检索新任务示范，动作头每层读一段，margin 损失逼它真的读。</p></div></li>
     <li class="se"><div class="d">2026-09 · 2609.38078</div><div><div class="n"><a href="../../papers/motormind/">MotorMind</a></div><div class="route se">（3）结构化执行 · 模型外部</div></div><div><p class="role">整个 harness 不训练</p><p>冻结通用 VLM 分饰五个角色，输出参数化中层动作，监控异步并行。</p></div></li>
@@ -339,7 +347,7 @@ footer p{margin:0 0 8px;max-width:60em}
 </section>
 
 <section id="papers" aria-labelledby="h-papers">
-  <h2 id="h-papers">十一篇</h2>
+  <h2 id="h-papers">十二篇</h2>
   <p class="sub">每篇给出做法、主要结果和最大的疑点。数字取自各论文 arXiv 源码里的 tex 表格或矢量图的文字层。</p>
   <div class="entries">
     <h3 class="grp-h cx">（1）上下文架构 Context Architecture<small>3 篇</small></h3>
@@ -462,7 +470,7 @@ footer p{margin:0 0 8px;max-width:60em}
         <a class="go" href="../../papers/motormind/">读 MotorMind 精读 →</a>
       </div>
     </article>
-    <h3 class="grp-h ef">（4）评估与反馈 Evaluation &amp; Feedback<small>2 篇</small></h3>
+    <h3 class="grp-h ef">（4）评估与反馈 Evaluation &amp; Feedback<small>3 篇</small></h3>
     <article class="entry">
       <div class="meta"><b>2026-01</b><a href="https://arxiv.org/abs/2601.06748" target="_blank" rel="noopener">arXiv 2601.06748</a><br>UMKC、港科大（广州）、Meta AI 等<br><span class="cl ef">评估与反馈</span></div>
       <div>
@@ -474,6 +482,19 @@ footer p{margin:0 0 8px;max-width:60em}
           <dt>疑点</dt><dd class="doubt">提升大多小于 240 次试验的统计误差，却没有一个负值；主表 3 处数字颠倒、1 处 Δ 算错；超参在测试任务上选；没有延迟数字。</dd>
         </dl>
         <a class="go" href="../../papers/tt-vla/">读 TT-VLA 精读 →</a>
+      </div>
+    </article>
+    <article class="entry">
+      <div class="meta"><b>2026-07</b><a href="https://arxiv.org/abs/2607.15275" target="_blank" rel="noopener">arXiv 2607.15275</a><br>NVIDIA、Stanford、UT Austin<br><span class="cl ef">评估与反馈</span></div>
+      <div>
+        <h4><a href="../../papers/robottt/">RoboTTT</a></h4>
+        <p class="orig">Context Scaling for Robot Policies</p>
+        <dl class="facts">
+          <dt>做法</dt><dd>GR00T N1.7 的 16 层 DiT 动作头每层在注意力后加一个 TTT 层：快模型是两层 MLP，每步用键值重建损失做一次梯度更新，再用更新后的权重输出；注意力只看当前一步，16 个寄存器 token 把视觉语言信息带进 TTT 层。序列动作强制（每个动作块独立采噪声水平）+ 截断反传让上下文扩到 8K 步。DAgger Distillation：整条交互历史都更新快权重，损失只算在人的纠正上。</dd>
+          <dt>结果</dt><dd>YAM 双臂三个装配任务平均完成分 <span class="num">79</span>（GR00T <span class="num">42</span>，GDN <span class="num">56</span>），5 分钟的 Gear Bot 唯一出现完整成功（<span class="num">2/10</span>）；单段人类视频一次模仿 <span class="num">6/10</span>（GDN <span class="num">0/10</span>）；预训练上下文 1K → 8K，平均分 <span class="num">43.9</span> → <span class="num">71.5</span>，GDN 无此趋势。DAgger Distillation 在 Pup Go Car 上 <span class="num">66</span> → <span class="num">89</span>，标准 DAgger 到 <span class="num">73</span>。</dd>
+          <dt>疑点</dt><dd class="doubt">主图 Pup Go Car 的分数已经含 DAgger 训练（序列模型用 DAgger Distillation），只在一张图注里说明，不用 DAgger 时是 <span class="num">66</span> 对 GR00T <span class="num">53</span>。「推理时延不随上下文增长」没有时延数字；动作块长度未披露。扩展曲线每点一次运行，512 步处 GDN 略高。</dd>
+        </dl>
+        <a class="go" href="../../papers/robottt/">读 RoboTTT 精读 →</a>
       </div>
     </article>
     <article class="entry">
@@ -530,19 +551,20 @@ footer p{margin:0 0 8px;max-width:60em}
           <th scope="col"><a href="../../papers/acot-vla/">ACoT-VLA</a><small class="se">结构化执行</small></th>
           <th scope="col"><a href="../../papers/motormind/">MotorMind</a><small class="se">结构化执行</small></th>
           <th scope="col"><a href="../../papers/tt-vla/">TT-VLA</a><small class="ef">评估与反馈</small></th>
+          <th scope="col"><a href="../../papers/robottt/">RoboTTT</a><small class="ef">评估与反馈</small></th>
           <th scope="col"><a href="../../papers/tau0-vla/">τ₀-VLA</a><small class="ef">评估与反馈</small></th></tr>
       </thead>
       <tbody>
-        <tr><th scope="row">层次结构</th><td>VLM → 参考轨迹 → 动作头</td><td>Planner → Executor → 控制器；Monitor / Verifier / Memory 旁路</td><td>单层 VLA，外面套在线更新</td><td>高层（提议 / 世界 / 价值 / 反思）→ 低层 VLA</td></tr>
-        <tr><th scope="row">中间接口</th><td>15 点粗轨迹 + 18 个隐式先验向量（可微）</td><td>子目标 + 成功判据；参数化动作 JSON</td><td>—</td><td>自然语言子任务 + 文本执行记忆</td></tr>
-        <tr><th scope="row">评价信号</th><td>无</td><td>同一个 VLM 自评 + 实测机器人状态</td><td>VLAC 进度估计差分</td><td>想象终态图 + 五档价值打分</td></tr>
-        <tr><th scope="row">评价时机</th><td>—</td><td>执行中（并行）、执行后</td><td>执行后，每一步</td><td>执行前，仅在置信度低时</td></tr>
-        <tr><th scope="row">反馈改变什么</th><td>—</td><td>停 / 重试 / 重规划</td><td>LoRA 参数（回合内）</td><td>选哪个子任务；记忆</td></tr>
-        <tr><th scope="row">要训练什么</th><td>EAR、IAR、AGP、动作头（可冻结 VLM）</td><td>什么都不训练</td><td>测试时只更新 LoRA</td><td>高层 4 个模型 + 低层 VLA</td></tr>
-        <tr><th scope="row">基座</th><td>π0.5（PaliGemma 2B）</td><td>Qwen3.8-Flash-Next / GPT-6 Sol</td><td>OpenVLA、Nora、OpenVLA-RL、TraceVLA</td><td>Qwen3.5-9B（高层）、Qwen3.5-2B（低层）</td></tr>
-        <tr><th scope="row">速度</th><td>每次推理 112 ms（RTX 4090）</td><td>每回合约 223 s</td><td>未报告</td><td>高层约 1 s 刷新，低层约 30 Hz；搜索耗时未报告</td></tr>
-        <tr><th scope="row">任务时长</th><td>LIBERO 短任务；参考轨迹约 3 s</td><td>LIBERO-PRO、单物体真机拾放</td><td>160 步拾放</td><td>1–10 分钟，最长 12 分钟</td></tr>
-        <tr><th scope="row">评测</th><td>LIBERO、LIBERO-Plus、VLABench、真机 4 项（12–40 次）</td><td>LIBERO-PRO（60 + 240 回合）、动态任务、xArm6</td><td>ManiSkill3 15 任务 × 240 次、Franka 9 任务 × 10 次</td><td>真机长程 4 项 + 跨本体 4 组，各 10 次；离线子任务预测</td></tr>
+        <tr><th scope="row">层次结构</th><td>VLM → 参考轨迹 → 动作头</td><td>Planner → Executor → 控制器；Monitor / Verifier / Memory 旁路</td><td>单层 VLA，外面套在线更新</td><td>单层 VLA，动作头内加跨时间的 TTT 层</td><td>高层（提议 / 世界 / 价值 / 反思）→ 低层 VLA</td></tr>
+        <tr><th scope="row">中间接口</th><td>15 点粗轨迹 + 18 个隐式先验向量（可微）</td><td>子目标 + 成功判据；参数化动作 JSON</td><td>—</td><td>—（历史压进快权重）</td><td>自然语言子任务 + 文本执行记忆</td></tr>
+        <tr><th scope="row">评价信号</th><td>无</td><td>同一个 VLM 自评 + 实测机器人状态</td><td>VLAC 进度估计差分</td><td>测试时：自监督键值重建损失；训练时：人的纠正</td><td>想象终态图 + 五档价值打分</td></tr>
+        <tr><th scope="row">评价时机</th><td>—</td><td>执行中（并行）、执行后</td><td>执行后，每一步</td><td>执行后，每一步（不打分）</td><td>执行前，仅在置信度低时</td></tr>
+        <tr><th scope="row">反馈改变什么</th><td>—</td><td>停 / 重试 / 重规划</td><td>LoRA 参数（回合内）</td><td>快权重（回合内，每回合从 W<sub>0</sub> 重来）</td><td>选哪个子任务；记忆</td></tr>
+        <tr><th scope="row">要训练什么</th><td>EAR、IAR、AGP、动作头（可冻结 VLM）</td><td>什么都不训练</td><td>测试时只更新 LoRA</td><td>预训练只训 TTT 层，后训练全部微调；部署时只更新快权重</td><td>高层 4 个模型 + 低层 VLA</td></tr>
+        <tr><th scope="row">基座</th><td>π0.5（PaliGemma 2B）</td><td>Qwen3.8-Flash-Next / GPT-6 Sol</td><td>OpenVLA、Nora、OpenVLA-RL、TraceVLA</td><td>GR00T N1.7（DiT 538M → 690M）</td><td>Qwen3.5-9B（高层）、Qwen3.5-2B（低层）</td></tr>
+        <tr><th scope="row">速度</th><td>每次推理 112 ms（RTX 4090）</td><td>每回合约 223 s</td><td>未报告</td><td>30 Hz 控制（RTX 5090）；每步耗时未报告</td><td>高层约 1 s 刷新，低层约 30 Hz；搜索耗时未报告</td></tr>
+        <tr><th scope="row">任务时长</th><td>LIBERO 短任务；参考轨迹约 3 s</td><td>LIBERO-PRO、单物体真机拾放</td><td>160 步拾放</td><td>1–5 分钟装配（约 1.8K–9K 步）</td><td>1–10 分钟，最长 12 分钟</td></tr>
+        <tr><th scope="row">评测</th><td>LIBERO、LIBERO-Plus、VLABench、真机 4 项（12–40 次）</td><td>LIBERO-PRO（60 + 240 回合）、动态任务、xArm6</td><td>ManiSkill3 15 任务 × 240 次、Franka 9 任务 × 10 次</td><td>YAM 双臂 3 任务 × 20 次（Gear Bot 10 次）；一次模仿 10 次；扰动 2 × 20 次</td><td>真机长程 4 项 + 跨本体 4 组，各 10 次；离线子任务预测</td></tr>
       </tbody>
     </table>
   </div>
@@ -573,7 +595,7 @@ footer p{margin:0 0 8px;max-width:60em}
 
 <section id="threads-x" aria-labelledby="h-threads-x">
   <h2 id="h-threads-x">跨类的线索<span class="tag-interp">解读</span></h2>
-  <p class="sub">（1）（2）的七篇和（3）（4）的四篇放在一起看。</p>
+  <p class="sub">（1）（2）的七篇和（3）（4）的五篇放在一起看。</p>
   <div class="cats">
     <div class="cat">
       <h3>「子任务做完没有」是共同的薄弱点</h3>
@@ -588,8 +610,8 @@ footer p{margin:0 0 8px;max-width:60em}
       <p><a href="../../papers/ra-vla/">RA-VLA</a> 读别人同一动作阶段的动作块，并用它们的均值当去噪起点；OptimusVLA 用检索到的训练集轨迹当起点；<a href="../../papers/acot-vla/">ACoT-VLA</a> 读自己的 EAR 生成的 15 点粗轨迹。逼动作头读的办法分别是 margin 损失（去掉后 LIBERO-Goal <span class="num">0.532</span> → <span class="num">0.098</span>）、只在推理时换起点（flow 只在高斯起点上训练过）、teacher forcing。ACoT-VLA 和 OptimusVLA 用同一个 π0.5 基线（LIBERO <span class="num">96.9</span>，Long <span class="num">92.4</span>），提升都集中在 Long。</p>
     </div>
     <div class="cat">
-      <h3>「测试时适应」至少有三种意思</h3>
-      <p>RA-VLA 不改权重，往库里放新任务的几条示范，每个动作块检索一次；<a href="../../papers/tt-vla/">TT-VLA</a> 在回合内每 8 步更新一次 LoRA，下个回合重置；τ₀-VLA 把测试时的算力花在子任务搜索上。TT-VLA 只适用于离散 token 的自回归 VLA，（1）（2）类七篇的动作头都不在它的适用范围内。</p>
+      <h3>「测试时适应」至少有四种意思</h3>
+      <p>RA-VLA 不改权重，往库里放新任务的几条示范，每个动作块检索一次；<a href="../../papers/tt-vla/">TT-VLA</a> 在回合内每 8 步更新一次 LoRA，下个回合重置；τ₀-VLA 把测试时的算力花在子任务搜索上；<a href="../../papers/robottt/">RoboTTT</a> 每一步都更新动作头里的快权重，但这个更新规则在训练时就已经元学习好，不需要外部评价器。RoboTTT 的相关工作把 TT-VLA 归为「在测试任务上收集数据微调整个模型」，与 TT-VLA 的实际做法不符。TT-VLA 只适用于离散 token 的自回归 VLA，（1）（2）类七篇的动作头都不在它的适用范围内。</p>
     </div>
   </div>
 </section>
@@ -603,7 +625,7 @@ footer p{margin:0 0 8px;max-width:60em}
     </div>
     <div class="cat">
       <h3>评价器本身可靠吗？</h3>
-      <p>MotorMind 的诊断里，通用 VLM 判断进度的准确率只有 43–76%，扰动设定下还有 9% 的回合「宣布完成但其实没完成」。TT-VLA 的奖励完全来自 VLAC 的进度估计，τ₀ 的打分完全基于世界模型的想象。三篇都没有直接评估评价器在自己任务上的准确率。</p>
+      <p>MotorMind 的诊断里，通用 VLM 判断进度的准确率只有 43–76%，扰动设定下还有 9% 的回合「宣布完成但其实没完成」。TT-VLA 的奖励完全来自 VLAC 的进度估计，τ₀ 的打分完全基于世界模型的想象。三篇都没有直接评估评价器在自己任务上的准确率。RoboTTT 绕开了这个问题：测试时不需要评价器，评价（人的纠正）只在训练时出现。</p>
     </div>
     <div class="cat">
       <h3>执行前，还是执行后？</h3>
@@ -611,7 +633,7 @@ footer p{margin:0 0 8px;max-width:60em}
     </div>
     <div class="cat">
       <h3>统计强度普遍偏弱</h3>
-      <p>四篇的真机实验每格 10–40 次，仿真里 TT-VLA 每格 240 次但增益只有 1–4 个点。都没有报告方差或显著性检验。读结论时，看试验次数比看百分比更重要。</p>
+      <p>五篇的真机实验每格 10–40 次，仿真里 TT-VLA 每格 240 次但增益只有 1–4 个点。都没有报告方差或显著性检验。读结论时，看试验次数比看百分比更重要。</p>
     </div>
   </div>
 </section>
@@ -619,7 +641,7 @@ footer p{margin:0 0 8px;max-width:60em}
 <footer>
   <p>图全部来自各论文 arXiv 源码里的原图，数字按源码里的 tex 表格核对。各页中标「解读」的内容是我们的判断，和论文的主张分开写。</p>
   <p>专题按「Harness for Robotics」的四类组织：（1）上下文架构、（2）持久状态与记忆、（3）结构化执行、（4）评估与反馈。</p>
-  <p>（1）（2）的七篇是并行精读的，各页「放到专题里看」一节里对同批论文的描述取自对方原文的引言和方法，对（3）（4）四篇的描述取自它们的精读页。细节以各论文自己的精读页为准。</p>
+  <p>（1）（2）的七篇是并行精读的，各页「放到专题里看」一节里对同批论文的描述取自对方原文的引言和方法，对（3）（4）五篇的描述取自它们的精读页。细节以各论文自己的精读页为准。</p>
 </footer>
 </div>
 </body>
