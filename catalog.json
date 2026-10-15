@@ -282,6 +282,19 @@
       "category": "feedback",
       "summary": "评估与反馈：GR00T N1.7 动作头每层加测试时训练（TTT）层，快权重部署时也做梯度更新，上下文扩到 8K 步；DAgger Distillation 把「失败 → 人的纠正」蒸馏进快权重。三个装配任务平均完成分 79（GR00T 42，GDN 56），预训练上下文 1K → 8K 平均分 43.9 → 71.5。",
       "added": "2026-10-10"
+    },
+    {
+      "slug": "tau0-wm",
+      "title": "τ₀-WM",
+      "full_title": "τ0-WM: A Unified Video-Action World Model for Robotic Manipulation",
+      "arxiv": "2606.01027",
+      "version": "v1",
+      "date": "2026-05",
+      "org": "智元 AGIBOT Finch、上海创智学院",
+      "topics": ["robot-harness"],
+      "category": "feedback",
+      "summary": "评估与反馈：同一个 Wan2.2-5B 视频主干开两个口，VAM 预测未来视频并出动作，ACVS 给候选动作想象多视角未来并打逐帧进度分；部署时先用重去噪一致性挑候选，不可靠时才调用 ACVS 选最好的未来再让 VAM 重新生成。4 个长程真机任务平均成功率 0.64（π0.5 0.44）。",
+      "added": "2026-10-15"
     }
   ]
 }

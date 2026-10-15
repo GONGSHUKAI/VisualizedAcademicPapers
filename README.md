@@ -54,6 +54,7 @@
 在执行前或执行后引入显式评价信号，根据结果修正计划、更新状态或适应策略，形成闭环。
 
 - [TT-VLA](https://gongshukai.github.io/VisualizedAcademicPapers/papers/tt-vla/) · 2026-01 · arXiv [2601.06748](https://arxiv.org/abs/2601.06748) — 评估与反馈：VLAC 进度估计的差分做每步奖励，无价值函数的 PPO 每 8 步更新一次 LoRA，每回合重置；4 个 VLA、15 个未见任务上维度平均提升 0.8–3.8 个点。
+- [τ₀-WM](https://gongshukai.github.io/VisualizedAcademicPapers/papers/tau0-wm/) · 2026-05 · arXiv [2606.01027](https://arxiv.org/abs/2606.01027) — 评估与反馈：同一个 Wan2.2-5B 视频主干开两个口，VAM 预测未来视频并出动作，ACVS 给候选动作想象多视角未来并打逐帧进度分；部署时先用重去噪一致性挑候选，不可靠时才调用 ACVS 选最好的未来再让 VAM 重新生成。4 个长程真机任务平均成功率 0.64（π0.5 0.44）。
 - [RoboTTT](https://gongshukai.github.io/VisualizedAcademicPapers/papers/robottt/) · 2026-07 · arXiv [2607.15275](https://arxiv.org/abs/2607.15275) — 评估与反馈：GR00T N1.7 动作头每层加测试时训练（TTT）层，快权重部署时也做梯度更新，上下文扩到 8K 步；DAgger Distillation 把「失败 → 人的纠正」蒸馏进快权重。三个装配任务平均完成分 79（GR00T 42，GDN 56），预训练上下文 1K → 8K 平均分 43.9 → 71.5。
 - [τ₀-VLA](https://gongshukai.github.io/VisualizedAcademicPapers/papers/tau0-vla/) · 2026-08 · arXiv [2608.16885](https://arxiv.org/abs/2608.16885) — 评估与反馈：带执行记忆的高层在不确定时做子任务束搜索，世界模型想象后果、价值模型打分后再提交；分层 + 记忆让四个长程真机任务平均成功率 27.5% → 45.0%，搜索再加 2–3 次成功 / 10。
 <!-- catalog:end -->

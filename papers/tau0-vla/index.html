@@ -229,7 +229,7 @@ footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;c
 </head>
 <body>
 <!-- vap:nav -->
-<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/">Harness for Robotics</a></span><span class="vapnav-links"><span class="vapnav-grp"><span class="vapnav-cat">上下文</span><a href="../../papers/activevla/">ActiveVLA</a><a href="../../papers/tic-vla/">TIC-VLA</a><a href="../../papers/ra-vla/">RA-VLA</a></span><span class="vapnav-grp"><span class="vapnav-cat">记忆</span><a href="../../papers/memoryvla/">MemoryVLA</a><a href="../../papers/optimusvla/">OptimusVLA</a><a href="../../papers/soma/">SOMA</a><a href="../../papers/hime/">HiMe</a></span><span class="vapnav-grp"><span class="vapnav-cat">结构化执行</span><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/motormind/">MotorMind</a></span><span class="vapnav-grp"><span class="vapnav-cat">评估与反馈</span><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/robottt/">RoboTTT</a><a href="../../papers/tau0-vla/" aria-current="page">τ₀-VLA</a></span></span></div></div>
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/">Harness for Robotics</a></span><span class="vapnav-links"><span class="vapnav-grp"><span class="vapnav-cat">上下文</span><a href="../../papers/activevla/">ActiveVLA</a><a href="../../papers/tic-vla/">TIC-VLA</a><a href="../../papers/ra-vla/">RA-VLA</a></span><span class="vapnav-grp"><span class="vapnav-cat">记忆</span><a href="../../papers/memoryvla/">MemoryVLA</a><a href="../../papers/optimusvla/">OptimusVLA</a><a href="../../papers/soma/">SOMA</a><a href="../../papers/hime/">HiMe</a></span><span class="vapnav-grp"><span class="vapnav-cat">结构化执行</span><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/motormind/">MotorMind</a></span><span class="vapnav-grp"><span class="vapnav-cat">评估与反馈</span><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/tau0-wm/">τ₀-WM</a><a href="../../papers/robottt/">RoboTTT</a><a href="../../papers/tau0-vla/" aria-current="page">τ₀-VLA</a></span></span></div></div>
 <!-- /vap:nav -->
 <header class="hero page">
   <div class="hero-grid">
@@ -552,6 +552,7 @@ footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;c
       <div class="prose">
         <ul>
           <li><strong>和 MotorMind：</strong>两者的高层都在做「下一步做什么、做完没有」，都有执行记忆。MotorMind 的诊断显示通用 VLM 判断进度只有 43–76% 准确，τ₀ 的做法是专门训练记忆更新，并用扰动数据教它纠错。MotorMind 不训练、靠执行后的检查和重试；τ₀ 训练、靠执行前的搜索。</li>
+          <li><strong>和 <a href="../tau0-wm/">τ₀-WM</a>：</strong>同一团队早三个月的工作，同样在执行前评价，但在动作块层面：视频动作模型给出 4 个候选，先用重去噪一致性筛，不可靠时由动作条件视频模拟器想象每个候选的多视角未来并打逐帧进度分。τ₀-VLA 在子任务层想象终态图。两篇互不引用；τ₀-VLA 的引言认为动作层的搜索「往往只暴露局部的物理后果」，这正是 τ₀-WM 所在的层面。</li>
           <li><strong>和 TT-VLA：</strong>同属评估与反馈，但一个在承诺前、在子任务层，一个在承诺后、在动作层。两者可以叠加：τ₀ 选对子任务，TT-VLA 在执行这个子任务时微调动作。不过 τ₀ 的低层是 flow matching，TT-VLA 目前用不上。</li>
           <li><strong>和 ACoT-VLA：</strong>τ₀ 的子任务接口正是 ACoT 批评的「语言 CoT」。但两者处理的时间尺度不同：ACoT 的参考轨迹只覆盖未来约 3 秒，τ₀ 的子任务要持续几十秒。ACoT 式的动作草稿完全可以放进 τ₀ 的低层。</li>
         </ul>
