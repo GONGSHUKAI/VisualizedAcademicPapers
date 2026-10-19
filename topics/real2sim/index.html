@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>Real2Sim &amp; Sim2Real</title>
+<meta name="description" content="Real2Sim 与 Sim2Real 专题：把真实场景搬进仿真、让仿真里的策略回到真机的论文精读索引。目前收录 Real-is-Sim。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#EEF1F0; --surface:#F9FBFA; --ink:#182120; --ink-2:#44504E; --muted:#6B7775;
+  --rule:#D3DAD8; --rule-2:#BCC6C3; --accent:#C25A1A; --accent-soft:#F6E1D2; --warn:#9A5B12;
+  --f-disp:"Schibsted Grotesk","Noto Sans SC",system-ui,sans-serif;
+  --f-body:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#111716; --surface:#172020; --ink:#E4EBE9; --ink-2:#B3BFBC; --muted:#85928F;
+    --rule:#283331; --rule-2:#364341; --accent:#F08E52; --accent-soft:#3B2414; --warn:#E0A55A;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#111716; --surface:#172020; --ink:#E4EBE9; --ink-2:#B3BFBC; --muted:#85928F;
+  --rule:#283331; --rule-2:#364341; --accent:#F08E52; --accent-soft:#3B2414; --warn:#E0A55A;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:var(--accent);text-underline-offset:3px}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:16px}
+@media (min-width:720px){.wrap{padding-inline:32px}}
+
+/* header */
+header.top{padding-block:56px 36px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1.4 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font:700 clamp(34px,5.4vw,56px)/1.12 var(--f-disp);letter-spacing:-.01em;margin:12px 0 18px;text-wrap:balance}
+.lede{max-width:44em;color:var(--ink-2);margin:0;font-size:17px}
+
+/* progression strip */
+section{padding-block:44px}
+section+section{border-top:1px solid var(--rule)}
+h2{font:700 24px/1.3 var(--f-disp);margin:0 0 6px;text-wrap:balance}
+.sub{color:var(--muted);margin:0 0 24px;font-size:14.5px}
+.tag-interp{display:inline-block;font:500 11px/1.6 var(--f-mono);letter-spacing:.06em;color:var(--warn);border:1px solid currentColor;border-radius:3px;padding:0 6px;margin-left:8px;vertical-align:2px}
+.strip-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px}
+.strip{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));position:relative;min-width:0}
+.strip::before{content:"";position:absolute;left:0;right:14px;top:9px;height:2px;background:linear-gradient(90deg,var(--rule-2),var(--accent))}
+.strip::after{content:"";position:absolute;right:0;top:4px;border-left:14px solid var(--accent);border-top:6px solid transparent;border-bottom:6px solid transparent}
+.step{position:relative;padding:32px 18px 0 0}
+.step::before{content:"";position:absolute;left:0;top:4px;width:12px;height:12px;border-radius:50%;background:var(--bg);border:2px solid var(--accent)}
+.step .d{font:500 12px/1.4 var(--f-mono);color:var(--muted)}
+.step .n{font:700 18px/1.3 var(--f-disp);margin:6px 0 2px}
+.step .n a{color:var(--ink);text-decoration:none}
+.step .n a:hover{color:var(--accent);text-decoration:underline}
+.step .route{font:500 11.5px/1.5 var(--f-mono);color:var(--muted);letter-spacing:.03em}
+.step .role{font-weight:700;color:var(--accent);margin:10px 0 4px;font-size:15px}
+.step p{margin:0;color:var(--ink-2);font-size:14.5px;line-height:1.7}
+@media (max-width:760px){
+  .strip{grid-template-columns:1fr;padding-left:26px;min-width:0}
+  .strip::before{left:5px;right:auto;top:6px;bottom:14px;width:2px;height:auto;background:linear-gradient(180deg,var(--rule-2),var(--accent))}
+  .strip::after{left:-1px;right:auto;top:auto;bottom:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:14px solid var(--accent);border-bottom:0}
+  .step{padding:0 0 28px}
+  .step::before{left:-26px;top:5px}
+}
+
+/* entries */
+.entries{display:grid;gap:0}
+.entry{display:grid;grid-template-columns:200px minmax(0,1fr);gap:8px 32px;padding-block:30px;border-top:1px solid var(--rule)}
+.entry:first-child{border-top:0;padding-top:4px}
+.meta{font:400 13px/1.7 var(--f-mono);color:var(--muted)}
+.meta b{display:block;font:500 13px/1.5 var(--f-mono);color:var(--ink-2);margin-bottom:4px}
+.meta a{color:var(--muted)}
+.entry h3{font:700 26px/1.2 var(--f-disp);margin:0}
+.entry h3 a{color:var(--ink);text-decoration:none}
+.entry h3 a:hover{color:var(--accent)}
+.orig{margin:4px 0 16px;color:var(--muted);font-size:14px;line-height:1.55}
+dl.facts{display:grid;grid-template-columns:3.2em minmax(0,1fr);gap:8px 14px;margin:0}
+dl.facts dt{font:500 13px/1.85 var(--f-body);color:var(--muted);letter-spacing:.04em}
+dl.facts dd{margin:0;color:var(--ink-2);max-width:46em}
+dl.facts dd.doubt{color:var(--ink)}
+.num{font-family:var(--f-mono);font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.go{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font:600 15px/1 var(--f-body);color:var(--accent);text-decoration:none;border:1px solid var(--accent);border-radius:4px;padding:10px 14px}
+.go:hover{background:var(--accent-soft)}
+@media (max-width:760px){
+  .entry{grid-template-columns:1fr}
+  .meta b{display:inline;margin-right:10px}
+}
+
+/* table */
+.tbl{overflow-x:auto;border:1px solid var(--rule);border-radius:4px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:14px;line-height:1.65}
+th,td{text-align:left;vertical-align:top;padding:12px 14px;border-bottom:1px solid var(--rule)}
+tr:last-child th,tr:last-child td{border-bottom:0}
+thead th{font:700 15px/1.3 var(--f-disp);color:var(--ink);background:var(--bg);position:sticky;top:0}
+thead th a{color:inherit;text-decoration:none}
+thead th a:hover{color:var(--accent);text-decoration:underline}
+tbody th{font:500 13px/1.65 var(--f-body);color:var(--muted);white-space:nowrap;width:8.5em}
+td{color:var(--ink-2)}
+td.yes{color:var(--ink)}
+td .k{display:inline-block;font:500 11.5px/1.6 var(--f-mono);border-radius:3px;padding:0 6px;margin-right:6px;background:var(--accent-soft);color:var(--accent)}
+
+footer{padding-block:28px 56px;border-top:1px solid var(--rule);color:var(--muted);font-size:13.5px;line-height:1.75}
+footer p{margin:0 0 8px;max-width:60em}
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+.vapnav-grp{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-cat{font-size:11.5px;letter-spacing:.04em;opacity:.5}
+.axes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:760px){.axes{grid-template-columns:1fr}}
+.axis{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:16px 18px}
+.axis h3{font:700 17px/1.35 var(--f-disp);margin:0 0 6px}
+.axis p{margin:0;color:var(--ink-2);font-size:14.5px;line-height:1.7}
+.axis .me{display:block;margin-top:10px;font:500 12.5px/1.6 var(--f-mono);color:var(--accent)}
+.pending{color:var(--muted);font-size:14.5px}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+.vapnav-grp{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-cat{font-size:11.5px;letter-spacing:.04em;opacity:.5}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/real2sim/" aria-current="page">Real2Sim &amp; Sim2Real</a></span><span class="vapnav-links"><a href="../../papers/real-is-sim/">Real-is-Sim</a></span></div></div>
+<!-- /vap:nav -->
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Real2Sim &amp; Sim2Real · 1 paper</div>
+  <h1>Real2Sim &amp; Sim2Real</h1>
+  <p class="lede">仿真能并行、能复位、能读到完整状态，难点在两头：怎样把真实场景搬进仿真（real2sim），怎样让仿真里学到或评估过的策略在真机上表现一样（sim2real）。本专题按这两个方向读论文，每篇有单独的精读页，下面是索引、读这类论文时的几条比较维度，以及横向对照。</p>
+</header>
+
+<section id="axes" aria-labelledby="h-axes">
+  <h2 id="h-axes">读这类论文时看什么<span class="tag-interp">解读</span></h2>
+  <p class="sub">三条比较维度，是我们为这个专题选的，不是论文自己的分类。随着收录增多会继续调整。</p>
+  <div class="axes">
+    <div class="axis"><h3>仿真什么时候和现实对齐</h3><p>只在建模时对齐一次（重建场景、辨识参数），还是部署时持续对齐（用传感器不断修正仿真状态）。</p><span class="me">Real-is-Sim：部署全程 60 Hz 持续修正</span></div>
+    <div class="axis"><h3>差距由谁来扛</h3><p>让策略对差距鲁棒（域随机化、域适应），让仿真更接近现实（参数辨识、残差物理），还是让二者在运行时保持同步。</p><span class="me">Real-is-Sim：交给数字孪生的同步机制</span></div>
+    <div class="axis"><h3>仿真在流程里干什么</h3><p>生成训练数据、评估策略、作为策略的运行环境，还是部署时的规划器。</p><span class="me">Real-is-Sim：策略的唯一接口，兼做离线评估和补数据</span></div>
+  </div>
+</section>
+
+<section id="line" aria-labelledby="h-line">
+  <h2 id="h-line">按时间排</h2>
+  <p class="sub">按 arXiv 首版时间排序。</p>
+  <div class="strip-scroll"><div class="strip">
+    <div class="step">
+      <div class="d">2025-04 · 2504.03597</div>
+      <div class="n"><a href="../../papers/real-is-sim/">Real-is-Sim</a></div>
+      <div class="route">动态数字孪生 · 持续 real2sim</div>
+      <div class="role">仿真是策略与真机之间的唯一接口</div>
+      <p>策略只读仿真、只控仿真机器人；真机跟随仿真关节，真实图像以 60 Hz 修正仿真物体。</p>
+    </div>
+  </div></div>
+</section>
+
+<section id="papers" aria-labelledby="h-papers">
+  <h2 id="h-papers">一篇</h2>
+  <p class="sub">做法、主要结果和最大的疑点。这篇论文没有表格，数字按矢量图坐标换算。</p>
+  <div class="entries">
+    <article class="entry">
+      <div class="meta"><b>2025-04</b><a href="https://arxiv.org/abs/2504.03597" target="_blank" rel="noopener">arXiv 2504.03597</a><br>Robotics and AI Institute、QUT</div>
+      <div>
+        <h3><a href="../../papers/real-is-sim/">Real-is-Sim</a></h3>
+        <p class="orig">Bridging the Sim-to-Real Gap with a Dynamic Digital Twin</p>
+        <dl class="facts">
+          <dt>做法</dt><dd>以作者前作 Embodied Gaussians 为数字孪生：物理用刚体（球形碰撞体），外观用 3D 高斯，渲染图与真实 RGB 的光度误差转成作用在物体上的视觉力，60 Hz 同步。flow matching 行为克隆策略只读仿真导出的表征（物体位姿或虚拟相机渲染图），输出仿真机器人的关节轨迹和任务进度；真机跟随仿真机器人的实际关节。关掉真机跟随和视觉力就是可并行的离线环境。</dd>
+          <dt>结果</dt><dd>PushT、一台 Franka，每格真机 <span class="num">60</span> 次。离线与真机评估对 4 个检查点排序一致；针对失败状态补 30 条仿真示范，<span class="num">56.7%</span> → <span class="num">80.0%</span>（多收 30 条真机示范 <span class="num">76.7%</span>）；虚拟腕部相机 <span class="num">81.7%</span>，真实相机图像基线 <span class="num">61.7%</span>。</dd>
+          <dt>疑点</dt><dd class="doubt">离线「成功」由策略自己预测的进度 &gt; 0.9 判定，绝对值与真机最多差约 8 个点。只有一个准静态任务，没有和其他 sim-to-real 方法比；几组关键对比在 95% 置信区间内分不开；表征实验的示范数未披露。</dd>
+        </dl>
+        <a class="go" href="../../papers/real-is-sim/">读 Real-is-Sim 精读 →</a>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section id="compare" aria-labelledby="h-compare">
+  <h2 id="h-compare">横向对照</h2>
+  <p class="sub">目前只有一篇，列出的是之后加入的论文都会填的几行。表格可左右滑动。</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th scope="col"></th><th scope="col"><a href="../../papers/real-is-sim/">Real-is-Sim</a></th></tr></thead>
+      <tbody>
+        <tr><th scope="row">仿真器</th><td>Embodied Gaussians（改为刚体）：Warp 物理 + 3D 高斯渲染</td></tr>
+        <tr><th scope="row">real2sim 怎么做</th><td>每个物体 4 视角建模一次；部署时每秒 60 次用光度误差修正物体位姿</td></tr>
+        <tr><th scope="row">sim2real 怎么做</th><td>不迁移策略：真机直接跟随仿真机器人的关节</td></tr>
+        <tr><th scope="row">对齐的是什么</th><td>物体位姿；机器人由关节跟踪保证；动力学参数不修正</td></tr>
+        <tr><th scope="row">仿真的用途</th><td>策略运行环境；离线评估选检查点；在失败状态补示范；渲染虚拟相机</td></tr>
+        <tr><th scope="row">策略</th><td>flow matching 行为克隆，1 秒 32 个关节路点 + 进度值</td></tr>
+        <tr><th scope="row">评测</th><td>PushT，Franka，20 个起始位姿 × 3 次</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <p>图全部来自论文 arXiv 源码里的原图。各页中标「解读」的内容是我们的判断，和论文的主张分开写。</p>
+  <p class="pending">专题刚建立，后续论文加入后会补上时间线、对照表和跨论文的线索。</p>
+</footer>
+</div>
+</body>
+</html>

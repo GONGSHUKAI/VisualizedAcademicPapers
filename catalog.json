@@ -40,6 +40,13 @@
           "summary": "在执行前或执行后引入显式评价信号，根据结果修正计划、更新状态或适应策略，形成闭环。"
         }
       ]
+    },
+    {
+      "id": "real2sim",
+      "title": "Real2Sim & Sim2Real",
+      "path": ["机器人", "仿真", "Real2Sim & Sim2Real"],
+      "summary": "怎样把真实场景搬进仿真，怎样让仿真里训练或评估的策略在真机上表现一致：从一次性重建与域随机化，到部署时持续同步的数字孪生。",
+      "page": "topics/real2sim/"
     }
   ],
   "papers": [
@@ -295,6 +302,18 @@
       "category": "feedback",
       "summary": "评估与反馈：同一个 Wan2.2-5B 视频主干开两个口，VAM 预测未来视频并出动作，ACVS 给候选动作想象多视角未来并打逐帧进度分；部署时先用重去噪一致性挑候选，不可靠时才调用 ACVS 选最好的未来再让 VAM 重新生成。4 个长程真机任务平均成功率 0.64（π0.5 0.44）。",
       "added": "2026-10-15"
+    },
+    {
+      "slug": "real-is-sim",
+      "title": "Real-is-Sim",
+      "full_title": "Real-is-Sim: Bridging the Sim-to-Real Gap with a Dynamic Digital Twin",
+      "arxiv": "2504.03597",
+      "version": "v2",
+      "date": "2025-04",
+      "org": "Robotics and AI Institute、QUT",
+      "topics": ["real2sim"],
+      "summary": "以 60 Hz 与真实世界同步的 Embodied Gaussians 数字孪生作为策略的唯一接口：策略只读仿真、只控仿真机器人，真机跟随；断开真机即可并行离线评估。PushT 上离线评估与真机排序一致，补仿真示范 56.7% → 80.0%，虚拟腕部相机 81.7%。",
+      "added": "2026-10-19"
     }
   ]
 }

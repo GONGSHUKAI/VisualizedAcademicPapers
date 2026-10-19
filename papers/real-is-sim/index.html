@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>Real-is-Sim 精读</title>
+<meta name="description" content="Real-is-Sim: Bridging the Sim-to-Real Gap with a Dynamic Digital Twin 中文精读：以 60 Hz 与真实世界同步的 Embodied Gaussians 数字孪生作为策略与真机之间的唯一接口，真机跟随仿真机器人；离线评估、仿真补数据、虚拟相机表征三组实验与疑点。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Red+Hat+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F2F3F5; --surface:#FBFBFC; --surface-2:#E3E6EB; --ink:#16191F; --ink-2:#3D434E; --muted:#636B78; --line:#D4D8DF;
+  --hd:#E0611A; --hd-soft:#FBE3D5; --on-hd:#FFFFFF;
+  --ex:#1477C9; --ex-soft:#D8E8F7;
+  --pos:#3C8A55; --pos-soft:#DCEDE1;
+  --warn:#B4302A; --warn-soft:#F6D8D5;
+  --base:#8A919C; --base-2:#C2C7CF;
+  --plate:#FFFFFF; --focus:#E0611A;
+  --f-display:"Outfit","Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"Red Hat Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#101215; --surface:#171A1F; --surface-2:#22262D; --ink:#E8EAEE; --ink-2:#C0C5CE; --muted:#8B929E; --line:#2C313A;
+    --hd:#F58B4E; --hd-soft:#3D2416; --on-hd:#1E0F05;
+    --ex:#62AEEE; --ex-soft:#132B42;
+    --pos:#74C48D; --pos-soft:#18301F;
+    --warn:#EF8B7D; --warn-soft:#3D1D19;
+    --base:#757C88; --base-2:#474D57;
+    --plate:#F3F4F6; --focus:#F58B4E;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#101215; --surface:#171A1F; --surface-2:#22262D; --ink:#E8EAEE; --ink-2:#C0C5CE; --muted:#8B929E; --line:#2C313A;
+  --hd:#F58B4E; --hd-soft:#3D2416; --on-hd:#1E0F05;
+  --ex:#62AEEE; --ex-soft:#132B42;
+  --pos:#74C48D; --pos-soft:#18301F;
+  --warn:#EF8B7D; --warn-soft:#3D1D19;
+  --base:#757C88; --base-2:#474D57;
+  --plate:#F3F4F6; --focus:#F58B4E;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:var(--hd);text-underline-offset:3px;text-decoration-thickness:1px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+strong{font-weight:700}
+em{font-style:normal;background:linear-gradient(transparent 62%,var(--hd-soft) 62%)}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+sub,sup{font-size:.72em;line-height:0}
+.page{max-width:1200px;margin:0 auto;padding-inline:24px}
+@media (max-width:560px){.page{padding-inline:16px}}
+.hero{padding-block:44px 24px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:40px;align-items:center}
+@media (max-width:900px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+.kicker{font:500 12px/1.4 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--hd);margin:0 0 14px}
+h1.title{font-family:var(--f-display);font-weight:900;font-size:clamp(3rem,1.8rem + 6vw,6.4rem);line-height:.95;letter-spacing:-.03em;margin:0}
+h1.title .dash{color:var(--hd)}
+.entitle{font-family:var(--f-display);font-weight:500;font-size:clamp(1rem,.9rem + .4vw,1.2rem);line-height:1.45;color:var(--ink-2);margin:14px 0 0}
+.thesis{font-size:clamp(1.05rem,1rem + .35vw,1.22rem);line-height:1.78;margin:20px 0 0;max-width:34em}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin:20px 0 0;padding:0;list-style:none;font:13px/1.6 var(--f-mono);color:var(--muted)}
+.meta b{color:var(--ink-2);font-weight:500}
+.ribbon{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.ribbon svg{display:block;width:100%;height:auto}
+.ribbon svg text{font-family:var(--f-mono);fill:var(--muted);font-size:11px}
+.ribbon svg .lab{font-family:var(--f-body);font-size:12.5px;fill:var(--ink-2)}
+.ribbon figcaption{font:12px/1.6 var(--f-mono);color:var(--muted);margin-top:8px}
+.tldr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:32px}
+@media (max-width:760px){.tldr{grid-template-columns:minmax(0,1fr)}}
+.tldr>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.tldr h3{font:500 12px/1.4 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.tldr p{margin:0;font-size:15px;line-height:1.75}
+.tldr .flag h3{color:var(--warn)}
+.layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:52px;padding-block:20px 80px}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr);gap:0}}
+.toc{position:sticky;top:20px;align-self:start;font-size:14px;line-height:1.5}
+.toc p{font:500 11px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.toc li a{display:block;padding:5px 0 5px 14px;margin-left:-1px;border-left:2px solid transparent;color:var(--muted);text-decoration:none}
+.toc li a:hover{color:var(--ink)}
+.toc li a.on{color:var(--ink);border-left-color:var(--hd);font-weight:500}
+@media (max-width:1000px){
+  .toc{position:static;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .toc p{display:none}
+  .toc ol{display:flex;gap:6px;border:0;white-space:nowrap;padding-bottom:6px}
+  .toc li a{border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin:0;background:var(--surface)}
+  .toc li a.on{border-color:var(--hd)}
+}
+main{min-width:0}
+section{padding-top:56px;scroll-margin-top:12px}
+section:first-child{padding-top:8px}
+.eyebrow{font:500 12px/1.4 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--hd);margin:0 0 8px}
+h2{font-family:var(--f-display);font-weight:800;font-size:clamp(1.35rem,1.1rem + 1.1vw,1.95rem);line-height:1.3;letter-spacing:-.015em;margin:0 0 18px}
+h3{font-family:var(--f-display);font-weight:700;font-size:1.08rem;line-height:1.45;margin:36px 0 10px}
+p{margin:0 0 14px}
+.prose{max-width:44em}
+.prose li{margin-bottom:6px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.tag{display:inline-block;font:500 11px/1 var(--f-mono);padding:4px 6px 3px;border-radius:4px;vertical-align:2px;margin-right:6px;white-space:nowrap}
+.tag.read{border:1px dashed var(--ink-2);color:var(--ink-2)}
+.tag.doubt{background:var(--warn-soft);color:var(--warn)}
+.note{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 18px;margin:18px 0;max-width:46em}
+.note>:last-child{margin-bottom:0}
+.note h4{font:500 12.5px/1.5 var(--f-body);margin:0 0 6px;color:var(--muted)}
+.note.doubt{border-color:color-mix(in oklab,var(--warn) 35%,var(--line));background:color-mix(in oklab,var(--warn-soft) 55%,var(--surface))}
+.note.doubt h4{color:var(--warn)}
+.eq{font-family:"Times New Roman",Georgia,"Noto Serif SC",serif;font-size:1.08rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:14px 0;overflow-x:auto;white-space:nowrap;display:flex;justify-content:space-between;gap:24px;max-width:46em}
+.eq .no{font:12px var(--f-mono);color:var(--muted);align-self:center}
+pre.code{font:12.5px/1.7 var(--f-mono);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;overflow-x:auto;max-width:46em;color:var(--ink-2);margin:14px 0}
+pre.code .c{color:var(--muted)} pre.code .k{color:var(--hd)}
+figure.plate{margin:22px 0}
+figure.plate .zoom{display:block;width:100%;padding:10px;background:var(--plate);border:1px solid var(--line);border-radius:8px;cursor:zoom-in}
+figure.plate img{display:block;width:100%;height:auto}
+figure.plate.narrow{max-width:560px}
+figure.plate figcaption{font-size:14px;line-height:1.7;color:var(--ink-2);margin-top:10px;max-width:52em}
+figure.plate figcaption b{font:500 12px var(--f-mono);color:var(--muted);margin-right:8px}
+dialog#lb{border:0;padding:0;background:transparent;max-width:min(96vw,1800px);width:96vw}
+dialog#lb::backdrop{background:rgba(14,11,8,.86)}
+dialog#lb .box{background:var(--plate);border-radius:8px;padding:10px;max-height:88vh;overflow:auto}
+dialog#lb img{display:block;width:100%;height:auto}
+dialog#lb .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#EEE7DC;font-size:14px;padding:8px 2px 0}
+dialog#lb button{font:500 13px var(--f-mono);background:#EEE7DC;color:#1F1A14;border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
+.tblwrap{overflow-x:auto;margin:16px 0;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;font-size:14px;line-height:1.6;min-width:100%}
+table.t th,table.t td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.t thead th{font:500 12px/1.4 var(--f-mono);color:var(--muted);border-bottom:1.5px solid var(--ink-2);white-space:nowrap}
+table.t tbody th{font-weight:500;white-space:nowrap;color:var(--ink-2)}
+table.t .num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t tr.best td,table.t tr.best th{font-weight:700}
+table.t td.bad{color:var(--warn);font-weight:700}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.cards.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:860px){.cards.three{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.cards{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card h4{font-family:var(--f-display);font-weight:700;font-size:1rem;line-height:1.45;margin:0 0 8px}
+.card p{font-size:14.5px;line-height:1.75;margin:0 0 8px}
+.card p:last-child{margin:0}
+.card.hd{border-top:3px solid var(--hd)} .card.ex{border-top:3px solid var(--ex)} .card.pos{border-top:3px solid var(--pos)}
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin:22px 0}
+.lab-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;margin-bottom:12px}
+.lab-head h4{font-family:var(--f-display);font-weight:700;font-size:1.02rem;margin:0}
+.lab-head p{margin:0;font-size:13px;color:var(--muted)}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:0 0 12px;font-size:14px}
+.ctrl label{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink-2)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--bg);flex-wrap:wrap}
+.seg button{font:500 13px/1 var(--f-body);border:0;background:transparent;color:var(--muted);padding:8px 12px;cursor:pointer;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg.k button{font-family:var(--f-mono)}
+.lab svg{display:block;width:100%;height:auto}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.ep svg{min-width:680px}
+.ep text{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.ep .lab2{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+input[type=range]{accent-color:var(--hd);width:160px}
+.readout{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}
+@media (max-width:640px){.readout{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.readout>div{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.5}
+.readout b{font-family:var(--f-mono);font-weight:500;font-size:17px;color:var(--ink);display:block}
+.readout .k{font:500 11px var(--f-mono);color:var(--muted)}
+.say{font-size:14px;line-height:1.75;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:12px 0 0}
+.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 16px 10px;margin:18px 0}
+.chartbox h4{font-family:var(--f-display);font-weight:700;font-size:1rem;margin:0 0 2px}
+.chartbox .sub{font-size:13px;color:var(--muted);margin:0 0 10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink-2);margin:0 0 6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+svg.chart{display:block;width:100%;height:auto;min-width:620px}
+svg.chart text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+svg.chart .tick{font:11px var(--f-mono);fill:var(--muted)}
+svg.chart .val{font:11px var(--f-mono);fill:var(--ink-2)}
+svg.chart .grid{stroke:var(--line);stroke-width:1}
+svg.chart .base{stroke:var(--ink-2);stroke-width:1}
+svg.chart .glabel{font-size:12.5px;fill:var(--ink)}
+.c-hd{fill:var(--hd)} .c-ex{fill:var(--ex)} .c-pos{fill:var(--pos)} .c-b0{fill:var(--base)} .c-b1{fill:var(--base-2)} .c-warn{fill:var(--warn)}
+.bg-hd{background:var(--hd)} .bg-ex{background:var(--ex)} .bg-pos{background:var(--pos)} .bg-b0{background:var(--base)} .bg-b1{background:var(--base-2)} .bg-warn{background:var(--warn)}
+table.heat{border-collapse:separate;border-spacing:3px;font-size:13px;min-width:820px;width:100%}
+table.heat th{font:500 11px/1.3 var(--f-mono);color:var(--muted);text-align:center;padding:6px 3px;white-space:nowrap}
+table.heat th.row{text-align:left;font:500 13px/1.3 var(--f-body);color:var(--ink);padding-right:10px}
+table.heat th.grp{color:var(--hd);border-bottom:1px solid var(--line)}
+table.heat td{text-align:center;font:500 12px var(--f-mono);font-variant-numeric:tabular-nums;border-radius:4px;padding:7px 3px;color:var(--ink)}
+table.heat td.avg{box-shadow:inset 0 0 0 1.5px var(--ink-2)}
+table.heat td.dk{color:var(--on-hd)}
+table.heat td.fix{outline:2px dashed var(--warn);outline-offset:-2px}
+details.raw{margin:8px 0 4px;font-size:13.5px}
+details.raw summary{cursor:pointer;color:var(--muted);font:500 12.5px var(--f-mono)}
+details.raw .tblwrap{margin:8px 0}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);font:12.5px/1.55 var(--f-body);padding:8px 10px;border-radius:6px;max-width:300px}
+details.faq{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:10px 0;max-width:50em}
+details.faq summary{cursor:pointer;padding:12px 16px;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::after{content:"+";font:500 16px var(--f-mono);color:var(--muted)}
+details.faq[open] summary::after{content:"−"}
+details.faq .a{padding:0 16px 14px;font-size:15px;line-height:1.8}
+details.faq .a p:last-child{margin:0}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0;align-items:start}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.two>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.two h4{font:500 12.5px/1.4 var(--f-body);margin:0 0 10px;color:var(--muted)}
+.two ul{margin:0;padding-left:18px;font-size:14.5px;line-height:1.75}
+.two li{margin-bottom:8px}
+table.cmp{min-width:860px}
+table.cmp td{font-size:13.5px}
+table.cmp th.me,table.cmp td.me{background:color-mix(in oklab,var(--hd-soft) 55%,transparent)}
+details.gl{background:var(--surface);border:1px solid var(--line);border-radius:10px;max-width:52em}
+details.gl summary{cursor:pointer;padding:14px 18px;font-weight:500}
+details.gl dl{margin:0;padding:0 18px 16px;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:8px 18px;font-size:14px;line-height:1.7}
+details.gl dt{font-family:var(--f-mono);font-size:13px;color:var(--ink)}
+details.gl dd{margin:0;color:var(--ink-2)}
+@media (max-width:560px){details.gl dl{grid-template-columns:minmax(0,1fr);gap:2px}details.gl dd{margin-bottom:10px}}
+footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important}}
+.tlx svg{min-width:660px}
+.tlx text{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.tlx .lab2{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+.tlx .m{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.ribbon svg .m{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.fl svg{min-width:700px}
+.fl text{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.fl .n{font-family:var(--f-body);font-weight:700;font-size:13px;fill:var(--ink)}
+.fl .m{font-family:var(--f-mono);font-size:10.5px;fill:var(--ink-2)}
+.ribbon svg .n{font-family:var(--f-body);font-weight:700;font-size:13px;fill:var(--ink)}
+.ribbon svg .m{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+.vapnav-grp{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-cat{font-size:11.5px;letter-spacing:.04em;opacity:.5}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/real2sim/">Real2Sim &amp; Sim2Real</a></span><span class="vapnav-links"><a href="../../papers/real-is-sim/" aria-current="page">Real-is-Sim</a></span></div></div>
+<!-- /vap:nav -->
+<header class="hero page">
+  <div class="hero-grid">
+    <div>
+      <p class="kicker">论文精读 · Real2Sim &amp; Sim2Real · 动态数字孪生</p>
+      <h1 class="title">Real<span class="dash">-is-</span>Sim</h1>
+      <p class="entitle">Bridging the Sim-to-Real Gap with a Dynamic Digital Twin</p>
+      <p class="thesis">不让策略去跨越仿真与现实的差距，而是让<strong>仿真器</strong>去跨。策略永远只看仿真器给的状态、永远只控制<strong>仿真里的机器人</strong>；真机只是跟着仿真机器人的关节走，真实相机的画面以 60 Hz 不断把仿真里的物体「拽」回真实位置。接上真机就是真机部署，断开就是可以并行跑 20 份的虚拟评估，两者之间策略不需要任何改动。</p>
+      <ul class="meta">
+        <li><b>Robotics and AI Institute</b> · 昆士兰科技大学 QUT</li>
+        <li><b>arXiv</b> 2504.03597v2</li>
+        <li><b>v1</b> 2025-04-04 · <b>v2</b> 2025-07-02</li>
+        <li><a href="https://arxiv.org/abs/2504.03597" target="_blank" rel="noopener">arXiv</a> · <a href="https://real-is-sim.github.io" target="_blank" rel="noopener">项目页</a></li>
+      </ul>
+    </div>
+    <figure class="ribbon">
+      <svg viewBox="0 0 520 260" role="img" aria-label="真实世界、仿真器、策略三者的信息流：策略只连仿真器，真机跟随仿真机器人，真实图像修正仿真">
+        <g id="rb"></g>
+      </svg>
+      <figcaption>按原文 Figure 1、4 画的示意。蓝色是真实一侧，橙色是仿真一侧；策略和真实世界之间没有直接连线。</figcaption>
+    </figure>
+  </div>
+  <div class="tldr" aria-label="一分钟版">
+    <div><h3>做了什么</h3><p>用作者自己此前的 Embodied Gaussians 做数字孪生：物理上是刚体粒子（XPBD/Warp），外观上是挂在粒子上的 3D 高斯。每个时间步把渲染图和真实 RGB 比，光度误差变成作用在物体上的「视觉力」，把仿真拉回真实。策略是 flow matching 行为克隆，输入是仿真状态导出的表征，输出仿真机器人的关节轨迹和一个任务进度值。</p></div>
+    <div><h3>放在专题里看</h3><p>这是 Real2Sim2Real 的一种极端形态：real2sim 不是一次性建模，而是<strong>部署全程持续进行</strong>的同步；sim2real 也不靠域随机化或域适应，而是让真机直接复制仿真机器人的关节。策略的输入分布和训练时一样，因为它从头到尾都只在看仿真。</p></div>
+    <div><h3>结果</h3><p>只有 PushT 一个任务、一台 Franka。离线评估与真机评估对 4 个检查点的<strong>排序一致</strong>；在离线模式里针对失败状态补 30 条仿真示范，成功率 56.7% → 80.0%（真机多收 30 条是 76.7%）；虚拟腕部相机的策略 81.7%，高于用真实图像的策略 61.7%。</p></div>
+    <div class="flag"><h3>最该留意的</h3><p>离线评估的「成功」由<strong>策略自己报告的进度值 &gt; 0.9</strong> 判定，不是环境判定，绝对值和真机对不上（10K 步时 12% 对 20%）。每格 60 次真机试验，几个关键对比的差距都在误差棒以内。论文没有任何表格，也没有和别的 sim-to-real 方法比较；Ablations 一节是空的。</p></div>
+  </div>
+</header>
+
+<div class="page layout">
+  <nav class="toc" aria-label="目录">
+    <p>目录</p>
+    <ol>
+      <li><a href="#problem">问题</a></li>
+      <li><a href="#twin">数字孪生</a></li>
+      <li><a href="#frame">框架</a></li>
+      <li><a href="#pipe">流程</a></li>
+      <li><a href="#setup">实验设置</a></li>
+      <li><a href="#eval">离线评估</a></li>
+      <li><a href="#aug">离线补数据</a></li>
+      <li><a href="#repr">表征</a></li>
+      <li><a href="#supp">附录</a></li>
+      <li><a href="#insight">读懂它</a></li>
+      <li><a href="#limits">局限与疑点</a></li>
+      <li><a href="#topic">放到专题里看</a></li>
+      <li><a href="#glossary">术语表</a></li>
+    </ol>
+  </nav>
+  <main>
+    <section id="problem">
+      <p class="eyebrow">问题 · §I</p>
+      <h2>仿真的好处很多，难在让策略在两边表现一样</h2>
+      <div class="prose">
+        <p>仿真能持续监测性能、大规模并行、读取完整状态、精确复位、精确控制环境变化，训练和评估都方便得多。难点是让同一个策略在仿真和现实里表现一致，这要求两件事同时成立：</p>
+        <ul>
+          <li>策略在两边看到的<strong>输入分布</strong>一致；</li>
+          <li>两边的机器人对同一个策略输出的<strong>响应</strong>一致。</li>
+        </ul>
+        <p>论文把现有做法分成两类：<strong>只用真机</strong>（Real-Only），没法在部署前安全地测试策略，评估又慢又费人；<strong>sim-to-real</strong>，靠域随机化、域适应、对齐动力学来让策略自己扛住差距，迁移效果没有保证。Real-is-Sim 的主张是换一个承担者：把「跨越 sim-to-real 差距」这件事交给数字孪生的同步机制，策略本身不再需要面对它。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/teaser.jpg" aria-label="放大原文图 1"><img src="fig/teaser.jpg" width="1800" height="970" alt="原文图 1：左为跟随者真机，右为 Embodied Gaussians 中的领导者仿真机器人与策略" loading="lazy"></button>
+        <figcaption><b>原文 Figure 1</b>左：真实世界，真机是「跟随者」（Follower）。右：Embodied Gaussians 里的仿真机器人是「领导者」（Leader），以 60 Hz 运行，右上和右下的小图是真实相机画面。上方两条线：真实图像修正仿真；策略读取仿真导出的状态。下方两条线：策略控制仿真机器人；真机跟踪仿真机器人。两者之间标注的「Sim to Real Gap」只出现在真机与仿真之间，不出现在策略那一侧。</figcaption>
+      </figure>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/paradigms.jpg" aria-label="放大原文图 3"><img src="fig/paradigms.jpg" width="1800" height="710" alt="原文图 3：Real-is-Sim、Real-Only、Sim-to-Real 三种范式的在线与离线模式" loading="lazy"></button>
+        <figcaption><b>原文 Figure 3</b>三种范式。(a) Real-is-Sim：在线时，真机（跟随者）和观测在左，可修正的物理仿真在中（物理步 + 修正步，60 Hz），策略只连仿真；离线时，左侧真实世界整块变灰，连线结构不变，只是修正步不再接收真实观测。(b) Real-Only：策略直接连真机，没有离线模式。(c) Sim-to-Real：策略在仿真里训练，部署时直接接真机，两边之间隔着 sim-to-real 差距。</figcaption>
+      </figure>
+    </section>
+
+    <section id="twin">
+      <p class="eyebrow">方法 · 数字孪生 Embodied Gaussians · §II-A · 附录 D</p>
+      <h2>物理用粒子，外观用高斯，误差变成力</h2>
+      <div class="prose">
+        <p>Embodied Gaussians 是本文第一作者此前的工作，场景由两套紧密耦合的东西表示：</p>
+        <ul>
+          <li><strong>带朝向的粒子</strong>：位置、旋转、质量、半径等物理属性，用基于粒子的物理（XPBD）模拟；</li>
+          <li><strong>3D 高斯</strong>：位置、旋转、尺度、颜色、不透明度等外观属性，用 Gaussian Splatting 渲染。</li>
+        </ul>
+        <p>每个粒子可以刚性地挂多个高斯，物理更新粒子时高斯跟着动。关键的修正机制是：把渲染图和真实相机图比较，光度误差推出一组作用在粒子上的<strong>虚拟「视觉力」</strong>，持续把仿真往真实拉。这个循环以 60 Hz 运行。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/sync-loop.jpg" aria-label="放大原文图 2"><img src="fig/sync-loop.jpg" width="1800" height="448" alt="原文图 2：60 Hz 同步循环的六个步骤" loading="lazy"></button>
+        <figcaption><b>原文 Figure 2</b>（改编自 Embodied Gaussians）一个 60 Hz 循环的六步：① 从行为克隆策略取期望关节；② 设为仿真机器人的期望关节，跑一步物理（推动方块）；③ 命令真机跟随仿真机器人，取回新图像；④ 把渲染图和真实图比较，优化高斯；⑤ 由差异算出修正用的视觉力；⑥ 把视觉力加进物理仿真，并重置高斯位置。①② 属于虚拟环境，③ 属于真实世界，④⑤⑥ 是与真实世界的同步。</figcaption>
+      </figure>
+      <div class="cards">
+        <div class="card hd"><h4>本文对 Embodied Gaussians 的两处改动（附录 D）</h4><p>① 去掉了可变形物体的形状匹配约束，所有物体都当成由球形碰撞体组成的刚体，物理从粒子仿真变成刚体仿真，在线模式从 30 Hz 提到 60 Hz。② 原版里机器人是纯运动学的，这里把机器人的连杆和关节当成有质量、有惯量的动力学对象，仿真更稳定，机器人也能对环境作出反应；同时关掉机器人连杆的重力，否则控制器还得加重力补偿。</p></div>
+        <div class="card ex"><h4><span class="tag read">解读</span>修正只作用在物体上，不作用在机器人上</h4><p>视觉力加在物体粒子上（状态里的 u<sub>t</sub> 是每个物体的力和力矩）。仿真机器人完全由策略和物理决定，真机只跟随它，所以机器人这一侧不需要也不接受视觉修正。这让真机与仿真机器人之间的误差全靠底层关节控制器的跟踪精度来保证。</p></div>
+      </div>
+    </section>
+
+    <section id="frame">
+      <p class="eyebrow">方法 · 框架 · §III-A · 附录 A</p>
+      <h2>三块子系统，两种模式，只差一个开关</h2>
+      <div class="prose">
+        <p><strong>真实系统</strong>：若干输出 RGB 的相机 o<sub>rgb</sub>，以及一个接收期望关节配置 c ∈ ℝ<sup>d</sup> 的高阻抗关节控制器。<strong>仿真器</strong>在每个时间步维护：</p>
+      </div>
+      <div class="eq"><span>s<sub>t</sub> = { p<sup>i</sup><sub>t</sub>, R<sup>i</sup><sub>t</sub>, v<sup>i</sup><sub>t</sub>, ω<sup>i</sup><sub>t</sub> }<sub>i=1…N<sub>obj</sub></sub>,&nbsp;&nbsp; u<sub>t</sub> = { f<sup>i</sup><sub>t</sub>, τ<sup>i</sup><sub>t</sub> },&nbsp;&nbsp; r<sub>t</sub> = { q<sub>t</sub>, q̇<sub>t</sub> }</span><span class="no">§III-A</span></div>
+      <div class="eq"><span>s<sub>t+1</sub>, r<sub>t+1</sub> = F(s<sub>t</sub>, u<sub>t</sub>, r<sub>t</sub>);&nbsp;&nbsp; 在线时：c ← q<sub>t</sub>,&nbsp; u<sub>t</sub> = C(s<sub>t</sub>, o<sub>rgb</sub>)</span><span class="no">§III-A</span></div>
+      <div class="prose">
+        <p>注意真机跟随的是仿真机器人的<strong>实际关节位置 q</strong>，不是策略给出的期望关节 q′。<strong>策略</strong> π 读取由仿真状态导出的表征 g(s<sub>t</sub>) 和当前关节 q<sub>t</sub>，输出 m = 32 个路点的轨迹，每个路点是期望关节 q′ ∈ ℝ<sup>d</sup> 加一个任务进度 p ∈ [0, 1]，覆盖 H = 1 秒；仿真机器人每 H/m 秒切到下一个路点，走完再生成新轨迹。</p>
+      </div>
+      <div class="lab" id="flow-lab">
+        <div class="lab-head"><h4>切换模式与配置，数一数跨过 sim–real 边界的数据流</h4><p>按原文 Figure 3、附录图 1 重画</p></div>
+        <div class="ctrl">
+          <span class="muted small">模式</span>
+          <div class="seg" role="group" aria-label="模式" id="fl-mode"><button type="button" data-k="online" aria-pressed="true">在线（接真机）</button><button type="button" data-k="offline" aria-pressed="false">离线（纯虚拟）</button></div>
+          <span class="muted small">配置</span>
+          <div class="seg" role="group" aria-label="配置" id="fl-conf"><button type="button" data-k="follower" aria-pressed="true">跟随者（本文）</button><button type="button" data-k="leader" aria-pressed="false">领导者（对照）</button></div>
+        </div>
+        <div class="scroll fl"><svg id="fl-svg" viewBox="0 0 760 300" role="img" aria-label="Real-is-Sim 数据流"></svg></div>
+        <p class="say" id="fl-say"></p>
+      </div>
+    </section>
+
+    <section id="pipe">
+      <p class="eyebrow">方法 · 流程 · §III-B</p>
+      <h2>建场景 → 带着仿真收示范 → 训练 → 部署或离线评估</h2>
+      <div class="cards">
+        <div class="card hd"><h4>建场景</h4><p>每个物体从 4 个视角生成，用一个位置 p、一个旋转 R 和一组固定半径的球来表示碰撞几何，外观用 Gaussian Splatting 优化。地面和机器人的几何与外观手工指定（机器人网格已知，地面从点云估计）。</p></div>
+        <div class="card hd"><h4>收示范：仿真始终在环</h4><p>示范时 Embodied Gaussians 一直用实时画面修正仿真，操作者能看到同步质量，并据此调整动作：机器人身体尽量不挡相机，不接触物体时快、接触时慢，物体边缘留足间隙。以 60 Hz 记录完整的仿真状态；随时间变化的只有物体位姿和机器人关节，其余物理参数和高斯只存初始时刻。</p></div>
+        <div class="card ex"><h4>训练：进度值来自时间</h4><p>每个路点的进度 p 按示范中已过时间的比例标注，前提是所有示范都结束在目标位置（引用作者之前的工作验证过这个启发式）。基于状态的策略读物体位置 + 四元数；基于图像的策略用 ResNet 把渲染图编码成 64 维向量，和策略一起训练。</p></div>
+        <div class="card ex"><h4>部署与评估</h4><p>部署时仿真继续和真机同步运行，策略读仿真、控制仿真机器人，真机跟随。关掉真机耦合和视觉力（u<sub>t</sub>），同一套就变成纯虚拟环境，可以并行：同时跑 20 个环境时，根据表征不同，比实时快 5 到 8 倍。</p></div>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/modes.jpg" aria-label="放大原文图 5"><img src="fig/modes.jpg" width="1800" height="492" alt="原文图 5：在线模式的真机部署与离线模式的并行虚拟部署" loading="lazy"></button>
+        <figcaption><b>原文 Figure 5</b>(a) 在线模式：真机推 T 形块，屏幕上是以 60 Hz 实时修正的物理仿真。(b) 离线模式：8 个并行的虚拟环境，T 形块的初始位姿各不相同，右下标注「7x Realtime」。</figcaption>
+      </figure>
+    </section>
+
+    <section id="setup">
+      <p class="eyebrow">实验设置 · §IV · 附录 C</p>
+      <h2>PushT，一台 Franka，三台相机</h2>
+      <div class="prose">
+        <ul>
+          <li><strong>任务：</strong>PushT，用推杆把 T 形块推到桌上的指定位置，论文称之为长时程任务。T 形块的几何（一组挂在同一个刚体上的球）由 Embodied Gaussians 的方法自动生成。</li>
+          <li><strong>硬件：</strong>7 自由度 Franka Emika，三台 RealSense D455（90 fps，420 × 270），NVIDIA RTX 6000 Ada。真机用 Ruckig 生成最小加加速度的关节轨迹，配合 Franka 自带的关节控制器。</li>
+          <li><strong>示范采集：</strong>采集时用 Pink 把仿真机器人限制在一个 2D 平面里（只在采集时、只作用于仿真机器人）。部署时没有这个约束，但策略学会了在 2D 里动。</li>
+          <li><strong>评测：</strong>桌上定义 20 个不在示范里的起始位姿。真机评测每个位姿测 3 次，共 60 次，成功指 T 形块被推到目标位置；虚拟评测用相同的起始位姿，成功指策略输出的进度值超过 0.9。</li>
+        </ul>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/representations.jpg" aria-label="放大原文图 6"><img src="fig/representations.jpg" width="1800" height="500" alt="原文图 6：四种策略输入表征" loading="lazy"></button>
+        <figcaption><b>原文 Figure 6</b>四种输入。(a) 物体位姿（x, y, z 与四元数）+ 关节；(b) 挂在仿真机器人末端的虚拟相机渲染图 + 关节；(c) 放在真实相机位置的虚拟相机渲染图 + 关节；(d) 真实相机图像 + 关节。前三种来自仿真（橙色），(d) 是基线（蓝色），真实图像在 Real-is-Sim 里只用来修正仿真，不直接喂给策略。</figcaption>
+      </figure>
+    </section>
+
+    <section id="eval">
+      <p class="eyebrow">实验 1 · 离线评估能不能替代真机 · 原文 Figure 7</p>
+      <h2>排序对得上，绝对值对不上</h2>
+      <div class="prose"><p>行为克隆的损失不能可靠地反映策略好坏，真机评估又费时费力，所以大家常常直接用最后一个检查点。论文用一个基于状态、30 条示范、训练 5 万步的 flow matching 策略，比较两种评估：</p></div>
+      <div class="chartbox">
+        <h4>成功率 vs 训练步数</h4>
+        <p class="sub">数字按矢量图中点的坐标换算。蓝色为离线（仿真）评估，10K–25K 每 1K 步一个点，之后 30K、40K、50K；橙色为在线（真机）评估，只测了 4 个检查点，每点 60 次。阴影是论文给的 95% 置信区间。</p>
+        <div class="legend"><span><i class="bg-ex"></i>离线评估（仿真，进度 &gt; 0.9 算成功）</span><span><i class="bg-hd"></i>在线评估（真机，60 次）</span></div>
+        <div class="scroll"><svg class="chart" id="ch-ck" viewBox="0 0 760 300"></svg></div>
+        <details class="raw" id="raw-ck"><summary>点位数字（读自矢量图）</summary></details>
+      </div>
+      <div class="prose"><p>四个真机检查点的排序是 10K &lt; 15K &lt; 50K &lt; 25K，离线评估在这四点上的排序相同。两条曲线都说明越往后训练不一定越好：25K 附近最好，50K 反而回落。论文据此认为，离线评估可以在几分钟内（而不是几小时）完成检查点选择或早停。</p></div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>离线成功是策略自己说的</h4>
+        <p>离线评估里，「成功」的定义是<strong>策略自己输出的进度值超过 0.9</strong>，而进度值又是按示范时间标注、由同一个策略预测的。这等于让策略给自己打分：一个策略可能「以为」自己快完成了，T 形块其实不在目标里。论文引用自己的前作说这个代理指标可靠，并提到实践中可以换成更精细的奖励函数，但没有在这里报告用仿真里的真实位姿判定成功的结果，虽然仿真里明明有物体的精确位姿。另外，绝对值差得不小：10K 步离线 12.2%、真机 20.0%，25K 步离线 63.5%、真机 56.7%。只有 4 个点用来说明排序一致，离线评估的试验次数也没写。</p>
+      </div>
+    </section>
+
+    <section id="aug">
+      <p class="eyebrow">实验 2 · 在离线模式里补示范 · 原文 Figure 8a</p>
+      <h2>针对失败状态补 30 条仿真示范，和多收 30 条真机示范差不多</h2>
+      <div class="prose"><p>先用 30 条在线采集的真机示范训练一个基于状态的策略，约 57%。然后把这个策略放进多个并行的离线环境，找出它陷入局部极小的失败状态，让操作者在这些状态下<strong>只在仿真里</strong>再示范 30 条。合起来重新训练。</p></div>
+      <div class="chartbox">
+        <h4>不同示范采集方式的真机成功率</h4>
+        <p class="sub">按矢量图柱高换算，误差棒为 95% 置信区间。橙色表示仿真里采的示范，蓝色表示带真机在线采的示范，半橙半蓝的柱子两者各半。所有策略都基于状态，都在真机上测 60 次。</p>
+        <div class="scroll"><svg class="chart" id="ch-aug" viewBox="0 0 760 270"></svg></div>
+      </div>
+      <div class="prose"><p>30 条真机 + 30 条针对性仿真示范到 80.0%，多收 30 条真机示范（共 60 条）是 76.7%。只用 30 条仿真示范训练，58.3%，和 30 条真机示范的 56.7% 相当。论文对后者的解释是 PushT 本质上是运动学任务，成败主要取决于位姿而不是动力学效应，而位姿正好是 Embodied Gaussians 部署时最容易修正的。</p></div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>这组对比有两处不对等</h4>
+        <p>① 补的 30 条仿真示范是专门挑失败状态采的，多收的 30 条真机示范没有这样挑，所以 80.0 对 76.7 混着「采在哪里」和「在哪里采」两个因素。② 误差棒很宽：60 次试验、成功率 80% 附近的 95% 置信区间约 ±10 个点，80.0 和 76.7 之间、58.3 和 56.7 之间都分不开。真正清楚的只有一条：补数据（任一种）明显好于不补。</p>
+      </div>
+    </section>
+
+    <section id="repr">
+      <p class="eyebrow">实验 3 · 用哪种表征 · 原文 Figure 8b</p>
+      <h2>虚拟腕部相机最好，真实相机图像最差</h2>
+      <div class="chartbox">
+        <h4>不同表征的真机成功率</h4>
+        <p class="sub">按矢量图柱高换算，误差棒为 95% 置信区间。前三种表征来自仿真，最后一种是用真实相机图像的基线。</p>
+        <div class="scroll"><svg class="chart" id="ch-rep" viewBox="0 0 760 270"></svg></div>
+      </div>
+      <div class="prose"><p>三种仿真表征都能完成任务：物体位姿 76.7%，虚拟静态相机 71.7%，虚拟腕部相机 81.7%，都高于用真实相机图像的 61.7%。腕部虚拟相机的策略还会在 T 形块离开视野时主动去找（论文说视频在项目页）。作者认为这和「腕部相机在某些场景下优于静态相机」的已有结论一致，并强调在 Real-is-Sim 里可以用<strong>同一批示范</strong>系统地比较各种虚拟相机摆位。</p></div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>用了多少示范、基线怎么跑，都没写</h4>
+        <p>这组实验没说每个策略用了多少条示范。基于状态的策略 76.7% 正好等于实验 2 里「60 条真机示范」的结果，比「30 条真机示范」的 56.7% 高 20 个点，所以很可能是 60 条，但论文没有说明。真实图像基线是直接接真机、不经过仿真吗？训练数据是同一批示范的真实图像吗？也没交代。虚拟相机的渲染图（原文 Figure 6b）明显模糊，策略仍然表现最好，可能说明它主要靠的是粗略的位置信息。</p>
+      </div>
+    </section>
+
+    <section id="supp">
+      <p class="eyebrow">附录 · 两个设计选择</p>
+      <h2>为什么让真机跟随，为什么要带真机收示范</h2>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/leader-follower.jpg" aria-label="放大附录图 1"><img src="fig/leader-follower.jpg" width="1600" height="833" alt="附录图 1：领导者配置与跟随者配置在在线与离线模式下的连线" loading="lazy"></button>
+        <figcaption><b>附录 Figure 1</b>上：领导者配置，真机是领导者、仿真跟随，在线时策略的输出要直接送到真机（蓝线越过 sim–real 边界），离线时连线结构要改。下：跟随者配置（本文），在线和离线的连线完全一样，跨过边界的只有「仿真机器人 → 真机」和「真实观测 → 修正步」两条。</figcaption>
+      </figure>
+      <div class="prose">
+        <p>跟随者配置带来一个特点：真实世界总是比仿真孪生略微落后一点，系统因此总能「预览」一点点未来。作者说这一点概念上有意思，但选择它的主要原因很实际：软件结构简单得多，跨越 sim–real 边界的数据流从 3 条减到 2 条。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/tracking.jpg" aria-label="放大附录图 2"><img src="fig/tracking.jpg" width="1540" height="703" alt="附录图 2：仿真物理与视觉修正冲突时的跟踪失败，以及两种示范采集方式的跟踪失败率" loading="lazy"></button>
+        <figcaption><b>附录 Figure 2</b>左：一个失败例子，策略动作（橙）把仿真里的 T 形块往一边推，视觉力（蓝）要把它拉向真实位置；物理是硬约束，修正施加不上，仿真和现实分开。右：跟踪失败率，用真机示范训练的策略约 6.7%，用纯仿真示范训练的策略约 38.3%（按矢量图柱高换算）。</figcaption>
+      </figure>
+      <div class="prose"><p>纯仿真示范里，操作者可能贴着物体边缘动作，在仿真里撞上了、在现实里却没撞，修正机制恢复不了这种分歧。所以作者建议至少有一部分示范要带着真机采，让操作者和策略都隐式地学会「保持同步的动作方式」。</p></div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>38% 的跟踪失败，和 58% 的成功率怎么同时成立</h4>
+        <p>正文实验 2 里，纯仿真示范训练的策略在真机上成功 58.3%，和真机示范相当；附录说纯仿真示范的策略跟踪失败率约 38%。图注称附录的例子是一个「夸张的情形」，所以两者可能来自不同的示范集，但论文没说清楚。如果是同一个策略，那么 58% 的成功里有多少是在跟踪失败之后侥幸完成的，值得追问。</p>
+      </div>
+    </section>
+
+    <section id="insight">
+      <p class="eyebrow">读懂它</p>
+      <h2>这篇真正说明了什么</h2>
+      <h3 style="margin-top:0">关键 insight</h3>
+      <div class="cards">
+        <div class="card"><h4>1. 把差距从策略挪给仿真器</h4><p>sim-to-real 通常要求策略对差距鲁棒；Real-is-Sim 要求仿真器持续追上现实。策略的输入永远是仿真状态，训练和部署的输入分布天然一致。代价是一切取决于同步质量：同步跟不上，策略就在一个错的世界里做对的事。</p></div>
+        <div class="card"><h4>2. 在线和离线是同一套连线</h4><p>跟随者配置下，接真机和不接真机只差两个开关：真机是否跟随、视觉力是否计算。这让「真机上收的示范」「仿真里补的示范」「仿真里的评估」都处在同一个状态空间，可以随意混用。</p></div>
+        <div class="card"><h4>3. 仿真给了免费的观测设计空间</h4><p>同一批示范可以渲染出任意视角的虚拟相机，也可以直接读出精确的物体位姿。论文用这一点比较了四种表征，结果是虚拟腕部相机最好。换真实相机摆位通常要重新采数据，这里不用。</p></div>
+        <div class="card"><h4>4. 好的示范要「对仿真友好」</h4><p>带真机收示范时，操作者能看到同步质量，会自然地放慢接触、留足间隙。附录显示纯仿真示范的跟踪失败率高得多。也就是说，在这个框架里，示范不仅要完成任务，还要让同步机制能跟上。</p></div>
+      </div>
+      <h3>容易误解的地方</h3>
+      <div class="prose">
+        <ul>
+          <li><strong>不是一次性 real2sim 建模。</strong>场景只建一次，但部署时仿真每秒被修正 60 次，这才是「动态」数字孪生的含义。</li>
+          <li><strong>不是在仿真里训练、到真机上迁移。</strong>论文刻意避免只用仿真示范，所有轨迹都要求是真机能可靠执行、同时同步不掉的动作。</li>
+          <li><strong>不处理动力学差距。</strong>修正只作用在物体位姿上，PushT 又是准静态的推动任务。对依赖力、摩擦、形变的任务，这套机制能否同样有效，论文没有证据。</li>
+          <li><strong>「消除了 sim-to-real 差距」是框架层面的说法。</strong>差距没有消失，只是被交给了同步机制；附录里的跟踪失败就是它没被跨过去的情形。</li>
+        </ul>
+      </div>
+      <h3>FAQ</h3>
+      <details class="faq"><summary>真机跟随仿真机器人，会不会因为跟踪误差越走越偏？</summary><div class="a"><p>真机每个时间步都被设为仿真机器人当前的关节位置 q<sub>t</sub>，用高阻抗控制器 + Ruckig 平滑轨迹跟踪，误差不会在机器人这一侧累积。但如果真机推物体的实际效果和仿真不同，物体位姿就会分开，这时要靠视觉力把仿真物体拉回真实位置。论文没有报告真机与仿真机器人之间的关节跟踪误差，也没有报告物体位姿的同步误差。</p></div></details>
+      <details class="faq"><summary>为什么跟随 q 而不是 q′？</summary><div class="a"><p>q′ 是策略给仿真机器人的期望关节，q 是仿真机器人在物理仿真里实际到达的关节。仿真机器人可能被物体挡住、被碰撞约束限制，q 才代表仿真里真正发生的事。让真机跟随 q，真机复现的就是仿真里的实际运动，而不是策略的意图，这样两边更容易保持一致。</p></div></details>
+      <details class="faq"><summary>为什么不把真实图像直接喂给策略？</summary><div class="a"><p>真实图像在这里只用来修正仿真。如果策略读真实图像，它的输入就重新带上了真实世界的分布，离线模式下也没有真实图像可读，框架的统一性就没了。实验里真实图像基线 61.7%，低于三种仿真表征，但论文没有说明这个基线的具体训练和部署方式。</p></div></details>
+      <details class="faq"><summary>离线并行快 5–8 倍，瓶颈在哪？</summary><div class="a"><p>论文只给了「20 个环境并行、比实时快 5 到 8 倍，取决于表征」这一句，图 5 标注 7 倍。图像表征要渲染虚拟相机，比基于状态的表征慢，这大概是倍数区间的来源，但没有给出各自的数字。</p></div></details>
+    </section>
+
+    <section id="limits">
+      <p class="eyebrow">局限与疑点</p>
+      <h2>作者承认的，和我们读出来的</h2>
+      <div class="two">
+        <div>
+          <h4>论文自己提到的（附录 E 未来工作）</h4>
+          <ul>
+            <li>仿真器虽然能用观测自我修正，但精度可以通过反传到物理参数或学一个残差物理网络来提高，减少对显式修正的依赖。</li>
+            <li>更准确的仿真器可以支持在模仿学习策略上做强化学习微调。</li>
+            <li>本文只做了离线评估，未来可以在部署时做在线规划。</li>
+            <li>可以让 Embodied Gaussians 编码 DINO 等更高层的语义特征。</li>
+            <li>离线评估用了与真机相同的初始状态，实际使用中可以随机化。</li>
+          </ul>
+        </div>
+        <div>
+          <h4>我们读出来的</h4>
+          <ul>
+            <li><span class="tag doubt">疑点</span>离线成功由策略自己预测的进度 &gt; 0.9 判定，没有用仿真里现成的真实位姿判定；绝对值与真机最多相差约 8 个点。</li>
+            <li><span class="tag doubt">疑点</span>补数据实验中仿真示范是针对失败状态采的，真机示范不是；关键差距都在 95% 置信区间内。</li>
+            <li><span class="tag doubt">疑点</span>表征实验的示范数和真实图像基线的做法未披露。</li>
+            <li><span class="tag doubt">疑点</span>纯仿真示范的成功率（58%）与跟踪失败率（38%）的关系没有说明。</li>
+            <li>只有 PushT 一个准静态、近似 2D、单刚体的任务，一台机器人；没有和任何 sim-to-real 或 real2sim2real 方法比较。</li>
+            <li>没有任何表格；同步误差、跟踪误差、在线时延都没有量化。Ablations 一节标题存在但内容为空。</li>
+            <li>Embodied Gaussians 是作者自己的前作，「第一个能实时、通用地与物理环境同步的仿真器」这一说法没有给出对比依据。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="topic">
+      <p class="eyebrow">放到专题里看</p>
+      <h2>Real2Sim &amp; Sim2Real 专题的第一篇</h2>
+      <div class="prose">
+        <p>在 <a href="../../topics/real2sim/">Real2Sim &amp; Sim2Real 专题</a>里，Real-is-Sim 代表一种思路：<strong>real2sim 不是建模阶段的一步，而是贯穿部署全程的持续同步</strong>；sim2real 不靠让策略变鲁棒，而靠让真机复制仿真机器人。专题目前只收了这一篇，下面借站内其他专题的论文做个参照。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t cmp">
+          <thead><tr><th></th><th class="me">Real-is-Sim</th><th><a href="../tau0-wm/">τ₀-WM</a> 的 ACVS</th><th><a href="../tt-vla/">TT-VLA</a></th></tr></thead>
+          <tbody>
+            <tr><th>「仿真器」是什么</th><td class="me">物理仿真（刚体 + 3D 高斯），由真实图像持续修正</td><td>学出来的动作条件视频生成模型</td><td>不用仿真器</td></tr>
+            <tr><th>和现实怎么对齐</th><td class="me">每秒 60 次光度误差 → 视觉力</td><td>只在训练数据层面对齐，部署时不修正</td><td>—</td></tr>
+            <tr><th>用来做什么</th><td class="me">策略的唯一接口；离线评估；补示范</td><td>部署前为候选动作想象后果、打进度分</td><td>—</td></tr>
+            <tr><th>怎么判断「成功」</th><td class="me">离线时：策略自己预测的进度 &gt; 0.9</td><td>奖励头预测的逐帧进度</td><td>外部 VLAC 估计的进度差</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>和 τ₀-WM：</strong>两者都把一个「仿真器」放进部署流程，但 τ₀-WM 的仿真器是学出来的视频模型，物理只隐含在生成里，部署时也不会被真实观测修正；Real-is-Sim 的仿真器有显式的物理和几何，并且一直被拉回现实。前者能处理开放场景，后者只在建好模型的物体上成立。</li>
+          <li><strong>和 TT-VLA：</strong>三篇都用「任务进度」当成功的代理。TT-VLA 用外部的进度估计器，τ₀-WM 训练专门的奖励头，Real-is-Sim 直接让策略自己报告进度。后者最省事，也最容易出现「自己给自己打高分」的问题。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="glossary">
+      <p class="eyebrow">术语表</p>
+      <h2>读这篇会遇到的词</h2>
+      <details class="gl"><summary>展开术语表</summary>
+        <dl>
+          <dt>数字孪生</dt><dd>与真实场景保持同步的仿真副本。本文的孪生是「动态」的：部署时被持续修正。</dd>
+          <dt>Embodied Gaussians</dt><dd>作者前作的仿真器，物理用粒子（本文改为刚体），外观用 3D 高斯，以光度误差产生的视觉力与真实世界同步。</dd>
+          <dt>视觉力</dt><dd>由渲染图与真实图之间的光度误差推出、作用在仿真物体上的虚拟力和力矩（状态里的 u<sub>t</sub>）。</dd>
+          <dt>在线 / 离线模式</dt><dd>在线：接真机，仿真被真实图像修正，真机跟随；离线：不接真机、不算视觉力，可并行。</dd>
+          <dt>跟随者 / 领导者配置</dt><dd>跟随者：真机复制仿真机器人的关节（本文）；领导者：仿真跟随真机。</dd>
+          <dt>q / q′</dt><dd>仿真机器人的实际关节 / 策略给出的期望关节。真机跟随的是 q。</dd>
+          <dt>进度值 p</dt><dd>策略输出中的标量，按示范已过时间的比例标注；离线评估中 p &gt; 0.9 视为成功。</dd>
+          <dt>PushT</dt><dd>用推杆把 T 形块推到目标位置的经典模仿学习任务。</dd>
+          <dt>XPBD</dt><dd>扩展的基于位置的动力学，一种粒子/约束物理求解方法。</dd>
+          <dt>Ruckig / Pink</dt><dd>在线轨迹生成库 / 基于优化的逆运动学库。</dd>
+        </dl>
+      </details>
+    </section>
+  </main>
+</div>
+<footer class="page">
+  <p>图全部来自论文 arXiv 源码（v2）里的原图。论文没有表格，所有数字都按矢量图中点和柱子的坐标换算，成功率都对应 60 次试验中的整数次（例如 56.7% = 34/60）。标「解读」的是我们的判断。</p>
+</footer>
+<dialog id="lb" aria-label="放大查看"><div class="box"><img id="lb-img" alt=""></div><div class="bar"><span id="lb-cap"></span><button type="button" id="lb-close">关闭</button></div></dialog>
+<div class="tip" id="tip" hidden></div>
+<script>
+(function(){
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, text){ const e = document.createElementNS(NS, tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+  const tip = $('#tip');
+  function place(x, y){ const r = tip.getBoundingClientRect(); let l = x + 14, t = y + 14; if (l + r.width > innerWidth - 8) l = x - r.width - 14; if (t + r.height > innerHeight - 8) t = y - r.height - 14; tip.style.left = Math.max(8, l) + 'px'; tip.style.top = Math.max(8, t) + 'px'; }
+  document.addEventListener('pointerover', e => { const t = e.target.closest && e.target.closest('[data-tip]'); if (!t) return; tip.textContent = t.getAttribute('data-tip'); tip.hidden = false; place(e.clientX, e.clientY); });
+  document.addEventListener('pointermove', e => { if (tip.hidden) return; if (!(e.target.closest && e.target.closest('[data-tip]'))) { tip.hidden = true; return; } place(e.clientX, e.clientY); });
+  const lb = $('#lb');
+  $$('figure.plate .zoom').forEach(b => b.addEventListener('click', () => { $('#lb-img').src = b.dataset.src; const c = b.parentElement.querySelector('figcaption b'); $('#lb-cap').textContent = c ? c.textContent : ''; if (lb.showModal) lb.showModal(); else lb.setAttribute('open', ''); }));
+  $('#lb-close').addEventListener('click', () => lb.close());
+  lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+  const links = $$('.toc a');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id)); }), { rootMargin: '-35% 0px -60% 0px' });
+    $$('main section').forEach(s => io.observe(s));
+  }
+  function rawTable(host, head, rows){
+    const d = document.createElement('div'); d.className = 'tblwrap';
+    d.innerHTML = '<table class="t"><thead><tr>' + head.map((h, i) => '<th' + (i ? ' class="num"' : '') + '>' + h + '</th>').join('') + '</tr></thead><tbody>' +
+      rows.map(r => '<tr>' + r.map((c, i) => i ? '<td class="num">' + c + '</td>' : '<th>' + c + '</th>').join('') + '</tr>').join('') + '</tbody></table>';
+    host.appendChild(d);
+  }
+  function seg(host, onPick){ $$('button', host).forEach(b => b.addEventListener('click', () => { $$('button', host).forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); onPick(b.dataset.k); })); }
+  function arrowDefs(svg, id, col){ const df = el('defs'); const mk = el('marker', { id, viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto' }); mk.appendChild(el('path', { d: 'M0 0 L10 5 L0 10 z', fill: col })); df.appendChild(mk); svg.appendChild(df); }
+
+  /* ---------- hero ribbon ---------- */
+  (function(){
+    const g = $('#rb');
+    arrowDefs(g, 'ra', 'var(--ink-2)');
+    function box(x, y, w, h, t, sub, c){ g.appendChild(el('rect', { x, y, width: w, height: h, rx: 9, fill: 'color-mix(in oklab,' + c + ' 16%,var(--surface))', stroke: c, 'stroke-width': 1.6 })); g.appendChild(el('text', { x: x + w / 2, y: y + h / 2 - (sub ? 3 : -5), 'text-anchor': 'middle', class: 'n' }, t)); if (sub) g.appendChild(el('text', { x: x + w / 2, y: y + h / 2 + 15, 'text-anchor': 'middle', class: 'm' }, sub)); }
+    g.appendChild(el('rect', { x: 8, y: 8, width: 150, height: 244, rx: 12, fill: 'color-mix(in oklab,var(--ex) 7%,transparent)', stroke: 'var(--ex)', 'stroke-dasharray': '4 4' }));
+    g.appendChild(el('text', { x: 18, y: 28, class: 'm', style: 'fill:var(--ex)' }, '真实世界'));
+    box(22, 50, 122, 64, '真机', '跟随者', 'var(--ex)');
+    box(22, 150, 122, 64, '三台相机', 'RGB 90 fps', 'var(--ex)');
+    box(220, 50, 150, 164, '数字孪生', '', 'var(--hd)');
+    g.appendChild(el('text', { x: 295, y: 160, 'text-anchor': 'middle', class: 'm' }, '物理步 + 修正步'));
+    g.appendChild(el('text', { x: 295, y: 178, 'text-anchor': 'middle', class: 'm' }, '60 Hz'));
+    box(420, 96, 90, 72, '策略', 'flow matching', 'var(--hd)');
+    g.appendChild(el('path', { d: 'M220 82 L148 82', stroke: 'var(--hd)', 'stroke-width': 2, 'marker-end': 'url(#ra)', fill: 'none' }));
+    g.appendChild(el('text', { x: 184, y: 74, 'text-anchor': 'middle', class: 'm' }, '关节 q'));
+    g.appendChild(el('path', { d: 'M144 182 L216 182', stroke: 'var(--ex)', 'stroke-width': 2, 'marker-end': 'url(#ra)', fill: 'none' }));
+    g.appendChild(el('text', { x: 182, y: 200, 'text-anchor': 'middle', class: 'm' }, '视觉力'));
+    g.appendChild(el('path', { d: 'M372 116 L416 116', stroke: 'var(--hd)', 'stroke-width': 2, 'marker-end': 'url(#ra)', fill: 'none' }));
+    g.appendChild(el('path', { d: 'M418 148 L374 148', stroke: 'var(--hd)', 'stroke-width': 2, 'marker-end': 'url(#ra)', fill: 'none' }));
+    g.appendChild(el('text', { x: 395, y: 108, 'text-anchor': 'middle', class: 'm' }, '状态'));
+    g.appendChild(el('text', { x: 395, y: 166, 'text-anchor': 'middle', class: 'm' }, 'q′'));
+    g.appendChild(el('line', { x1: 186, x2: 186, y1: 20, y2: 240, stroke: 'var(--warn)', 'stroke-dasharray': '2 3' }));
+    g.appendChild(el('text', { x: 186, y: 250, 'text-anchor': 'middle', class: 'm', style: 'fill:var(--warn)' }, 'sim–real 差距只在这里'));
+  })();
+
+  /* ---------- flow lab ---------- */
+  (function(){
+    let mode = 'online', conf = 'follower';
+    const svg = $('#fl-svg');
+    function draw(){
+      svg.innerHTML = ''; arrowDefs(svg, 'fa', 'var(--ink-2)'); arrowDefs(svg, 'fb', 'var(--warn)');
+      const on = mode === 'online';
+      function box(x, y, w, h, t, c, dim){ svg.appendChild(el('rect', { x, y, width: w, height: h, rx: 9, fill: dim ? 'var(--surface-2)' : 'color-mix(in oklab,' + c + ' 16%,var(--surface))', stroke: dim ? 'var(--line)' : c, 'stroke-width': 1.6 })); svg.appendChild(el('text', { x: x + w / 2, y: y + h / 2 + 5, 'text-anchor': 'middle', class: 'n', style: dim ? 'fill:var(--muted)' : '' }, t)); }
+      function link(d, cross, dim, label, lx, ly){ svg.appendChild(el('path', { d, fill: 'none', stroke: cross ? 'var(--warn)' : 'var(--ink-2)', 'stroke-width': cross ? 2.4 : 1.6, opacity: dim ? .25 : 1, 'marker-end': cross ? 'url(#fb)' : 'url(#fa)', 'stroke-dasharray': dim ? '4 4' : '' })); if (label) svg.appendChild(el('text', { x: lx, y: ly, class: 'm', opacity: dim ? .4 : 1 }, label)); }
+      svg.appendChild(el('rect', { x: 10, y: 20, width: 190, height: 250, rx: 12, fill: 'none', stroke: 'var(--line)', 'stroke-dasharray': '4 4' }));
+      svg.appendChild(el('text', { x: 20, y: 40, class: 'm' }, '真实世界'));
+      svg.appendChild(el('rect', { x: 290, y: 20, width: 230, height: 250, rx: 12, fill: 'none', stroke: 'var(--line)', 'stroke-dasharray': '4 4' }));
+      svg.appendChild(el('text', { x: 300, y: 40, class: 'm' }, '可修正的物理仿真 · 60 Hz'));
+      svg.appendChild(el('line', { x1: 245, x2: 245, y1: 14, y2: 286, stroke: 'var(--warn)', 'stroke-dasharray': '2 3' }));
+      svg.appendChild(el('text', { x: 245, y: 296, 'text-anchor': 'middle', class: 'm', style: 'fill:var(--warn)' }, 'sim–real 边界'));
+      const lead = conf === 'leader';
+      box(30, 66, 150, 56, lead ? '真机（领导者）' : '真机（跟随者）', 'var(--ex)', !on);
+      box(30, 186, 150, 56, '相机观测', 'var(--ex)', !on);
+      box(320, 66, 170, 56, '物理步', 'var(--hd)', false);
+      box(320, 186, 170, 56, on ? '修正步（视觉力）' : '修正步（关闭）', 'var(--hd)', !on);
+      box(600, 120, 140, 70, '策略', 'var(--hd)', false);
+      let n = 0;
+      if (!lead) {
+        link('M320 94 L184 94', on, !on, '仿真关节 q → 真机', 196, 86); if (on) n++;
+        link('M180 214 L316 214', on, !on, '图像 → 视觉力', 196, 232); if (on) n++;
+        link('M596 140 L494 100', false, false, 'q′', 540, 112);
+        link('M494 86 L596 132', false, false, '状态', 540, 96);
+      } else {
+        if (on) { link('M600 128 C 560 20, 200 20, 108 62', true, false, '策略 → 真机', 380, 34); n++; link('M180 94 L316 94', true, false, '真机关节 → 仿真', 196, 86); n++; link('M180 214 L316 214', true, false, '图像 → 视觉力', 196, 232); n++; link('M494 86 L596 132', false, false, '状态', 540, 96); }
+        else { link('M320 94 L184 94', false, true, '', 0, 0); link('M180 214 L316 214', false, true, '', 0, 0); link('M596 140 L494 100', false, false, 'q′', 540, 112); link('M494 86 L596 132', false, false, '状态', 540, 96); }
+      }
+      svg.appendChild(el('path', { d: 'M405 124 L405 182', stroke: 'var(--hd)', 'stroke-width': 1.4, 'marker-end': 'url(#fa)' }));
+      svg.appendChild(el('path', { d: 'M412 182 L412 124', stroke: 'var(--hd)', 'stroke-width': 1.4, 'marker-end': 'url(#fa)' }));
+      let s;
+      if (!lead && on) s = '在线 · 跟随者：策略只和仿真打交道。跨过边界的只有 ' + n + ' 条数据流：仿真机器人的实际关节 q 送给真机去跟随，真实图像送给修正步变成视觉力。真机比仿真略微滞后，相当于系统总能预览一点点未来。';
+      else if (!lead && !on) s = '离线 · 跟随者：关掉真机跟随和视觉力，其余连线一条都不用改。策略看到的输入和在线时完全同类，可以并行跑 20 份（论文：比实时快 5–8 倍）。';
+      else if (lead && on) s = '在线 · 领导者（论文附录里的对照）：真机先动、仿真跟随。跨过边界的变成 ' + n + ' 条：策略的指令要送到真机，真机的状态要送回仿真，图像也要送进修正步。';
+      else s = '离线 · 领导者：没有真机可以领导，必须把策略重新接到仿真机器人上，连线结构和在线时不同。这正是作者选择跟随者配置的主要原因：软件结构更简单，在线离线切换不用改连线。';
+      $('#fl-say').textContent = s;
+    }
+    seg($('#fl-mode'), k => { mode = k; draw(); }); seg($('#fl-conf'), k => { conf = k; draw(); }); draw();
+  })();
+
+  /* ---------- checkpoint chart ---------- */
+  (function(){
+    const svg = $('#ch-ck'); svg.innerHTML = '';
+    const OFFX = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 30, 40, 50];
+    const OFF = [12.2, 16.0, 27.6, 41.5, 29.0, 36.2, 44.4, 51.7, 51.1, 42.9, 57.5, 48.7, 62.9, 61.7, 44.1, 63.5, 64.3, 58.8, 51.7];
+    const ON = [[10, 20.0, 15.0, 25.0], [15, 33.3, 30.0, 35.0], [25, 56.7, 45.0, 70.0], [50, 48.3, 40.0, 55.0]];
+    const W = 760, H = 300, L = 54, R = 20, T = 16, B = 40, x = s => L + (W - L - R) * (s - 10) / 40, y = v => T + (H - T - B) * (1 - v / 80);
+    for (let v = 0; v <= 80; v += 10) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), class: 'grid' })); svg.appendChild(el('text', { x: L - 8, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, v + '%')); }
+    for (let s = 10; s <= 50; s += 5) svg.appendChild(el('text', { x: x(s), y: H - B + 18, 'text-anchor': 'middle', class: 'tick' }, s + 'K'));
+    svg.appendChild(el('text', { x: (L + W - R) / 2, y: H - 4, 'text-anchor': 'middle', class: 'tick' }, '训练步数'));
+    // online CI band
+    svg.appendChild(el('polygon', { points: ON.map(p => x(p[0]) + ',' + y(p[3])).concat(ON.slice().reverse().map(p => x(p[0]) + ',' + y(p[2]))).join(' '), fill: 'var(--hd)', opacity: .14 }));
+    svg.appendChild(el('polyline', { points: OFFX.map((s, i) => x(s) + ',' + y(OFF[i])).join(' '), fill: 'none', stroke: 'var(--ex)', 'stroke-width': 2 }));
+    OFFX.forEach((s, i) => svg.appendChild(el('circle', { cx: x(s), cy: y(OFF[i]), r: 4, fill: 'var(--ex)', 'data-tip': '离线 · ' + s + 'K 步：' + OFF[i].toFixed(1) + '%' })));
+    svg.appendChild(el('polyline', { points: ON.map(p => x(p[0]) + ',' + y(p[1])).join(' '), fill: 'none', stroke: 'var(--hd)', 'stroke-width': 2.4 }));
+    ON.forEach(p => { svg.appendChild(el('rect', { x: x(p[0]) - 5, y: y(p[1]) - 5, width: 10, height: 10, fill: 'var(--hd)', 'data-tip': '真机 · ' + p[0] + 'K 步：' + p[1].toFixed(1) + '%（≈ ' + Math.round(p[1] * 0.6) + '/60）' })); svg.appendChild(el('text', { x: x(p[0]) + 8, y: y(p[1]) + 16, class: 'val' }, p[1].toFixed(1))); });
+    [10, 15, 25, 50].forEach(s => { const i = OFFX.indexOf(s); svg.appendChild(el('text', { x: x(s) + 6, y: y(OFF[i]) - 8, class: 'val', style: 'fill:var(--ex)' }, OFF[i].toFixed(1))); });
+    rawTable($('#raw-ck'), ['训练步数', '离线（仿真）', '在线（真机）'], OFFX.map((s, i) => { const o = ON.find(p => p[0] === s); return [s + 'K', OFF[i].toFixed(1) + '%', o ? o[1].toFixed(1) + '%（' + Math.round(o[1] * 0.6) + '/60）' : '—']; }));
+  })();
+
+  /* ---------- bar charts with CI ---------- */
+  function bars(svg, rows, opt){
+    svg.innerHTML = ''; const W = 760, H = 270, L = 54, R = 20, T = 16, B = 46, lo = opt.lo, hi = opt.hi;
+    const y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+    for (let v = lo; v <= hi; v += opt.step) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), class: 'grid' })); svg.appendChild(el('text', { x: L - 8, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, v + '%')); }
+    const gw = (W - L - R) / rows.length, bw = Math.min(110, gw * .55);
+    rows.forEach((r, i) => {
+      const cx = L + gw * (i + .5);
+      svg.appendChild(el('rect', { x: cx - bw / 2, y: y(r.v), width: bw, height: y(lo) - y(r.v), rx: 3, fill: r.fill === 'none' ? 'transparent' : r.c, stroke: r.c, 'stroke-width': 2, 'data-tip': r.n.replace('\n', ' ') + '：' + r.v.toFixed(1) + '%（' + Math.round(r.v * 0.6) + '/60），95% CI ' + r.lo.toFixed(1) + '–' + r.hi.toFixed(1) }));
+      if (r.fill === 'none') svg.appendChild(el('rect', { x: cx - bw / 2, y: y(r.v), width: bw / 2, height: y(lo) - y(r.v), rx: 3, fill: r.c2 }));
+      svg.appendChild(el('line', { x1: cx, x2: cx, y1: y(Math.min(hi, r.hi)), y2: y(Math.max(lo, r.lo)), stroke: 'var(--ink-2)', 'stroke-width': 1.4 }));
+      [r.hi, r.lo].forEach(v => svg.appendChild(el('line', { x1: cx - 6, x2: cx + 6, y1: y(Math.min(hi, Math.max(lo, v))), y2: y(Math.min(hi, Math.max(lo, v))), stroke: 'var(--ink-2)', 'stroke-width': 1.4 })));
+      svg.appendChild(el('text', { x: cx + bw / 2 + 4, y: y(r.v) + 12, class: 'val hi' }, r.v.toFixed(1)));
+      r.n.split('\n').forEach((t, k) => svg.appendChild(el('text', { x: cx, y: H - B + 18 + k * 14, 'text-anchor': 'middle', class: 'glabel' }, t)));
+    });
+  }
+  bars($('#ch-aug'), [
+    { n: '30 条仿真示范', v: 58.3, lo: 46.7, hi: 71.7, c: 'var(--hd)' },
+    { n: '30 条真机示范', v: 56.7, lo: 43.3, hi: 68.3, c: 'var(--ex)' },
+    { n: '30 条真机 + 30 条\n针对失败状态的仿真示范', v: 80.0, lo: 70.0, hi: 90.0, c: 'var(--ex)', fill: 'none', c2: 'color-mix(in oklab,var(--hd) 70%,transparent)' },
+    { n: '60 条真机示范', v: 76.7, lo: 65.0, hi: 86.7, c: 'var(--ex)' }
+  ], { lo: 40, hi: 90, step: 10 });
+  bars($('#ch-rep'), [
+    { n: '物体位姿\n（仿真）', v: 76.7, lo: 66.7, hi: 86.7, c: 'var(--hd)' },
+    { n: '虚拟静态相机\n（仿真渲染）', v: 71.7, lo: 60.0, hi: 83.3, c: 'var(--hd)' },
+    { n: '虚拟腕部相机\n（仿真渲染）', v: 81.7, lo: 71.7, hi: 91.7, c: 'var(--hd)' },
+    { n: '真实静态相机\n（基线）', v: 61.7, lo: 50.0, hi: 75.0, c: 'var(--ex)' }
+  ], { lo: 45, hi: 90, step: 5 });
+})();
+</script>
+</body>
+</html>
