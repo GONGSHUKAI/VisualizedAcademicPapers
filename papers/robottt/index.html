@@ -240,7 +240,7 @@ footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;c
 </head>
 <body>
 <!-- vap:nav -->
-<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/">Harness for Robotics</a></span><span class="vapnav-links"><span class="vapnav-grp"><span class="vapnav-cat">上下文</span><a href="../../papers/activevla/">ActiveVLA</a><a href="../../papers/tic-vla/">TIC-VLA</a><a href="../../papers/ra-vla/">RA-VLA</a></span><span class="vapnav-grp"><span class="vapnav-cat">记忆</span><a href="../../papers/memoryvla/">MemoryVLA</a><a href="../../papers/optimusvla/">OptimusVLA</a><a href="../../papers/soma/">SOMA</a><a href="../../papers/hime/">HiMe</a></span><span class="vapnav-grp"><span class="vapnav-cat">结构化执行</span><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/motormind/">MotorMind</a></span><span class="vapnav-grp"><span class="vapnav-cat">评估与反馈</span><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/tau0-wm/">τ₀-WM</a><a href="../../papers/robottt/" aria-current="page">RoboTTT</a><a href="../../papers/tau0-vla/">τ₀-VLA</a></span></span></div></div>
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/">Harness for Robotics</a></span><span class="vapnav-links"><span class="vapnav-grp"><span class="vapnav-cat">总体设计</span><a href="../../papers/aspire/">ASPIRE</a><a href="../../papers/pyrua-lean/">PyRUA-Lean</a></span><span class="vapnav-grp"><span class="vapnav-cat">上下文</span><a href="../../papers/activevla/">ActiveVLA</a><a href="../../papers/tic-vla/">TIC-VLA</a><a href="../../papers/ra-vla/">RA-VLA</a></span><span class="vapnav-grp"><span class="vapnav-cat">记忆</span><a href="../../papers/memoryvla/">MemoryVLA</a><a href="../../papers/optimusvla/">OptimusVLA</a><a href="../../papers/soma/">SOMA</a><a href="../../papers/hime/">HiMe</a></span><span class="vapnav-grp"><span class="vapnav-cat">结构化执行</span><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/motormind/">MotorMind</a></span><span class="vapnav-grp"><span class="vapnav-cat">评估与反馈</span><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/tau0-wm/">τ₀-WM</a><a href="../../papers/robottt/" aria-current="page">RoboTTT</a><a href="../../papers/tau0-vla/">τ₀-VLA</a></span></span></div></div>
 <!-- /vap:nav -->
 <header class="hero page">
   <div class="hero-grid">
@@ -573,12 +573,12 @@ footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;c
       <p class="eyebrow">放到专题里看</p>
       <h2>反馈写进权重，而且训练时就学会了怎么写</h2>
       <div class="prose">
-        <p>在 <a href="../../topics/robot-harness/">Harness for Robotics 专题</a>里，RoboTTT 归入（4）评估与反馈：部署时，执行产生的每一步观测和动作都在更新策略的快权重；训练时，DAgger Distillation 用人的纠正作为评价信号，教会快权重「看到这种失败就这样改」。</p>
-        <p><span class="tag read">解读</span>需要说明它和（4）的定义并不完全吻合：（4）要求「显式评价信号」，而 RoboTTT 在测试时的更新信号是自监督的键值重建损失，没有任何打分；显式的评价（人的纠正）只出现在训练时。从机制看，它同样接近（2）持久状态与记忆：快权重就是一种跨步保存执行历史的状态。我们按「在回合内根据执行结果改变策略参数」这一点，把它和 TT-VLA 放在一起。</p>
+        <p>在 <a href="../../topics/robot-harness/">Harness for Robotics 专题</a>里，RoboTTT 归入（5）评估与反馈：部署时，执行产生的每一步观测和动作都在更新策略的快权重；训练时，DAgger Distillation 用人的纠正作为评价信号，教会快权重「看到这种失败就这样改」。</p>
+        <p><span class="tag read">解读</span>需要说明它和（5）的定义并不完全吻合：（5）要求「显式评价信号」，而 RoboTTT 在测试时的更新信号是自监督的键值重建损失，没有任何打分；显式的评价（人的纠正）只出现在训练时。从机制看，它同样接近（3）持久状态与记忆：快权重就是一种跨步保存执行历史的状态。我们按「在回合内根据执行结果改变策略参数」这一点，把它和 TT-VLA 放在一起。</p>
       </div>
       <div class="tblwrap">
         <table class="t cmp">
-          <thead><tr><th></th><th class="me">RoboTTT</th><th>TT-VLA</th><th>τ₀-VLA</th><th>MemoryVLA（2）</th></tr></thead>
+          <thead><tr><th></th><th class="me">RoboTTT</th><th>TT-VLA</th><th>τ₀-VLA</th><th>MemoryVLA（3）</th></tr></thead>
           <tbody>
             <tr><th>测试时变的是什么</th><td class="me">每层约 10M 的快 MLP 权重</td><td>LoRA 参数</td><td>执行记忆（文本）与子任务选择</td><td>特征记忆库（token）</td></tr>
             <tr><th>更新信号</th><td class="me">自监督键值重建损失（每步）</td><td>VLAC 进度差分做 PPO 奖励（每 8 步）</td><td>世界模型想象 + 价值打分（执行前）</td><td>门控写入，无损失</td></tr>
@@ -593,7 +593,7 @@ footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;c
         <ul>
           <li><strong>和 TT-VLA：</strong>两篇都在部署时改模型参数，但思路相反。TT-VLA 在一个训练好的 VLA 外面临时加 RL 更新，靠外部进度估计器给奖励，更新太频繁会掉到基座以下；RoboTTT 的更新是模型本身的一部分，训练时就以同样的方式在长序列上做过，不需要外部评价器。TT-VLA 只支持离散 token 的自回归 VLA，RoboTTT 正好建在 flow matching 的 GR00T 上。</li>
           <li><strong>和 τ₀-VLA：</strong>τ₀ 在执行前评价、改的是选哪个子任务；RoboTTT 在执行后吸收结果、改的是动作头的权重。τ₀ 的「记忆滞后 / 超前 / 未察觉失败」扰动样本，和 RoboTTT 的 DAgger Distillation 想解决的是同一类问题：让策略在自己出错之后知道该做什么。</li>
-          <li><strong>和（2）类的 MemoryVLA、OptimusVLA：</strong>它们把历史存成 token 库或已执行的动作块，容量有上限或要合并；RoboTTT 把历史压进权重，容量由 MLP 决定，不需要删除或合并的规则。RoboTTT 的消融里「让动作 token 进 TTT」提升 23%，和 OptimusVLA 读已执行动作块的思路相通。</li>
+          <li><strong>和（3）类的 MemoryVLA、OptimusVLA：</strong>它们把历史存成 token 库或已执行的动作块，容量有上限或要合并；RoboTTT 把历史压进权重，容量由 MLP 决定，不需要删除或合并的规则。RoboTTT 的消融里「让动作 token 进 TTT」提升 23%，和 OptimusVLA 读已执行动作块的思路相通。</li>
         </ul>
       </div>
     </section>

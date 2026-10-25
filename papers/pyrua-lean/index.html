@@ -1,0 +1,1342 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>PyRUA-Lean 精读</title>
+<meta name="description" content="Fewer Tokens, Better Action（PyRUA-Lean）中文精读：把机器人智能体的工具调用换成可执行 Python cell，同一 GPT-6 Astra 与同一套原语下成功率 63.1% → 71.7%、token 少 65%；RoboDojo 无 VLA 51.6%；GRPO 训练的 4B 规划器。方法、逐次回放、结果、疑点与专题对照。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Martian+Mono:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F4F1EA; --surface:#FFFDF8; --surface-2:#EAE5DA; --ink:#1C1A17; --ink-2:#47423A; --muted:#736C60; --line:#DCD5C7;
+  --code:#9E1C14; --code-soft:#F5DDD8; --on-code:#FFFFFF;
+  --tool:#56677D; --tool-soft:#E1E7EF;
+  --tok:#9A6A06; --tok-soft:#F4E6C6;
+  --img:#2C6E8E; --img-soft:#D8E9F1;
+  --ok:#2E7A4B; --ok-soft:#D9EEDF;
+  --warn:#7C3A92; --warn-soft:#EEDFF3;
+  --gray:#A39C90; --gray-2:#CFC8BB;
+  --plate:#FFFFFF; --focus:#9E1C14;
+  --f-display:"Martian Mono","JetBrains Mono",ui-monospace,"Noto Sans SC",monospace;
+  --f-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#121110; --surface:#1A1917; --surface-2:#25231F; --ink:#ECE7DE; --ink-2:#C3BCB0; --muted:#8F887C; --line:#2F2C27;
+    --code:#F2867A; --code-soft:#3A1C18; --on-code:#1A0B09;
+    --tool:#9DB0C8; --tool-soft:#1E2733;
+    --tok:#E3B651; --tok-soft:#3A2E12;
+    --img:#72B7D9; --img-soft:#15303D;
+    --ok:#72C793; --ok-soft:#173222;
+    --warn:#CFA0E3; --warn-soft:#2E1F36;
+    --gray:#7A7469; --gray-2:#4A463F;
+    --plate:#F2EFE9; --focus:#F2867A;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#121110; --surface:#1A1917; --surface-2:#25231F; --ink:#ECE7DE; --ink-2:#C3BCB0; --muted:#8F887C; --line:#2F2C27;
+  --code:#F2867A; --code-soft:#3A1C18; --on-code:#1A0B09;
+  --tool:#9DB0C8; --tool-soft:#1E2733;
+  --tok:#E3B651; --tok-soft:#3A2E12;
+  --img:#72B7D9; --img-soft:#15303D;
+  --ok:#72C793; --ok-soft:#173222;
+  --warn:#CFA0E3; --warn-soft:#2E1F36;
+  --gray:#7A7469; --gray-2:#4A463F;
+  --plate:#F2EFE9; --focus:#F2867A;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:var(--code);text-underline-offset:3px;text-decoration-thickness:1px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+strong{font-weight:700}
+code,.mono{font-family:var(--f-mono);font-size:.86em}
+sub,sup{font-size:.72em;line-height:0}
+.page{max-width:1200px;margin:0 auto;padding-inline:24px}
+@media (max-width:560px){.page{padding-inline:16px}}
+
+/* hero */
+.hero{padding-block:44px 24px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:40px;align-items:center}
+@media (max-width:900px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+.kicker{font:500 12px/1.4 var(--f-mono);letter-spacing:.06em;color:var(--code);margin:0 0 14px}
+h1.title{font-family:var(--f-display);font-weight:800;font-size:clamp(2.3rem,1.2rem + 5vw,4.9rem);line-height:1;letter-spacing:-.05em;margin:0;word-break:break-word}
+h1.title .py{color:var(--code)}
+h1.title .cur{display:inline-block;width:.5em;height:.82em;background:var(--code);margin-left:.08em;vertical-align:-.06em;animation:blink 1.2s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.entitle{font-family:var(--f-mono);font-weight:500;font-size:clamp(.88rem,.84rem + .25vw,1rem);line-height:1.6;color:var(--ink-2);margin:16px 0 0}
+.thesis{font-size:clamp(1.03rem,1rem + .3vw,1.18rem);line-height:1.8;margin:20px 0 0;max-width:35em}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin:20px 0 0;padding:0;list-style:none;font:13px/1.6 var(--f-mono);color:var(--muted)}
+.meta b{color:var(--ink-2);font-weight:500}
+.ribbon{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.ribbon svg{display:block;width:100%;height:auto}
+.ribbon svg text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+.ribbon svg .mono{font-family:var(--f-mono);font-size:11.5px}
+.ribbon figcaption{font:12px/1.6 var(--f-mono);color:var(--muted);margin-top:8px}
+.tldr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:32px}
+@media (max-width:760px){.tldr{grid-template-columns:minmax(0,1fr)}}
+.tldr>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;position:relative}
+.tldr h3{font:500 12px/1.4 var(--f-mono);letter-spacing:.04em;color:var(--muted);margin:0 0 6px}
+.tldr h3::before{content:">>> ";color:var(--code)}
+.tldr p{margin:0;font-size:15px;line-height:1.75}
+.tldr .flag h3{color:var(--warn)} .tldr .flag h3::before{color:var(--warn)}
+
+/* layout */
+.layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:52px;padding-block:20px 80px}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr);gap:0}}
+.toc{position:sticky;top:20px;align-self:start;font-size:14px;line-height:1.5}
+.toc p{font:500 11px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.toc li a{display:block;padding:5px 0 5px 14px;margin-left:-1px;border-left:2px solid transparent;color:var(--muted);text-decoration:none}
+.toc li a:hover{color:var(--ink)}
+.toc li a.on{color:var(--ink);border-left-color:var(--code);font-weight:500}
+@media (max-width:1000px){
+  .toc{position:static;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .toc p{display:none}
+  .toc ol{display:flex;gap:6px;border:0;white-space:nowrap;padding-bottom:6px}
+  .toc li a{border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin:0;background:var(--surface)}
+  .toc li a.on{border-color:var(--code)}
+}
+main{min-width:0}
+section{padding-top:56px;scroll-margin-top:12px}
+section:first-child{padding-top:8px}
+.eyebrow{font:500 12px/1.4 var(--f-mono);letter-spacing:.04em;color:var(--code);margin:0 0 8px}
+.eyebrow::before{content:"In [" attr(data-n) "]: ";color:var(--muted)}
+h2{font-family:var(--f-body);font-weight:700;font-size:clamp(1.3rem,1.08rem + 1vw,1.8rem);line-height:1.4;letter-spacing:-.01em;margin:0 0 18px}
+h3{font-family:var(--f-body);font-weight:700;font-size:1.06rem;line-height:1.45;margin:36px 0 10px}
+p{margin:0 0 14px}
+.prose{max-width:44em}
+.prose li{margin-bottom:6px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.tag{display:inline-block;font:500 11px/1 var(--f-mono);padding:4px 6px 3px;border-radius:4px;vertical-align:2px;margin-right:6px;white-space:nowrap}
+.tag.read{border:1px dashed var(--ink-2);color:var(--ink-2)}
+.tag.doubt{background:var(--warn-soft);color:var(--warn)}
+.note{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 18px;margin:18px 0;max-width:46em}
+.note>:last-child{margin-bottom:0}
+.note ol{margin:0 0 12px;padding-left:20px}
+.note li{margin-bottom:6px}
+.note h4{font:500 13px/1.5 var(--f-body);margin:0 0 6px;color:var(--muted)}
+.note.doubt{border-color:color-mix(in oklab,var(--warn) 35%,var(--line));background:color-mix(in oklab,var(--warn-soft) 55%,var(--surface))}
+.note.doubt h4{color:var(--warn)}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* code blocks */
+pre.cell{font:12.5px/1.65 var(--f-mono);background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--code);border-radius:8px;padding:12px 14px;overflow-x:auto;color:var(--ink-2);margin:10px 0;max-width:100%;white-space:pre}
+pre.cell .k{color:var(--code);font-weight:700} pre.cell .s{color:var(--ok)} pre.cell .c{color:var(--muted)} pre.cell .r{color:var(--code);font-weight:700;text-decoration:underline;text-decoration-color:color-mix(in oklab,var(--code) 40%,transparent);text-underline-offset:2px} pre.cell .m{color:var(--img)} pre.cell .n{color:var(--tok)}
+
+/* figures */
+figure.plate{margin:22px 0}
+figure.plate .zoom{display:block;width:100%;padding:10px;background:var(--plate);border:1px solid var(--line);border-radius:8px;cursor:zoom-in}
+figure.plate img{display:block;width:100%;height:auto}
+figure.plate figcaption{font-size:14px;line-height:1.7;color:var(--ink-2);margin-top:10px;max-width:52em}
+figure.plate figcaption b{font:500 12px var(--f-mono);color:var(--muted);margin-right:8px}
+figure.plate.narrow{max-width:520px}
+dialog#lb{border:0;padding:0;background:transparent;max-width:min(96vw,1800px);width:96vw}
+dialog#lb::backdrop{background:rgba(10,9,8,.86)}
+dialog#lb .box{background:var(--plate);border-radius:8px;padding:10px;max-height:88vh;overflow:auto}
+dialog#lb img{display:block;width:100%;height:auto}
+dialog#lb .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#ECE7DE;font-size:14px;padding:8px 2px 0}
+dialog#lb button{font:500 13px var(--f-mono);background:#ECE7DE;color:#1C1A17;border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
+
+/* tables */
+.tblwrap{overflow-x:auto;margin:16px 0;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;font-size:14px;line-height:1.6;min-width:100%}
+table.t th,table.t td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.t thead th{font:500 12px/1.4 var(--f-mono);color:var(--muted);border-bottom:1.5px solid var(--ink-2);white-space:nowrap}
+table.t tbody th{font-weight:500;color:var(--ink-2)}
+table.t .r{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t tr.best td,table.t tr.best th{font-weight:700}
+table.t tr.grp th{font:500 12px var(--f-mono);color:var(--muted);background:var(--surface-2)}
+table.t.compact{font-size:13px}
+table.t.compact th,table.t.compact td{padding:7px 8px}
+table.t td.hi{background:color-mix(in oklab,var(--code-soft) 70%,transparent)}
+table.t code{font-size:12.5px}
+
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.cards.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:860px){.cards.three{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.cards{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card h4{font-family:var(--f-body);font-weight:700;font-size:.98rem;line-height:1.45;margin:0 0 8px}
+.card p{font-size:14.5px;line-height:1.75;margin:0 0 8px}
+.card p:last-child{margin:0}
+.card .who{font:500 11.5px var(--f-mono);color:var(--muted);display:block;margin-bottom:4px}
+.card.c{border-top:3px solid var(--code)} .card.t{border-top:3px solid var(--tool)} .card.k{border-top:3px solid var(--tok)} .card.i{border-top:3px solid var(--img)} .card.g{border-top:3px solid var(--ok)}
+
+/* lab / charts */
+.lab,.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin:22px 0}
+.lab-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 16px;margin-bottom:10px}
+.lab-head h4,.chartbox h4{font-family:var(--f-body);font-weight:700;font-size:1rem;margin:0}
+.lab-head p,.chartbox .sub{margin:0;font-size:13px;color:var(--muted)}
+.chartbox .sub{margin:2px 0 10px}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin:0 0 12px;font-size:14px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--bg);flex-wrap:wrap}
+.seg button{font:500 13px/1 var(--f-body);border:0;background:transparent;color:var(--muted);padding:8px 11px;cursor:pointer;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.btn{font:500 13px/1 var(--f-mono);border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:7px;padding:8px 12px;cursor:pointer;min-height:34px}
+.btn:hover{border-color:var(--code)}
+input[type=range]{flex:1 1 160px;min-width:120px;accent-color:var(--code)}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+svg.chart{display:block;width:100%;height:auto;min-width:600px}
+svg.chart text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+svg.chart .tick{font:11px var(--f-mono);fill:var(--muted)}
+svg.chart .val{font:11px var(--f-mono);fill:var(--ink-2)}
+svg.chart .val.hi{fill:var(--ink);font-weight:700}
+svg.chart .grid{stroke:var(--line);stroke-width:1}
+svg.chart .base{stroke:var(--ink-2);stroke-width:1}
+svg.chart .glabel{font-size:12px;fill:var(--ink)}
+svg.chart .mono{font-family:var(--f-mono);font-size:11px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink-2);margin:0 0 6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.legend i.dot{border-radius:50%}
+.legend i.ring{border-radius:50%;background:transparent!important;border:2px solid}
+.f-code{fill:var(--code)} .f-tool{fill:var(--tool)} .f-tok{fill:var(--tok)} .f-img{fill:var(--img)} .f-ok{fill:var(--ok)} .f-gray{fill:var(--gray)} .f-gray2{fill:var(--gray-2)} .f-warn{fill:var(--warn)}
+.b-code{background:var(--code)} .b-tool{background:var(--tool)} .b-tok{background:var(--tok)} .b-img{background:var(--img)} .b-ok{background:var(--ok)} .b-gray{background:var(--gray)} .b-gray2{background:var(--gray-2)} .b-warn{background:var(--warn)}
+details.raw{margin:8px 0 4px;font-size:13.5px}
+details.raw summary{cursor:pointer;color:var(--muted);font:500 12.5px var(--f-mono)}
+details.raw .tblwrap{margin:8px 0}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);font:12.5px/1.55 var(--f-body);padding:8px 10px;border-radius:6px;max-width:300px}
+
+/* replay */
+.rp-panels{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:12px;margin-top:12px;align-items:start}
+@media (max-width:820px){.rp-panels{grid-template-columns:minmax(0,1fr)}}
+.rp-panel{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0}
+.rp-panel h5{font:700 12.5px/1.4 var(--f-mono);margin:0 0 6px;letter-spacing:.02em}
+.rp-panel.t h5{color:var(--tool)} .rp-panel.c h5{color:var(--code)}
+.rp-panel p{font-size:14px;line-height:1.7;margin:0 0 8px}
+.rp-panel pre.cell{margin:6px 0 0;font-size:11.5px}
+.rp-stat{font:12px/1.6 var(--f-mono);color:var(--muted)}
+.rp-stat b{color:var(--ink);font-weight:500}
+#rp-svg .box{cursor:pointer}
+
+/* listings */
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.tabs button{font:500 13px/1 var(--f-body);border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:999px;padding:8px 13px;cursor:pointer;min-height:34px}
+.tabs button[aria-selected="true"]{border-color:var(--code);color:var(--ink);background:var(--code-soft)}
+
+details.faq{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:10px 0;max-width:50em}
+details.faq summary{cursor:pointer;padding:12px 16px;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::after{content:"+";font:500 16px var(--f-mono);color:var(--muted)}
+details.faq[open] summary::after{content:"−"}
+details.faq .a{padding:0 16px 14px;font-size:15px;line-height:1.8}
+details.faq .a p:last-child{margin:0}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0;align-items:start}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.two>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.two h4{font:500 13px/1.4 var(--f-body);margin:0 0 10px;color:var(--muted)}
+.two ul{margin:0;padding-left:18px;font-size:14.5px;line-height:1.75}
+.two li{margin-bottom:8px}
+table.cmp{min-width:900px}
+table.cmp td{font-size:13.5px}
+table.cmp th.me,table.cmp td.me{background:color-mix(in oklab,var(--code-soft) 60%,transparent)}
+details.gl{background:var(--surface);border:1px solid var(--line);border-radius:10px;max-width:52em}
+details.gl summary{cursor:pointer;padding:14px 18px;font-weight:500}
+details.gl dl{margin:0;padding:0 18px 16px;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:8px 18px;font-size:14px;line-height:1.7}
+details.gl dt{font-family:var(--f-mono);font-size:13px;color:var(--ink)}
+details.gl dd{margin:0;color:var(--ink-2)}
+@media (max-width:560px){details.gl dl{grid-template-columns:minmax(0,1fr);gap:2px}details.gl dd{margin-bottom:10px}}
+footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+.vapnav-grp{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-cat{font-size:11.5px;letter-spacing:.04em;opacity:.5}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/">Harness for Robotics</a></span><span class="vapnav-links"><span class="vapnav-grp"><span class="vapnav-cat">总体设计</span><a href="../../papers/aspire/">ASPIRE</a><a href="../../papers/pyrua-lean/" aria-current="page">PyRUA-Lean</a></span><span class="vapnav-grp"><span class="vapnav-cat">上下文</span><a href="../../papers/activevla/">ActiveVLA</a><a href="../../papers/tic-vla/">TIC-VLA</a><a href="../../papers/ra-vla/">RA-VLA</a></span><span class="vapnav-grp"><span class="vapnav-cat">记忆</span><a href="../../papers/memoryvla/">MemoryVLA</a><a href="../../papers/optimusvla/">OptimusVLA</a><a href="../../papers/soma/">SOMA</a><a href="../../papers/hime/">HiMe</a></span><span class="vapnav-grp"><span class="vapnav-cat">结构化执行</span><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/motormind/">MotorMind</a></span><span class="vapnav-grp"><span class="vapnav-cat">评估与反馈</span><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/tau0-wm/">τ₀-WM</a><a href="../../papers/robottt/">RoboTTT</a><a href="../../papers/tau0-vla/">τ₀-VLA</a></span></span></div></div>
+<!-- /vap:nav -->
+<header class="hero page">
+  <div class="hero-grid">
+    <div>
+      <p class="kicker">论文精读 · Harness for Robotics · 总体设计</p>
+      <h1 class="title"><span class="py">PyRUA</span>-Lean<span class="cur" aria-hidden="true"></span></h1>
+      <p class="entitle">Fewer Tokens, Better Action: GPT-6 Astra Robot Agents with 14% Higher Success Rate but 65% Fewer Tokens</p>
+      <p class="thesis">规划器还是同一个 GPT-6 Astra，原语也还是同一套（含冻结的 VLA 策略），只换掉智能体和机器人之间的接口：不再「一次工具调用走一步，每步自动回传三张相机图」，而是让模型写一个 <strong>Python cell</strong>，在 cell 里串起几个原语、检查结果、就地重试，<strong>只把 print 出来的内容和主动要的图</strong>交回给模型。700 个仿真任务实例上成功率 <strong>63.1% → 71.7%</strong>；在两边都做成的实例上，LLM 调用少 49%，输入 token 少 65%。</p>
+      <ul class="meta">
+        <li><b>北京大学</b>（周大权组）、NUS、NVIDIA、Impossible Research</li>
+        <li><b>arXiv</b> 2610.01939v2</li>
+        <li><b>v1</b> 2026-10-01 · <b>v2</b> 2026-10-13</li>
+        <li><a href="https://arxiv.org/abs/2610.01939" target="_blank" rel="noopener">arXiv</a> · <a href="https://dagroup-pku.github.io/PyRUA-Lean/" target="_blank" rel="noopener">项目页</a> · <a href="https://github.com/DAGroup-PKU/PyRUA-Lean" target="_blank" rel="noopener">GitHub</a></li>
+      </ul>
+    </div>
+    <figure class="ribbon">
+      <svg id="rb" viewBox="0 0 520 236" role="img" aria-label="同一个 LIBERO-PRO 任务：工具调用 20 次 LLM 调用共 1.04M token，代码 8 次 LLM 调用共 220k token"></svg>
+      <figcaption>按原文 Figure 8 与 Table 10 重画：LIBERO-PRO spatial swap 任务 7、种子 2，两边都做成，接近各自在 LIBERO-PRO 上的中位开销。方块是一次 LLM 调用，深色表示这次带回了相机图，粗框是完成任务的那次。</figcaption>
+    </figure>
+  </div>
+  <div class="tldr" aria-label="一分钟版">
+    <div><h3>做了什么</h3><p>把 RPent（即 Harness VLA）的工具调用接口换成单个 <code>python(code)</code> 工具：机器人是一个 <code>robo</code> 对象，原语是它的方法，变量和自定义函数在同一回合的 cell 之间保留。原语实现、VLA、规划器、预算都不变，比的是「接口整体」。v2 新增两部分：RoboDojo 上一个完全不用 VLA 的版本，以及用 GRPO 训练的 4B 开源规划器。</p></div>
+    <div><h3>放在 Harness 里看</h3><p>归入（1）总体设计。它改的不是某一个环节，而是模型和机器人之间的交互单位。一个 cell 同时决定这一步看什么（上下文）、什么留在运行时变量里（状态）、几个原语怎样带条件串起来（执行结构）、失败在哪一层重试（反馈）。</p></div>
+    <div><h3>结果</h3><p>四组基准成功率都升（<b>+5.0</b> 到 <b>+11.0</b> 个点），代码独做成 96 个实例、工具调用独做成 36 个。两边都成功时，每回合 LLM 调用 17.0 → 8.7 次，token 788k → 276k，费用 $1.63 → $0.74。RoboDojo 一个评测种子平均 SR <b>51.6%</b>（榜首 VPP2 32.3%）。4B Coder 在训练没见过的 655 个实例上 18.8% → <b>44.1%</b>。</p></div>
+    <div class="flag"><h3>最该留意的</h3><p>省 token 的数字只在两边都成功的 406 个实例上算，LIBERO-PRO 占了大头；算上失败回合，RoboCasa365 atomic 上两者每回合花费几乎一样（$0.94 对 $0.96）。第 3 节两个智能体都能读基准的成功标志 <code>robo.done</code>，代码还拿它控制重试。每个实例只跑一次，没有计时；RoboDojo 每回合约 12.7 分钟、$2.4。</p></div>
+  </div>
+</header>
+
+<div class="page layout">
+  <nav class="toc" aria-label="目录">
+    <p>目录</p>
+    <ol>
+      <li><a href="#problem">问题</a></li>
+      <li><a href="#interface">接口</a></li>
+      <li><a href="#replay">逐次回放</a></li>
+      <li><a href="#cells">cell 在做什么</a></li>
+      <li><a href="#setup">实验设置</a></li>
+      <li><a href="#results">主结果</a></li>
+      <li><a href="#savings">省在哪</a></li>
+      <li><a href="#ablation">消融</a></li>
+      <li><a href="#robodojo">RoboDojo</a></li>
+      <li><a href="#coder">Coder 4B</a></li>
+      <li><a href="#insight">读懂它</a></li>
+      <li><a href="#limits">局限与疑点</a></li>
+      <li><a href="#topic">放到专题里看</a></li>
+      <li><a href="#glossary">术语表</a></li>
+    </ol>
+  </nav>
+  <main>
+    <section id="problem">
+      <p class="eyebrow" data-n="1">问题 · §1 · 附录 A</p>
+      <h2>工具调用的账单：每走一步，整段历史再读一遍</h2>
+      <div class="prose">
+        <p>VLM 智能体操控机器人，常见做法是工具调用：模型挑一个原语（移动、分割、调用 VLA 抓取），执行完把结果交回，再决定下一步。论文指出这里有两笔开销。第一，依赖上一步结果的操作，一般每一步都要一次新的 LLM 调用。第二，中间结果留在对话里，之后每次调用都要再处理一遍；RPent 这类系统还会在每次运动后自动回传多张相机图。于是需要反复定位、移动、恢复的任务，推理开销很大，即使每个原语本身都可靠。</p>
+        <p>论文的问题是：LLM 智能体能不能把原语组合起来，既可靠地完成任务，又通过「有选择地看」和「管理上下文」少用 token？</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/episode.jpg" aria-label="放大原文图 8"><img src="fig/episode.jpg" width="1800" height="682" alt="原文图 8：同一任务两种接口的逐次 LLM 调用与累计 token 曲线" loading="lazy"></button>
+        <figcaption><b>原文 Figure 8</b>任务是「把灶台上的 akita 黑碗放到盘子上」。上：每个方块是一次 LLM 调用，数字是这次调用了几个工具（工具调用）或几个原语（代码）；深色方块带回了相机图，粗框是完成任务的那次。下：累计输入 token，圆圈是完成任务的调用。工具调用在第 17 次调用完成，此时已用 816k token，全回合 20 次、1.04M；代码在第 6 次完成，156k，全回合 8 次、220k。</figcaption>
+      </figure>
+      <div class="note">
+        <h4><span class="tag read">解读</span>为什么 token 随调用次数超线性增长</h4>
+        <p>每次调用的输入是系统提示、之前的全部对话和新结果。表 10 的累计值逐行相减（我们算的）：工具调用第 1 次读入约 20k，到第 20 次每次读入约 77k；代码 8 次调用每次 22–32k。少一次调用，省下的不只是这次新增的内容，还有又一遍完整历史。所以论文后面把 token 比拆成「调用次数比 × 每次调用 token 比」，结论是前者占大头（见<a href="#savings">省在哪</a>）。</p>
+      </div>
+    </section>
+
+    <section id="interface">
+      <p class="eyebrow" data-n="2">方法 · 接口与执行模型 · §3.1–3.3 · 表 1</p>
+      <h2>机器人是一个 Python 对象，一次 LLM 调用写一个 cell</h2>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/method.png" aria-label="放大原文图 2"><img src="fig/method.png" width="1800" height="706" alt="原文图 2：工具调用与 PyRUA-Lean 的数据流对比，以及放碗那一段的代码 cell" loading="lazy"></button>
+        <figcaption><b>原文 Figure 2</b>(a) 工具调用：LLM 每次选一个原语，运动类调用结束后自动带回图像和状态，依赖上一步结果的操作要再来一次调用。(b) PyRUA-Lean：LLM 写一个 cell，在运行时里串起原语、辅助函数、检查和局部重试；只有 cell 主动要的图和状态在 cell 结束时一起交回。(c) 放碗那一段：工具调用第 14–17 次调用（两次 back_project 找碗和碗底，一次下降、一次松开，后两次各带三张图）被代码的第 6 个 cell 一次做完：从世界坐标图算碗底高度和放置点（compose），下降到位且任务未完成才松开（compose），只有任务没完成才要一张图（select）。这次成功执行只交回 5 行文字，没有图。</figcaption>
+      </figure>
+      <div class="cards three">
+        <div class="card c"><span class="who">执行模型</span><h4>一个 <code>robo</code> 对象，一个 <code>python(code)</code> 工具</h4><p>原语是 <code>robo</code> 的方法，返回结构化结果（物体位置、运动是否到达）。智能体拿到一份 API 参考，只通过 <code>python(code)</code> 交互：写一个 cell，运行时执行，返回的反馈决定下一次调用。GPT-6 Astra 每次调用写一个 cell。</p></div>
+        <div class="card k"><span class="who">状态</span><h4>持久命名空间，只在回合内</h4><p>变量和自定义函数在同一回合的 cell 之间保留。评测关闭跨回合记忆。未捕获的异常终止当前 cell 并把 traceback 交回 LLM，异常之前赋值的变量仍在，下一个 cell 可以接着修。</p></div>
+        <div class="card i"><span class="who">观测</span><h4>只交回点名要的</h4><p>原语结果留在运行时里，不逐个进对话。代码 print 的内容和 <code>robo.show(camera)</code> 要的图在指定位置记录下来，cell 结束时一起返回。</p></div>
+        <div class="card t"><span class="who">运行时的闸</span><h4>任务已成功就停，2 小时看门狗</h4><p>每个作用于机器人的原语执行之前，若任务已经成功，运行时直接终止 cell。外部看门狗在 2 小时回合上限时打断正在执行的原语并停掉规划器。cell 本身不限时：Codex CLI 300 秒后返回超时但不取消 cell，后面的 cell 排队。</p></div>
+        <div class="card g"><span class="who">上下文</span><h4>只管新进来的，不删历史</h4><p>两个智能体都跑在 Codex CLI 里，保留完整对话，接近 272k token 时才把前半段压缩成摘要。PyRUA-Lean 控制的是哪些新内容进入上下文。</p></div>
+        <div class="card"><span class="who">基线</span><h4>RPent 的工具调用智能体</h4><p>RPent 即 Harness VLA（arXiv 2607.08448）。PyRUA-Lean 直接用它的机器人栈和原语实现，所以两边调用的是同一份代码。基线提示里关于记忆、配方、审计的指令被删掉，保留原始工具描述。</p></div>
+      </div>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>原文表 1</th><th>工具调用（RPent）</th><th>代码（PyRUA-Lean）</th></tr></thead>
+          <tbody>
+            <tr class="grp"><th colspan="3">原语，两边相同（同名同参数，同一份 RPent 实现）</th></tr>
+            <tr><th>机械臂运动</th><td colspan="2"><code>move_to</code>、<code>move_pose</code>、<code>move_delta</code>、<code>rotate_wrist</code>、<code>rotate_pitch</code></td></tr>
+            <tr><th>夹爪</th><td colspan="2"><code>set_gripper</code>、<code>release</code>、<code>scripted_grasp</code></td></tr>
+            <tr><th>VLA 策略</th><td colspan="2"><code>pi0_pick</code>、<code>pi0_doubled</code>、<code>lingbot_act</code>、<code>rldx_skill</code>、<code>rldx_arm</code></td></tr>
+            <tr><th>移动底盘</th><td colspan="2"><code>navigate_to</code>、<code>move_base</code></td></tr>
+            <tr><th>感知</th><td colspan="2"><code>segment</code>、<code>back_project</code>、<code>back_project_batch</code>、<code>sample_world_xyz</code>、<code>query_world_map</code></td></tr>
+            <tr class="grp"><th colspan="3">观测，两边不同</th></tr>
+            <tr><th>状态、成功标志</th><td>每次运动后自动给，或调 <code>view_env_state</code></td><td><code>robo.state()</code>、<code>robo.done</code></td></tr>
+            <tr><th>相机图</th><td>每次运动后自动三张</td><td>代码调 <code>robo.show</code> 时才给</td></tr>
+            <tr><th>世界坐标</th><td>通过感知工具</td><td>同左，或 <code>robo.world_map()</code> 一次拿到整张数组</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>「同样的原语」同样到什么程度</h4>
+        <p>动作和感知原语确实是同一份实现。不同的有三处：观测（每次运动后三张图，还是代码点名才给）、世界坐标的形态（逐点 back_project，还是一次拿整张 <code>world_map</code> 数组）、控制流（一次调用一个工具，还是任意 Python）。论文明说比较的是「接口整体」，不拆这三项。第二处差别给了代码一种工具调用拿不到的数据形态：附录里那些「自己做感知」的 cell（拟合平面、求主轴、三点定圆）都是在这张点云数组上算的。</p>
+      </div>
+    </section>
+
+    <section id="replay">
+      <p class="eyebrow" data-n="3">方法 · 交互演示 · 附录 A · 表 10 · cell 1–6 原文</p>
+      <h2>逐次回放同一个任务：20 次调用对 8 次调用</h2>
+      <div class="lab" id="rp-lab">
+        <div class="lab-head">
+          <h4>LIBERO-PRO spatial swap · 任务 7 · 种子 2</h4>
+          <p>调用内容与累计 token 来自原文表 10；cell 代码是模型原样写出的（附录 A）</p>
+        </div>
+        <div class="ctrl">
+          <button type="button" class="btn" id="rp-prev" aria-label="上一次调用">◀</button>
+          <input type="range" id="rp-range" min="1" max="20" step="1" value="6" aria-label="第几次 LLM 调用">
+          <button type="button" class="btn" id="rp-next" aria-label="下一次调用">▶</button>
+          <span class="rp-stat" id="rp-n"></span>
+        </div>
+        <div class="scroll"><svg class="chart" id="rp-svg" viewBox="0 0 760 330" role="img" aria-label="两种接口逐次调用与累计 token"></svg></div>
+        <div class="rp-panels">
+          <div class="rp-panel t"><h5 id="rp-th">工具调用</h5><p id="rp-tp"></p><p class="rp-stat" id="rp-ts"></p></div>
+          <div class="rp-panel c"><h5 id="rp-ch">代码</h5><p id="rp-cp"></p><p class="rp-stat" id="rp-cs"></p><pre class="cell" id="rp-code"></pre></div>
+        </div>
+      </div>
+      <div class="prose">
+        <p>代码这边，第 1 个 cell 同时定位碗和盘子，第 2 个接近并调用 π0.5 抓取（<code>pi0_pick</code>），第 3 个合拢夹爪、抬起碗，第 4 个看图确认抓住了，第 5、6 个搬运并放下。工具调用这边，先读操作指南，再逐点定位，之后每走一步一次调用，每次运动都带回三张图：到完成时一共收到 33 张图，代码一共要了 5 张。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>差距主要不是「图少」，是「调用少」</h4>
+        <p>把滑块拖到第 6 次：两边此刻累计 token 是 196k 对 156k，差得不多。差距来自工具调用之后还要 14 次调用，每次都要把已经很长的历史再读一遍。这个回合里代码每次调用的输入反而略大（第 1 个 cell 22k 对 20k，因为 API 参考和任务卡更长），但调用次数是 8 对 20。</p>
+      </div>
+    </section>
+
+    <section id="cells">
+      <p class="eyebrow" data-n="4">方法 · 代码 cell 实际在做什么 · 附录 C · 表 12</p>
+      <h2>一个 cell 平均执行 2.1 个动作原语，一次工具调用平均 0.65 个</h2>
+      <div class="prose">
+        <p>作者读了各基准上成功和失败的回合（带与不带 VLA），再对主比较的全部 700 个代码回合、11,145 个 cell 计数（每个回合截到预算为止）。工具调用这边：调用了工具的 LLM 调用里，89% 只调一个工具；调多个的 1,907 次里，1,441 次是批量 back_project，292 次是读写文件，18,585 次 LLM 调用里只有 45 次同时调了两个动作类工具。</p>
+        <p>差别来自代码智能体的五个习惯，没有一个能塞进单次工具调用：前两个把工具调用分散在几次调用里的步骤合进一次，中间两个造出工具列表里没有的东西，最后一个决定什么时候看。</p>
+      </div>
+      <div class="chartbox">
+        <h4>代码 cell 的行为占比（原文表 12）</h4>
+        <p class="sub">切换基准看分布。第一行是每个 cell 的动作原语数与每次工具调用的动作工具数对比（动作原语指移动、抓取、夹爪指令和 VLA 调用）。</p>
+        <div class="ctrl"><div class="seg" role="group" aria-label="基准" id="cl-pick"><button type="button" data-k="0" aria-pressed="true">全部</button><button type="button" data-k="1" aria-pressed="false">LIBERO-PRO</button><button type="button" data-k="2" aria-pressed="false">RoboTwin 2.0</button><button type="button" data-k="3" aria-pressed="false">RC365 atomic</button><button type="button" data-k="4" aria-pressed="false">RC365 composite</button></div></div>
+        <div class="scroll"><svg class="chart" id="ch-cells" viewBox="0 0 760 420"></svg></div>
+      </div>
+      <div class="tabs" role="tablist" aria-label="四段原文代码" id="lst-tabs">
+        <button type="button" role="tab" aria-selected="true" data-k="0">带条件的链</button>
+        <button type="button" role="tab" aria-selected="false" data-k="1">就地重试</button>
+        <button type="button" role="tab" aria-selected="false" data-k="2">自己做感知</button>
+        <button type="button" role="tab" aria-selected="false" data-k="3">自己造技能</button>
+      </div>
+      <p class="small" id="lst-say"></p>
+      <pre class="cell" id="lst-code"></pre>
+      <div class="note">
+        <h4><span class="tag read">解读</span>RoboTwin 上代码最像工具调用</h4>
+        <p>「走一步看一眼」的 cell 全局占 35%，RoboTwin 2.0 上占 54%：智能体常常一次只跑一个 VLA 动作块，跑完就看结果。这一组的「带条件的链」只有 12%，调用次数也只省了 1.4 倍，是四组里最少的。代码接口给了组合的能力，用不用、用多少，取决于模型对这个任务的把握。</p>
+      </div>
+    </section>
+
+    <section id="setup">
+      <p class="eyebrow" data-n="5">实验设置 · §3.4 · 附录 D、E</p>
+      <h2>700 个任务实例，每个实例两边各跑一次</h2>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>基准（原文表 13）</th><th class="r">任务</th><th class="r">每任务种子</th><th class="r">实例</th><th class="r">LLM 调用预算</th><th>冻结的 VLA 原语</th></tr></thead>
+          <tbody>
+            <tr><th>LIBERO-PRO</th><td class="r">40</td><td class="r">5（0–4）</td><td class="r">200</td><td class="r">40</td><td>π0.5</td></tr>
+            <tr><th>RoboTwin 2.0（双臂）</th><td class="r">50</td><td class="r">5（100000 起）</td><td class="r">250</td><td class="r">40</td><td>LingBot-VLA</td></tr>
+            <tr><th>RoboCasa365 atomic</th><td class="r">18</td><td class="r">5（1–5）</td><td class="r">90</td><td class="r">40</td><td>RLDX-1</td></tr>
+            <tr><th>RoboCasa365 composite</th><td class="r">32</td><td class="r">5（1–5）</td><td class="r">160</td><td class="r">100</td><td>RLDX-1</td></tr>
+            <tr class="best"><th>合计</th><td class="r">140</td><td class="r"></td><td class="r">700</td><td class="r"></td><td>1,400 个回合</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>任务：</strong>LIBERO-PRO 四个扰动套件各 10 个任务，实例名里都带 swap（goal、spatial、object、10，即位置交换扰动）；RoboTwin 2.0 全部 50 个双臂任务；RoboCasa365 的 Target50（18 个 atomic、32 个 composite）。RoboTwin 某个种子建不出任务时顺延到下一个能建的种子；模拟器或 VLA 服务挂掉的回合重跑；RoboCasa365 的 CoffeeSetupMug 种子 4 相机全是噪声，换成种子 6。</li>
+          <li><strong>智能体：</strong>两边都是 GPT-6 Astra、高推理强度、跑在 Codex CLI 里；同一套机器人栈、原语实现和冻结 VLA；分割都用 SAM 3。有操作指南的基准两边拿同一份（RoboCasa365 没有）。两边都不带跨回合记忆。论文没写 LIBERO-PRO 上的 π0.5 用的是哪个权重。</li>
+          <li><strong>指标：</strong>成功率在全部实例上算，用各基准自己的成功判定；预算是 40 次 LLM 调用（composite 100 次）和 2 小时，限制的是 LLM 调用而不是原语执行次数。LLM 调用、累计输入 token、费用只在两边都成功的实例上比，报每回合均值和总量之比；计数包括成功之后的调用和缓存命中的输入。</li>
+          <li><strong>费用：</strong>按 2026 年 9 月 GPT-6 Astra 标价逐次计费：输入 $10 / 百万，缓存输入 $1，缓存写入 $12.50，输出（含推理）$50。没有一次调用超过 272k 输入。论文不计时，理由是共享网关上单次调用的延迟波动太大。</li>
+        </ul>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>第 3 节里两边都能读到基准的成功标志</h4>
+        <p>表 1 写明：工具调用每次运动后拿到「状态和成功标志」，代码可以读 <code>robo.done</code>。附录的重试 cell 先 <code>print(robo.success_criteria())</code>，再循环调 VLA 直到 <code>robo.done</code>；运行时也用这个标志在任务成功后终止 cell。两边条件一样，所以对比是公平的，但这一节的绝对成功率（如 LIBERO-PRO 94.0%）建立在一个真实部署里没有的判定器上。论文在 RoboDojo 一节专门去掉了它（「它得自己从图像和机器人状态判断任务是否完成」），可以看作对这一点的回应。</p>
+      </div>
+    </section>
+
+    <section id="results">
+      <p class="eyebrow" data-n="6">结果 · §3.5 · 表 2 · 原文图 1(a–c)</p>
+      <h2>四组基准都升；LIBERO-PRO 的 +11 几乎全来自长程套件</h2>
+      <div class="chartbox">
+        <h4>主结果（原文表 2）</h4>
+        <p class="sub">成功率在全部实例上；其余三项是两边都成功的实例上每回合的均值。悬停看数值，柱上方是倍数或差值。</p>
+        <div class="ctrl"><div class="seg" role="group" aria-label="指标" id="mn-pick"><button type="button" data-k="sr" aria-pressed="true">成功率</button><button type="button" data-k="calls" aria-pressed="false">LLM 调用</button><button type="button" data-k="tok" aria-pressed="false">输入 token</button><button type="button" data-k="usd" aria-pressed="false">费用</button></div></div>
+        <div class="legend"><span><i class="b-tool"></i>工具调用（RPent）</span><span><i class="b-code"></i>代码（PyRUA-Lean）</span></div>
+        <div class="scroll"><svg class="chart" id="ch-main" viewBox="0 0 760 290"></svg></div>
+        <details class="raw" id="raw-main"><summary>原表数字（表 2）</summary></details>
+      </div>
+      <div class="prose">
+        <p>总成功率 63.1% → 71.7%，高 8.6 个点，相对约 14%，就是标题里的「14%」。逐组是 LIBERO-PRO +11.0、RoboTwin 2.0 +9.2、RoboCasa365 atomic +7.8、composite +5.0。代码独做成 96 个实例，工具调用独做成 36 个。这 96 个里，工具调用有 52 个是 LLM 调用预算用完，44 个是自己提前结束并报告失败；作者读了这 44 对回合，约四分之一是代码只调了 VLA、而 VLA 恰好在它那边成功；其余多数是两边遇到同样的挫折（VLA 没抓住、物体掉了），工具调用再叫一次 VLA 或带着大半预算放弃，代码则自己合拢夹爪、用同样的原语写出恢复流程、逐步检查，有时还从点云算出工具不返回的量。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/overview.png" aria-label="放大原文图 1"><img src="fig/overview.png" width="1800" height="1296" alt="原文图 1：成功率雷达图、token 与费用对比、RoboDojo 与 Coder 结果总览" loading="lazy"></button>
+        <figcaption><b>原文 Figure 1</b>(a) 按任务性质分组的成功率：LIBERO-PRO 的 Object +0.0、Spatial +2.0、Goal +6.0、Long +36.0 个点；RoboTwin 2.0 按任务名分技能，Pick &amp; place +7.1、Artic. &amp; tools +0.0、Stack &amp; order +40.0；RoboCasa365 atomic +7.8、composite +5.0。(b)(c) 两边都成功的实例上每回合 token 与标价费用。(d) RoboDojo 各能力维度对榜上该维度最好的条目。(e) Coder 4B 在未见任务上训练前后（灰 / 红）。</figcaption>
+      </figure>
+      <div class="note">
+        <h4><span class="tag read">解读</span>增益集中在多步、要中途检查的任务</h4>
+        <p>LIBERO-PRO 每个套件 50 个实例，按图 1(a) 的差值换算（我们算的），+36 个点约是 18 个实例，+6 是 3 个，+2 是 1 个：多做成的 22 个实例里有 18 个来自 Long 套件。RoboTwin 2.0 也是 Stack &amp; order 一类 +40，接触密集的 Artic. &amp; tools 持平。这和 cell 统计吻合：「后一个动作依赖前一个结果」的 cell 在 LIBERO-PRO 上占 45%。单步任务里两种接口差别不大。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>成功率的差异在统计上是稳的</h4>
+        <p>每个实例两边各一次，是配对设计。只看两边结果不同的 132 个实例，96 对 36，符号检验双侧 p ≈ 2×10<sup>−7</sup>（我们算的）。每个实例只跑一次带来的 VLA 随机性会让个别实例翻转，但不太可能翻掉这个差距。论文没有报告方差。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/case-moka.jpg" aria-label="放大原文图 14 上半"><img src="fig/case-moka.jpg" width="1500" height="872" alt="原文图 14 上半：摩卡壶任务中工具调用放弃、代码扶正并放到灶上" loading="lazy"></button>
+        <figcaption><b>原文 Figure 14（上）</b>只有代码做成的 LIBERO-PRO 实例：「打开灶台并把摩卡壶放上去」（10 swap，任务 2，种子 3）。两边都把灶打开了，也都把壶弄倒了。工具调用对倒下的壶调了四次 π0.5 抓取（图中 Pi0），第 32 次调用放弃；代码自己抓住壶，对壶盖的点拟合平面算出倾斜，把壶转正，再让壶底而不是夹爪对准灶眼，第 33 次调用完成。</figcaption>
+      </figure>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/case-moka-code.png" aria-label="放大原文图 14 下半"><img src="fig/case-moka-code.png" width="1800" height="864" alt="原文图 14 下半：摩卡壶任务中代码智能体的 cell 摘录" loading="lazy"></button>
+        <figcaption><b>原文 Figure 14（下）</b>代码 cell 摘录（模型原样写出）。第 23 个 cell 在世界坐标图上用 RANSAC 式采样拟合壶盖平面，因为 NumPy 的线性代数不接受半精度数组而报 TypeError；第 24 个 cell 转换类型后用 SVD 取法向；第 29 个 cell 据此转腕、转俯仰；第 33 个 cell 用壶底中心而不是夹爪位置算放置目标。</figcaption>
+      </figure>
+    </section>
+
+    <section id="savings">
+      <p class="eyebrow" data-n="7">结果 · 省在哪 · §3.6 · 原文图 3、图 5 · 表 14 · 附录 D</p>
+      <h2>省下的 token 主要来自「少调用」，单靠少给图反而更差</h2>
+      <div class="chartbox">
+        <h4>token 比 = 调用次数比 × 每次调用 token 比（原文图 5）</h4>
+        <p class="sub">两边都成功的实例上，工具调用相对代码的倍数。小于 1× 表示代码用得更多。</p>
+        <div class="legend"><span><i class="b-code"></i>LLM 调用次数</span><span><i class="b-tok"></i>每次调用的输入 token</span></div>
+        <div class="scroll"><svg class="chart" id="ch-split" viewBox="0 0 760 250"></svg></div>
+      </div>
+      <div class="prose">
+        <p>LIBERO-PRO 的 4.48× 由 2.55× 更少的调用和 1.76× 更少的每次 token 相乘得到。RoboCasa365 atomic 上代码每次调用反而更大（0.83×），总量仍少 1.53×。论文的结论是 H2 主要靠减少调用次数成立，并说明这只是记账式分解，不能单独证明每个接口特性的因果贡献。首个提示（系统提示、指南、工具列表或 API 参考加任务卡）代码更长：LIBERO-PRO 20k 对 22k，RoboTwin 2.0 15k 对 21k，RoboCasa365 17k 对 24k。输出 token（含推理）在任何基准上都不超过账单的 17%。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/budget.png" aria-label="放大原文图 3"><img src="fig/budget.png" width="1800" height="509" alt="原文图 3：按 token 预算截断回合后的成功率曲线" loading="lazy"></button>
+        <figcaption><b>原文 Figure 3</b>如果每个回合在累计 token 达到横轴预算时被截断，成功率会是多少（横轴对数）。虚线是两边各自第一次达到工具调用最终成功率时的预算，大号数字是二者之比：LIBERO-PRO 564k 对 3.18M（5.6×），RoboTwin 2.0 618k 对 2.46M（4.0×），RC365 atomic 619k 对 1.32M（2.1×），composite 1.98M 对 5.71M（2.9×）。这是对已录轨迹的事后截断，不是事先设定预算重跑的。</figcaption>
+      </figure>
+      <div class="chartbox">
+        <h4>只让工具调用「按需要图」（原文表 14，LIBERO-PRO 全部 200 个实例）</h4>
+        <p class="sub">改动只有一处：工具返回文字但不带图，想看图得调 RPent 的相机工具（一次三视角），提示里也不再承诺每次给图。调用和 token 是三者都成功的 131 个实例上的均值。</p>
+        <div class="legend"><span><i class="b-tool"></i>工具调用，每次运动后给图</span><span><i class="b-gray"></i>工具调用，按需要图</span><span><i class="b-code"></i>代码</span></div>
+        <div class="scroll"><svg class="chart" id="ch-od" viewBox="0 0 760 230"></svg></div>
+      </div>
+      <div class="prose"><p>成功率从 83.0% 掉到 68.5%，失败里「放弃」从 9 个变 17 个、「调用预算用完」从 25 个变 46 个；在三者都成功的实例上，调用 19.9 → 22.8 次，总 token 都是 1.07M。论文的说法是：只减少自动给的图不够，什么时候看要和怎么动、怎么重规划一起设计。论文也承认这个实验没有量化选择性观测在 PyRUA-Lean 内部的贡献。</p></div>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>工具调用 ÷ 代码</th><th class="r">LIBERO-PRO</th><th class="r">RoboTwin 2.0</th><th class="r">RC365 atomic</th><th class="r">RC365 composite</th></tr></thead>
+          <tbody>
+            <tr><th>输入 token · 两边都成功的实例（表 2）</th><td class="r">4.5×</td><td class="r">1.7×</td><td class="r">1.5×</td><td class="r">2.0×</td></tr>
+            <tr><th>输入 token · 全部回合（附录 D）</th><td class="r">3.1×</td><td class="r">1.8×</td><td class="r hi">1.1×</td><td class="r">1.6×</td></tr>
+            <tr><th>费用 · 两边都成功的实例（表 2）</th><td class="r">3.1×</td><td class="r">1.5×</td><td class="r">1.2×</td><td class="r">1.6×</td></tr>
+            <tr><th>费用 · 全部回合（附录 D）</th><td class="r">2.5×</td><td class="r">1.6×</td><td class="r hi">1.0×</td><td class="r">1.4×</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>「65% fewer tokens」是哪个口径</h4>
+        <p>标题和摘要里的 65% 是 406 个两边都成功的实例上的合并均值（788k → 276k），LIBERO-PRO 占其中 164 个，且每回合 token 最多。按表 2 和各组两边都成功的实例数加权（我们算的），去掉 LIBERO-PRO 后合并 token 比约 1.8×，即少约 44%。费用的差距更小：缓存输入只收十分之一的价，工具调用反复读的历史大多命中缓存，所以合并费用比是 2.2×（便宜约 55%），低于 token 比 2.9×。算上失败回合，RoboCasa365 atomic 上每回合 $0.94 对 $0.96，代码略贵：失败回合两边都接近 40 次调用的上限，而代码每次调用的输入更多。论文在附录 D 和 §3.8 交代了这些数字。</p>
+      </div>
+    </section>
+
+    <section id="ablation">
+      <p class="eyebrow" data-n="8">消融 · §3.7 · 表 3</p>
+      <h2>拿掉 VLA 或操作指南，代码的优势还在；RoboTwin 上代码几乎不需要 VLA</h2>
+      <div class="chartbox">
+        <h4>两边同时去掉 VLA、指南或两者（原文表 3）</h4>
+        <p class="sub">成功率在全部实例上；右侧数字是两边都成功的实例上工具调用相对代码的 token 倍数，括号里是两边都成功的实例数。RoboCasa365 没有操作指南。</p>
+        <div class="ctrl"><div class="seg" role="group" aria-label="基准" id="ab-pick"><button type="button" data-k="0" aria-pressed="true">LIBERO-PRO</button><button type="button" data-k="1" aria-pressed="false">RoboTwin 2.0</button><button type="button" data-k="2" aria-pressed="false">RC365 atomic</button><button type="button" data-k="3" aria-pressed="false">RC365 composite</button></div></div>
+        <div class="legend"><span><i class="b-tool"></i>工具调用</span><span><i class="b-code"></i>代码</span></div>
+        <div class="scroll"><svg class="chart" id="ch-abl" viewBox="0 0 760 250"></svg></div>
+        <details class="raw" id="raw-abl"><summary>原表数字（表 3）</summary></details>
+      </div>
+      <div class="prose">
+        <p>表 3 的每一种设定里，代码的成功率都更高，两边都成功时 token 都更少，支持 H3。最大的差距出现在没有 VLA 时：RoboTwin 2.0 68.8% 对 42.8%，RoboCasa365 atomic 65.6% 对 45.6%，composite 20.0% 对 7.5%。附录的轨迹显示，代码在没有 VLA 时把经典原语组合成接近、夹爪控制、状态检查的流程。另一个现象：RoboTwin 2.0 无 VLA 时，去掉指南反而让工具调用从 42.8% 升到 60.4%，论文据此说指南的作用依接口而定。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>VLA 对两种接口的价值不一样</h4>
+        <p>RoboTwin 2.0 上，代码有 VLA 69.2%、没有 VLA 68.8%，LingBot-VLA 几乎没贡献；工具调用有 VLA 60.0%、没有 42.8%，靠 VLA 撑着。LIBERO-PRO 上两边去掉 VLA 都掉约 10 个点（83.0 → 73.0，94.0 → 80.5）。也就是说，在双臂任务上，能写代码的 GPT-6 Astra 用几何原语已经做到了 VLA 的水平。论文提醒：各设定两边都成功的子集不同（composite 无 VLA 时只有 8 个），所以表里的 token 数不能横向比较组件的作用。</p>
+      </div>
+    </section>
+
+    <section id="robodojo">
+      <p class="eyebrow" data-n="9">第二部分 · RoboDojo · §4 · 表 4–7 · 附录 F–G、I（v2 新增）</p>
+      <h2>不用 VLA，只用几个几何原语，RoboDojo 平均成功率 51.6%</h2>
+      <div class="prose">
+        <p>第 3 节固定规划器和原语、只换接口；这一节换个问题：在一个为预训练策略设计的公开基准上，这个接口能把冻结的 LLM 带多远？之前 Zhang 等人测过 GPT-6 Astra 每次调用直接给一个末端目标（direct control），从 RGB 图像上不经任何机器人训练就拿到 22.5%，高于当时榜上所有预训练策略，但需要精度的任务几乎为零。本节用同一个 LLM、同样的 RGB 观测，换成 PyRUA-Lean 来操作。</p>
+        <ul>
+          <li><strong>基准：</strong>RoboDojo 仿真赛道，双臂 ARX-X5 工作台，42 个桌面任务分五个能力维度：Generalization 12、Precision 8、Long-Horizon 8、Memory 6、Open 8。每个评测种子 50 个公开布局（Generalization 任务一半标准场景、一半随机外观），一个种子共 2,100 个回合。报两个指标：SR（完全成功的比例）和 Score（过程奖励均值 × 100，按阶段给部分分）；任务在维度内平均，Average 是五个维度的等权平均。用官方评测代码（commit <code>cb2a37d</code>），智能体打包成一个 XPolicyLab 策略，和其他参评策略一样由评测客户端发观测、执行动作、判成功。只评了种子 0。</li>
+          <li><strong>智能体：</strong>GPT-6 Astra、高推理强度，权重不动，不看示范。只通过 <code>python(code)</code> 操作，换成作者自己写的极简智能体循环（不再用 Codex CLI）；每回合 100 次 LLM 调用预算（只数执行了 cell 的调用）、图像按需、不带跨回合记忆、每次调用最多 8,192 个输出 token；某次调用没给代码就提醒一次，每回合最多 20 次。</li>
+          <li><strong>观测与特权：</strong>只用评测客户端发给所有策略的东西：头部和两个腕部共三张 RGB 图，加两臂的关节与末端状态。不读深度，不读仿真器场景状态，不给物体位姿和布局描述，也没有成功或进度信号，要自己从图像和状态判断任务是否完成。库预先知道的只有工作台本身：相机标定、两臂位置、桌面高度。</li>
+          <li><strong>提示：</strong>API 参考、关于工具行为的操作说明（坐标系、可达范围、夹爪怎样报告抓取、怎样用腕部相机测量）、基准对最终场景判得有多严，以及任务卡（任务名、基准为该布局生成的指令、首帧图像）。不含任务描述或解法。对照的 direct control 智能体则拿到每个任务的描述和计分阶段（来自基准 wiki）。</li>
+        </ul>
+      </div>
+      <div class="cards">
+        <div class="card c"><span class="who">运动（原文表 4）</span><h4><code>move_to</code> · <code>set_gripper</code> · <code>home</code></h4><p><code>move_to(xyz, arm, gripper, pitch, yaw, roll, path)</code> 把一只手的抓取点送到某个位姿，库里解逆运动学，路径可选抓取点直线或关节空间摆动，报告是否到达，或附近哪些位姿可达。<code>set_gripper</code> 走完整个夹爪行程，报告手指是否停在了东西上、开口多宽。<code>home</code> 回初始关节角。</p></div>
+        <div class="card i"><span class="who">感知与观测（原文表 4）</span><h4><code>locate</code> · <code>segment</code> · <code>back_project</code> · <code>show</code> …</h4><p><code>locate(text, camera)</code> 用 SAM 3 在一个相机里分割点名的物体，到其他相机里找同一物体，从这些视角测出中心、顶面、占地和横跨窄边的抓取朝向，并报告几个相机一致（单个相机测不出高度）。另有分割、像素反投影到物体或桌面、状态、取图、相机标定。</p></div>
+      </div>
+      <div class="prose">
+        <p>库里<strong>没有 pick、place 或 grasp 原语</strong>：一次抓取是几行代码，定位物体、带着测得的朝向移到上方、沿直线下降、合拢夹爪并检查报告的开口。作者说只有当程序无法用已有原语拼出某个功能时才加新原语。不用 VLA 是有意的：VLA 是随机原语，同一次调用这回成功下回失败，第 3 节里有些「只一边做成」的实例差别只在同一个 VLA 调用的成败；几何原语报告测到或到达了什么，程序可以逐步检查，结果衡量的就是 LLM 写的程序。</p>
+      </div>
+      <div class="note">
+        <h4>不读深度，<code>locate</code> 怎样测出三维位置（开源代码 <code>hosts/robodojo_sight.py</code>，commit <code>ffad6d4</code>）</h4>
+        <p>论文正文只用一句话带过，代码里写得很清楚。前提是相机位姿全部已知：头部相机固定（焦距 288 px，位于 (0, −0.41, 1.308) m，俯视 60°）；腕部相机固定在末端连杆上（末端前 8.5 cm、上 5.1 cm，比夹爪指向再低 30°），末端位姿就在每步的机器人状态里，所以腕部相机的外参随时可算。这些常数和桌面高度 z = 0.765 m 一样，是作者从仿真器里读一次写死的。于是每个像素都是一条已知射线，再加一条假设：物体立在桌面上。</p>
+        <ol>
+          <li><strong>一个视角给出「影子」。</strong>SAM 3 按文字分割出掩码，掩码像素的射线与桌面相交，得到物体在这台相机看来投在桌面上的影子。物体占据相机和影子之间的某块空间，但读不出高度：矮而深和高而浅的东西影子一样。</li>
+          <li><strong>按高度枚举实体。</strong>在桌面网格上以 2 mm 一层、最高 36 cm 扫高度 h（先隔层粗扫，再在最好的附近细扫）。每个 h 有两种读法：直立棱柱（影子里那些「柱子升到 h 仍落在掩码内」的格子，对盒子、罐子就是精确的占地）和悬挂体（h 处的点在掩码内、往下尽量延伸，对应碗这类上宽下窄的东西，只有明显更好时才选它）。</li>
+          <li><strong>第二个视角定高度。</strong>到另外两台相机里找同一物体：用同样的文字再分割一次，同时把第一张掩码中心那条射线在 0.4、2、5、10、18 cm 高处的点投影过去，作为 SAM 3 的点提示。每个候选实体投影进第二个视角，和那里的掩码算 F1，最高的读法和高度胜出；F1 低于 0.55 的掩码视为别的东西。机器人自己的手指和另一只手臂按运动学画出轮廓，那些像素不计分。</li>
+          <li><strong>输出。</strong>中心、顶面高度、占地的最小外接矩形、长轴方向、横跨窄边的抓取 yaw，以及几个视角一致（<code>views</code>）。只有一个视角时，取仍能覆盖整张掩码的最高棱柱当高度，盒子、罐子接近，碗、杯会错，结果里注明「高度是猜的」。同一个提示词一旦有两视角一致的高度，之后的调用会沿用。</li>
+        </ol>
+        <p>所以工具说明教给 GPT-6 Astra 的抓取套路是：先用头部相机 <code>locate</code>，移到物体上方 9 cm、夹爪朝下，再用腕部相机 <code>locate</code> 一次（docstring 写俯视时精度 1–2 mm），转到 <code>grasp_yaw</code> 再下降。加深度的配置只把这一步换成读掩码下的深度像素，同一种子上 SR 51.6% → 52.4%，多视角几何丢掉的精度不多。</p>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>「没有特权信息」指的是每回合的观测</h4>
+        <p>回合里确实只读评测客户端发的 RGB 图和机器人状态。但三维定位不是 LLM 从图里推出来的，而是作者为这个工作台写的多视角几何（<code>robodojo_sight.py</code> 一个文件 1,051 行）加 SAM 3。它依赖的相机内外参、桌面高度、手指尺寸都是从仿真器读出的常数，代码注释原话是「the numbers were read off the simulator once」，手指开口是「measured in the simulator's depth image」。真机上这些对应一次标定，作为前提是合理的。但 RoboDojo 上的 51.6% 有相当一部分来自原语库的工程，换一个工作台要重写或重新标定，正文对这部分只写了一句。</p>
+      </div>
+      <div class="chartbox">
+        <h4>和公开榜单比（原文表 5、图 6，榜单日期 2026-10-09，33 个条目）</h4>
+        <p class="sub">PyRUA-Lean 是一个评测种子、2,100 个回合；榜单按 Average Score 排序。切换 SR / Score。</p>
+        <div class="ctrl"><div class="seg" role="group" aria-label="指标" id="rd-pick"><button type="button" data-k="sr" aria-pressed="true">SR</button><button type="button" data-k="score" aria-pressed="false">Score</button></div></div>
+        <div class="legend"><span><i class="b-code"></i>PyRUA-Lean（GPT-6 Astra）</span><span><i class="b-gray"></i>VPP2（榜首，WAM）</span><span><i class="b-tok"></i>PhysicalRSI（榜上最强的智能体，Agent + VLA）</span><span><i class="b-tool"></i>GPT-6 Astra direct control</span></div>
+        <div class="scroll"><svg class="chart" id="ch-rd" viewBox="0 0 760 270"></svg></div>
+        <details class="raw" id="raw-rd"><summary>原表数字（表 5，Score / SR，前十名）</summary></details>
+      </div>
+      <div class="prose">
+        <p>平均 SR 51.62%、Score 58.20；按回合合并是 2,100 个里做成 1,061 个（50.5%）。榜首 VPP2 是 32.26% / 39.26，PhysicalRSI 31.38% / 36.27。五个维度的 SR 都是最高，42 个任务里有 22 个高于榜上所有条目、3 个持平。对同一 LLM 的 direct control，平均 SR 22.5% → 51.6%（2.3 倍），差距最大的是 Precision（4.0% → 37.3%）和 Long-Horizon（8.3% → 48.0%）；42 个任务里 34 个更高、2 个更低。论文明说两者同时在四件事上不同：动作接口、感知（基于分割的 locate 对 LLM 直接看图）、推理强度（高对中）、提示（工具说明对每任务描述），所以这个差距衡量的是系统整体。</p>
+      </div>
+      <div class="chartbox">
+        <h4>逐任务（原文表 17）</h4>
+        <p class="sub">每行一个任务，按「本文 − 榜上该任务最好」排序。榜上逐任务结果覆盖 57 个策略；Generalization 任务合并标准与随机两半。悬停看最好的条目是谁。</p>
+        <div class="ctrl"><div class="seg" role="group" aria-label="维度" id="rt-pick"><button type="button" data-k="all" aria-pressed="true">全部 42</button><button type="button" data-k="G" aria-pressed="false">Gen.</button><button type="button" data-k="P" aria-pressed="false">Prec.</button><button type="button" data-k="L" aria-pressed="false">Long</button><button type="button" data-k="M" aria-pressed="false">Memory</button><button type="button" data-k="O" aria-pressed="false">Open</button></div></div>
+        <div class="legend"><span><i class="dot b-code"></i>PyRUA-Lean（RGB）</span><span><i class="dot b-gray"></i>榜上该任务最好</span><span><i class="ring" style="border-color:var(--tool)"></i>GPT-6 Astra direct</span></div>
+        <div class="scroll"><svg class="chart" id="ch-rt" viewBox="0 0 760 700"></svg></div>
+      </div>
+      <div class="prose">
+        <p>三个任务每个回合都成功（stack_blocks、cover_blocks、stack_blocks_by_language），六个一次没成（store_laptop_and_headphones、insert_key、make_kong、swap_blocks、press_by_number、store_tools_in_toolbox）。差距最大的是按给定次数按按钮（press_by_number，榜上 96.0%）、和对手打牌（make_kong，90.0%）、用积木和木板搭塔（build_tower，83.3%），本文为 0 或接近 0。论文的解释是其中不少任务涉及反馈里看不到结果的接触（例如按按钮是否生效），或配合精度高于感知精度；没有逐回合分析。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t compact">
+          <thead><tr><th>原文表 7 · Score / SR</th><th class="r">回合</th><th class="r">Average</th><th class="r">Gen.</th><th class="r">Prec.</th><th class="r">Long</th><th class="r">Memory</th><th class="r">Open</th></tr></thead>
+          <tbody>
+            <tr class="grp"><th colspan="8">同一个评测种子</th></tr>
+            <tr><th>只用 RGB</th><td class="r">2,100</td><td class="r">58.20 / 51.62</td><td class="r">50.65 / 45.83</td><td class="r">47.02 / 37.25</td><td class="r">63.26 / 48.00</td><td class="r">63.00 / 63.00</td><td class="r">67.09 / 64.00</td></tr>
+            <tr><th>RGB + 深度</th><td class="r">2,100</td><td class="r">58.59 / 52.42</td><td class="r">49.71 / 43.83</td><td class="r">49.92 / 41.00</td><td class="r">63.02 / 49.00</td><td class="r">64.00 / 64.00</td><td class="r">66.29 / 64.25</td></tr>
+            <tr class="grp"><th colspan="8">三个评测种子</th></tr>
+            <tr><th>RGB + 深度，均值</th><td class="r">6,300</td><td class="r">58.81 / 52.91</td><td class="r">51.11 / 45.44</td><td class="r">49.78 / 41.08</td><td class="r">64.73 / 51.75</td><td class="r">64.02 / 64.00</td><td class="r">64.39 / 62.25</td></tr>
+            <tr><th>　种子间标准差</th><td class="r"></td><td class="r">0.15 / 0.35</td><td class="r">1.10 / 1.23</td><td class="r">0.57 / 0.51</td><td class="r">1.39 / 2.15</td><td class="r">0.02 / 0.00</td><td class="r">2.16 / 2.16</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <p>加深度（评测客户端可选，但榜单不接受智能体条目用深度，所以这一配置不和榜单比）：<code>locate</code> 直接用掩码下的深度像素，<code>back_project</code> 读像素深度，去掉关于腕部相机测量的说明，其余不变。同一种子上平均 SR 51.6% → 52.4%，Precision 涨得最多（37.3% → 41.0%）。三个种子分别 52.4%、53.2%、53.1%，标准差 0.35 个点，作者据此说一个种子已经是成功率的接近估计，领先榜单不是种子造成的。</p>
+        <p><strong>成本：</strong>每回合平均 25.7 次 LLM 调用（成功 19.3、失败 32.2，最长 76），没有回合超过 73 个 cell，都没碰到 100 次的预算；每回合 750k 输入 token（含缓存）、9.0k 输出 token，约 <strong>12.7 分钟</strong>，在作者的模型网关上约 <strong>$2.4</strong>，一个种子 2,100 个回合约 $5,100。深度配置每回合 23.9 次调用、$2.2，三个种子约 $14,000。因为这个价钱，只评了两种配置，没有评「加上 VLA 原语」。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>和榜单的可比性</h4>
+        <p>榜上多数条目是单个预训练策略，本文是「前沿 LLM + SAM 3 + 作者为这个工作台手写的原语库与操作说明」组成的系统，论文自己也承认这点，并说没量过领先里多少来自感知原语、多少来自程序。我们另外注意到两处：一是原语库和说明是作者针对这个基准逐步补出来的（「程序拼不出来才加原语」），开发时用了哪些任务和布局、是否与评测的种子 0 布局分开，论文没有交代；二是一个回合约 12.7 分钟、$2.4，榜单不比较推理成本和时延，而这是部署时最先碰到的约束。</p>
+      </div>
+    </section>
+
+    <section id="coder">
+      <p class="eyebrow" data-n="10">第三部分 · PyRUA-Lean Coder v0.1-4B · §5 · 附录 H（v2 新增）</p>
+      <h2>45 个实例上 GRPO：4B 模型学会的主要是「一次写一个 cell，看完结果再写」</h2>
+      <div class="prose">
+        <ul>
+          <li><strong>模型与回合：</strong>Qwen3.5-4B（先推理再回答的开源 VLM），整模全参微调，没有监督阶段和示范数据。一个训练回合就是第 3 节的交互：API 参考、操作指南和任务卡，之后 LLM 调用和工具结果交替。奖励只有基准成功判定的 0/1，不惩罚调用次数或仿真步数。</li>
+          <li><strong>训练数据：</strong>45 个 LIBERO-PRO 实例，goal、spatial、object 三个套件各 3 个任务 × 5 个种子。另外 31 个 LIBERO-PRO 任务（含整个长程套件）、RoboTwin 2.0 和 RoboCasa365 全部不参与训练。</li>
+          <li><strong>算法（附录表 16）：</strong>GRPO，每轮抽 16 个实例 × 8 次 rollout = 128 个回合，组内归一化优势；裁剪区间下 0.2、上 0.28，无 KL、无熵项；每轮 2 个优化步，Adam，学习率 10<sup>−6</sup>。30 轮共 3,840 个回合、60 个优化步，评测最后一个 checkpoint。训练回合限 24 个 cell、30 次调用、25 分钟，每次调用最多 4,096 个新 token，上下文 65,536。一个 8 卡节点约 12 小时，miles 训练、SGLang 推理。</li>
+          <li><strong>评测：</strong>第 3 节的 700 个实例，各跑一次，同样的提示、原语、冻结 VLA 和预算（按 cell 计：40，composite 100）。和 GPT-6 Astra 那次运行不同的是：用 PyRUA-Lean 自己的智能体循环（每次调用必须调工具）、上下文 65,536（超了就结束）、墙钟 90 分钟。基座、训练后模型和 Qwen3.5-27B 用同一协议。</li>
+        </ul>
+      </div>
+      <div class="chartbox">
+        <h4>成功率（原文表 8）</h4>
+        <p class="sub">灰色虚线是 GPT-6 Astra + PyRUA-Lean（表 2，不同的智能体循环与限制，仅作参照）。</p>
+        <div class="legend"><span><i class="b-gray2"></i>Qwen3.5-4B（基座）</span><span><i class="b-img"></i>Qwen3.5-27B（基座）</span><span><i class="b-code"></i>PyRUA-Lean Coder v0.1-4B</span><span><i class="b-ink" style="background:var(--ink-2);height:3px;vertical-align:3px"></i>GPT-6 Astra</span></div>
+        <div class="scroll"><svg class="chart" id="ch-cd" viewBox="0 0 760 280"></svg></div>
+      </div>
+      <div class="prose">
+        <p>训练实例上 37.8% → 71.1%；没训练过的 LIBERO-PRO 任务 13.5% → 37.4%；RoboTwin 2.0 14.0% → 52.4%；RoboCasa365 atomic 52.2% → 76.7%，composite 12.5% → 19.4%。全部 655 个未见实例 18.8% → 44.1%，高于同协议下的 Qwen3.5-27B（29.2%）。RoboTwin 2.0 是另一个模拟器的双臂基准，RoboCasa365 是厨房里的移动操作，VLA 也换了，而训练只见过一个单臂机器人、π0.5、九个桌面任务，所以迁移不能用「见过评测任务」来解释。离 GPT-6 Astra 仍远：全部 700 个 45.9% 对 71.7%，差距在未见的 LIBERO-PRO 任务上最大（37.4% 对 92.3%）。</p>
+      </div>
+      <div class="chartbox">
+        <h4>回合怎样进行、怎样结束（原文表 9，未见过的 655 个实例）</h4>
+        <p class="sub">每个回合恰好落在右侧五种结局之一。「cell 预算」「墙钟」「上下文溢出」指在该限制处被停下且未成功。</p>
+        <div class="legend"><span><i class="b-ok"></i>成功</span><span><i class="b-tok"></i>主动放弃</span><span><i class="b-code"></i>cell 预算用完</span><span><i class="b-img"></i>墙钟</span><span><i class="b-warn"></i>上下文溢出</span></div>
+        <div class="scroll"><svg class="chart" id="ch-beh" viewBox="0 0 760 210"></svg></div>
+        <div class="tblwrap">
+          <table class="t">
+            <thead><tr><th>每回合</th><th class="r">LLM 调用</th><th class="r">每次调用的 cell 数（中位）</th><th class="r">cell 数</th><th class="r">要的图</th></tr></thead>
+            <tbody>
+              <tr><th>Qwen3.5-4B</th><td class="r">9.4</td><td class="r">9.0</td><td class="r">89.4</td><td class="r">19.3</td></tr>
+              <tr><th>Qwen3.5-27B</th><td class="r">35.5</td><td class="r">1.0</td><td class="r">34.9</td><td class="r">22.5</td></tr>
+              <tr class="best"><th>Coder v0.1-4B</th><td class="r">21.1</td><td class="r">1.0</td><td class="r">21.0</td><td class="r hi">0.8</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="prose">
+        <p>论文的解读是：基座 4B 一次调用写 9 个 cell（中位数；89% 的回合超过 1.5 个），没看到第一个结果就把一串动作都提交了，52.7% 的回合耗尽 cell 预算、19.2% 上下文溢出。27B 一次只写一个 cell，但每回合要 22.5 张图，35.0% 耗尽预算、31.0% 溢出。训练后的 4B 一次写一个 cell、读完结果再写，耗尽预算和溢出降到 10.5% 和 3.4%，代价是更多回合主动放弃（25.2%）或撞墙钟（16.8%）。论文明确不声称训练提升了操作技能本身，抓取和运动仍由同样的原语和冻结 VLA 执行。</p>
+      </div>
+      <figure class="plate narrow">
+        <button class="zoom" type="button" data-src="fig/coder-training.png" aria-label="放大原文图 7"><img src="fig/coder-training.png" width="900" height="552" alt="原文图 7：GRPO 训练中每轮 rollout 的成功率" loading="lazy"></button>
+        <figcaption><b>原文 Figure 7</b>每轮 GRPO 的 rollout 成功率（16 个训练实例 × 8 个回合，训练限制 24 个 cell）。第一轮 0.30，最后五轮平均 0.70。这些是训练实例和更短的训练限制，不能和评测数字直接比。</figcaption>
+      </figure>
+      <div class="note">
+        <h4><span class="tag read">解读</span>训练后几乎不看图了</h4>
+        <p>表 9 里最显眼的数字是「要的图」：基座每回合 19.3 张，训练后 0.8 张（任务卡自带的两三张不算）。在 65,536 的上下文里，图是溢出的主要来源之一，只奖励成功的 GRPO 很可能把「少要图」当成了避免溢出的捷径，转而依赖原语返回的数值（分割出的世界坐标、状态、<code>robo.done</code>）。这和论文说的「按反馈逐步使用接口」并不矛盾，但它学到的是一种几乎不看画面的用法。另外，基座按 cell 计预算时一次写 9 个 cell，很快就会耗尽预算，所以相当一部分提升来自「守协议」：一次写一个 cell。论文自己也把变化归结为「怎样使用接口」。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>「超过 27B」的口径</h4>
+        <p>摘要说训练后的 4B「超过 Qwen3.5-27B 基座」，这在合并的 655 个未见实例上成立（44.1% 对 29.2%），RoboTwin 2.0（52.4% 对 20.8%）上差距最大；但在未见的 LIBERO-PRO 任务上 27B 略高（38.1% 对 37.4%，表 8 也把它加粗了）。只有一个模型尺寸、一次训练、每个实例一次评测。和 GPT-6 Astra 的差距来自不同的智能体循环和限制，论文说明了这不是受控比较。</p>
+      </div>
+    </section>
+
+    <section id="insight">
+      <p class="eyebrow" data-n="11">读懂它</p>
+      <h2>这篇真正说明了什么</h2>
+      <h3 style="margin-top:0">关键 insight</h3>
+      <div class="cards">
+        <div class="card c"><h4>1. 交互单位决定了成本结构</h4><p>每次 LLM 调用都要重读历史，所以总 token 大致随调用次数超线性增长。把依赖链放进一个 cell，省掉的是整段历史的重读。LIBERO-PRO 上 2.55× 更少的调用乘上 1.76× 更小的每次输入，得到 4.48× 的 token 差。</p></div>
+        <div class="card i"><h4>2. 「看什么」得和「怎么做」一起设计</h4><p>只把工具调用改成按需要图，成功率从 83.0% 掉到 68.5%，token 一点没省。代码能省，是因为它在同一个 cell 里决定了做完什么再看、什么情况下才看（20% 的 cell 只在任务没完成时才看）。</p></div>
+        <div class="card k"><h4>3. 代码让 LLM 补上原语库里缺的东西</h4><p>拟合壶盖平面把倒下的壶扶正、三点定圆沿弧线拉柜门、8 mm 一步的带检查下降：这些都不是工具列表里的功能，是 cell 用 NumPy 和已有原语现场搭出来的。没有 VLA 时代码的优势更大（RoboTwin 2.0 +26.0 个点），原因也在这里。</p></div>
+        <div class="card g"><h4>4. 接口可以学</h4><p>只用 45 个实例、0/1 奖励，4B 模型在三个基准的未见实例上从 18.8% 到 44.1%。学到的主要是使用协议（一次一个 cell、看结果再写），这正是接口本身的价值能迁移的原因，但它离 GPT-6 Astra 还很远。</p></div>
+      </div>
+      <h3>容易误解的地方</h3>
+      <div class="prose">
+        <ul>
+          <li><strong>「65% fewer tokens」不等于便宜 65%。</strong>它是两边都成功的实例上的 token 均值，LIBERO-PRO 权重最大；费用口径是便宜约 55%（2.2×），全部回合口径下 RoboCasa365 atomic 两边一样贵。</li>
+          <li><strong>第 3 节不是「零特权」。</strong>两边都能读基准的成功标志，代码用它重试、运行时用它截停 cell。RoboDojo 一节才是不给成功信号的设定。</li>
+          <li><strong>RoboDojo「不用 VLA」不等于没有学习组件。</strong>GPT-6 Astra 和 SAM 3 都在，原语库和操作说明是作者为这个工作台写的。</li>
+          <li><strong>这不是和 Code as Policies 一类方法的对比。</strong>基线是工具调用，不是一次性生成整段程序的方法；论文没有和 CaP-X 等代码智能体做实验对比。</li>
+        </ul>
+      </div>
+      <h3>FAQ</h3>
+      <details class="faq"><summary>为什么不直接让工具调用少返回一些图？</summary><div class="a"><p>作者试了（表 14）：工具不再自动带图、想看就调相机工具，LIBERO-PRO 成功率 83.0% → 68.5%，主动放弃和预算用完都变多，三者都成功的实例上调用 19.9 → 22.8 次，token 不变（1.07M）。看图需要多一次调用，于是省下的图被多出来的调用抵掉了。</p></div></details>
+      <details class="faq"><summary>代码智能体写出卡死或乱动的 cell 怎么办？</summary><div class="a"><p>论文给出的保护只有三层：每个动作原语执行前检查任务是否已成功，成功就终止 cell；外部看门狗在 2 小时回合上限时打断；未捕获异常终止 cell 并返回 traceback。cell 本身不限时，Codex CLI 300 秒后只返回超时、不取消 cell。原语（如 <code>move_to</code> 的 <code>step_clip</code>、<code>max_steps</code>）带自己的参数限制。论文没有统计危险动作或碰撞，也没有真机实验。</p></div></details>
+      <details class="faq"><summary>一个回合要多久？</summary><div class="a"><p>第 3 节不计时，论文说共享网关上单次调用延迟波动太大，所以只数调用。RoboDojo 一节给了：每回合约 12.7 分钟，25.7 次 LLM 调用。作为对比，<a href="../../papers/motormind/">MotorMind</a> 在 LIBERO-PRO 上每回合约 223 秒，微调 VLA 约 6 秒。</p></div></details>
+      <details class="faq"><summary>为什么 RoboDojo 上要单独写一套原语，而不用 RPent？</summary><div class="a"><p>第 3 节用的是 RPent 为 LIBERO-PRO、RoboTwin 2.0、RoboCasa365 准备的机器人栈。RoboDojo 是另一个工作台（双臂 ARX-X5），作者为它写了自己的库，并有意不放 VLA，让结果只反映 LLM 写的程序。代价是没测「加上 VLA 原语」会怎样，这一点论文列为局限。</p></div></details>
+    </section>
+
+    <section id="limits">
+      <p class="eyebrow" data-n="12">局限与疑点</p>
+      <h2>作者承认的，和我们读出来的</h2>
+      <div class="two">
+        <div>
+          <h4>论文自己提到的</h4>
+          <ul>
+            <li>接口对比只用了 GPT-6 Astra、RPent 的机器人栈和原语库、仿真，每个实例每边一次；换规划器、换原语、重复运行的方差、真机都没测。</li>
+            <li>比较的是完整接口，没有把原语组合、持久状态、选择性反馈的作用分开；token 分解是记账，不是因果；按需要图的实验也没量化选择性反馈在 PyRUA-Lean 内部的贡献。</li>
+            <li>token 预算曲线是对已录轨迹的事后截断。</li>
+            <li>代码独做成的 96 个里，52 个是工具调用预算用完，44 个是它自己结束；后者里有的只是 VLA 一边成功一边失败，增益不能全归给恢复逻辑。</li>
+            <li>效率增益依任务结构而定；算上失败回合，RoboCasa365 atomic 上两者费用相当。</li>
+            <li>RoboDojo：没量感知原语与程序各贡献多少；失败集中在没有接触反馈或配合很紧的任务，没逐回合分析；没测加 VLA；成本高，只评两种配置。</li>
+            <li>Coder：一个尺寸、一次训练、一个基准的 45 个实例、只用成功奖励；离前沿模型很远；没在 RoboDojo 的无 VLA 原语上测过。</li>
+          </ul>
+        </div>
+        <div>
+          <h4>我们读出来的</h4>
+          <ul>
+            <li><span class="tag doubt">疑点</span>第 3 节两边都读基准成功标志，代码的重试和运行时截停都依赖它；绝对成功率不能直接搬到没有判定器的场景。</li>
+            <li><span class="tag doubt">疑点</span>「65% fewer tokens」只在两边都成功的子集上，且由 LIBERO-PRO 主导；去掉 LIBERO-PRO 后约少 44%（我们算的），费用口径约便宜 55%。</li>
+            <li><span class="tag doubt">疑点</span>RoboDojo 原语库与说明是针对该基准补出来的，开发与评测布局是否分开未交代；榜单不比成本，而本文每回合约 12.7 分钟、$2.4。</li>
+            <li>LIBERO-PRO 上用的 π0.5 权重未披露；同一个 RPent 在 MotorMind 的对比里被归为「用 LIBERO 微调 VLA 当工具」。</li>
+            <li>第 3 节没有任何时延数字，真机上动作执行与 LLM 推理的时间都要算进去。</li>
+            <li>Coder 训练后每回合只要 0.8 张图，基座的「cell 预算用完」部分源于一次写 9 个 cell；提升有相当部分是协议遵从。</li>
+            <li>增益集中在 LIBERO-PRO Long 与 RoboTwin 的 Stack &amp; order；单步任务上两种接口差别很小（按图 1(a) 换算）。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="topic">
+      <p class="eyebrow" data-n="13">放到专题里看</p>
+      <h2>为什么归入（1）总体设计</h2>
+      <div class="prose">
+        <p>在 <a href="../../topics/robot-harness/">Harness for Robotics 专题</a>里，（1）总体设计收的是把整套 harness 当作一个系统来设计的工作：智能体用什么接口驱动机器人、观测和执行结果怎样回到模型、经验怎样沉淀。PyRUA-Lean 只换了一样东西，即交互单位从「一次工具调用」变成「一个可执行 cell」，但这一换同时改动了后面四类的每一个环节：</p>
+        <ul>
+          <li><strong>（2）上下文架构：</strong>cell 自己决定交回哪几行文字、哪几张图；20% 的 cell 只在任务没完成时才看。</li>
+          <li><strong>（3）持久状态：</strong>位置、偏移、自定义函数留在 Python 命名空间里，不进上下文，除非被 print；只在回合内，跨回合记忆关闭。</li>
+          <li><strong>（4）结构化执行：</strong>依赖链、循环、带检查的下降写在 cell 里，LLM 只在 cell 边界重规划。</li>
+          <li><strong>（5）评估与反馈：</strong>每个原语返回到达与否、夹爪开口等实测值，cell 内就地检查与重试；异常把 traceback 交回模型。</li>
+        </ul>
+        <p>论文也承认这几样拆不开、没单独消融。这正是它属于「总体设计」而不是其中某一类的原因。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t cmp">
+          <thead><tr><th></th><th class="me">PyRUA-Lean</th><th><a href="../../papers/aspire/">ASPIRE</a></th><th><a href="../../papers/motormind/">MotorMind</a></th><th><a href="../../papers/tau0-vla/">τ₀-VLA</a></th></tr></thead>
+          <tbody>
+            <tr><th>专题分类</th><td class="me">（1）总体设计</td><td>（1）总体设计</td><td>（4）结构化执行</td><td>（5）评估与反馈</td></tr>
+            <tr><th>LLM 在不在执行回路里</th><td class="me">在，每个回合每一步都在</td><td>主要不在：在调试种子上写、调、进化程序，最终程序在留出种子上单独运行（BEHAVIOR-1K 按块增量生成）</td><td>在，每个动作批次都在</td><td>在，高层约每 1 s 刷新子任务</td></tr>
+            <tr><th>交互单位</th><td class="me">Python cell：多个原语 + 条件、循环、NumPy</td><td>整段机器人程序</td><td>JSON 动作批次（move / rotate / gripper 列表，无分支）</td><td>自然语言子任务</td></tr>
+            <tr><th>观测怎么回到模型</th><td class="me">cell 结束时只交回 print 的内容和点名要的图</td><td>逐原语的多模态执行轨迹（前后关键帧、叠加图、返回值）</td><td>每次提议拿新图像和实测状态；Monitor 并行看</td><td>当前画面 + 文本执行记忆</td></tr>
+            <tr><th>跨回合经验</th><td class="me">关闭；回合内靠命名空间</td><td>技能库，经验证后写入，跨任务复用</td><td>无；回合内的记忆便条</td><td>回合内执行记忆</td></tr>
+            <tr><th>训练什么</th><td class="me">GPT-6 Astra 不训练；另训 4B 规划器（GRPO）</td><td>不训练（Claude Opus 4.6 为主）</td><td>不训练</td><td>高层 4 个模型 + 低层 VLA</td></tr>
+            <tr><th>判断对错靠什么</th><td class="me">原语返回值；第 3 节还有基准成功标志</td><td>调试种子上的执行结果与轨迹</td><td>同一个 VLM 自评 + 实测机器人状态</td><td>世界模型想象 + 价值模型打分</td></tr>
+            <tr><th>LIBERO-PRO 口径</th><td class="me">四套件 swap 各 10 任务 × 5 种子，π0.5 当原语，可读成功标志，每实例一次：94.0%</td><td>每任务在种子 51–65 上学，生成一个程序在种子 1–50 上评</td><td>Goal / Spatial / Object × 四种扰动，无 VLA、无成功标志：基础 66.7%、扰动 53.8%</td><td>未在 LIBERO-PRO 上评</td></tr>
+            <tr><th>成本或时间</th><td class="me">LIBERO-PRO 每个两边都成功的回合 $0.79；RoboDojo 每回合约 12.7 分钟、$2.4</td><td>花在每个任务的调试与搜索上（见 ASPIRE 页）</td><td>每回合约 223 s</td><td>搜索耗时未报告</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>和 <a href="../../papers/aspire/">ASPIRE</a>（同属（1））：</strong>两篇都让 LLM 通过代码驱动机器人，但把 LLM 放在相反的位置。ASPIRE 把 LLM 移出运行回路：在调试种子上反复执行、读逐原语轨迹、修程序、做进化搜索，把验证过的修复写进跨任务技能库，最后只部署程序。PyRUA-Lean 把 LLM 留在回路里：每个回合现场写 cell、现场读结果，不留任何跨回合经验，关注的是每回合的调用次数和 token。PyRUA-Lean 在相关工作里把 ASPIRE 列为互补方向，并把「跨回合复用验证过的程序」写进未来工作。两篇的 LIBERO-PRO 数字不能横比：任务子集、是否用 VLA、是否有成功标志、是否有逐任务调试都不同。</li>
+          <li><strong>和 <a href="../../papers/motormind/">MotorMind</a>（（4）结构化执行）：</strong>两者都是冻结的前沿 LLM 一步步驱动原语。MotorMind 一次提议一个没有分支的动作批次，检查交给单独的 Verifier 和并行的 Monitor，每次检查都是一次 VLM 调用；PyRUA-Lean 把检查写进代码（<code>if approach.reached and not robo.done</code>），读原语的实测返回值，不花额外调用，但依赖原语会报告结果（第 3 节还依赖成功标志）。MotorMind 的对比里也有 RPent（Harness VLA），用 Qwen 规划器零样本基础 31.7%、扰动 28.8%；本文 RPent 换成 GPT-6 Astra，在另一个 LIBERO-PRO 子集上到 83.0%，规划器的差别比接口的差别大得多。</li>
+          <li><strong>和 <a href="../../papers/hime/">HiMe</a>（（3）持久状态与记忆）：</strong>HiMe 在策略之外维护一份图文记忆，由 GPT-4o 在子任务交接时增改删，再经一句子目标交给 π0.5。PyRUA-Lean 的回合内状态是 Python 变量，存的是精确数值（碗的世界坐标、抓取偏移），除非 print，否则不经过上下文。一个是给语言模型读的记忆，一个是给程序读的状态。</li>
+          <li><strong>和 <a href="../../papers/tau0-vla/">τ₀-VLA</a>（（5）评估与反馈）：</strong>τ₀-VLA 在承诺前用世界模型想象后果再打分；PyRUA-Lean 在每个原语之后检查实测结果，便宜且精确，但只能事后补救。摩卡壶那个实例就是事后补救：壶已经倒了，代码现场算出倾斜再扶正。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="glossary">
+      <p class="eyebrow" data-n="14">术语表</p>
+      <h2>读这篇会遇到的词</h2>
+      <details class="gl"><summary>展开术语表</summary>
+        <dl>
+          <dt>tool calling</dt><dd>工具调用：模型每次输出一个（或一批）工具调用，执行结果作为新消息交回，下一次调用再决定做什么。</dd>
+          <dt>code cell</dt><dd>本文中一次 <code>python(code)</code> 调用执行的一段 Python，类似 notebook 的一个单元格。</dd>
+          <dt>robo</dt><dd>暴露给代码的机器人对象，原语是它的方法，如 <code>robo.move_to</code>、<code>robo.segment</code>、<code>robo.show</code>、<code>robo.done</code>。</dd>
+          <dt>persistent namespace</dt><dd>持久命名空间：同一回合内各 cell 共享的变量与函数，回合结束即清空。</dd>
+          <dt>selective observation</dt><dd>选择性观测：只把代码 print 的内容和 <code>robo.show</code> 点名的相机图交回模型。</dd>
+          <dt>RPent / Harness VLA</dt><dd>基线系统（arXiv 2607.08448）：记忆引导的智能体框架，把冻结 VLA 与解析原语作为工具；本文用它的机器人栈和原语实现，并关闭跨回合记忆。</dd>
+          <dt>jointly solved</dt><dd>两边都做成的实例，本文的 LLM 调用、token、费用对比都在这个子集上算（406 个）。</dd>
+          <dt>task instance</dt><dd>任务 × 环境种子；本文 140 个任务 × 5 个种子 = 700 个实例。</dd>
+          <dt>LLM-call budget</dt><dd>每回合允许的 LLM 调用次数（40，composite 100），限制的不是原语执行次数。</dd>
+          <dt>cached input</dt><dd>命中提示缓存的输入 token，标价是普通输入的十分之一；本文的 token 计数包含它。</dd>
+          <dt>Codex CLI</dt><dd>第 3 节两个智能体运行的命令行代理环境，保留完整对话，接近 272k token 时压缩。</dd>
+          <dt>SR / Score</dt><dd>RoboDojo 的两个指标：完全成功的回合比例；过程奖励均值 × 100，按阶段给部分分。</dd>
+          <dt>direct control</dt><dd>GPT-6 Astra 每次调用直接给一个末端执行器目标的设定（Zhang 等人的 RoboDojo 早期评测）。</dd>
+          <dt>GRPO</dt><dd>group relative policy optimization：同一实例的一组 rollout 内归一化奖励作为优势的策略梯度方法。</dd>
+          <dt>PyRUA-Lean Coder v0.1-4B</dt><dd>用 GRPO 在 45 个 LIBERO-PRO 实例上训练的 Qwen3.5-4B 规划器。</dd>
+        </dl>
+      </details>
+    </section>
+  </main>
+</div>
+<footer class="page">
+  <p>图全部来自论文 arXiv 源码（v2）里的原图；表 2、3、5、7–10、12–14、17 与正文数字取自源码 <code>generated/</code> 下的 tex 表格与数值宏，图 1、图 3、图 5、图 6 中的数字取自矢量 PDF 的文字层。v1（2026-10-01）只有接口对比一节，RoboDojo 与 Coder 两部分是 v2（2026-10-13）新增的。RoboDojo 一节里 <code>locate</code> 的实现细节读自作者开源仓库 <a href="https://github.com/DAGroup-PKU/PyRUA-Lean" target="_blank" rel="noopener">DAGroup-PKU/PyRUA-Lean</a>（commit <code>ffad6d4</code>，2026-10-24）。标「解读」的是我们的判断。</p>
+</footer>
+<dialog id="lb" aria-label="放大查看"><div class="box"><img id="lb-img" alt=""></div><div class="bar"><span id="lb-cap"></span><button type="button" id="lb-close">关闭</button></div></dialog>
+<div class="tip" id="tip" hidden></div>
+<script type="text/plain" id="src-cell1">print(robo.state())
+bowl = robo.segment('the black patterned bowl on the stove')
+plate = robo.segment('the white plate with red rings')
+print('bowl', bowl)
+print('plate', plate)
+print('table', robo.back_project(630, 610))</script>
+<script type="text/plain" id="src-cell2">assert bowl.found and plate.found
+approach = robo.move_to([bowl.world_xyz[0], bowl.world_xyz[1], bowl.world_xyz[2]+0.19], gripper=-1)
+print('approach', approach)
+if approach.reached:
+    pick = robo.pi0_pick('pick up the black bowl on the stove', max_chunks=20)
+    print('pick', pick)
+print(robo.state())
+robo.show('agentview')
+robo.show('wrist')</script>
+<script type="text/plain" id="src-cell3">print(robo.set_gripper(+1, steps=8))
+held_state = robo.state()
+print('lift', robo.move_to([held_state.eef_pos[0], held_state.eef_pos[1], 1.18], gripper=+1, step_clip=0.012))
+held_bowl = robo.segment('the black patterned bowl held by the gripper')
+print('held bowl', held_bowl)
+print(robo.state())</script>
+<script type="text/plain" id="src-cell4">robo.show('agentview')
+robo.show('wrist')
+print('bowl now', robo.segment('the black patterned bowl on the stove'))</script>
+<script type="text/plain" id="src-cell5">held_bowl = robo.segment(point=(267, 339))
+print('held localization', held_bowl)
+assert held_bowl.found and held_bowl.world_xyz[2] > 1.05
+carry_state = robo.state()
+grip_offset = np.array(carry_state.eef_pos[:2]) - np.array(held_bowl.world_xyz[:2])
+place_xy = np.array(plate.world_xyz[:2]) + grip_offset
+print('grip offset', grip_offset, 'place xy', place_xy)
+mid_xy = (np.array(carry_state.eef_pos[:2]) + place_xy)/2
+for waypoint_xy in [mid_xy, place_xy]:
+    move = robo.move_to([*waypoint_xy, carry_state.eef_pos[2]], gripper=+1, step_clip=0.012)
+    print('carry', move)
+    if not move.reached or move.terminated:
+        break
+robo.show('agentview')</script>
+<script type="text/plain" id="src-cell6">held_at_plate = robo.segment(point=(314, 795))
+print('bowl above plate', held_at_plate)
+assert held_at_plate.found
+correction = np.array(plate.world_xyz[:2]) - np.array(held_at_plate.world_xyz[:2])
+place_xy = np.array(robo.state().eef_pos[:2]) + correction
+surface_map = robo.world_map()
+bowl_patch = surface_map[290:365, 740:850]
+bowl_heights = bowl_patch[:,:,2]
+bowl_heights = bowl_heights[(bowl_heights>1.04) & (bowl_heights<1.17)]
+bottom_z = float(np.quantile(bowl_heights, 0.02))
+placement_z = plate.world_xyz[2] + robo.state().eef_pos[2] - bottom_z + 0.007
+print('correction', correction, 'bottom', bottom_z, 'placement z', placement_z)
+assert np.linalg.norm(correction)<0.07 and 0.95<placement_z<1.05
+lower = robo.move_to([*place_xy, placement_z], gripper=+1, step_clip=0.012, tol=0.005, max_steps=100)
+print('lower', lower)
+if lower.reached and not robo.done:
+    print('release', robo.release())
+print('done', robo.done)
+if not robo.done:
+    robo.show('agentview')</script>
+<script type="text/plain" id="src-guarded">assert bowl.found and plate.found
+bowl_xy = np.array(bowl.world_xyz[:2])
+plate_xyz = np.array(plate.world_xyz)
+table_z = robo.back_project(837,660).world_xyz[2]
+prepose = [float(bowl_xy[0]),float(bowl_xy[1]),table_z+0.22]
+approach = robo.move_to(prepose,gripper=robo.OPEN)
+print('APPROACH',approach)
+if approach.reached and not robo.done:
+    picked = robo.pi0_pick('pick up the black bowl between the plate and the ramekin', max_chunks=20)
+    print('PICK',picked)
+print('STATE',robo.state())
+if not robo.done:
+    robo.show('agentview')
+    robo.show('wrist')</script>
+<script type="text/plain" id="src-retry">print(robo.task)
+print(robo.success_criteria())
+for attempt in range(3):
+    result = robo.rldx_arm()
+    print(result)
+    print(robo.state())
+    if robo.done or result.status != 'cap':
+        break
+if not robo.done:
+    robo.show('agentview')
+    robo.show('wrist')</script>
+<script type="text/plain" id="src-perception">mask=red&(rows<92)&(cols>98)&(cols<165)&(world[...,2]>0.745)
+points=world[mask]
+upper=points[points[:,2]>0.794]
+mean_xy=np.mean(upper[:,:2],axis=0)
+eigenvalues,eigenvectors=np.linalg.eigh(np.cov(upper[:,:2].T))
+long_axis=eigenvectors[:,1]
+if long_axis[1]<0: long_axis=-long_axis
+short_axis=np.array([long_axis[1],-long_axis[0]])
+projection_long=upper[:,:2]@long_axis
+projection_short=upper[:,:2]@short_axis
+block_center=long_axis*((np.min(projection_long)+np.max(projection_long))/2)+short_axis*((np.min(projection_short)+np.max(projection_short))/2)
+print('flat centre',block_center,'long axis',long_axis,'extents',np.ptp(projection_long),np.ptp(projection_short))
+left_grasp_xy=block_center+0.045*long_axis
+right_grasp_xy=block_center-0.05*long_axis
+yaw=math.atan2(long_axis[1],long_axis[0])
+q_down=np.array([math.cos(yaw/2)/math.sqrt(2),-math.sin(yaw/2)/math.sqrt(2),math.cos(yaw/2)/math.sqrt(2),math.sin(yaw/2)/math.sqrt(2)])
+print('grasp',left_grasp_xy,'receive',right_grasp_xy,'quat',q_down)
+safe=np.array(robo.state().left.eef_pos);safe[2]=1.03
+if checked_move('left',safe,quat=robo.state().left.eef_quat,substeps=20):
+    waypoint=np.array([left_grasp_xy[0],0.015,1.03])
+    if checked_move('left',waypoint,quat=q_down,substeps=25):
+        print(robo.move_to('left',[left_grasp_xy[0],left_grasp_xy[1],0.97],quat=q_down,substeps=25))
+print(robo.state().left)
+robo.show('head')</script>
+<script type="text/plain" id="src-skill">def lower_guarded(arm_name, target_tcp_z):
+    initial=robo.state().arm(arm_name)
+    target=np.array(initial.eef_pos)
+    final_eef_z=target_tcp_z-0.12*initial.approach[2]
+    while target[2]>final_eef_z+0.001 and not robo.done:
+        before=robo.state().arm(arm_name)
+        target[2]=max(final_eef_z,target[2]-0.008)
+        result=robo.move_to(arm_name,target,substeps=8)
+        after=robo.state().arm(arm_name)
+        print('descent',result.reached,tuple(round(v,4) for v in after.tcp_pos))
+        if result.terminated or not result.planned or not result.reached or after.eef_pos[2]>=before.eef_pos[2]-0.001 or np.linalg.norm(np.array(after.eef_pos[:2])-target[:2])>0.01:
+            print('stop',result)
+            break
+lower_guarded('right',0.800)
+robo.show('right_wrist')
+robo.show('head')</script>
+<script>
+(function(){
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, text){ const e = document.createElementNS(NS, tag); if (attrs) for (const k in attrs) if (attrs[k] != null) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+  const escH = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  function hl(src){
+    const re = /(#[^\n]*)|('(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*")|\b(if|for|in|not|and|or|def|while|break|assert|return|else|elif|True|False|None)\b|\b(robo)\b|\b(np|math)\b|(\b\d+(?:\.\d+)?\b)/g;
+    let out = '', last = 0, m;
+    while ((m = re.exec(src))) {
+      out += escH(src.slice(last, m.index));
+      const t = escH(m[0]);
+      out += m[1] ? '<span class="c">' + t + '</span>' : m[2] ? '<span class="s">' + t + '</span>' : m[3] ? '<span class="k">' + t + '</span>' : m[4] ? '<span class="r">' + t + '</span>' : m[5] ? '<span class="m">' + t + '</span>' : '<span class="n">' + t + '</span>';
+      last = re.lastIndex;
+    }
+    return out + escH(src.slice(last));
+  }
+  const SRC = id => { const n = document.getElementById('src-' + id); return n ? n.textContent : ''; };
+
+  /* tooltip */
+  const tip = $('#tip');
+  function place(x, y){ const r = tip.getBoundingClientRect(); let l = x + 14, t = y + 14; if (l + r.width > innerWidth - 8) l = x - r.width - 14; if (t + r.height > innerHeight - 8) t = y - r.height - 14; tip.style.left = Math.max(8, l) + 'px'; tip.style.top = Math.max(8, t) + 'px'; }
+  document.addEventListener('pointerover', e => { const t = e.target.closest && e.target.closest('[data-tip]'); if (!t) return; tip.textContent = t.getAttribute('data-tip'); tip.hidden = false; place(e.clientX, e.clientY); });
+  document.addEventListener('pointermove', e => { if (tip.hidden) return; if (!(e.target.closest && e.target.closest('[data-tip]'))) { tip.hidden = true; return; } place(e.clientX, e.clientY); });
+
+  /* lightbox */
+  const lb = $('#lb');
+  $$('figure.plate .zoom').forEach(b => b.addEventListener('click', () => { $('#lb-img').src = b.dataset.src; const c = b.parentElement.querySelector('figcaption b'); $('#lb-cap').textContent = c ? c.textContent : ''; if (lb.showModal) lb.showModal(); else lb.setAttribute('open', ''); }));
+  $('#lb-close').addEventListener('click', () => lb.close());
+  lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+
+  /* toc */
+  const links = $$('.toc a');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id)); }), { rootMargin: '-35% 0px -60% 0px' });
+    $$('main section').forEach(s => io.observe(s));
+  }
+  function seg(host, onPick){ $$('button', host).forEach(b => b.addEventListener('click', () => { $$('button', host).forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); onPick(b.dataset.k); })); }
+  function rawTable(host, head, rows){
+    const d = document.createElement('div'); d.className = 'tblwrap';
+    d.innerHTML = '<table class="t"><thead><tr>' + head.map((h, i) => '<th' + (i ? ' class="r"' : '') + '>' + h + '</th>').join('') + '</tr></thead><tbody>' +
+      rows.map(r => r.grp ? '<tr class="grp"><th colspan="' + head.length + '">' + r.grp + '</th></tr>' : '<tr' + (r.best ? ' class="best"' : '') + '>' + r.cells.map((c, i) => i ? '<td class="r">' + c + '</td>' : '<th>' + c + '</th>').join('') + '</tr>').join('') + '</tbody></table>';
+    host.appendChild(d);
+  }
+  const fmtK = v => v >= 1000 ? (v / 1000).toFixed(v >= 10000 ? 1 : 2).replace(/\.?0+$/, '') + 'M' : v + 'k';
+
+  /* ---------- replay data (Table 10) ---------- */
+  const TOOL = [
+    [3, '读 3 个文本文件（操作指南）', 0, 20], [1, 'view_env_state，带回 3 张图', 1, 50], [12, 'back_project ×12，逐点查世界坐标', 0, 83],
+    [1, 'move_to，带回 3 张图', 1, 118], [3, 'back_project ×3', 0, 157], [1, 'move_to，带回 3 张图', 1, 196], [1, 'move_to，带回 3 张图', 1, 239],
+    [6, 'back_project ×6', 0, 284], [1, 'pi0_pick（调用 π0.5 抓取），带回 3 张图', 1, 331], [1, 'set_gripper，带回 3 张图', 1, 382],
+    [1, 'move_to，带回 3 张图', 1, 435], [1, 'move_to，带回 3 张图', 1, 492], [1, 'move_to，带回 3 张图', 1, 553],
+    [3, 'back_project ×3（找碗）', 0, 616], [4, 'back_project ×4（采样碗底）', 0, 681], [1, 'move_to（下降），带回 3 张图', 1, 746],
+    [1, 'release，带回 3 张图。任务完成', 1, 816, 1], [2, 'write_text_file ×2（成功后写记录文件）', 0, 888], [1, 'finish', 0, 963], [0, '最终消息', 0, 1040]
+  ];
+  const CODE = [
+    [4, '定位碗和盘子：4 次原语调用（back_project、segment、view_env_state），不要图', 0, 22, 'cell1'],
+    [5, '接近碗，到位才调 π0.5 抓取：5 次原语调用（move_to、pi0_pick、view_env_state），要 agentview 和 wrist 两张图', 2, 44, 'cell2'],
+    [5, '合拢夹爪、抬起碗：5 次原语调用（move_to、segment、set_gripper、view_env_state），不要图', 0, 70, 'cell3'],
+    [3, '看图确认抓住了：3 次原语调用（segment），要两张图', 2, 96, 'cell4'],
+    [5, '经中点搬到盘子上方，没到位就停：5 次原语调用（move_to、segment、view_env_state），要 agentview 一张', 1, 126, 'cell5'],
+    [6, '按碗底高度算放置点，下降到位且未完成才松开：6 次原语调用（move_to、release、segment、view_env_state）。任务完成，没要图', 0, 156, 'cell6', 1],
+    [0, 'finish', 0, 188], [0, '最终消息', 0, 220]
+  ];
+  (function hero(){
+    const svg = $('#rb'); const X0 = 78, bw = 19.6, gap = 1.6;
+    svg.appendChild(el('text', { x: 4, y: 16, style: 'font-weight:700;fill:var(--ink)' }, '同一任务 · 同一规划器 · 同一套原语'));
+    svg.appendChild(el('text', { x: X0, y: 36, class: 'mono', style: 'fill:var(--muted)' }, '每格一次 LLM 调用 · 数字 = 本次调用的工具 / 原语数'));
+    [['工具调用', TOOL, 'var(--tool)', 44], ['代码', CODE, 'var(--code)', 74]].forEach(([name, D, c, y]) => {
+      svg.appendChild(el('text', { x: 4, y: y + 15, style: 'fill:' + c + ';font-weight:700' }, name));
+      D.forEach((d, i) => {
+        const x = X0 + i * (bw + gap), img = d[2] > 0;
+        svg.appendChild(el('rect', { x, y, width: bw, height: 22, rx: 3, fill: img ? c : 'var(--surface)', stroke: c, 'stroke-width': d[4] === 1 || d[5] === 1 ? 2.6 : 1 }));
+        if (d[0]) svg.appendChild(el('text', { x: x + bw / 2, y: y + 15, 'text-anchor': 'middle', class: 'mono', style: 'font-size:9.5px;fill:' + (img ? 'var(--surface)' : 'var(--ink-2)') }, d[0]));
+      });
+    });
+    svg.appendChild(el('text', { x: X0, y: 126, class: 'mono', style: 'fill:var(--muted)' }, '累计输入 token（竖线 = 完成任务时）'));
+    const S = v => 420 * v / 1040;
+    [['工具调用', 1040, 816, 'var(--tool)', 136, '20 次 · 1.04M'], ['代码', 220, 156, 'var(--code)', 168, '8 次 · 220k']].forEach(([n, tot, sol, c, y, lab]) => {
+      svg.appendChild(el('text', { x: 4, y: y + 13, style: 'fill:' + c + ';font-weight:700' }, n));
+      svg.appendChild(el('rect', { x: X0, y, width: S(tot), height: 18, rx: 3, fill: c }));
+      svg.appendChild(el('line', { x1: X0 + S(sol), x2: X0 + S(sol), y1: y - 4, y2: y + 22, stroke: 'var(--ink)', 'stroke-width': 2 }));
+      const inside = S(tot) > 140;
+      svg.appendChild(el('text', { x: inside ? X0 + S(tot) - 6 : X0 + S(tot) + 8, y: y + 13, 'text-anchor': inside ? 'end' : 'start', class: 'mono', style: 'fill:' + (inside ? 'var(--surface)' : 'var(--ink)') + ';font-weight:700' }, lab));
+    });
+    svg.appendChild(el('text', { x: X0, y: 214, class: 'mono', style: 'fill:var(--muted)' }, '完成时：816k（第 17 次） / 156k（第 6 次）'));
+    svg.appendChild(el('text', { x: X0, y: 230, class: 'mono', style: 'fill:var(--muted)' }, '收到的图：33 张 / 5 张'));
+  })();
+
+  (function replay(){
+    const svg = $('#rp-svg'), rng = $('#rp-range');
+    const L = 92, bw = 30, gap = 2.6, X = i => L + i * (bw + gap);
+    const cy0 = 120, cy1 = 296, cx0 = L, cx1 = 748;
+    const yT = v => cy1 - (cy1 - cy0) * v / 1100, xC = n => cx0 + (cx1 - cx0) * (n - 1) / 19;
+    function draw(){
+      const n = +rng.value; svg.innerHTML = '';
+      [['工具调用', TOOL, 'var(--tool)', 16], ['代码', CODE, 'var(--code)', 58]].forEach(([name, D, c, y]) => {
+        svg.appendChild(el('text', { x: 4, y: y + 19, style: 'fill:' + c + ';font-weight:700' }, name));
+        D.forEach((d, i) => {
+          const img = d[2] > 0, cur = i + 1 === n, done = d[4] === 1 || d[5] === 1, past = i + 1 <= n;
+          const g = el('g', { class: 'box', 'data-tip': '第 ' + (i + 1) + ' 次调用：' + d[1] + '；累计 ' + fmtK(d[3]) + ' token' });
+          g.appendChild(el('rect', { x: X(i), y, width: bw, height: 28, rx: 4, fill: img ? c : 'var(--surface)', stroke: cur ? 'var(--ink)' : c, 'stroke-width': cur ? 3 : done ? 2.4 : 1, opacity: past ? 1 : .35 }));
+          if (d[0]) g.appendChild(el('text', { x: X(i) + bw / 2, y: y + 19, 'text-anchor': 'middle', class: 'mono', style: 'fill:' + (img ? 'var(--surface)' : 'var(--ink-2)') }, d[0]));
+          if (done) g.appendChild(el('text', { x: X(i) + bw / 2, y: y - 3, 'text-anchor': 'middle', class: 'mono', style: 'fill:var(--ok);font-size:10px' }, '✓'));
+          g.addEventListener('click', () => { rng.value = i + 1; draw(); });
+          svg.appendChild(g);
+        });
+      });
+      for (let v = 0; v <= 1000; v += 250) { svg.appendChild(el('line', { x1: cx0, x2: cx1, y1: yT(v), y2: yT(v), class: 'grid' })); svg.appendChild(el('text', { x: cx0 - 6, y: yT(v) + 4, 'text-anchor': 'end', class: 'tick' }, v ? fmtK(v) : '0')); }
+      [1, 5, 10, 15, 20].forEach(k => svg.appendChild(el('text', { x: xC(k), y: cy1 + 16, 'text-anchor': 'middle', class: 'tick' }, k)));
+      svg.appendChild(el('text', { x: 4, y: cy0 + 4, class: 'tick' }, '累计输入'));
+      svg.appendChild(el('text', { x: cx1, y: cy1 + 30, 'text-anchor': 'end', class: 'tick' }, '第几次 LLM 调用 →'));
+      [[TOOL, 'var(--tool)'], [CODE, 'var(--code)']].forEach(([D, c]) => {
+        svg.appendChild(el('path', { d: D.map((d, i) => (i ? 'L' : 'M') + xC(i + 1).toFixed(1) + ' ' + yT(d[3]).toFixed(1)).join(''), fill: 'none', stroke: c, 'stroke-width': 2.4 }));
+        D.forEach((d, i) => { if (d[4] === 1 || d[5] === 1) svg.appendChild(el('circle', { cx: xC(i + 1), cy: yT(d[3]), r: 6, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 1.6 })); });
+      });
+      svg.appendChild(el('line', { x1: xC(n), x2: xC(n), y1: cy0 - 6, y2: cy1, stroke: 'var(--ink)', 'stroke-dasharray': '3 3' }));
+      const t = TOOL[n - 1], cIdx = Math.min(n, CODE.length) - 1, cc = CODE[cIdx];
+      svg.appendChild(el('circle', { cx: xC(n), cy: yT(t[3]), r: 4.5, fill: 'var(--tool)' }));
+      if (n <= CODE.length) svg.appendChild(el('circle', { cx: xC(n), cy: yT(cc[3]), r: 4.5, fill: 'var(--code)' }));
+      const tPrev = n > 1 ? TOOL[n - 2][3] : 0, tImgs = TOOL.slice(0, n).reduce((a, d) => a + (d[2] ? 3 : 0), 0);
+      $('#rp-n').textContent = '第 ' + n + ' 次 LLM 调用';
+      $('#rp-th').textContent = '工具调用 · 第 ' + n + ' 次';
+      $('#rp-tp').textContent = t[1];
+      $('#rp-ts').innerHTML = '这次读入约 <b>' + (t[3] - tPrev) + 'k</b> · 累计 <b>' + fmtK(t[3]) + '</b> · 至今收到图 <b>' + tImgs + '</b> 张';
+      const cImgs = CODE.slice(0, cIdx + 1).reduce((a, d) => a + d[2], 0);
+      if (n <= CODE.length) {
+        const cPrev = n > 1 ? CODE[n - 2][3] : 0;
+        $('#rp-ch').textContent = '代码 · 第 ' + n + ' 次' + (cc[4] ? '（cell ' + n + '）' : '');
+        $('#rp-cp').textContent = cc[1];
+        $('#rp-cs').innerHTML = '这次读入约 <b>' + (cc[3] - cPrev) + 'k</b> · 累计 <b>' + fmtK(cc[3]) + '</b> · 至今要了图 <b>' + cImgs + '</b> 张';
+        const code = $('#rp-code'); if (cc[4]) { code.hidden = false; code.innerHTML = hl(SRC(cc[4])); } else code.hidden = true;
+      } else {
+        $('#rp-ch').textContent = '代码 · 回合已结束';
+        $('#rp-cp').textContent = '代码在第 6 次调用完成任务，第 8 次调用结束回合。工具调用此时还在继续。';
+        $('#rp-cs').innerHTML = '全回合 <b>8</b> 次调用 · <b>220k</b> token · 要图 <b>5</b> 张';
+        $('#rp-code').hidden = true;
+      }
+    }
+    rng.addEventListener('input', draw);
+    $('#rp-prev').addEventListener('click', () => { rng.value = Math.max(1, +rng.value - 1); draw(); });
+    $('#rp-next').addEventListener('click', () => { rng.value = Math.min(20, +rng.value + 1); draw(); });
+    draw();
+  })();
+
+  /* ---------- cells (Table 12) ---------- */
+  const CELLS = [
+    ['运行两个及以上动作原语', [45, 61, 24, 50, 56]], ['走一步、看一眼', [35, 14, 54, 33, 28]], ['后一个动作依赖前一个结果', [19, 45, 12, 20, 14]],
+    ['在循环里做运动', [14, 6, 12, 22, 17]], ['重试 VLA', [8, 0, 0, 18, 17]], ['用 NumPy 计算', [30, 25, 31, 29, 30]], ['复用之前 cell 的变量', [19, 33, 18, 10, 14]],
+    ['调用之前 cell 定义的函数', [7, 7, 6, 2, 9]], ['要相机图', [84, 82, 78, 90, 90]], ['只在任务未完成时才看', [20, 19, 8, 58, 24]]
+  ];
+  const ACT = [[2.1, 0.65], [2.0, 0.60], [1.9, 0.69], [2.1, 0.56], [2.4, 0.67]];
+  function drawCells(k){
+    const svg = $('#ch-cells'); svg.innerHTML = '';
+    const L = 210, W = 760, x = v => L + (W - L - 50) * v / 100;
+    svg.appendChild(el('text', { x: 4, y: 16, class: 'glabel', style: 'font-weight:700' }, '每单位的动作原语数'));
+    const a = ACT[k], xs = v => L + (W - L - 50) * v / 2.5;
+    [['代码 cell', a[0], 'f-code'], ['工具调用的一次 LLM 调用', a[1], 'f-tool']].forEach((r, i) => {
+      const y = 28 + i * 24;
+      svg.appendChild(el('text', { x: L - 10, y: y + 13, 'text-anchor': 'end' }, r[0]));
+      svg.appendChild(el('rect', { x: L, y, width: xs(r[1]) - L, height: 17, rx: 3, class: r[2] }));
+      svg.appendChild(el('text', { x: xs(r[1]) + 6, y: y + 13, class: 'val hi' }, r[1].toFixed(r[1] < 1 ? 2 : 1)));
+    });
+    svg.appendChild(el('text', { x: 4, y: 104, class: 'glabel', style: 'font-weight:700' }, '代码 cell 的占比（%）'));
+    for (let g = 0; g <= 100; g += 25) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: 112, y2: 400, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: 414, 'text-anchor': 'middle', class: 'tick' }, g)); }
+    CELLS.forEach((r, i) => {
+      const y = 116 + i * 28, v = r[1][k];
+      svg.appendChild(el('text', { x: L - 10, y: y + 14, 'text-anchor': 'end' }, r[0]));
+      svg.appendChild(el('rect', { x: L, y: y + 2, width: Math.max(1.5, x(v) - L), height: 17, rx: 3, class: 'f-code', opacity: .85, 'data-tip': r[0] + '：' + r[1].map((u, j) => ['全部', 'LIBERO-PRO', 'RoboTwin', 'atomic', 'composite'][j] + ' ' + u + '%').join(' · ') }));
+      svg.appendChild(el('text', { x: x(v) + 6, y: y + 15, class: 'val' }, v + '%'));
+    });
+  }
+  seg($('#cl-pick'), k => drawCells(+k)); drawCells(0);
+
+  /* listings */
+  const LST = [
+    ['guarded', '带条件的链（全部 cell 的 19%，LIBERO-PRO 上 45%）。LIBERO-PRO spatial swap 任务 0 种子 0 的第 2 个 cell：先移到碗上方，到位且任务未完成才调 VLA 抓取，仍未完成才看图。工具调用里这条链的每一环都是一次 LLM 调用。'],
+    ['retry', '就地重试（全部 8%，RoboCasa365 atomic 上 18%）。CloseToasterOvenDoor 种子 1 的第 1 个 cell：VLA 可能没做完就停，cell 最多重跑三次，直到任务报告成功。工具调用里每次重试都是一次 LLM 调用，还要带回三张图。注意它读了 robo.success_criteria() 和 robo.done。'],
+    ['perception', '自己做感知（30% 的 cell 用 NumPy 做感知或几何）。RoboTwin 2.0 无 VLA 时 handover block 种子 100003 的第 5 个 cell：在相机点云上用颜色掩码取出积木，取高于某个高度的点当顶面，用这些点的主轴求朝向和抓取偏航。checked_move 是它在更早的 cell 里自己定义的函数。'],
+    ['skill', '自己造技能（2% 的 cell 定义函数，7% 调用之前定义的）。RoboTwin 2.0 place object stand 种子 100002 的第 7 个 cell：每步下降 8 mm，只要某步没到位、不再下降或横向漂移就停，并在下一个 cell 里复用。没有 VLA 时代码就是靠这类函数完成抓取的。']
+  ];
+  function showLst(k){ $$('#lst-tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.k == k ? 'true' : 'false')); $('#lst-say').textContent = LST[k][1]; $('#lst-code').innerHTML = hl(SRC(LST[k][0])); }
+  $$('#lst-tabs button').forEach(b => b.addEventListener('click', () => showLst(+b.dataset.k))); showLst(0);
+
+  /* ---------- main results (Table 2) ---------- */
+  const MAIN = [
+    { b: 'LIBERO-PRO', n: 200, both: 164, sr: [83.0, 94.0], calls: [21.4, 8.4], tok: [1230, 273], usd: [2.49, 0.79], x: { calls: '2.5×', tok: '4.5×', usd: '3.1×' } },
+    { b: 'RoboTwin 2.0', n: 250, both: 137, sr: [60.0, 69.2], calls: [12.2, 8.9], tok: [415, 245], usd: [1.00, 0.66], x: { calls: '1.4×', tok: '1.7×', usd: '1.5×' } },
+    { b: 'RC365 atomic', n: 90, both: 69, sr: [78.9, 86.7], calls: [10.4, 5.6], tok: [261, 171], usd: [0.62, 0.54], x: { calls: '1.8×', tok: '1.5×', usd: '1.2×' } },
+    { b: 'RC365 composite', n: 160, both: 36, sr: [34.4, 39.4], calls: [28.4, 14.9], tok: [1220, 603], usd: [2.01, 1.25], x: { calls: '1.9×', tok: '2.0×', usd: '1.6×' } },
+    { b: '合并', n: 700, both: 406, sr: [63.1, 71.7], calls: [17.0, 8.7], tok: [788, 276], usd: [1.63, 0.74], x: { calls: '2.0×', tok: '2.9×', usd: '2.2×' }, all: 1 }
+  ];
+  const MCONF = { sr: { max: 100, step: 25, f: v => v.toFixed(1), u: '%' }, calls: { max: 30, step: 10, f: v => v.toFixed(1), u: ' 次' }, tok: { max: 1300, step: 250, f: v => fmtK(v), u: '' }, usd: { max: 2.6, step: 0.5, f: v => '$' + v.toFixed(2), u: '' } };
+  function drawMain(k){
+    const svg = $('#ch-main'); svg.innerHTML = '';
+    const c = MCONF[k], W = 760, H = 290, L = 50, R = 10, T = 26, B = 48, y = v => T + (H - T - B) * (1 - v / c.max);
+    for (let g = 0; g <= c.max + 1e-9; g += c.step) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, k === 'tok' ? (g ? fmtK(g) : '0') : k === 'usd' ? '$' + g.toFixed(1) : g)); }
+    const gw = (W - L - R) / MAIN.length, bw = 40;
+    MAIN.forEach((m, i) => {
+      const cx = L + gw * (i + .5);
+      if (m.all) svg.appendChild(el('line', { x1: L + gw * i, x2: L + gw * i, y1: T - 14, y2: H - 10, stroke: 'var(--ink-2)', 'stroke-dasharray': '3 3' }));
+      m[k].forEach((v, j) => {
+        const x = cx - bw - 2 + j * (bw + 4);
+        svg.appendChild(el('rect', { x, y: y(v), width: bw, height: y(0) - y(v), rx: 3, class: j ? 'f-code' : 'f-tool', 'data-tip': m.b + ' · ' + (j ? '代码' : '工具调用') + '：' + c.f(v) + c.u + (k === 'sr' ? '（' + m.n + ' 个实例）' : '（两边都成功的 ' + m.both + ' 个实例）') }));
+        svg.appendChild(el('text', { x: x + bw / 2, y: y(v) - 5, 'text-anchor': 'middle', class: 'val' + (j ? ' hi' : '') }, c.f(v)));
+      });
+      const top = Math.min(y(m[k][0]), y(m[k][1]));
+      const lab = k === 'sr' ? '+' + (m.sr[1] - m.sr[0]).toFixed(1) : m.x[k];
+      svg.appendChild(el('text', { x: cx, y: Math.max(12, top - 20), 'text-anchor': 'middle', class: 'val hi', style: 'fill:var(--code)' }, lab));
+      svg.appendChild(el('text', { x: cx, y: H - B + 18, 'text-anchor': 'middle', class: 'glabel', 'font-weight': m.all ? 700 : 400 }, m.b));
+      svg.appendChild(el('text', { x: cx, y: H - B + 33, 'text-anchor': 'middle', class: 'tick' }, k === 'sr' ? m.n + ' 实例' : '共同成功 ' + m.both));
+    });
+    svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(0), y2: y(0), class: 'base' }));
+  }
+  seg($('#mn-pick'), drawMain); drawMain('sr');
+  rawTable($('#raw-main'), ['基准', '成功率 工具', '代码', 'Δ', 'LLM 调用 工具', '代码', '×', 'Token 工具', '代码', '×', '费用 工具', '代码', '×'],
+    MAIN.map(m => ({ best: m.all, cells: [m.b, m.sr[0].toFixed(1), m.sr[1].toFixed(1), '+' + (m.sr[1] - m.sr[0]).toFixed(1), m.calls[0], m.calls[1], m.x.calls, fmtK(m.tok[0]), fmtK(m.tok[1]), m.x.tok, m.usd[0].toFixed(2), m.usd[1].toFixed(2), m.x.usd] })));
+
+  /* ---------- split (Fig 5) ---------- */
+  (function(){
+    const svg = $('#ch-split'); svg.innerHTML = '';
+    const D = [['LIBERO-PRO', 2.55, 1.76, 4.48], ['RoboTwin 2.0', 1.37, 1.23, 1.69], ['RC365 atomic', 1.84, 0.83, 1.53], ['RC365 composite', 1.90, 1.06, 2.03]];
+    const L = 130, R = 120, W = 760, x = v => L + (W - L - R) * (v - 0.5) / 2.5;
+    [0.5, 1, 1.5, 2, 2.5, 3].forEach(g => { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: 10, y2: 220, class: g === 1 ? 'base' : 'grid' })); svg.appendChild(el('text', { x: x(g), y: 236, 'text-anchor': 'middle', class: 'tick' }, g + '×')); });
+    svg.appendChild(el('text', { x: W - 10, y: 18, 'text-anchor': 'end', class: 'tick' }, 'token 总比'));
+    D.forEach((d, i) => {
+      const y = 26 + i * 50;
+      svg.appendChild(el('text', { x: L - 10, y: y + 20, 'text-anchor': 'end', class: 'glabel' }, d[0]));
+      [[d[1], 'f-code', 'LLM 调用'], [d[2], 'f-tok', '每次调用 token']].forEach((s, j) => {
+        const x0 = Math.min(x(1), x(s[0])), w = Math.abs(x(s[0]) - x(1));
+        svg.appendChild(el('rect', { x: x0, y: y + j * 18, width: Math.max(1.5, w), height: 15, rx: 2, class: s[1], 'data-tip': d[0] + ' · ' + s[2] + '：' + s[0].toFixed(2) + '×' }));
+        svg.appendChild(el('text', { x: s[0] >= 1 ? x(s[0]) + 5 : x(s[0]) - 5, y: y + j * 18 + 12, 'text-anchor': s[0] >= 1 ? 'start' : 'end', class: 'val' }, s[0].toFixed(2) + '×'));
+      });
+      svg.appendChild(el('text', { x: W - 10, y: y + 22, 'text-anchor': 'end', class: 'val hi', style: 'fill:var(--code);font-size:13px' }, d[3].toFixed(2) + '×'));
+    });
+  })();
+
+  /* ---------- on-demand (Table 14) ---------- */
+  (function(){
+    const svg = $('#ch-od'); svg.innerHTML = '';
+    const C = [['每次运动后给图', 'f-tool'], ['按需要图', 'f-gray'], ['代码', 'f-code']];
+    const P = [{ t: '成功率 %（200 个实例）', v: [83.0, 68.5, 94.0], max: 100, f: v => v.toFixed(1) }, { t: 'LLM 调用 / 成功回合*', v: [19.9, 22.8, 7.4], max: 25, f: v => v.toFixed(1) }, { t: '输入 token / 成功回合*', v: [1070, 1070, 222], max: 1200, f: v => fmtK(v) }];
+    P.forEach((p, k) => {
+      const x0 = 20 + k * 250, w = 220, y = v => 40 + 150 * (1 - v / p.max);
+      svg.appendChild(el('text', { x: x0, y: 16, class: 'glabel', style: 'font-weight:700' }, p.t));
+      svg.appendChild(el('line', { x1: x0, x2: x0 + w, y1: 190, y2: 190, class: 'base' }));
+      p.v.forEach((v, j) => {
+        const bx = x0 + 14 + j * 68;
+        svg.appendChild(el('rect', { x: bx, y: y(v), width: 52, height: 190 - y(v), rx: 3, class: C[j][1], 'data-tip': C[j][0] + '：' + p.f(v) }));
+        svg.appendChild(el('text', { x: bx + 26, y: y(v) - 5, 'text-anchor': 'middle', class: 'val' + (j === 2 ? ' hi' : '') }, p.f(v)));
+        svg.appendChild(el('text', { x: bx + 26, y: 206, 'text-anchor': 'middle', class: 'tick' }, ['自动', '按需', '代码'][j]));
+      });
+    });
+    svg.appendChild(el('text', { x: 20, y: 226, class: 'tick' }, '* 三者都成功的 131 个实例上的均值。失败（放弃 / 预算用完）：9 / 25、17 / 46、5 / 7。'));
+  })();
+
+  /* ---------- ablation (Table 3) ---------- */
+  const ABL = [
+    { b: 'LIBERO-PRO', rows: [['有', '有', 83.0, 94.0, '4.5×', 164, 21.4, 8.4, '1.23M', '273k', '2.49', '0.79'], ['有', '无', 84.0, 88.0, '3.1×', 161, 19.0, 9.3, '901k', '286k', '1.89', '0.71'], ['无', '有', 73.0, 80.5, '3.8×', 126, 22.9, 10.9, '1.34M', '355k', '2.60', '0.86'], ['无', '无', 74.0, 82.0, '3.2×', 130, 20.0, 9.8, '943k', '290k', '2.00', '0.75']] },
+    { b: 'RoboTwin 2.0', rows: [['有', '有', 60.0, 69.2, '1.7×', 137, 12.2, 8.9, '415k', '245k', '1.00', '0.66'], ['有', '无', 64.0, 66.8, '1.6×', 136, 11.6, 9.1, '392k', '251k', '0.91', '0.64'], ['无', '有', 42.8, 68.8, '3.2×', 94, 23.1, 11.5, '1.03M', '316k', '1.94', '0.85'], ['无', '无', 60.4, 66.4, '1.9×', 118, 16.9, 12.0, '620k', '329k', '1.29', '0.88']] },
+    { b: 'RC365 atomic', rows: [['有', '—', 78.9, 86.7, '1.5×', 69, 10.4, 5.6, '261k', '171k', '0.62', '0.54'], ['无', '—', 45.6, 65.6, '1.2×', 35, 26.5, 18.7, '760k', '627k', '1.48', '1.37']] },
+    { b: 'RC365 composite', rows: [['有', '—', 34.4, 39.4, '2.0×', 36, 28.4, 14.9, '1.22M', '603k', '2.01', '1.25'], ['无', '—', 7.5, 20.0, '2.3×', 8, 58.5, 31.1, '2.58M', '1.14M', '5.50', '3.08']] }
+  ];
+  function drawAbl(k){
+    const svg = $('#ch-abl'); svg.innerHTML = '';
+    const A = ABL[k], L = 150, W = 760, R = 130, x = v => L + (W - L - R) * v / 100;
+    const H = 30 + A.rows.length * 52; svg.setAttribute('viewBox', '0 0 ' + W + ' ' + (H + 24));
+    for (let g = 0; g <= 100; g += 25) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: 8, y2: H, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: H + 16, 'text-anchor': 'middle', class: 'tick' }, g + '%')); }
+    svg.appendChild(el('text', { x: W - 10, y: 14, 'text-anchor': 'end', class: 'tick' }, 'token 倍数（共同成功数）'));
+    A.rows.forEach((r, i) => {
+      const y = 24 + i * 52;
+      svg.appendChild(el('text', { x: L - 10, y: y + 14, 'text-anchor': 'end', class: 'glabel', 'font-weight': i ? 400 : 700 }, 'VLA ' + r[0] + (r[1] === '—' ? '' : ' · 指南 ' + r[1])));
+      if (!i) svg.appendChild(el('text', { x: L - 10, y: y + 30, 'text-anchor': 'end', class: 'tick' }, '＝表 2 主结果'));
+      [[r[2], 'f-tool', '工具调用'], [r[3], 'f-code', '代码']].forEach((s, j) => {
+        svg.appendChild(el('rect', { x: L, y: y + j * 19, width: x(s[0]) - L, height: 16, rx: 2, class: s[1], 'data-tip': A.b + ' · VLA ' + r[0] + ' · 指南 ' + r[1] + ' · ' + s[2] + '：' + s[0].toFixed(1) + '%' }));
+        svg.appendChild(el('text', { x: x(s[0]) + 5, y: y + j * 19 + 12, class: 'val' + (j ? ' hi' : '') }, s[0].toFixed(1)));
+      });
+      svg.appendChild(el('text', { x: W - 10, y: y + 22, 'text-anchor': 'end', class: 'val hi', style: 'fill:var(--code)' }, r[4] + '（' + r[5] + '）'));
+    });
+  }
+  seg($('#ab-pick'), k => drawAbl(+k)); drawAbl(0);
+  rawTable($('#raw-abl'), ['设定', '成功率 工具', '代码', 'Δ', 'LLM 调用 工具', '代码', 'Token 工具', '代码', '×', '费用 工具', '代码', '共同成功'],
+    [].concat(...ABL.map(A => [{ grp: A.b }].concat(A.rows.map(r => ({ cells: ['VLA ' + r[0] + ' · 指南 ' + r[1], r[2].toFixed(1), r[3].toFixed(1), '+' + (r[3] - r[2]).toFixed(1), r[6].toFixed(1), r[7].toFixed(1), r[8], r[9], r[4], '$' + r[10], '$' + r[11], r[5]] }))))));
+
+  /* ---------- RoboDojo board (Table 5) ---------- */
+  const DIMS = ['Average', 'Gen.', 'Prec.', 'Long-Hor.', 'Memory', 'Open'];
+  const BOARD = [
+    ['PyRUA-Lean（本文，GPT-6 Astra）', 'Agent', '—', [[58.20, 51.62], [50.65, 45.83], [47.02, 37.25], [63.26, 48.00], [63.00, 63.00], [67.09, 64.00]]],
+    ['VPP2', 'WAM', 1, [[39.26, 32.26], [36.38, 29.50], [43.03, 35.17], [56.28, 37.00], [56.01, 55.56], [4.61, 4.08]]],
+    ['PhysicalRSI', 'Agent + VLA', 2, [[36.27, 31.38], [21.30, 15.62], [38.05, 32.50], [46.37, 37.33], [46.74, 46.56], [28.88, 24.92]]],
+    ['Awomo-0.5', 'WAM', 3, [[35.34, 29.64], [30.31, 23.84], [39.65, 33.50], [40.36, 26.75], [42.27, 41.22], [24.09, 22.92]]],
+    ['Simate-beta', 'VLA', 4, [[33.95, 27.96], [35.09, 27.95], [34.35, 26.92], [57.84, 43.42], [33.33, 33.00], [9.12, 8.50]]],
+    ['Rex-M1 Preview', 'VLA', 5, [[33.79, 27.44], [34.05, 26.05], [32.82, 23.83], [46.89, 33.00], [48.53, 48.22], [6.67, 6.08]]],
+    ['VPP2-Preview', 'WAM', 6, [[31.40, 25.62], [31.34, 24.62], [33.75, 25.58], [35.31, 22.17], [50.78, 50.33], [5.83, 5.42]]],
+    ['InternW0-Δ', 'WAM', 7, [[30.77, 23.91], [30.09, 22.78], [31.98, 23.25], [46.29, 29.33], [34.67, 34.00], [10.84, 10.17]]],
+    ['Liber-0 Preview', 'VLM + WAM', 8, [[30.74, 25.52], [24.99, 18.61], [38.28, 33.17], [45.98, 33.17], [37.77, 37.33], [6.68, 5.33]]],
+    ['Liber-0 Lite', 'WAM', 9, [[29.24, 24.23], [25.36, 19.11], [36.60, 31.08], [45.50, 32.92], [35.68, 35.44], [3.06, 2.58]]],
+    ['GPT-6 Astra, direct control', 'Agent', 10, [[28.97, 22.48], [33.36, 30.50], [12.65, 4.00], [21.45, 8.25], [43.04, 38.67], [34.36, 31.00]]]
+  ];
+  function drawRD(k){
+    const svg = $('#ch-rd'); svg.innerHTML = '';
+    const j = k === 'sr' ? 1 : 0, S = [[0, 'f-code'], [1, 'f-gray'], [2, 'f-tok'], [10, 'f-tool']];
+    const W = 760, H = 270, L = 40, R = 10, T = 20, B = 36, y = v => T + (H - T - B) * (1 - v / 80);
+    for (let g = 0; g <= 80; g += 20) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g)); }
+    const gw = (W - L - R) / DIMS.length, bw = 24;
+    DIMS.forEach((d, i) => {
+      const cx = L + gw * (i + .5);
+      if (i === 1) svg.appendChild(el('line', { x1: L + gw, x2: L + gw, y1: T - 10, y2: H - 6, stroke: 'var(--ink-2)', 'stroke-dasharray': '3 3' }));
+      S.forEach((s, q) => {
+        const v = BOARD[s[0]][3][i][j], x = cx - 2 * bw - 3 + q * (bw + 2);
+        svg.appendChild(el('rect', { x, y: y(v), width: bw, height: y(0) - y(v), rx: 2, class: s[1], 'data-tip': BOARD[s[0]][0] + ' · ' + d + '：' + v.toFixed(2) }));
+        svg.appendChild(el('text', { x: x + bw / 2, y: y(v) - 4, 'text-anchor': 'middle', class: 'val' + (q ? '' : ' hi'), 'font-size': 9.5 }, v < 10 ? v.toFixed(1) : Math.round(v)));
+      });
+      svg.appendChild(el('text', { x: cx, y: H - B + 18, 'text-anchor': 'middle', class: 'glabel', 'font-weight': i ? 400 : 700 }, d));
+    });
+    svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(0), y2: y(0), class: 'base' }));
+  }
+  seg($('#rd-pick'), drawRD); drawRD('sr');
+  rawTable($('#raw-rd'), ['条目（排名 · 类型）'].concat(DIMS), BOARD.map((r, i) => ({ best: !i, cells: [r[0] + '（' + r[2] + ' · ' + r[1] + '）'].concat(r[3].map(v => v[0].toFixed(2) + ' / ' + v[1].toFixed(2))) })));
+
+  /* ---------- RoboDojo per task (Table 17) ---------- */
+  const RT = [
+    ['G', 'stack_bowls', 78.0, 75.3, 62.0, 74.7, 'Simate-beta'], ['G', 'push_T', 76.0, 78.0, 60.0, 60.0, 'GPT-6 Astra (direct)'], ['G', 'pack_objects_into_box', 32.0, 17.3, 0.0, 17.3, 'Simate-beta'],
+    ['G', 'fold_clothes', 70.0, 48.7, 72.0, 78.0, 'Simate-beta'], ['G', 'hang_mugs', 2.0, 14.0, 0.0, 32.0, 'VPP2'], ['G', 'sweep_blocks', 18.0, 24.7, 4.0, 14.0, 'Rex-M1 Preview'],
+    ['G', 'pour_liquid_into_cup', 8.0, 16.0, 4.0, 67.3, 'Rex-M1 Preview'], ['G', 'make_toast', 6.0, 18.7, 0.0, 39.3, 'VPP2'], ['G', 'arrange_largest_number', 86.0, 76.7, 60.0, 60.0, 'GPT-6 Astra (direct)'],
+    ['G', 'sort_nesting_dolls_by_size', 74.0, 76.0, 18.0, 18.7, 'VPP2'], ['G', 'store_laptop_and_headphones', 0.0, 0.0, 0.0, 34.0, 'Simate-beta'], ['G', 'stack_blocks', 100.0, 100.0, 86.0, 86.0, 'GPT-6 Astra (direct)'],
+    ['P', 'fasten_screws', 66.0, 69.3, 16.0, 48.0, 'Awomo-0.5'], ['P', 'plug_in_charger', 12.0, 14.0, 0.0, 30.7, 'PhysicalRSI'], ['P', 'insert_tubes', 44.0, 70.7, 0.0, 74.7, 'VPP2'],
+    ['P', 'pour_balls_into_vase', 76.0, 69.3, 4.0, 60.7, 'VPP2'], ['P', 'play_Xylophone', 64.0, 67.3, 8.0, 30.7, 'Awomo-0.5'], ['P', 'deposit_coin', 34.0, 34.0, 2.0, 56.0, 'PhysicalRSI'],
+    ['P', 'insert_key', 0.0, 0.0, 0.0, 39.3, 'PhysicalRSI'], ['P', 'build_tower', 2.0, 4.0, 2.0, 83.3, 'Simate-beta'],
+    ['L', 'put_bottles_into_dustbin', 76.0, 94.7, 10.0, 100.0, 'Simate-beta'], ['L', 'fill_pen_holder', 14.0, 16.7, 0.0, 42.0, 'InternW0-Δ'], ['L', 'classify_objects', 98.0, 99.3, 56.0, 56.0, 'GPT-6 Astra (direct)'],
+    ['L', 'play_tic_tac_toe', 94.0, 94.7, 0.0, 94.0, 'PhysicalRSI'], ['L', 'fill_egg_holder', 2.0, 2.0, 0.0, 1.0, 'Liber-0 Lite'], ['L', 'organize_table', 34.0, 39.3, 0.0, 26.0, 'Simate-beta'],
+    ['L', 'make_kong', 0.0, 0.0, 0.0, 90.0, 'GalaxeaVLA (G0.5)'], ['L', 'play_stacking_toy', 66.0, 67.3, 0.0, 23.3, 'VPP2'],
+    ['M', 'cover_blocks', 100.0, 100.0, 46.0, 100.0, '8 个条目'], ['M', 'match_and_pick_from_conveyor', 82.0, 86.7, 62.0, 92.0, 'InternW0-Δ'], ['M', 'swap_blocks', 0.0, 0.0, 0.0, 38.7, 'Simate-beta'],
+    ['M', 'swap_T', 98.0, 100.0, 18.0, 92.7, 'PhysicalRSI'], ['M', 'press_by_number', 0.0, 0.0, 70.0, 96.0, 'VPP2'], ['M', 'imitate_sorting_sequence', 98.0, 97.3, 36.0, 36.0, 'GPT-6 Astra (direct)'],
+    ['O', 'align_blocks', 78.0, 71.3, 50.0, 86.0, 'PhysicalRSI'], ['O', 'general_pickup', 98.0, 93.3, 84.0, 84.0, 'GPT-6 Astra (direct)'], ['O', 'stack_blocks_by_language', 100.0, 100.0, 40.0, 40.0, 'GPT-6 Astra (direct)'],
+    ['O', 'solve_equation', 90.0, 86.7, 40.0, 60.0, 'PhysicalRSI'], ['O', 'classify_objects_by_language', 92.0, 90.7, 30.0, 30.0, 'GPT-6 Astra (direct)'], ['O', 'pick_from_conveyor_by_image', 34.0, 28.7, 4.0, 4.0, 'GPT-6 Astra (direct)'],
+    ['O', 'store_tools_in_toolbox', 0.0, 0.0, 0.0, 0.0, '—'], ['O', 'pour_by_language', 20.0, 27.3, 0.0, 0.0, '—']
+  ];
+  const DN = { G: 'Generalization', P: 'Precision', L: 'Long-Horizon', M: 'Memory', O: 'Open' };
+  function drawRT(k){
+    const svg = $('#ch-rt'); svg.innerHTML = '';
+    const rows = RT.filter(r => k === 'all' || r[0] === k).slice().sort((a, b) => (b[2] - b[5]) - (a[2] - a[5]));
+    const L = 230, W = 760, R = 56, rh = 17, T = 22, H = T + rows.length * rh + 26, x = v => L + (W - L - R) * v / 100;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    for (let g = 0; g <= 100; g += 25) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: T - 8, y2: H - 22, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: H - 8, 'text-anchor': 'middle', class: 'tick' }, g + '%')); }
+    svg.appendChild(el('text', { x: W - 4, y: 12, 'text-anchor': 'end', class: 'tick' }, '本文 − 最好'));
+    rows.forEach((r, i) => {
+      const y = T + i * rh + rh / 2, d = r[2] - r[5];
+      if (i % 2 === 0) svg.appendChild(el('rect', { x: 0, y: y - rh / 2, width: W, height: rh, fill: 'var(--bg)', opacity: .55 }));
+      svg.appendChild(el('text', { x: L - 14, y: y + 4, 'text-anchor': 'end', class: 'mono', style: 'font-size:10.5px' }, r[1]));
+      svg.appendChild(el('line', { x1: x(Math.min(r[2], r[5])), x2: x(Math.max(r[2], r[5])), y1: y, y2: y, stroke: d >= 0 ? 'var(--code)' : 'var(--gray)', 'stroke-width': 2, opacity: .6 }));
+      const tipTxt = r[1] + '（' + DN[r[0]] + '）：本文 ' + r[2].toFixed(1) + '%，加深度 ' + r[3].toFixed(1) + '%，Astra direct ' + r[4].toFixed(1) + '%，榜上最好 ' + r[5].toFixed(1) + '%（' + r[6] + '）';
+      svg.appendChild(el('circle', { cx: x(r[4]), cy: y, r: 4.5, fill: 'none', stroke: 'var(--tool)', 'stroke-width': 1.6, 'data-tip': tipTxt }));
+      svg.appendChild(el('circle', { cx: x(r[5]), cy: y, r: 4.5, class: 'f-gray', 'data-tip': tipTxt }));
+      svg.appendChild(el('circle', { cx: x(r[2]), cy: y, r: 5, class: 'f-code', 'data-tip': tipTxt }));
+      svg.appendChild(el('text', { x: W - 4, y: y + 4, 'text-anchor': 'end', class: 'val', style: 'fill:' + (d > 0 ? 'var(--code)' : d < 0 ? 'var(--muted)' : 'var(--ink-2)') }, (d > 0 ? '+' : '') + d.toFixed(1)));
+    });
+  }
+  seg($('#rt-pick'), drawRT); drawRT('all');
+
+  /* ---------- Coder (Table 8) ---------- */
+  (function(){
+    const svg = $('#ch-cd'); svg.innerHTML = '';
+    const G = [['训练实例\n(45)', 37.8, 64.4, 71.1, 100.0], ['LIBERO-PRO\n其他任务 (155)', 13.5, 38.1, 37.4, 92.3], ['RoboTwin 2.0\n(250)', 14.0, 20.8, 52.4, 69.2], ['RC365 atomic\n(90)', 52.2, 65.6, 76.7, 86.7], ['RC365 composite\n(160)', 12.5, 13.1, 19.4, 39.4], ['全部未见\n(655)', 18.8, 29.2, 44.1, 69.8, 1], ['全部\n(700)', 20.0, 31.4, 45.9, 71.7]];
+    const W = 760, H = 280, L = 36, R = 6, T = 18, B = 46, y = v => T + (H - T - B) * (1 - v / 100);
+    for (let g = 0; g <= 100; g += 25) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g)); }
+    const gw = (W - L - R) / G.length, bw = 26, S = [['Qwen3.5-4B', 'f-gray2'], ['Qwen3.5-27B', 'f-img'], ['Coder v0.1-4B', 'f-code']];
+    G.forEach((g, i) => {
+      const cx = L + gw * (i + .5);
+      if (i === 1) svg.appendChild(el('line', { x1: L + gw, x2: L + gw, y1: T - 8, y2: H - 6, stroke: 'var(--ink-2)', 'stroke-dasharray': '3 3' }));
+      if (g[5]) svg.appendChild(el('rect', { x: L + gw * i + 2, y: T - 8, width: gw - 4, height: H - B - T + 8, fill: 'var(--code-soft)', opacity: .5 }));
+      svg.appendChild(el('line', { x1: cx - 1.5 * bw - 4, x2: cx + 1.5 * bw + 4, y1: y(g[4]), y2: y(g[4]), stroke: 'var(--ink-2)', 'stroke-width': 2.5, 'stroke-dasharray': '6 3', 'data-tip': 'GPT-6 Astra + PyRUA-Lean：' + g[4].toFixed(1) + '%' }));
+      let lastY = null;
+      S.forEach((s, j) => {
+        const v = g[j + 1], x = cx - 1.5 * bw - 2 + j * (bw + 2);
+        svg.appendChild(el('rect', { x, y: y(v), width: bw, height: y(0) - y(v), rx: 2, class: s[1], 'data-tip': g[0].replace('\n', ' ') + ' · ' + s[0] + '：' + v.toFixed(1) + '%' }));
+        let ly = y(v) - 4; if (lastY != null && Math.abs(ly - lastY) < 11) ly = lastY - 11; lastY = ly;
+        svg.appendChild(el('text', { x: x + bw / 2, y: ly, 'text-anchor': 'middle', class: 'val' + (j === 2 ? ' hi' : ''), 'font-size': 9.5 }, v.toFixed(1)));
+      });
+      g[0].split('\n').forEach((w, q) => svg.appendChild(el('text', { x: cx, y: H - B + 16 + q * 13, 'text-anchor': 'middle', class: 'glabel', 'font-size': 11, 'font-weight': g[5] ? 700 : 400 }, w)));
+    });
+    svg.appendChild(el('text', { x: L + gw * 1 + 4, y: T - 6, class: 'tick' }, '← 训练过 · 未训练过 →'));
+    svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(0), y2: y(0), class: 'base' }));
+  })();
+
+  /* ---------- Coder behaviour (Table 9) ---------- */
+  (function(){
+    const svg = $('#ch-beh'); svg.innerHTML = '';
+    const M = [['Qwen3.5-4B', [18.8, 6.9, 52.7, 2.4, 19.2]], ['Qwen3.5-27B', [29.2, 4.6, 35.0, 0.3, 31.0]], ['Coder v0.1-4B', [44.1, 25.2, 10.5, 16.8, 3.4]]];
+    const N = ['成功', '主动放弃', 'cell 预算', '墙钟', '上下文溢出'], C = ['f-ok', 'f-tok', 'f-code', 'f-img', 'f-warn'];
+    const L = 120, W = 760, x = v => L + (W - L - 14) * v / 100;
+    for (let g = 0; g <= 100; g += 25) { svg.appendChild(el('line', { x1: x(g), x2: x(g), y1: 6, y2: 168, class: 'grid' })); svg.appendChild(el('text', { x: x(g), y: 184, 'text-anchor': 'middle', class: 'tick' }, g + '%')); }
+    M.forEach((m, i) => {
+      const y = 14 + i * 52; let acc = 0;
+      svg.appendChild(el('text', { x: L - 10, y: y + 22, 'text-anchor': 'end', class: 'glabel', 'font-weight': i === 2 ? 700 : 400 }, m[0]));
+      m[1].forEach((v, j) => {
+        svg.appendChild(el('rect', { x: x(acc), y, width: Math.max(0, x(acc + v) - x(acc) - 1), height: 34, class: C[j], 'data-tip': m[0] + ' · ' + N[j] + '：' + v + '%' }));
+        if (v >= 6) svg.appendChild(el('text', { x: (x(acc) + x(acc + v)) / 2, y: y + 22, 'text-anchor': 'middle', class: 'val', style: 'fill:var(--surface);font-weight:700' }, v.toFixed(1)));
+        acc += v;
+      });
+    });
+    svg.appendChild(el('text', { x: L, y: 204, class: 'tick' }, '到达限制但任务已完成的回合算成功（4B 基座 3 个，27B 1 个）。'));
+  })();
+})();
+</script>
+</body>
+</html>

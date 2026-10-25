@@ -247,7 +247,7 @@ footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;c
 </head>
 <body>
 <!-- vap:nav -->
-<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/">Harness for Robotics</a></span><span class="vapnav-links"><span class="vapnav-grp"><span class="vapnav-cat">上下文</span><a href="../../papers/activevla/">ActiveVLA</a><a href="../../papers/tic-vla/">TIC-VLA</a><a href="../../papers/ra-vla/">RA-VLA</a></span><span class="vapnav-grp"><span class="vapnav-cat">记忆</span><a href="../../papers/memoryvla/">MemoryVLA</a><a href="../../papers/optimusvla/">OptimusVLA</a><a href="../../papers/soma/">SOMA</a><a href="../../papers/hime/">HiMe</a></span><span class="vapnav-grp"><span class="vapnav-cat">结构化执行</span><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/motormind/">MotorMind</a></span><span class="vapnav-grp"><span class="vapnav-cat">评估与反馈</span><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/tau0-wm/" aria-current="page">τ₀-WM</a><a href="../../papers/robottt/">RoboTTT</a><a href="../../papers/tau0-vla/">τ₀-VLA</a></span></span></div></div>
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/">Harness for Robotics</a></span><span class="vapnav-links"><span class="vapnav-grp"><span class="vapnav-cat">总体设计</span><a href="../../papers/aspire/">ASPIRE</a><a href="../../papers/pyrua-lean/">PyRUA-Lean</a></span><span class="vapnav-grp"><span class="vapnav-cat">上下文</span><a href="../../papers/activevla/">ActiveVLA</a><a href="../../papers/tic-vla/">TIC-VLA</a><a href="../../papers/ra-vla/">RA-VLA</a></span><span class="vapnav-grp"><span class="vapnav-cat">记忆</span><a href="../../papers/memoryvla/">MemoryVLA</a><a href="../../papers/optimusvla/">OptimusVLA</a><a href="../../papers/soma/">SOMA</a><a href="../../papers/hime/">HiMe</a></span><span class="vapnav-grp"><span class="vapnav-cat">结构化执行</span><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/motormind/">MotorMind</a></span><span class="vapnav-grp"><span class="vapnav-cat">评估与反馈</span><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/tau0-wm/" aria-current="page">τ₀-WM</a><a href="../../papers/robottt/">RoboTTT</a><a href="../../papers/tau0-vla/">τ₀-VLA</a></span></span></div></div>
 <!-- /vap:nav -->
 <header class="hero page">
   <div class="hero-grid">
@@ -523,7 +523,7 @@ footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;c
       <p class="eyebrow">放到专题里看</p>
       <h2>动作层面的「执行前评估」</h2>
       <div class="prose">
-        <p>在 <a href="../../topics/robot-harness/">Harness for Robotics 专题</a>里，τ₀-WM 属于（4）评估与反馈，而且是「执行前」那一端：候选动作先经策略自身的一致性检查，再经模拟器想象和打分，评价结果决定执行什么。它补上了专题里一个空位：τ₀-VLA 在<strong>子任务</strong>层面做执行前评估，τ₀-WM 在<strong>动作块</strong>层面做。</p>
+        <p>在 <a href="../../topics/robot-harness/">Harness for Robotics 专题</a>里，τ₀-WM 属于（5）评估与反馈，而且是「执行前」那一端：候选动作先经策略自身的一致性检查，再经模拟器想象和打分，评价结果决定执行什么。它补上了专题里一个空位：τ₀-VLA 在<strong>子任务</strong>层面做执行前评估，τ₀-WM 在<strong>动作块</strong>层面做。</p>
       </div>
       <div class="tblwrap">
         <table class="t cmp">
@@ -542,7 +542,7 @@ footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;c
         <ul>
           <li><strong>和 τ₀-VLA：</strong>同一团队、相近思路、不同层面。τ₀-VLA 想象的是子任务完成时的单张头部图像，打的是五档分；τ₀-WM 想象的是一个动作块内的多视角视频，打的是逐帧进度。τ₀-VLA 认为动作层面的搜索只能看到局部后果，所以把搜索放在子任务层；τ₀-WM 的四个主任务都是长程任务，却只在动作块层面评价。两者在架构上可以叠加。</li>
           <li><strong>和 TT-VLA：</strong>都用「任务进度」做评价信号。TT-VLA 用现成的 VLAC 在执行后算进度差，并据此更新参数；τ₀-WM 训练自己的奖励头，在执行前对想象的未来打分，只用来选动作，不改参数。</li>
-          <li><strong>和 MotorMind（3）：</strong>MotorMind 的 Verifier 和 Monitor 在执行中、执行后检查真实观测；τ₀-WM 在执行前检查想象的观测。前者看到的是真的但已经发生，后者能提前避免但可能看错。</li>
+          <li><strong>和 MotorMind（4）：</strong>MotorMind 的 Verifier 和 Monitor 在执行中、执行后检查真实观测；τ₀-WM 在执行前检查想象的观测。前者看到的是真的但已经发生，后者能提前避免但可能看错。</li>
         </ul>
       </div>
     </section>

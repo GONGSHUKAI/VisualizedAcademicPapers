@@ -25,7 +25,14 @@
 
 [专题对照页](https://gongshukai.github.io/VisualizedAcademicPapers/topics/robot-harness/)
 
-#### （1）Context Architecture
+#### （1）Overall Design 总体设计
+
+把整套 harness 当作一个系统来设计：智能体用什么接口驱动机器人、观测和执行结果怎样回到模型、经验怎样沉淀复用。
+
+- [ASPIRE](https://gongshukai.github.io/VisualizedAcademicPapers/papers/aspire/) · 2026-06 · arXiv [2607.00272](https://arxiv.org/abs/2607.00272) — 编码智能体读逐原语的执行轨迹调试机器人程序，修不动时进化搜索；修复经另一个智能体独立复现才进跨任务技能库，评测时每个任务只跑一份固定程序。Claude Opus 4.6 时 LIBERO-Pro 三套件平均 72%（CaP-Agent0 18%），技能库零样本迁移到 LIBERO-Pro Long 30.5%（3.8%）；换 Opus 5.5 后 80 个任务 99.2%。
+- [PyRUA-Lean](https://gongshukai.github.io/VisualizedAcademicPapers/papers/pyrua-lean/) · 2026-10 · arXiv [2610.01939](https://arxiv.org/abs/2610.01939) — 同一个 GPT-6 Astra、同一套原语（含冻结 VLA），把工具调用换成可执行的 Python cell：cell 里串原语、就地检查重试，只交回 print 的内容和点名要的图；700 个仿真实例成功率 63.1% → 71.7%，两边都成功时输入 token 少 65%；RoboDojo 不用 VLA，平均 SR 51.6%（榜首 32.3%）；GRPO 训练的 4B 规划器在未见实例上 18.8% → 44.1%。
+
+#### （2）Context Architecture
 
 设计模型每次决策时看到什么、以什么形式看到：检索、视觉选择、时序对齐等。
 
@@ -33,7 +40,7 @@
 - [TIC-VLA](https://gongshukai.github.io/VisualizedAcademicPapers/papers/tic-vla/) · 2026-02 · arXiv [2602.02459](https://arxiv.org/abs/2602.02459) — 把慢 VLM 的 KV cache 连同推理延迟 Δt 和期间位移 Δp 一起喂给 10 Hz 导航动作专家，训练时注入延迟；DynaNav 85 条 SR 55.29（最强语言基线 32.94），不建模延迟时 47.06 → 30.59（均无 RL）。
 - [RA-VLA](https://gongshukai.github.io/VisualizedAcademicPapers/papers/ra-vla/) · 2026-08 · arXiv [2608.25585](https://arxiv.org/abs/2608.25585) — GR00T N1.5 外挂示范检索：DTW 监督的检索器按动作阶段取片段，动作头每层拼一段并用 margin 损失逼它读；LIBERO 留出套件平均 0.3845（最强基线 0.2085），UR5e 0.5625（0.3542）。
 
-#### （2）Persistent State / Memory
+#### （3）Persistent State / Memory
 
 在多步任务中持续保存任务状态、空间状态和执行历史，让当前动作不只依赖当前观测。
 
@@ -42,14 +49,14 @@
 - [SOMA](https://gongshukai.github.io/VisualizedAcademicPapers/papers/soma/) · 2026-05 · arXiv [2605.22283](https://arxiv.org/abs/2605.22283) — 可动头部先扫一圈，用 YOLO-World、DINOv3、VGGT 把每个物体压成带 3D 框的记忆 token，门控 EMA 刷新、交叉注意力读进 DiT；5 个视野外真机任务各阶段平均成功率 28.3%，GR00T N1.5 约 18%。
 - [HiMe](https://gongshukai.github.io/VisualizedAcademicPapers/papers/hime/) · 2026-07 · arXiv [2607.03449](https://arxiv.org/abs/2607.03449) — π0.5 执行、Qwen3-VL-8B 判子任务是否完成、GPT-4o 只在交接点增改删图文记忆的三层框架；WidowX 三个长程任务平均任务进度 90%，FIFO 式 Flat Memory 65%。
 
-#### （3）结构化执行 Structured Execution
+#### （4）结构化执行 Structured Execution
 
 把复杂任务组织为「推理 → 意图/子任务 → 动作」的分层受控执行流程，通过明确的中间接口连接高层决策与低层控制。
 
 - [ACoT-VLA](https://gongshukai.github.io/VisualizedAcademicPapers/papers/acot-vla/) · 2026-01 · arXiv [2601.11404](https://arxiv.org/abs/2601.11404) — 结构化执行：π0.5 先用 EAR 去噪出一段 15 点、步长 2 的粗参考轨迹，再用 IAR 从 VLM 的 KV 里抽隐式先验，动作头读两者生成动作；LIBERO 98.5（π0.5 96.9），LIBERO-Plus 微调设定 88.0（75.7）。
 - [MotorMind](https://gongshukai.github.io/VisualizedAcademicPapers/papers/motormind/) · 2026-09 · arXiv [2609.38078](https://arxiv.org/abs/2609.38078) — 结构化执行：冻结的通用 VLM 分饰规划、执行、监控、验证、记忆，输出带数值的中层动作交给确定性控制器，监控异步并行；LIBERO-PRO 零样本 66.7% / 扰动 53.8%，但每回合约 223 秒。
 
-#### （4）评估与反馈 Evaluation & Feedback
+#### （5）评估与反馈 Evaluation & Feedback
 
 在执行前或执行后引入显式评价信号，根据结果修正计划、更新状态或适应策略，形成闭环。
 

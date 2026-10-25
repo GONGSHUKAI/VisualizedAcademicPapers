@@ -1,0 +1,1258 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>ASPIRE 精读</title>
+<meta name="description" content="ASPIRE: Agentic /Skills Discovery for Robotics 中文精读：编码智能体在逐原语执行轨迹上调试机器人程序、进化搜索、跨任务技能库，LIBERO-Pro / Robosuite / BEHAVIOR-1K 与真机结果、模型与成本消融、疑点。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;600;700;800&family=Victor+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F3F4EE; --surface:#FBFCF8; --surface-2:#E6E9DD; --ink:#151A10; --ink-2:#3B4433; --muted:#5E6856; --line:#D5DACB;
+  --lime:#4C8500; --lime-f:#76B900; --lime-soft:#E2EFC9; --on-lime:#FFFFFF;
+  --eng:#2A63A8; --eng-soft:#DCE7F5;
+  --code:#BF5F17; --code-soft:#F6E3D2;
+  --skill:#6B47A6; --skill-soft:#E8E0F4;
+  --cap:#A8453A; --pi:#3B4656; --human:#8AB6D6;
+  --warn:#B0372B; --warn-soft:#F6DCD7;
+  --plate:#FFFFFF; --focus:#4C8500;
+  --f-display:"Rubik","Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"Victor Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0F120C; --surface:#161B12; --surface-2:#20271A; --ink:#E5EBDB; --ink-2:#BCC5AF; --muted:#8A9580; --line:#2A3323;
+    --lime:#9AD13C; --lime-f:#86C21E; --lime-soft:#22320F; --on-lime:#0F1A04;
+    --eng:#7CA9E6; --eng-soft:#162638;
+    --code:#EE9A55; --code-soft:#3A2412;
+    --skill:#B49AE8; --skill-soft:#2A2140;
+    --cap:#E07E70; --pi:#9AA7BA; --human:#6E9CC0;
+    --warn:#F08A7C; --warn-soft:#3D1D19;
+    --plate:#F1F3EC; --focus:#9AD13C;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0F120C; --surface:#161B12; --surface-2:#20271A; --ink:#E5EBDB; --ink-2:#BCC5AF; --muted:#8A9580; --line:#2A3323;
+  --lime:#9AD13C; --lime-f:#86C21E; --lime-soft:#22320F; --on-lime:#0F1A04;
+  --eng:#7CA9E6; --eng-soft:#162638;
+  --code:#EE9A55; --code-soft:#3A2412;
+  --skill:#B49AE8; --skill-soft:#2A2140;
+  --cap:#E07E70; --pi:#9AA7BA; --human:#6E9CC0;
+  --warn:#F08A7C; --warn-soft:#3D1D19;
+  --plate:#F1F3EC; --focus:#9AD13C;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:var(--lime);text-underline-offset:3px;text-decoration-thickness:1px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+strong{font-weight:700}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+sub,sup{font-size:.72em;line-height:0}
+.page{max-width:1200px;margin:0 auto;padding-inline:24px}
+@media (max-width:560px){.page{padding-inline:16px}}
+
+.hero{padding-block:44px 24px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:40px;align-items:center}
+@media (max-width:900px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+.kicker{font:500 12.5px/1.4 var(--f-mono);letter-spacing:.04em;color:var(--lime);margin:0 0 14px}
+h1.title{font-family:var(--f-display);font-weight:800;font-size:clamp(3rem,1.8rem + 5.6vw,6rem);line-height:.95;letter-spacing:-.03em;margin:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px}
+h1.title .sk{font:600 clamp(1.1rem,.9rem + 1vw,1.7rem)/1 var(--f-mono);letter-spacing:0;color:var(--lime);background:var(--lime-soft);border-radius:6px;padding:6px 10px}
+.entitle{font-family:var(--f-display);font-weight:500;font-size:clamp(.98rem,.9rem + .35vw,1.15rem);line-height:1.5;color:var(--ink-2);margin:16px 0 0}
+.entitle small{display:block;font-size:.86em;color:var(--muted);margin-top:2px}
+.thesis{font-size:clamp(1.03rem,1rem + .3vw,1.18rem);line-height:1.8;margin:18px 0 0;max-width:36em}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin:20px 0 0;padding:0;list-style:none;font:13px/1.6 var(--f-mono);color:var(--muted)}
+.meta b{color:var(--ink-2);font-weight:500}
+.ribbon{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.ribbon svg{display:block;width:100%;height:auto}
+.ribbon svg text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+.ribbon svg .h{font-family:var(--f-display);font-weight:700;font-size:13px;fill:var(--ink)}
+.ribbon svg .m{font-family:var(--f-mono);font-size:11px;fill:var(--muted)}
+.ribbon figcaption{font:12px/1.6 var(--f-body);color:var(--muted);margin-top:8px}
+.tldr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:32px}
+@media (max-width:760px){.tldr{grid-template-columns:minmax(0,1fr)}}
+.tldr>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.tldr h3{font:600 12.5px/1.4 var(--f-mono);letter-spacing:.03em;color:var(--muted);margin:0 0 6px}
+.tldr p{margin:0;font-size:15px;line-height:1.75}
+.tldr .flag h3{color:var(--warn)}
+
+.layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:52px;padding-block:20px 80px}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr);gap:0}}
+.toc{position:sticky;top:20px;align-self:start;font-size:14px;line-height:1.5}
+.toc p{font:600 11px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.toc li a{display:block;padding:4px 0 4px 14px;margin-left:-1px;border-left:2px solid transparent;color:var(--muted);text-decoration:none}
+.toc li a:hover{color:var(--ink)}
+.toc li a.on{color:var(--ink);border-left-color:var(--lime);font-weight:500}
+@media (max-width:1000px){
+  .toc{position:static;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .toc p{display:none}
+  .toc ol{display:flex;gap:6px;border:0;white-space:nowrap;padding-bottom:6px}
+  .toc li a{border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin:0;background:var(--surface)}
+  .toc li a.on{border-color:var(--lime)}
+}
+main{min-width:0}
+section{padding-top:56px;scroll-margin-top:12px}
+section:first-child{padding-top:8px}
+.eyebrow{font:500 12.5px/1.4 var(--f-mono);letter-spacing:.02em;color:var(--lime);margin:0 0 8px}
+h2{font-family:var(--f-display);font-weight:700;font-size:clamp(1.3rem,1.08rem + 1vw,1.85rem);line-height:1.35;letter-spacing:-.01em;margin:0 0 18px}
+h3{font-family:var(--f-display);font-weight:600;font-size:1.06rem;line-height:1.45;margin:36px 0 10px}
+p{margin:0 0 14px}
+.prose{max-width:44em}
+.prose li{margin-bottom:6px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.tag{display:inline-block;font:500 11px/1 var(--f-mono);padding:4px 6px 3px;border-radius:4px;vertical-align:2px;margin-right:6px;white-space:nowrap}
+.tag.read{border:1px dashed var(--ink-2);color:var(--ink-2)}
+.tag.doubt{background:var(--warn-soft);color:var(--warn)}
+.tag.demo{border:1px dashed var(--muted);color:var(--muted)}
+.note{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 18px;margin:18px 0;max-width:46em}
+.note>:last-child{margin-bottom:0}
+.note h4{font:500 13px/1.5 var(--f-body);margin:0 0 6px;color:var(--muted)}
+.note.doubt{border-color:color-mix(in oklab,var(--warn) 35%,var(--line));background:color-mix(in oklab,var(--warn-soft) 55%,var(--surface))}
+.note.doubt h4{color:var(--warn)}
+pre.code{font:12.5px/1.65 var(--f-mono);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;overflow-x:auto;max-width:46em;color:var(--ink-2);margin:14px 0}
+
+figure.plate{margin:22px 0}
+figure.plate .zoom{display:block;width:100%;padding:10px;background:var(--plate);border:1px solid var(--line);border-radius:8px;cursor:zoom-in}
+figure.plate img{display:block;width:100%;height:auto}
+figure.plate figcaption{font-size:14px;line-height:1.7;color:var(--ink-2);margin-top:10px;max-width:52em}
+figure.plate figcaption b{font:600 12px var(--f-mono);color:var(--muted);margin-right:8px}
+figure.plate.narrow{max-width:760px}
+dialog#lb{border:0;padding:0;background:transparent;max-width:min(96vw,1800px);width:96vw}
+dialog#lb::backdrop{background:rgba(8,10,6,.86)}
+dialog#lb .box{background:var(--plate);border-radius:8px;padding:10px;max-height:88vh;overflow:auto}
+dialog#lb img{display:block;width:100%;height:auto}
+dialog#lb .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#E5EBDB;font-size:14px;padding:8px 2px 0}
+dialog#lb button{font:500 13px var(--f-mono);background:#E5EBDB;color:#151A10;border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
+
+.tblwrap{overflow-x:auto;margin:16px 0;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;font-size:14px;line-height:1.6;min-width:100%}
+table.t th,table.t td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.t thead th{font:600 12px/1.4 var(--f-mono);color:var(--muted);border-bottom:1.5px solid var(--ink-2);white-space:nowrap}
+table.t tbody th{font-weight:500;white-space:nowrap;color:var(--ink-2)}
+table.t .num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t tr.best td,table.t tr.best th{font-weight:700}
+table.t tr.grp th{font:600 12px var(--f-mono);color:var(--muted);background:var(--surface-2)}
+table.t td.miss{background:var(--warn-soft);color:var(--warn);font-weight:600}
+table.t td.hi{color:var(--lime);font-weight:600}
+
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+@media (max-width:760px){.cards{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card h4{font-family:var(--f-display);font-weight:600;font-size:1rem;line-height:1.45;margin:0 0 8px}
+.card p{font-size:14.5px;line-height:1.75;margin:0 0 8px}
+.card p:last-child{margin:0}
+.card .who{font:600 11.5px var(--f-mono);color:var(--muted);display:block;margin-bottom:4px}
+.card.c-a{border-top:3px solid var(--code)} .card.c-e{border-top:3px solid var(--eng)} .card.c-s{border-top:3px solid var(--skill)} .card.c-l{border-top:3px solid var(--lime-f)}
+ol.steps{list-style:none;counter-reset:st;margin:16px 0;padding:0;max-width:46em}
+ol.steps li{counter-increment:st;position:relative;padding:10px 0 10px 44px;border-bottom:1px solid var(--line);font-size:15px;line-height:1.75}
+ol.steps li::before{content:counter(st);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--skill-soft);color:var(--skill);font:700 13px/28px var(--f-mono);text-align:center}
+
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin:22px 0}
+.lab-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;margin-bottom:12px}
+.lab-head h4{font-family:var(--f-display);font-weight:600;font-size:1rem;margin:0}
+.lab-head p{margin:0;font-size:13px;color:var(--muted)}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:0 0 12px;font-size:14px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--bg);flex-wrap:wrap}
+.seg button{font:500 13px/1.2 var(--f-body);border:0;background:transparent;color:var(--muted);padding:8px 12px;cursor:pointer;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{font:500 12.5px/1.3 var(--f-body);border:1px solid var(--line);background:var(--bg);color:var(--ink-2);padding:6px 10px;border-radius:999px;cursor:pointer;min-height:32px}
+.chips button[aria-pressed="true"]{background:var(--lime-soft);border-color:var(--lime);color:var(--ink)}
+.lab svg{display:block;width:100%;height:auto}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+input[type=range]{width:100%;accent-color:var(--lime-f)}
+.say{font-size:14.5px;line-height:1.75;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:12px 0 0}
+.say b{font-family:var(--f-mono);font-weight:600}
+.say ul{margin:6px 0 0;padding-left:18px}
+.say li{margin-bottom:4px}
+.say code{color:var(--ink)}
+.trace svg{min-width:600px}
+.trace .seg-r{cursor:pointer}
+.trace .seg-r.sel{stroke:var(--ink);stroke-width:2.5}
+.trace text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+.trace .mono{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+
+.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 16px 10px;margin:18px 0}
+.chartbox h4{font-family:var(--f-display);font-weight:600;font-size:1rem;margin:0 0 2px}
+.chartbox .sub{font-size:13px;color:var(--muted);margin:0 0 10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink-2);margin:0 0 6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.legend i.dot{border-radius:50%}
+.legend i.hatch{background:repeating-linear-gradient(45deg,var(--ink-2) 0 2px,transparent 2px 5px);border:1px solid var(--ink-2)}
+svg.chart{display:block;width:100%;height:auto;min-width:620px}
+svg.chart.sm{min-width:520px}
+svg.chart text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+svg.chart .tick{font:11px var(--f-mono);fill:var(--muted)}
+svg.chart .val{font:11px var(--f-mono);fill:var(--ink-2)}
+svg.chart .val.hi{fill:var(--ink);font-weight:600}
+svg.chart .grid{stroke:var(--line);stroke-width:1}
+svg.chart .base{stroke:var(--ink-2);stroke-width:1}
+svg.chart .glabel{font-size:12px;fill:var(--ink)}
+svg.chart .clk{cursor:pointer}
+.c-lime{fill:var(--lime-f)} .c-cap{fill:var(--cap)} .c-pi{fill:var(--pi)} .c-human{fill:var(--human)} .c-eng{fill:var(--eng)} .c-code{fill:var(--code)} .c-skill{fill:var(--skill)} .c-warn{fill:var(--warn)} .c-mut{fill:var(--muted)} .c-soft{fill:var(--lime-soft)} .c-s2{fill:var(--surface-2)}
+.bg-lime{background:var(--lime-f)} .bg-cap{background:var(--cap)} .bg-pi{background:var(--pi)} .bg-human{background:var(--human)} .bg-eng{background:var(--eng)} .bg-code{background:var(--code)} .bg-skill{background:var(--skill)} .bg-mut{background:var(--muted)} .bg-soft{background:var(--lime-soft);border:1px solid var(--lime)} .bg-s2{background:var(--surface-2);border:1px solid var(--line)}
+details.raw{margin:8px 0 4px;font-size:13.5px}
+details.raw summary{cursor:pointer;color:var(--muted);font:500 12.5px var(--f-mono)}
+details.raw .tblwrap{margin:8px 0}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);font:12.5px/1.55 var(--f-body);padding:8px 10px;border-radius:6px;max-width:300px}
+
+details.faq{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:10px 0;max-width:50em}
+details.faq summary{cursor:pointer;padding:12px 16px;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::after{content:"+";font:500 16px var(--f-mono);color:var(--muted)}
+details.faq[open] summary::after{content:"−"}
+details.faq .a{padding:0 16px 14px;font-size:15px;line-height:1.8}
+details.faq .a p:last-child{margin:0}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0;align-items:start}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.two>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.two h4{font:500 13px/1.4 var(--f-body);margin:0 0 10px;color:var(--muted)}
+.two ul{margin:0;padding-left:18px;font-size:14.5px;line-height:1.75}
+.two li{margin-bottom:8px}
+table.cmp{min-width:900px}
+table.cmp td{font-size:13.5px}
+table.cmp th.me,table.cmp td.me{background:color-mix(in oklab,var(--lime-soft) 60%,transparent)}
+.map5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:18px 0}
+@media (max-width:900px){.map5{grid-template-columns:minmax(0,1fr)}}
+.map5>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:14px;line-height:1.7}
+.map5 b{display:block;font:600 12px/1.5 var(--f-mono);color:var(--lime);margin-bottom:4px}
+.map5 span{display:block;font-size:12.5px;color:var(--muted);margin-top:6px}
+details.gl{background:var(--surface);border:1px solid var(--line);border-radius:10px;max-width:52em}
+details.gl summary{cursor:pointer;padding:14px 18px;font-weight:500}
+details.gl dl{margin:0;padding:0 18px 16px;display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:8px 18px;font-size:14px;line-height:1.7}
+details.gl dt{font-family:var(--f-mono);font-size:13px;color:var(--ink)}
+details.gl dd{margin:0;color:var(--ink-2)}
+@media (max-width:560px){details.gl dl{grid-template-columns:minmax(0,1fr);gap:2px}details.gl dd{margin-bottom:10px}}
+footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+.vapnav-grp{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-cat{font-size:11.5px;letter-spacing:.04em;opacity:.5}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/robot-harness/">Harness for Robotics</a></span><span class="vapnav-links"><span class="vapnav-grp"><span class="vapnav-cat">总体设计</span><a href="../../papers/aspire/" aria-current="page">ASPIRE</a><a href="../../papers/pyrua-lean/">PyRUA-Lean</a></span><span class="vapnav-grp"><span class="vapnav-cat">上下文</span><a href="../../papers/activevla/">ActiveVLA</a><a href="../../papers/tic-vla/">TIC-VLA</a><a href="../../papers/ra-vla/">RA-VLA</a></span><span class="vapnav-grp"><span class="vapnav-cat">记忆</span><a href="../../papers/memoryvla/">MemoryVLA</a><a href="../../papers/optimusvla/">OptimusVLA</a><a href="../../papers/soma/">SOMA</a><a href="../../papers/hime/">HiMe</a></span><span class="vapnav-grp"><span class="vapnav-cat">结构化执行</span><a href="../../papers/acot-vla/">ACoT-VLA</a><a href="../../papers/motormind/">MotorMind</a></span><span class="vapnav-grp"><span class="vapnav-cat">评估与反馈</span><a href="../../papers/tt-vla/">TT-VLA</a><a href="../../papers/tau0-wm/">τ₀-WM</a><a href="../../papers/robottt/">RoboTTT</a><a href="../../papers/tau0-vla/">τ₀-VLA</a></span></span></div></div>
+<!-- /vap:nav -->
+<header class="hero page">
+  <div class="hero-grid">
+    <div>
+      <p class="kicker">论文精读 · Harness for Robotics · 总体设计</p>
+      <h1 class="title">ASPIRE <span class="sk">/skills</span></h1>
+      <p class="entitle">Agentic /Skills Discovery for Robotics<small>Agentic Skill Programming through Iterative Robot Exploration</small></p>
+      <p class="thesis">把 Claude Code、Codex 这类编码智能体放进一个专为机器人调试搭的环境：它写 Python 机器人程序，引擎把每一次感知、规划、抓取、控制调用的输入输出和前后关键帧记成轨迹，智能体自己挑着看、定位故障、改程序、再执行验证。验证过的修复写成文字技能，进入跨任务共享的技能库。在 LIBERO-Pro 和 Robosuite 上，每个任务最后交出<strong>一份固定的程序</strong>，评测时不再调用大模型。</p>
+      <ul class="meta">
+        <li><b>NVIDIA GEAR</b>、UMich、UIUC、UC Berkeley、CMU</li>
+        <li><b>arXiv</b> 2607.00272v2</li>
+        <li><b>v1</b> 2026-06-30 · <b>v2</b> 2026-10-20</li>
+        <li><a href="https://arxiv.org/abs/2607.00272" target="_blank" rel="noopener">arXiv</a> · <a href="https://research.nvidia.com/labs/gear/aspire/" target="_blank" rel="noopener">项目页</a> · <a href="https://github.com/NVlabs/ASPIRE" target="_blank" rel="noopener">代码</a></li>
+      </ul>
+    </div>
+    <figure class="ribbon">
+      <svg viewBox="0 0 520 280" role="img" aria-label="ASPIRE 的开发回路示意：coordinator 派 actor 在调试种子上写程序、执行、读轨迹、修复，验证过的修复进入技能库，最终程序在 held-out 种子上只跑一次">
+        <defs>
+          <marker id="ra" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--ink-2)"/></marker>
+          <marker id="rs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--skill)"/></marker>
+        </defs>
+        <rect x="8" y="10" width="150" height="46" rx="8" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text class="h" x="20" y="30">Coordinator</text>
+        <text x="20" y="47">排课程 · 派 actor</text>
+        <rect x="362" y="10" width="150" height="46" rx="8" fill="var(--skill-soft)" stroke="var(--skill)"/>
+        <text class="h" x="374" y="30" style="fill:var(--skill)">技能库 /skills</text>
+        <text x="374" y="47">verifier 复现才入库</text>
+        <circle cx="260" cy="146" r="66" fill="none" stroke="var(--line)" stroke-width="10"/>
+        <path d="M 300 93 A 66 66 0 0 1 326 140" fill="none" stroke="var(--ink-2)" stroke-width="1.6" marker-end="url(#ra)"/>
+        <path d="M 318 185 A 66 66 0 0 1 280 209" fill="none" stroke="var(--ink-2)" stroke-width="1.6" marker-end="url(#ra)"/>
+        <path d="M 220 199 A 66 66 0 0 1 195 156" fill="none" stroke="var(--ink-2)" stroke-width="1.6" marker-end="url(#ra)"/>
+        <path d="M 200 107 A 66 66 0 0 1 238 82" fill="none" stroke="var(--ink-2)" stroke-width="1.6" marker-end="url(#ra)"/>
+        <rect x="222" y="66" width="76" height="28" rx="14" fill="var(--code-soft)" stroke="var(--code)"/>
+        <text x="260" y="85" text-anchor="middle">写程序</text>
+        <rect x="292" y="132" width="86" height="28" rx="14" fill="var(--eng-soft)" stroke="var(--eng)"/>
+        <text x="335" y="151" text-anchor="middle">执行</text>
+        <rect x="214" y="198" width="92" height="28" rx="14" fill="var(--eng-soft)" stroke="var(--eng)"/>
+        <text x="260" y="217" text-anchor="middle">读逐原语轨迹</text>
+        <rect x="146" y="132" width="76" height="28" rx="14" fill="var(--code-soft)" stroke="var(--code)"/>
+        <text x="184" y="151" text-anchor="middle">修复</text>
+        <text class="m" x="260" y="140" text-anchor="middle">调试种子</text>
+        <text class="m" x="260" y="156" text-anchor="middle">51–65</text>
+        <path d="M 120 56 L 214 72" fill="none" stroke="var(--ink-2)" stroke-width="1.4" marker-end="url(#ra)"/>
+        <path d="M 304 76 Q 350 64 380 58" fill="none" stroke="var(--skill)" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#rs)"/>
+        <path d="M 440 58 Q 446 100 382 136" fill="none" stroke="var(--skill)" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#rs)"/>
+        <text class="m" x="402" y="96">检索</text>
+        <rect x="392" y="166" width="120" height="44" rx="8" fill="var(--code-soft)" stroke="var(--code)" stroke-dasharray="4 3"/>
+        <text x="404" y="184">修不动时：</text>
+        <text x="404" y="201">进化搜索 K 个候选</text>
+        <rect x="8" y="242" width="504" height="30" rx="6" fill="var(--lime-soft)" stroke="var(--lime)"/>
+        <text x="20" y="262" style="fill:var(--ink)">最终程序 → held-out 种子 1–50，只跑一次，不再调用大模型</text>
+      </svg>
+      <figcaption>按原文 Figure 1 与 §2 整理的示意（LIBERO-Pro 的种子编号）。BEHAVIOR-1K 和真机评测时大模型仍在环，见实验设置。</figcaption>
+    </figure>
+  </div>
+  <div class="tldr" aria-label="一分钟版">
+    <div><h3>做了什么</h3><p>Coordinator 按课程挑任务，给每个任务派一个 actor（编码智能体）。actor 在 15 个调试种子上反复「写程序 → 执行 → 读逐原语轨迹 → 修复」；修补陷入局部时，用进化搜索每轮提 K 个候选程序。新起的 verifier actor 只凭技能描述把源任务重新做成功，这条修复才进技能库。最后的程序只在 held-out 种子上跑一次。</p></div>
+    <div><h3>放在 Harness 里看</h3><p>它设计的是整个开发回路：接口（一套 Python 机器人 API 横跨 LIBERO-Pro、Robosuite、BEHAVIOR-1K，真机经 MCP 接入）、观测（智能体自选的逐原语轨迹）、记忆（跨任务技能库）、组织（coordinator / actor / verifier、课程）、反馈（调试种子上的成功率）。所以归在（1）总体设计。</p></div>
+    <div><h3>结果</h3><p>Claude Opus 4.6 驱动时，LIBERO-Pro 三个套件、两种扰动平均 <b>72%</b>（CaP-Agent0 18%，π0.5 13%）；Robosuite 7 个任务 <b>81%</b>（68%）；BEHAVIOR-1K 两个任务成功率都是 <b>88%</b>。LIBERO-90 攒的技能库零样本用到 LIBERO-Pro Long：<b>30.5%</b>（3.8%）。换 Claude Opus 5.5，80 个 LIBERO-Pro 任务平均约 <b>99%</b>。</p></div>
+    <div class="flag"><h3>最该留意的</h3><p>主结果的比较协议不对等：ASPIRE 在<strong>同一个扰动任务</strong>的调试种子上反复执行、修改程序后才评测，VLA 没见过扰动任务，CaP-Agent0 每个种子临场生成程序。「+执行引擎」这一级消融同时加了多轮调试和技能库，没有单独测轨迹粒度。同一模型、同一任务不同次运行可以从 0% 到 100%，而各表都是单次运行。</p></div>
+  </div>
+</header>
+
+<div class="page layout">
+  <nav class="toc" aria-label="目录">
+    <p>目录</p>
+    <ol>
+      <li><a href="#problem">问题</a></li>
+      <li><a href="#engine">执行引擎</a></li>
+      <li><a href="#library">技能库</a></li>
+      <li><a href="#evo">进化搜索与课程</a></li>
+      <li><a href="#setup">实验设置</a></li>
+      <li><a href="#results">主结果</a></li>
+      <li><a href="#ablation">消融与方差</a></li>
+      <li><a href="#transfer">零样本迁移</a></li>
+      <li><a href="#models">换模型与成本</a></li>
+      <li><a href="#cases">案例</a></li>
+      <li><a href="#real">真机</a></li>
+      <li><a href="#insight">读懂它</a></li>
+      <li><a href="#limits">局限与疑点</a></li>
+      <li><a href="#topic">放到专题里看</a></li>
+      <li><a href="#glossary">术语表</a></li>
+    </ol>
+  </nav>
+  <main>
+    <section id="problem">
+      <p class="eyebrow">问题 · §1 · 原文 Figure 1</p>
+      <h2>编码智能体会写机器人程序，但看不到程序错在哪，也不记得上次怎么修</h2>
+      <div class="prose">
+        <p>Code-as-policy 把机器人行为写成程序，组合感知、规划、控制 API，所以原则上能像软件一样检查、修改、调试。软件工程智能体（Claude Code、Codex、OpenHands、SWE-agent）已经能读执行轨迹、定位错误、改代码。论文认为机器人编码智能体卡在两处：</p>
+        <ul>
+          <li><strong>反馈太粗。</strong>一次 rollout 失败只说明任务没成，不说明是感知错了、抓取不稳、规划失败，还是后续恢复失败。已有方法用人设计的固定接口给证据，比如场景级摘要或预定义的观测：给少了，看不到出错的那个原语；给多了，原始画面会把智能体带偏。</li>
+          <li><strong>经验不积累。</strong>任务做完，找到的修复和恢复策略就丢了。论文的说法是：解第一百个任务的智能体，并不比解第一个时更有经验。</li>
+        </ul>
+        <p>作者对照的是人类机器人工程师的做法：回放执行，看感知输出和运动轨迹，定位出错的子系统，改实现，把能复用的恢复办法记下来。ASPIRE 的三个组件分别对应这三件事：执行引擎给证据，进化搜索扩大修复的探索面，技能库保存经验。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/system.jpg" aria-label="放大原文图 1"><img src="fig/system.jpg" width="1800" height="1099" alt="原文图 1：ASPIRE 系统总览，执行引擎、编码智能体、技能库三部分" loading="lazy"></button>
+        <figcaption><b>原文 Figure 1</b>左上是机器人执行引擎：物理仿真（LIBERO、Robosuite、BEHAVIOR）加上多模态轨迹（深度、SAM3 分割、抓取候选、运动规划）。右上是编码智能体：coordinator 给每个任务派一个 actor，actor 以 diff 的形式迭代修改程序，进化搜索每一轮生成 π<sub>0</sub>…π<sub>k</sub> 个候选并从存活的程序繁衍下一代。下方是技能库，图中写「在 150 多个仿真任务里学到的技能」，其中几条迁移到真机（碗放盘子、交接、开抽屉、罐子放进垃圾桶）。</figcaption>
+      </figure>
+    </section>
+
+    <section id="engine">
+      <p class="eyebrow">方法 · 机器人执行引擎 · §2.1 · 原文 Figure 2</p>
+      <h2>每一次原语调用都留下证据，由智能体决定看哪一段</h2>
+      <div class="prose">
+        <p>引擎为每次感知、规划、控制调用记录：调用的 API、输入、输出、返回状态，以及相关的多模态证据（RGB 关键帧、overlay、抓取候选、物体位姿、运动规划结果）。智能体拿不到完整视频：引擎只保留每次原语调用<strong>前后</strong>的帧，连同对应的 overlay 和返回值。智能体挑和失败有关的调用去看，改程序后让引擎再执行一遍验证。论文把这个「执行 → 诊断 → 修复」的回路叫 <em>iterative debugging</em>。</p>
+        <p>程序面对的是同一套 API。代码库里 <code>src/cap_harness/providers/</code> 下是 SAM3（分割）、GraspNet（抓取）、cuRobo（运动规划）、PyRoKi（逆运动学），LIBERO、Robosuite、BEHAVIOR-1K 和真机 YAM 各有一个适配器。</p>
+      </div>
+      <div class="lab trace" id="trace-lab">
+        <div class="lab-head">
+          <h4>同一个失败，两种反馈：BEHAVIOR-1K「导航并拿起收音机」</h4>
+          <p>阶段、时刻和返回值读自原文 Figure 2；点时间轴上的阶段</p>
+        </div>
+        <div class="ctrl"><div class="seg" role="group" aria-label="反馈粒度" id="tr-mode"><button type="button" data-k="coarse" aria-pressed="false">只给任务结果</button><button type="button" data-k="trace" aria-pressed="true">逐原语轨迹</button></div></div>
+        <div class="scroll"><svg id="tr-svg" viewBox="0 0 760 120" role="img" aria-label="收音机任务调试时间轴"></svg></div>
+        <div class="say" id="tr-say" aria-live="polite"></div>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/engine.jpg" aria-label="放大原文图 2"><img src="fig/engine.jpg" width="1800" height="975" alt="原文图 2：收音机任务的第一视角关键帧、逐原语轨迹日志和修复代码" loading="lazy"></button>
+        <figcaption><b>原文 Figure 2</b>(a) 第一视角关键帧与 overlay：机器人找到了收音机，但靠不过去。(b) 轨迹日志把失败定位到反复出现的 <code>PLANNING_ERROR</code>：候选导航目标都落在桌子的碰撞规避缓冲区里（正文说离桌沿约 20 cm）。(c) 智能体写了一个多角度接近的循环，从可达的一侧重新感知并抓取；这个修复以「Multi-Angle Approach」技能入库。整段从 0 到 1205 s。</figcaption>
+      </figure>
+      <div class="note">
+        <h4><span class="tag read">解读</span>这些轨迹是给「写程序的人」看的</h4>
+        <p>MotorMind、HiMe 这类系统里，观测是给在线决策的模型看的，每一步都要读。ASPIRE 的逐原语轨迹只在开发期给编码智能体看；在 LIBERO-Pro 和 Robosuite 上，最终程序在评测时并不读轨迹，它的条件分支和重试逻辑已经写进了代码里。智能体要看什么由它自己决定，这一点和 <a href="../pyrua-lean/">PyRUA-Lean</a> 只返回程序请求的图像是同一个思路。</p>
+      </div>
+    </section>
+
+    <section id="library">
+      <p class="eyebrow">方法 · 技能库 · §2.2 · 原文 Figure 3、13 · 附录 F</p>
+      <h2>存的是「什么情况下、怎么修」，不是整段任务程序</h2>
+      <div class="prose">
+        <p>每条技能是一段放进上下文的提示：<strong>失败特征</strong>（failure signature）、<strong>何时适用</strong>（when-to-apply）、<strong>修复策略</strong>，必要时附一段代码草图。分类不预设，从验证过的修复里自然长出来：定位、导航、运动原语、物体级抓取、场景理解、调试流程。收音机任务入库的是一条导航恢复模式：「目标位姿落在障碍物碰撞缓冲区里、规划器反复报错时，先换接近方向再重新感知和抓取」，不是「拿收音机」的完整程序。</p>
+        <p>入库有两道检查：</p>
+      </div>
+      <ol class="steps">
+        <li><strong>Actor 报告。</strong>结构化的 findings 文件：观察到的失败模式、验证过的修复、可迁移的模式、任务特有的怪癖、调试种子上的成功率。<code>lint_skills.py</code> 先检查提案，省得把 verifier 花在不合格的提案上。</li>
+        <li><strong>Verifier 复现。</strong>新起一个 verifier actor，只拿到这条技能提案，在源任务的部分种子上独立重做，记录每个条目是对的、有缺陷的还是没测到。</li>
+        <li><strong>Coordinator 把关。</strong>检查是否遵守允许使用的 API 规则，只提升 verifier 复现了成功、且可复用的条目。条目带出处：源任务、调试种子、held-out 结果。</li>
+      </ol>
+      <div class="prose">
+        <p>技能存成 Markdown 文件：<code>.claude/skills/iterative-debugging/skills/</code> 下的 <code>grasp.md</code>、<code>localize.md</code>、<code>transport.md</code>、<code>manipulation.md</code>、<code>task-exploration.md</code>，由 <code>README.md</code> 索引。Actor 之间不交换对话历史和原始 rollout，经验只经技能库传递，所以每个 actor 的上下文里只有任务说明、当前程序和当前这次失败的轨迹。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/skills.jpg" aria-label="放大原文图 3"><img src="fig/skills.jpg" width="1800" height="1760" alt="原文图 3：技能库示例条目、技能类别和迁移到真机的技能" loading="lazy"></button>
+        <figcaption><b>原文 Figure 3</b>上：三条代表性技能，多物体消歧（按指令里的前后左右对 SAM3 候选排序）、平面线性推动、多角度接近，各带一段代码。中：技能库的部分类别，定位（提示词策略、把手）、运动原语（拉、转、交接、推）、导航（跳点、自由探索）、物体级抓取、场景理解（OBB 主轴、看桌子）、调试流程。下：在仿真里发现、用到真机上的技能。</figcaption>
+      </figure>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/skill-nav.jpg" aria-label="放大原文图 13"><img src="fig/skill-nav.jpg" width="1800" height="714" alt="原文图 13：导航类技能条目，多角度接近的问题、适用条件、策略与代码" loading="lazy"></button>
+        <figcaption><b>原文 Figure 13（附录）</b>一条技能的完整格式。Problem：直接朝物体接近常报 <code>PLANNING_ERROR</code>，规划器退到远处的路点，机器人离目标 1 m 以上。When to Apply：<code>navigate_to_pose</code> 返回成功但离目标超过 1 m；日志里有 <code>PLANNING_ERROR</code>；物体靠墙、家具或房间边界。Strategy：试 5 个接近角（正对、±90°、±45°），保留第一个成功的。注意角度集合在三处写法不同：本图是 [0, ±π/2, ±π/4]，Figure 2 的代码是 [180, −90, 90, −45, 45]，Figure 2 入库的文字是「旋转 45°、90° 或 180°」。</figcaption>
+      </figure>
+    </section>
+
+    <section id="evo">
+      <p class="eyebrow">方法 · 进化搜索、课程与反向迁移 · §2.3–2.4 · 算法 1 · 表 12</p>
+      <h2>修不动时换思路：每轮提 K 个程序，留最好的</h2>
+      <div class="prose">
+        <p>迭代调试容易困在局部，反复给同一个失败的策略打补丁。进化搜索每一轮让 actor 参考技能库、历史中排名前 3 的程序和它们剩下的失败轨迹，提出 K 个候选程序；每个候选都在调试种子上执行，产生新的轨迹；比当前最好的分数高就替换。最好的候选在调试种子上达到阈值 θ，或者用完 T 轮，就停下。之后从调试历史里抽出验证过的模式，最终程序在 held-out 种子上<strong>只跑一次</strong>。搜索对象是程序本身，不是任何模型参数。</p>
+        <p>K、T、θ 的取值论文没有列出；附录只说成功率低于 90% 的任务才触发进化搜索，LIBERO-Pro 上「修复后的程序」和「进化搜索的结果」二选一，用 66–80 号种子作验证集来选。</p>
+      </div>
+      <div class="lab" id="evo-lab">
+        <div class="lab-head">
+          <h4>逐轮看进化搜索：8 个低分任务（表 12，Claude Opus 4.6）</h4>
+          <p>纵轴是每一轮「最好候选」的 held-out 成功率</p>
+        </div>
+        <div class="chips" role="group" aria-label="选择任务" id="evo-pick"></div>
+        <div class="legend" style="margin-top:10px"><span><i class="bg-lime"></i>选中的任务</span><span><i style="background:transparent;border-top:2px dashed var(--ink-2);height:0;vertical-align:4px"></i>8 个任务平均</span><span><i style="background:var(--muted);opacity:.4;height:2px;vertical-align:4px"></i>其余 7 个任务</span></div>
+        <div class="ctrl" style="margin-top:12px"><label for="evo-it" class="small muted" style="white-space:nowrap">看到第几轮</label><input type="range" id="evo-it" min="0" max="4" step="1" value="4"></div>
+        <div class="scroll"><svg class="chart sm" id="evo-svg" viewBox="0 0 760 280" role="img" aria-label="进化搜索逐轮成功率"></svg></div>
+        <div class="say" id="evo-say" aria-live="polite"></div>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>为什么曲线会往下走</h4>
+        <p>搜索只看调试种子（15 个）上的分数来决定谁是「最好的候选」；表 12 的 held-out 成功率是为了画图另外测的，不参与选择。所以调试种子上更好的候选，换到 50 个 held-out 种子上可能更差，比如「碗放盘子」60 → 18 → 86。8 个任务补齐提前终止任务的末值后求平均，得到 28、45、53.75、51.25、60，与原文 Figure 7c 的折线一致；第 3 轮（51.25）比第 2 轮低，正文的描述是「前几轮稳步上升，之后增长放缓」。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>表 12 和逐任务消融表对不上</h4>
+        <p>表 12 第 0 轮应当是进入搜索前的程序，但「推盘子到炉子前（Goal，任务扰动）」在这里是 0%，在表 11 的「w/o Evo」一列是 58%，进化搜索列是 76%；表 12 里它第 1 轮就到 80%。「碗放盘子（Goal，位置）」第 0 轮 62%，表 10 是 36%。看来表 12 是另一次运行，论文没有说明。</p>
+      </div>
+      <h3>课程与反向迁移</h3>
+      <div class="prose">
+        <p>Coordinator 同时当课程智能体：根据当前技能库决定下一个做哪个任务，可以去补库里的缺口，可以给已有技能一个用在新任务上的机会，也可以趁着新发现去做同一套件里的任务。任务按顺序做，早做的任务只能用到很小的库，所以低分可能只是缺技能。全部做完后，coordinator 允许用完整的库<strong>重跑一次</strong>早期低分的任务，论文叫 backward skill transfer。结果见「消融与方差」。</p>
+      </div>
+    </section>
+
+    <section id="setup">
+      <p class="eyebrow">实验设置 · §3.1–3.3 · 附录 B、E</p>
+      <h2>三个仿真基准，调试和评测用不同的种子</h2>
+      <div class="prose">
+        <ul>
+          <li><strong>编码智能体：</strong>主结果用 Claude Code + Claude Opus 4.6（1M token 上下文）。模型消融比了 12 个：Claude Opus 4.6 / 5 / 5.5、Sonnet 5.5、Haiku 5.5、Fable 5.1；GPT-6 Astra、GPT-6 Sol、GPT-6 Luna、GPT-6.1 Sol；开放权重的 Kimi K3、Qwen 3.8 Max。Claude 和开放权重模型跑在 Claude Code 里，GPT 跑在 Codex CLI 里。所有仿真实验的环境和 API 固定。</li>
+          <li><strong>基准：</strong>LIBERO-Pro 的 Object、Goal、Spatial、Long 四个套件，各有位置扰动和任务扰动两种设定，每种 10 个任务；Robosuite 7 个接触丰富的任务（2 个双臂）；BEHAVIOR-1K 两个家庭移动操作任务（导航并拿起汽水罐 / 收音机）。</li>
+          <li><strong>基线：</strong>CaP-Agent0（来自 CaP-X，与本文至少有 7 位作者重叠：视觉差分、预定义技能库，每个种子单独生成程序，测试时推理并重试）；端到端 VLA：OpenVLA、π0、π0.5。「Human」是人类专家写的程序（Robosuite、BEHAVIOR-1K）。</li>
+          <li><strong>真机：</strong>双臂 YAM 工作站。仿真技能迁移用 Codex + GPT-5.5（推理强度 xhigh）；魔方用 Codex + GPT-6 Astra。</li>
+        </ul>
+      </div>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>基准</th><th>调试种子（学技能、改程序）</th><th>held-out 评测</th><th>评测时的程序</th></tr></thead>
+          <tbody>
+            <tr><th>LIBERO-Pro</th><td>51–65（15 个）；修复程序与进化搜索结果二选一用 66–80</td><td class="num">1–50</td><td>每任务一份程序，大模型不在环</td></tr>
+            <tr><th>Robosuite</th><td>101–125（25 个）</td><td class="num">1–100</td><td>每任务一份程序，大模型不在环</td></tr>
+            <tr><th>BEHAVIOR-1K</th><td>26–35（10 个）</td><td class="num">1–25</td><td>增量分块执行：每一块代码根据当前多模态轨迹现场生成</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>主结果比的是三种不同的设定</h4>
+        <p>种子固定了物体位姿、干扰物和初始状态。ASPIRE 在<strong>目标扰动任务本身</strong>的 15 个调试种子上执行、诊断、修改程序（Claude Opus 4.6 不开进化搜索时，60 个任务共 12,214 次仿真 rollout，平均每任务约 200 次），再在另外 50 个种子上评测。π0.5 等 VLA 只在原始 LIBERO 上训练过，没见过扰动后的任务。CaP-Agent0 不跨种子调试，而是在每个评测种子上临场生成和重试。论文在评测协议里写清了这些差别，但摘要里的「最多提升 77%」把它们放在一起比。和零样本最接近的对照是 LIBERO-Pro Long 迁移实验。</p>
+      </div>
+    </section>
+
+    <section id="results">
+      <p class="eyebrow">主结果 · §3.4 · 原文 Figure 4 · 附录表 5–7 · Claude Opus 4.6</p>
+      <h2>LIBERO-Pro 三个套件 72%，Robosuite 81%，BEHAVIOR-1K 两个任务 88%</h2>
+      <div class="chartbox">
+        <h4>LIBERO-Pro（表 5）</h4>
+        <p class="sub">每格是 10 个任务 × 50 个 held-out 种子的宏平均。OpenVLA 与 π0 在所有格子都是 0，未画出。</p>
+        <div class="legend"><span><i class="bg-pi"></i>π0.5</span><span><i class="bg-cap"></i>CaP-Agent0</span><span><i class="bg-lime"></i>ASPIRE</span></div>
+        <div class="scroll"><svg class="chart" id="ch-lp" viewBox="0 0 760 260"></svg></div>
+        <details class="raw" id="raw-lp"><summary>原表数字（表 5）</summary></details>
+      </div>
+      <div class="prose">
+        <p>摘要里的「最多提升 77%」是 Object 套件两种扰动的平均（ASPIRE 96.5，最强基线 CaP-Agent0 20.0）之差，单位是百分点；Goal 的 41.5、Spatial 的 42.5 同理。π0.5 在 Goal 位置扰动上有 38%，任务扰动下三个套件都在 0–1%。</p>
+      </div>
+      <div class="chartbox">
+        <h4>Robosuite（表 6 与原文 Figure 4b）</h4>
+        <p class="sub">每个任务 100 个 held-out 试次。Human 的数字只出现在 Figure 4b 里，取自矢量图文字层；表 6 只有 CaP-Agent0 与 ASPIRE。</p>
+        <div class="legend"><span><i class="bg-human"></i>Human（专家程序）</span><span><i class="bg-cap"></i>CaP-Agent0</span><span><i class="bg-lime"></i>ASPIRE</span></div>
+        <div class="scroll"><svg class="chart" id="ch-rs" viewBox="0 0 760 260"></svg></div>
+        <details class="raw" id="raw-rs"><summary>原表数字（表 6，Human 列来自 Figure 4b）</summary></details>
+      </div>
+      <div class="prose">
+        <p>双臂交接从 20% 到 92%。ASPIRE 的平均 81.0%，我们按图中数字算 Human 的 7 任务平均约 82.6%：在 Restack（47 → 100）、Stack（73 → 99）上程序比人写的好，在双臂抬起（94 vs 71）和螺母装配 Insert（80 vs 9）上差很多。表 6 写 CaP-Agent0 平均 68.0%，按逐项算是 68.3%。</p>
+      </div>
+      <div class="chartbox">
+        <h4>BEHAVIOR-1K（表 7）</h4>
+        <p class="sub">每个任务 25 个 held-out 种子，所以每 4 个百分点是 1 个种子。导航成功与任务成功分开报告。</p>
+        <div class="legend"><span><i class="bg-human"></i>Human</span><span><i class="bg-cap"></i>CaP-Agent0</span><span><i class="bg-lime"></i>ASPIRE</span></div>
+        <div class="scroll"><svg class="chart sm" id="ch-b1k" viewBox="0 0 760 230"></svg></div>
+      </div>
+      <div class="prose">
+        <p>收音机任务 56% → 88%（25 个种子里 14 → 22 个）。人写的程序在收音机任务上导航 88%，任务只有 36%。注意 BEHAVIOR-1K 评测用的是增量分块执行：每一块代码根据当前轨迹现场生成，评测时大模型在环，这和 LIBERO-Pro、Robosuite 的固定程序不同，评测阶段的调用量和费用没有报告。</p>
+      </div>
+    </section>
+
+    <section id="ablation">
+      <p class="eyebrow">消融与方差 · §3.8 · 原文 Figure 7 · 表 2、10、11、19、25、26</p>
+      <h2>最大的一跳来自「能在仿真里反复调试」，进化搜索补难题</h2>
+      <div class="lab" id="abl-lab">
+        <div class="lab-head">
+          <h4>逐级加组件（原文 Figure 7a/b，表 10、11）</h4>
+          <p>点柱子看逐任务的四列数字</p>
+        </div>
+        <div class="ctrl"><div class="seg" role="group" aria-label="扰动类型" id="abl-mode"><button type="button" data-k="pos" aria-pressed="true">位置扰动</button><button type="button" data-k="task" aria-pressed="false">任务扰动</button></div></div>
+        <div class="legend"><span><i class="bg-s2"></i>无引擎、无进化（零样本 + 15 个示例程序）</span><span><i style="background:color-mix(in oklab,var(--lime-f) 45%,var(--surface))"></i>+ 执行引擎与技能库</span><span><i class="bg-lime"></i>+ 进化搜索</span></div>
+        <div class="scroll"><svg class="chart sm" id="ch-abl" viewBox="0 0 760 260"></svg></div>
+        <div id="abl-detail"></div>
+      </div>
+      <div class="prose">
+        <p>两种扰动平均，宏平均从 14% 到 62%，再到 72%。Object 套件靠执行引擎就到 95–98%，进化搜索只在一个任务上跑过，也没被选用；Goal 位置扰动上进化搜索贡献最大（47 → 81）。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>「执行引擎」这一级同时加了三样东西</h4>
+        <p>表 10 的说明：「w/o Engine &amp; Evo」是零样本的 Claude Opus 4.6 加 15 个示例程序，「w/o Evo」是「用执行引擎和技能库修过的程序」。从前者到后者，同时多了在调试种子上反复执行的机会、逐原语轨迹和技能库。没有「多轮调试但只给任务级成功 / 失败」的条件，所以这 48 个点里有多少来自轨迹的细粒度本身（论文的核心主张），没有被单独测量。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>15 个验证种子选错了好几次</h4>
+        <p>表中标红的格子：进化搜索的程序在 held-out 上明显更好，却被 66–80 号种子选掉了。例如 Spatial 任务扰动「夹在盘子和小碗之间」84 对 8、「木柜上」98 对 46，Goal 任务扰动「酒瓶放柜顶」72 对 14，Spatial 位置扰动「桌子中央」82 对 32。按 held-out 选当然是作弊，论文没这么做；这些例子说明 15 个种子作验证集噪声很大。另外，表 11 Spatial 任务扰动的基线有一格 13%，50 个种子做不出奇数百分比；该列逐项相加的平均是 8.5%，表里写 4.0%。</p>
+      </div>
+      <h3>同一个任务，换一次运行结果差多少</h3>
+      <div class="chartbox">
+        <h4>三次独立的迭代调试（表 25，Claude Opus 4.6，Goal 位置扰动，空技能库）</h4>
+        <p class="sub">每个点是一次运行的 held-out 成功率（50 个种子）。表里只有 Run 1、3、4，没有 Run 2，论文没解释。</p>
+        <div class="legend"><span><i class="dot bg-eng"></i>Run 1</span><span><i class="dot bg-code"></i>Run 3</span><span><i class="dot bg-skill"></i>Run 4</span></div>
+        <div class="scroll"><svg class="chart sm" id="ch-var" viewBox="0 0 620 330"></svg></div>
+      </div>
+      <div class="chartbox">
+        <h4>「推盘子到炉子前」（Goal #5，位置扰动）在四张表里</h4>
+        <p class="sub">同一模型、同一任务、同样的 50 个评测种子，来自不同的运行。都是不开进化搜索的结果（案例表另列了 +Evo）。</p>
+        <div class="legend"><span><i class="dot bg-lime"></i>表 10 / 14：带技能库的逐任务运行</span><span><i class="dot bg-eng"></i>表 19：空技能库的模型消融</span><span><i class="dot bg-code"></i>表 26：案例运行</span><span><i class="dot bg-skill"></i>表 25：三次独立运行</span></div>
+        <div class="scroll"><svg class="chart sm" id="ch-xrun" viewBox="0 0 620 200"></svg></div>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>套件平均稳，单个任务不稳</h4>
+        <p>表 25 的三次运行，套件平均 63.1 ± 3.4，看起来很稳；但「打开中间抽屉」是 0 / 100 / 0，「打开抽屉放碗」62 / 0 / 0。ASPIRE 每次运行产出一份程序，程序要么找到了对的策略、要么没有，单个任务的成功率因此接近二值。论文其余的逐任务表、反向迁移、案例都是单次运行。读逐任务的涨跌时，要先想到这个方差。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>技能库在同一套件内的作用没有对照</h4>
+        <p>Claude Opus 4.6、Goal 位置扰动、不开进化搜索：带着套件内累积的技能库（表 10）是 47.0%，空技能库的模型消融（表 19）是 55.6%，三次空库独立运行（表 25）是 59.2–67.4%。原文 Figure 9 的图注承认这几处「数值不同」。其他模型：Opus 5 带库 97.0 / 空库 90.6，Opus 5.5 97.0 / 99.2，GPT-6 Astra 97.0 / 94.4。技能库有用的证据主要在零样本迁移实验里。</p>
+      </div>
+      <h3>反向迁移（表 2，Claude Opus 5，LIBERO-Pro Long）</h3>
+      <div class="chartbox">
+        <h4>五个初始低分任务，用完整技能库重跑前后</h4>
+        <p class="sub">同样的 50 个 held-out 种子。20 个任务合计 746/1000（74.6%）→ 822/1000（82.2%）。</p>
+        <div class="legend"><span><i class="dot bg-mut"></i>初始</span><span><i class="dot bg-lime"></i>重跑后</span></div>
+        <div class="scroll"><svg class="chart sm" id="ch-back" viewBox="0 0 620 210"></svg></div>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>没有「用旧库再跑一次」的对照</h4>
+        <p>重跑意味着又一轮调试，任务又是按低分挑出来的。从上面的方差看，单个任务重跑一次本身就可能从 0 跳到几十个点（回归均值）。没有用初始技能库再跑一次的对照，+7.6 个点里有多少来自「库更完整」，分不出来。另外，Opus 5 在 Long 上的逐任务表（表 16）「w/o evo」一列已经是重跑后的数字（例如 pos/3 52%），和表 2 的「Post-rerun」一致。</p>
+      </div>
+    </section>
+
+    <section id="transfer">
+      <p class="eyebrow">零样本迁移 · §3.5 · 原文 Figure 5 · 附录表 8、9、24</p>
+      <h2>LIBERO-90 攒的技能库，零样本用到 LIBERO-Pro Long：30.5%</h2>
+      <div class="prose">
+        <p>用 LIBERO-90 中 N ∈ {0, 25, 50, 90} 个任务的修复技能建立库的快照（N = 0 是空库）。对 LIBERO-Pro Long 的每个任务（位置、任务扰动各 10 个）生成一份程序，在 50 个种子上评测，<strong>不调试、不重试、不更新库</strong>。驱动模型是 Claude Opus 4.6。</p>
+      </div>
+      <div class="chartbox">
+        <h4>宏平均随库变大（表 8）</h4>
+        <p class="sub">右侧是基线和「N = 90 再在 Long 上迭代调试」（表 24）的参考值。</p>
+        <div class="legend"><span><i class="dot bg-eng"></i>位置扰动</span><span><i class="dot bg-code"></i>任务扰动</span><span><i class="dot bg-pi"></i>π0.5</span><span><i class="dot bg-cap"></i>CaP-Agent0</span></div>
+        <div class="scroll"><svg class="chart sm" id="ch-tr" viewBox="0 0 760 270"></svg></div>
+      </div>
+      <div class="lab" id="hm-lab">
+        <div class="lab-head">
+          <h4>拆到每个任务（表 9）</h4>
+          <p>每格一份程序在 50 个种子上的成功率；悬停看数字</p>
+        </div>
+        <div class="ctrl"><div class="seg" role="group" aria-label="扰动类型" id="hm-mode"><button type="button" data-k="pos" aria-pressed="true">位置扰动</button><button type="button" data-k="task" aria-pressed="false">任务扰动</button></div></div>
+        <div class="scroll"><svg class="chart sm" id="ch-hm" viewBox="0 0 760 360"></svg></div>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>平均在涨，靠的是少数几个任务</h4>
+        <p>位置扰动 N = 90 的 22.6%，有 19.4 个点来自两个任务（开炉放摩卡壶 100%，奶油奶酪 + 黄油 94%），7 个任务是 0。任务扰动下，好几个任务随库变大先涨后跌：汤 + 番茄酱 78 → 68 → 2 → 70，书放进收纳格 0 → 52 → 28 → 26，杯子放两个盘子 16 → 28 → 8 → 0。每格只有一份程序、一次运行，结合上面的方差，单个任务的走向不能当趋势读。论文在局限里也承认，入库后不再验证的技能可能过时或误导，在零样本迁移中伤害个别任务。</p>
+        <p>另一个参照：同样从 N = 90 的程序出发，在 Long 上继续迭代调试（表 24）能到 43.2% / 52.0%，比零样本高 14–21 个点。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>平均值有三套写法</h4>
+        <p>表 8 写 N = 90 为 22.6% / 38.3%，表 9 的均值行写 23.0% / 38.0%，正文写 23% / 38%；按表 9 逐项相加是 22.6% / 38.2%。差别不影响结论，但说明表格是分别整理的。</p>
+      </div>
+    </section>
+
+    <section id="models">
+      <p class="eyebrow">换模型与成本 · §3.8 · 原文 Figure 8、9 · 表 3、4、13–23</p>
+      <h2>换更强的模型，基准接近饱和；Sonnet 5.5 每任务约 12 美元到 98.8%</h2>
+      <div class="lab" id="cost-lab">
+        <div class="lab-head">
+          <h4>12 个模型，同一个 harness（表 18）</h4>
+          <p>LIBERO-Pro Goal 位置扰动 10 个任务 × 50 种子；空技能库，不开进化搜索</p>
+        </div>
+        <div class="ctrl"><div class="seg" role="group" aria-label="横轴" id="cost-mode"><button type="button" data-k="cost" aria-pressed="true">横轴：每任务费用</button><button type="button" data-k="time" aria-pressed="false">横轴：每任务智能体时间</button></div></div>
+        <div class="legend"><span><i class="dot bg-code"></i>Claude</span><span><i class="dot bg-eng"></i>GPT</span><span><i class="dot" style="border:2px solid var(--skill)"></i>开放权重</span><span><i style="background:var(--lime-f);height:3px;vertical-align:3px"></i>没有更便宜（或更快）的模型比它好的前沿</span></div>
+        <div class="scroll"><svg class="chart" id="ch-cost" viewBox="0 0 760 360"></svg></div>
+        <details class="raw" id="raw-cost"><summary>原表数字（表 18）</summary></details>
+      </div>
+      <div class="prose">
+        <p>只换驱动编码智能体的模型，其余全部固定。Claude Opus 4.6 55.6% → Opus 5.5 99.2%；最弱的 GPT-6 Luna 14.8%；开放权重里最好的 Kimi K3 78.4%，但每任务 58 美元、139 分钟。前沿上的模型是 GPT-6 Luna、Claude Haiku 5.5、GPT-6.1 Sol、Claude Sonnet 5.5、Claude Opus 5.5。费用按 API 标价估算。</p>
+      </div>
+      <div class="chartbox">
+        <h4>四个模型在 LIBERO-Pro 四个套件上（原文 Figure 9，表 13–16、24）</h4>
+        <p class="sub">这组运行在套件内累积技能库。斜线段是进化搜索带来的增量（Opus 4.6 的 Long 没开进化搜索）。悬停看数字。</p>
+        <div class="legend"><span><i style="background:color-mix(in oklab,var(--lime-f) 25%,var(--surface));border:1px solid var(--line)"></i>Claude Opus 4.6</span><span><i style="background:color-mix(in oklab,var(--lime-f) 55%,var(--surface))"></i>Claude Opus 5</span><span><i class="bg-lime"></i>GPT-6 Astra</span><span><i style="background:color-mix(in oklab,var(--lime-f) 55%,#123000)"></i>Claude Opus 5.5</span><span><i class="hatch"></i>+ 进化搜索</span></div>
+        <div class="scroll"><svg class="chart" id="ch-mod" viewBox="0 0 760 270"></svg></div>
+        <details class="raw" id="raw-mod"><summary>原表数字（四个套件；BEHAVIOR-1K 与 Robosuite 见表 3、4、17）</summary></details>
+      </div>
+      <div class="prose">
+        <p>用 Claude Opus 5.5 并开进化搜索，LIBERO-Pro 8 个格子的平均是 98.75%（我们算的），即摘要说的「80 个任务平均 99%」；Long 97.9%，Robosuite 7 个任务全部 100%（螺母装配从 Opus 4.6 的 9% 到 100%），BEHAVIOR-1K 两个任务导航和任务成功都是 100%。进化搜索对强模型的套件平均影响不超过 2 个点（Opus 4.6 最多 34 个点），但仍是修好最难任务的办法：Opus 5 在 Long 任务扰动的「杯子放进微波炉并关门」0 → 42%，GPT-6 Astra 的「碗放进柜子顶层抽屉」82 → 98%。</p>
+      </div>
+      <h3>钱和时间花在哪</h3>
+      <div class="tblwrap">
+        <table class="t">
+          <thead><tr><th>LIBERO-Pro 60 个任务（表 20）</th><th class="num">Opus 4.6</th><th class="num">Opus 5</th><th class="num">Opus 5.5</th><th class="num">GPT-6 Astra</th></tr></thead>
+          <tbody>
+            <tr class="grp"><th colspan="5">不开进化搜索</th></tr>
+            <tr><th>每任务费用</th><td class="num">$22.9</td><td class="num">$32.1</td><td class="num">$10.8</td><td class="num">$12.9</td></tr>
+            <tr><th>大模型调用（每任务，我们算的）</th><td class="num">157</td><td class="num">142</td><td class="num">132</td><td class="num">99</td></tr>
+            <tr><th>仿真 rollout（每任务，我们算的）</th><td class="num">204</td><td class="num">182</td><td class="num">176</td><td class="num">132</td></tr>
+            <tr><th>actor 时间（每任务）</th><td class="num">79 min</td><td class="num">60 min</td><td class="num">46 min</td><td class="num">27 min</td></tr>
+            <tr><th>总 token / 其中缓存读取</th><td class="num">2,009M / 1,967M</td><td class="num">2,543M / 2,472M</td><td class="num">1,538M / 1,494M</td><td class="num">522M / 505M</td></tr>
+            <tr class="grp"><th colspan="5">进化搜索的额外开销</th></tr>
+            <tr><th>触发搜索的任务数</th><td class="num">31</td><td class="num">3</td><td class="num">7</td><td class="num">2</td></tr>
+            <tr><th>每个被搜索任务的费用</th><td class="num">$89.1</td><td class="num">$14.4</td><td class="num">$22.9</td><td class="num">$11.4</td></tr>
+            <tr><th>60 个任务合计（我们算的）</th><td class="num">$4,137</td><td class="num">$1,968</td><td class="num">$810</td><td class="num">$799</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>钱花在开发期，一次付清</h4>
+        <p>这些是「得到一份程序」的成本。程序之后在 50 个种子上执行，不再调用大模型。强模型反而更便宜：Opus 5.5 每任务 $10.8，Opus 4.6 连同进化搜索约 $69（我们算的）。token 约 97% 是缓存读取，说明每个 actor 的长上下文被反复读入。表 20 的说明里写，Claude Opus 4.6 的费用来自用当前流水线的一次重跑，成功率来自原始运行，两者不是同一次。</p>
+      </div>
+    </section>
+
+    <section id="cases">
+      <p class="eyebrow">案例 · §3.9 · 原文 Figure 10、19 · 表 26</p>
+      <h2>弱模型沿用「抓起来搬过去」，强模型换策略</h2>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/case-main.jpg" aria-label="放大原文图 10"><img src="fig/case-main.jpg" width="1800" height="1075" alt="原文图 10：人类示范与四个模型写的程序在两个任务上的执行帧" loading="lazy"></button>
+        <figcaption><b>原文 Figure 10</b>每行是一个回合，左上角是该模型在 50 个种子上的成功率，绿框成功、红框失败。左：把书放到架子下面（LIBERO-90 #89）。架子下的空隙放不下竖着握书的手，人类示范是握住书顶边倾斜 45° 滑进去，没有模型想到这一招。Opus 4.6 把书搬到柜子上方后停住（0%）；Opus 5 把书放平，却塞进了上一层（2%）；Opus 5.5 不抓书，直接把书推倒再推进去（68%）；GPT-6 Astra 把书放平、松手、再推进去（22%）。右：推盘子到炉子前（LIBERO-Pro Goal #5，位置扰动），盘子前有碗、路上有盒子。Opus 4.6 推了但盘子没动（0%），Opus 5 夹边打滑、拖走了碗（0%），Opus 5.5 先把碗和盒子推开再推盘子（84%），GPT-6 Astra 干脆把盘子抬起来越过杂物放到炉子前（62%）。</figcaption>
+      </figure>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/case-more.jpg" aria-label="放大原文图 19"><img src="fig/case-more.jpg" width="1800" height="1075" alt="原文图 19：打开底层抽屉和把杯子放进微波炉两个任务的执行帧" loading="lazy"></button>
+        <figcaption><b>原文 Figure 19（附录）</b>左：打开底层抽屉。把手太低，水平的手够不着；人类示范倾斜手掌拉把手，Opus 5.5 和 GPT-6 Astra 也是合上夹爪、倾斜、把指尖勾在把手后面拉开（90%、92%）。Opus 5 手保持水平，勾住中间那层的把手，打开了中间抽屉（0%）；Opus 4.6 根本没碰到把手。右：把杯子放进微波炉并关门。Opus 5.5 和 Astra 握把手竖着送进去（96%、98%），Astra 先用腕部相机往微波炉里看了一眼；Opus 5 握杯口，只能把杯子横放塞进去，把手露在外面，门关不上（16%）；图中 Opus 4.6 这一回合把微波炉当成顶部开口的，杯子放在了顶上。</figcaption>
+      </figure>
+      <details class="raw" id="raw-case"><summary>案例运行的成功率（表 26）</summary></details>
+      <div class="note">
+        <h4><span class="tag read">解读</span>案例图展示的是策略，不是可比的统计</h4>
+        <p>论文提醒每行只是一个回合。表 26 的数字来自专门的案例运行，与逐任务表是不同的运行：Opus 5 在「推盘子」上案例运行是 0%，在表 14 是 88%；GPT-6 Astra 62% 对 98%。案例里「强模型换策略」的观察，最好和上面的方差一起读。</p>
+      </div>
+    </section>
+
+    <section id="real">
+      <p class="eyebrow">真机 · §3.6–3.7 · 表 1 · 原文 Figure 6、17、18 · 附录 D</p>
+      <h2>仿真技能省下调试 token；魔方靠在线攒的文字技能</h2>
+      <h3 style="margin-top:0">跨本体的技能迁移（表 1）</h3>
+      <div class="prose">
+        <p>从 Franka 仿真里挑出三条技能：拿起汽水罐、碗放到盘子上、推拉抽屉，作为上下文提示交给真机上的编码智能体（Codex + GPT-5.5）。真机是双臂 YAM，本体和 API 都和仿真不同；它有自己的感知、标定和控制栈，同样暴露 ASPIRE 的多模态执行轨迹，智能体自己跑、看、改，调试过程中不需要人逐任务指点。比较有无这条技能时，到第一次成功为止用了多少 token，以及生成的程序在 20 次评测里的成功率。</p>
+      </div>
+      <div class="chartbox">
+        <h4>到第一次成功的总 token（对数刻度）</h4>
+        <p class="sub">没成功的运行记到调试预算用完为止。右侧是生成程序的 20 次评测结果。</p>
+        <div class="legend"><span><i class="bg-mut"></i>不带技能</span><span><i class="bg-skill"></i>带仿真技能</span></div>
+        <div class="scroll"><svg class="chart sm" id="ch-real" viewBox="0 0 760 220"></svg></div>
+        <details class="raw" id="raw-real"><summary>原表数字（表 1）</summary></details>
+      </div>
+      <div class="prose">
+        <p>碗放盘子：8.65M → 5.11M，两边都 20/20。拿起汽水罐：61.94M → 6.58M，13/20 → 19/20。抽屉：不带技能的运行用完 334.92M 的预算也没产出成功的评测程序（0/20），带技能 81.67M、11/20。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>每个条件只有一次调试运行</h4>
+        <p>「到第一次成功的 token」本身方差很大：同一次调试，早一步或晚一步碰上对的修法就差好几倍。三个任务、每个条件一次运行，能说明方向，说不了倍数。抽屉任务的预算是多少，正文没写。</p>
+      </div>
+      <h3>真机上的 System 2 harness（附录 D）</h3>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/sys2.jpg" aria-label="放大原文图 17"><img src="fig/sys2.jpg" width="1800" height="756" alt="原文图 17：编码智能体经 MCP 服务器调用 CaP 工具，控制 YAM 真机" loading="lazy"></button>
+        <figcaption><b>原文 Figure 17</b>Codex 里的智能体跑「观察 → 推理 → 调工具 → 验证」循环，经 MCP 服务器调用 CaP 工具（SAM3、cuRobo 等）。Router 每个控制周期只执行一个动作，YAM 真机的控制器 30 Hz。每一轮都把环境观测回传给智能体。</figcaption>
+      </figure>
+      <div class="prose">
+        <ul>
+          <li><strong>工具：</strong>发现与监控（<code>get_capability_graph</code>、<code>get_job</code>、<code>read_operator_messages</code>）；观测与感知（<code>observe</code> 返回状态、相机图像和新鲜度元数据，<code>cap_get_robot_state</code>，<code>cap_localize_object</code> 用文字查询和标定 RGB-D 估几何）；运动与抓取（<code>cap_move_to_pose</code>、<code>cap_move_to_joints</code>、<code>cap_move_synchronized</code>、<code>cap_set_gripper</code>）。<code>cap_move_to_pose</code> 内部用 Mink 做逆运动学、cuRobo 做轨迹规划。</li>
+          <li><strong>安全与时效：</strong>MCP 服务器只开放白名单里的工具，请求按 JSON schema 校验；物理动作是串行的后台作业，并发的动作请求直接拒绝；观测带时间戳、帧号、采集时长和「过期 / 缺失」标记。控制层的成功只说明指令运动走完了，任务是否完成由智能体看物理证据判断。</li>
+        </ul>
+      </div>
+      <h3>魔方：在线攒技能（§3.7）</h3>
+      <figure class="plate narrow">
+        <button class="zoom" type="button" data-src="fig/cube-turn.jpg" aria-label="放大原文图 6a"><img src="fig/cube-turn.jpg" width="1800" height="1034" alt="原文图 6a：双臂转动魔方一层的五个步骤" loading="lazy"></button>
+        <figcaption><b>原文 Figure 6a</b>一次转面：两只夹爪就位、稳住魔方、转一层、对齐各层、松开。</figcaption>
+      </figure>
+      <div class="chartbox">
+        <h4>同一个 GPT-6 Astra 会话里的三个回合（原文 Figure 6b）</h4>
+        <p class="sub">每完成一次转面平均花的 token 与时间，包括失败尝试、恢复和上下文压缩。半圈算一步，不计整体翻转。</p>
+        <div class="scroll"><svg class="chart sm" id="ch-cube" viewBox="0 0 760 230"></svg></div>
+      </div>
+      <div class="prose">
+        <p>人给一份启发式说明文档（一般规则和可能的失败情况）、打乱魔方、在回合之间复位。智能体先翻转魔方看全六个面，调用 Kociemba 求解器得到步骤，再一步步执行，同时更新自己对魔方状态的记忆。攒下的文字技能包括：两层支撑、单层隔离、面轴对齐、避碰交接、看状态的打滑恢复。第 1 回合 50 分 54 秒仍未解开（完成 3 步），第 2 回合 39 分钟解开（5 步），第 3 回合 77 分 10 秒解开（25 步）。每步的估计费用从 $16.85 降到 $2.89（按 OpenAI API 标价）。</p>
+      </div>
+      <div class="note doubt">
+        <h4><span class="tag doubt">疑点</span>每步成本下降不全是技能的功劳</h4>
+        <p>打乱程度没有报告：第 2 回合 5 步就解开，说明打乱得很浅。看全六个面、调用求解器这类固定开销会摊到所有步上，步数从 3 到 25，每步成本自然下降。三个回合在同一个会话里，带过去的不只是文字技能，还有对话上下文。附录 Figure 18 还展示了拧瓶盖、装药片拧紧、倒扣叠杯，没有给成功率。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/real-tasks.jpg" aria-label="放大原文图 18"><img src="fig/real-tasks.jpg" width="1800" height="1260" alt="原文图 18：真机 System 2 的四个任务，拧开瓶盖、装药片并拧紧、倒扣叠杯、解魔方" loading="lazy"></button>
+        <figcaption><b>原文 Figure 18（附录）</b>System 2 harness 在双臂 YAM 上的四个任务：(a) 拧开瓶盖；(b) 把药片放进瓶子并拧紧；(c) 把杯子倒扣叠起来；(d) 解魔方。论文只给了示例帧。</figcaption>
+      </figure>
+    </section>
+
+    <section id="insight">
+      <p class="eyebrow">读懂它</p>
+      <h2>这篇真正说明了什么</h2>
+      <h3 style="margin-top:0">关键 insight</h3>
+      <div class="cards">
+        <div class="card c-l"><h4>1. 产出物是程序，大模型的钱花在开发期</h4><p>LIBERO-Pro 和 Robosuite 上，每个任务交出一份 Python 程序，在 50 / 100 个种子上直接执行，大模型调用全在调试阶段（Opus 5.5 每任务约 132 次调用、$10.8）。这和每个回合都调大模型的 MotorMind、PyRUA-Lean 是两种成本结构。代价是程序一旦定下来，评测回合里就不能看着画面临场改。</p></div>
+        <div class="card c-e"><h4>2. 关键是能在仿真里反复执行自己的程序</h4><p>消融里最大的一跳（14% → 62%）来自执行引擎这一级。它同时带来多轮执行、逐原语轨迹和技能库，论文没拆开；但「能在调试种子上跑、看、改」显然是主要来源。这一点依赖仿真器，或者可以低成本复位的真机。</p></div>
+        <div class="card c-s"><h4>3. 技能是失败驱动的文字，入库要别人复现</h4><p>技能不是人写的原语，而是「失败特征 + 适用条件 + 修法 + 代码草图」，要由新起的 verifier 只凭这条技能把任务重新做成功才入库。零样本迁移从 CaP-Agent0 的 3.8% 到 30.5%，是技能库有用的主要证据。</p></div>
+        <div class="card c-a"><h4>4. 模型换代的影响比 harness 组件大</h4><p>同一个 harness，Opus 4.6 → Opus 5.5，Goal 位置扰动 55.6% → 99.2%；进化搜索对 Opus 4.6 最多加 34 个点，对强模型不超过 2 个点。三个基准都已接近 100%，要继续比较 harness 设计，需要更难的任务。</p></div>
+      </div>
+      <h3>容易误解的地方</h3>
+      <div class="prose">
+        <ul>
+          <li><strong>「零样本」只指 LIBERO-Pro Long 迁移实验。</strong>主结果的 72%、模型消融的 99% 都在目标扰动任务上调试过（15 个调试种子），只是评测用另外 50 个种子。</li>
+          <li><strong>「提升 77%」是百分点</strong>，而且是 Object 套件两种扰动的平均。</li>
+          <li><strong>「80 个任务 99%」用的是 Claude Opus 5.5 加进化搜索。</strong>主结果的 Claude Opus 4.6 在三个套件上是 72%。</li>
+          <li><strong>执行引擎的消融不是「粗反馈 vs 细反馈」的对照。</strong>见消融一节。</li>
+          <li><strong>真机部分是演示级的证据。</strong>技能迁移三个任务各一次调试运行，魔方三个回合。</li>
+          <li><strong>正文说 π0.5「在任务改写（paraphrase）下基本崩溃」</strong>，但附录逐任务表里的任务扰动是换目标（如「关炉子」「打开底层抽屉」「酒瓶放进碗里」），不只是换措辞。</li>
+        </ul>
+      </div>
+      <h3>FAQ</h3>
+      <details class="faq"><summary>评测时还调用大模型吗？</summary><div class="a"><p>LIBERO-Pro 和 Robosuite 不调用：一个任务一份程序，直接在 held-out 种子上执行。BEHAVIOR-1K 用增量分块执行，每块代码根据当前多模态轨迹现场生成，大模型在环；真机的 System 2 也是在线智能体。BEHAVIOR-1K 评测时的调用量论文没报告。</p></div></details>
+      <details class="faq"><summary>和 CaP-Agent0 的根本区别是什么？</summary><div class="a"><p>CaP-Agent0 出自 CaP-X（与本文至少有 7 位作者重叠）：视觉差分、预定义的技能库，每个评测种子单独生成一份程序，测试时推理并重试，不跨种子调试，也不积累技能。ASPIRE 跨 15 个调试种子调出一份程序，把修复写进会增长的技能库，评测时不重试。</p></div></details>
+      <details class="faq"><summary>技能库会不会越用越乱？</summary><div class="a"><p>论文承认这一点：技能只在入库时验证一次，库变大以后不再重新验证，可能过时、重复或误导，在零样本迁移里会伤害个别任务；需要重新验证、剪枝和按任务排序的检索。零样本迁移的逐任务热图里能看到这种波动。</p></div></details>
+      <details class="faq"><summary>为什么主结果用 Claude Opus 4.6，而不是最好的 Opus 5.5？</summary><div class="a"><p>正文没有解释。实验设置写主结果「在所有仿真基准上」用 Opus 4.6，较新的模型只出现在模型消融里。结果是主图里 ASPIRE 的数字（72%）远低于摘要后半段的 99%，两者用的模型不同。</p></div></details>
+      <details class="faq"><summary>进化搜索的 K、T、θ 是多少？</summary><div class="a"><p>正文和算法 1 只有符号。附录说成功率低于 90% 的任务才触发进化搜索，代码库里有 <code>campaign.py</code> 保存运行设置，但论文没有列出具体值。</p></div></details>
+    </section>
+
+    <section id="limits">
+      <p class="eyebrow">局限与疑点</p>
+      <h2>作者承认的，和我们读出来的</h2>
+      <div class="two">
+        <div>
+          <h4>论文自己提到的</h4>
+          <ul>
+            <li>还不是完全自主的真机终身学习：魔方实验里，人给初始的任务说明、打乱魔方、在回合间复位。真机需要可靠的成功判断、安全复位、安全监控和标定维护。</li>
+            <li>依赖冻结的大模型：GPT-6 Luna、Claude Opus 4.6、Qwen 3.8 Max、GPT-6 Sol 只有 15–59%，开放权重最好的 Kimi K3 是 78%；最好的结果都来自闭源前沿模型。</li>
+            <li>预定义的机器人 API 限制了能表达的行为；需要 API 之外的感知、控制或交互能力时，只能低效地近似，或者靠人扩充 API。</li>
+            <li>技能只在入库时验证一次，库变大后不再重新验证，可能过时、重复或误导。</li>
+            <li>调试和进化搜索很耗算力：每个任务大量大模型调用和仿真 / 真机 rollout。</li>
+          </ul>
+        </div>
+        <div>
+          <h4>我们读出来的</h4>
+          <ul>
+            <li><span class="tag doubt">疑点</span>主结果的比较协议不对等：ASPIRE 在目标扰动任务上调试过，VLA 没有。</li>
+            <li><span class="tag doubt">疑点</span>执行引擎的消融混了多轮执行、轨迹粒度和技能库三样，核心主张没有单独验证。</li>
+            <li><span class="tag doubt">疑点</span>逐任务结果全是单次运行，而单任务的运行间方差可达 0 / 100 / 0；表 25 缺 Run 2。</li>
+            <li><span class="tag doubt">疑点</span>技能库在套件内的增益没有对照，Opus 4.6 带库（47.0%）反而低于空库（55.6–67.4%）。</li>
+            <li><span class="tag doubt">疑点</span>反向迁移没有「用旧库重跑」的对照，按低分挑任务再重跑会回归均值。</li>
+            <li>15 个验证种子多次选掉 held-out 上高出 50–76 个点的程序。</li>
+            <li>表 12 与表 10、11 对不上；表 11 有 50 个种子做不出的 13%；表 8、表 9 与正文的均值各不相同。</li>
+            <li>Claude Opus 4.6 的费用与成功率来自不同的运行。</li>
+            <li>魔方的打乱程度未报告，每步成本随步数自然摊薄，只有 3 个回合。</li>
+            <li>Robosuite 的 Human 数字只在图里；人写的程序在双臂抬起和螺母装配上远好于 ASPIRE（Opus 4.6）。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="topic">
+      <p class="eyebrow">放到专题里看</p>
+      <h2>不改策略的某一环，而是把整条开发回路一起设计</h2>
+      <div class="prose">
+        <p>在 <a href="../../topics/robot-harness/">Harness for Robotics 专题</a>里，（2）到（5）类的论文各自改一个环节：模型看到什么、跨步记住什么、任务怎样分层交接、用什么信号修正。ASPIRE 归在（1）总体设计，因为这五样它是作为一个系统一起定的，单独拿掉哪一样，回路都转不起来：</p>
+      </div>
+      <div class="map5">
+        <div><b>接口</b>一套 Python CaP API 横跨三个仿真基准，真机经 MCP 白名单工具接入<span>对应（4）结构化执行的中间接口</span></div>
+        <div><b>观测</b>逐原语的多模态轨迹，智能体自己挑着看<span>对应（2）上下文架构</span></div>
+        <div><b>记忆</b>跨任务、跨本体的技能库，verifier 复现才入库<span>对应（3）持久状态与记忆</span></div>
+        <div><b>反馈</b>调试种子上的成功率、进化搜索、验证集选择<span>对应（5）评估与反馈</span></div>
+        <div><b>组织</b>coordinator / actor / verifier、课程、反向迁移<span>专题里其他论文没有这一层</span></div>
+      </div>
+      <div class="tblwrap">
+        <table class="t cmp">
+          <thead><tr><th></th><th class="me">ASPIRE</th><th><a href="../pyrua-lean/">PyRUA-Lean</a></th><th><a href="../motormind/">MotorMind</a></th><th><a href="../hime/">HiMe</a></th><th><a href="../tau0-vla/">τ₀-VLA</a></th></tr></thead>
+          <tbody>
+            <tr><th>专题分类</th><td class="me">（1）总体设计</td><td>（1）总体设计</td><td>（4）结构化执行</td><td>（3）持久状态与记忆</td><td>（5）评估与反馈</td></tr>
+            <tr><th>大模型何时介入</th><td class="me">开发期：跨调试种子改出一份程序；BEHAVIOR-1K 与真机在线</td><td>每个回合在线写 Python cell</td><td>每个回合在线，五个角色</td><td>子任务交接时唤醒 GPT-4o</td><td>高层约每 1 s 刷新</td></tr>
+            <tr><th>动作接口</th><td class="me">程序调用感知、规划、抓取 API（SAM3、GraspNet、cuRobo、PyRoKi）</td><td>cell 组合原语，冻结的 VLA（LIBERO-PRO 上是 π0.5）也是一个原语</td><td>参数化中层动作 JSON → 确定性控制器</td><td>一句子目标交给 π0.5</td><td>语言子任务交给低层 VLA</td></tr>
+            <tr><th>观测怎样回到模型</th><td class="me">逐原语轨迹，开发期由智能体挑着看</td><td>只返回 cell 打印的内容和请求的图像</td><td>每次提议前的图像 + 实测状态；Monitor 并行</td><td>Sentry 看最近 8 帧</td><td>世界模型想象的终态图 + 价值打分</td></tr>
+            <tr><th>跨回合记忆</th><td class="me">技能库，跨任务、跨本体</td><td>明确不跨回合</td><td>无（回合内便条）</td><td>无（回合内图文记忆）</td><td>回合内执行记忆</td></tr>
+            <tr><th>要训练什么</th><td class="me">不训练，全靠上下文</td><td>主实验不训练；另用 GRPO 训一个 4B Coder</td><td>不训练</td><td>只训 Executor</td><td>高层 4 个模型 + 低层 VLA</td></tr>
+            <tr><th>LIBERO-Pro 数字与协议</th><td class="me">Opus 4.6，3 个套件位置 / 任务扰动 72%；每任务 15 个种子调试后，一份程序在 50 个种子上评测</td><td>GPT-6 Astra，40 个任务 × 5 个种子，每个实例一个在线回合：94.0%（工具调用 83.0%）</td><td>Qwen3.8-Flash-Next 零样本，3 个套件：基础 66.7%、扰动 53.8%</td><td>—</td><td>—</td></tr>
+            <tr><th>成本</th><td class="me">开发期每任务 $10.8–32.1（不开进化搜索）；评测时程序不调大模型</td><td>LIBERO-PRO 上两种接口都解开的实例，平均每回合约 $0.79</td><td>每回合约 223 s</td><td>GPT-4o 单次调用中位 38.59 s</td><td>搜索耗时未报告</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <ul>
+          <li><strong>和 PyRUA-Lean（同属（1））：</strong>两篇都把动作接口换成 Python 代码，都让智能体自己决定看哪些观测，PyRUA-Lean 的相关工作也把 ASPIRE 列为「跨试次积累可复用能力」的一类。分歧在大模型什么时候花钱：PyRUA-Lean 每个回合在线写 cell、明确不跨回合记忆，比的是同一规划器下代码接口对工具调用的成功率和 token；ASPIRE 在开发期跨种子调出固定程序，再把修复沉淀成技能。两篇的 LIBERO-Pro 数字协议不同（见上表），不能直接比高低。</li>
+          <li><strong>和 MotorMind（4）：</strong>都不训练任何模型。MotorMind 让通用 VLM 每个回合在线输出毫米级的中层动作，靠 Monitor、Verifier 在回合内纠错；ASPIRE 的纠错发生在开发期，评测时程序固定。两篇里同一个 π0.5 基线差别很大：任务扰动下 MotorMind 自己测得 23.3%，ASPIRE 表 5 是三个套件平均 1.0%，基线的跑法不一样。</li>
+          <li><strong>和 HiMe（3）：</strong>都把记忆放在策略外面、用语言写。HiMe 的图文记忆在一个回合内随子任务更新，由大模型增改删；ASPIRE 的技能跨任务、跨本体保存，写入前要被另一个智能体独立复现。</li>
+          <li><strong>和 τ₀-VLA（5）：</strong>都在「承诺之前」评价候选。τ₀-VLA 用世界模型想象候选子任务的后果再提交；ASPIRE 直接在仿真器里执行候选程序（调试种子），评测种子只跑最终程序一次。到了真机上，ASPIRE 没有可以随便试的仿真器，只能真的执行，这也是它真机部分只做到技能迁移和在线学习演示的原因之一。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="glossary">
+      <p class="eyebrow">术语表</p>
+      <h2>读这篇会遇到的词</h2>
+      <details class="gl"><summary>展开术语表</summary>
+        <dl>
+          <dt>code-as-policy (CaP)</dt><dd>把机器人策略写成调用感知、规划、控制 API 的程序。</dd>
+          <dt>coordinator / actor / verifier</dt><dd>三类智能体：coordinator 排课程、管技能库；actor 负责一个任务的写程序和调试；verifier 只凭技能提案独立复现，决定能否入库。</dd>
+          <dt>robot execution engine</dt><dd>执行引擎：运行程序，并为每次原语调用记录输入、输出、返回状态和前后关键帧、overlay。</dd>
+          <dt>iterative debugging</dt><dd>执行 → 诊断 → 修复的回路，在调试种子上反复进行。</dd>
+          <dt>skill library / skill</dt><dd>技能库与技能：失败特征、适用条件、修复策略、代码草图组成的上下文提示，按类别存成 Markdown 文件。</dd>
+          <dt>evolutionary search</dt><dd>每轮基于前 3 名程序和残余失败轨迹提 K 个候选，在调试种子上执行，择优替换，直到达到阈值 θ 或用完 T 轮。</dd>
+          <dt>debug / held-out seeds</dt><dd>调试种子用于学技能、改程序；held-out 种子只用来评测最终程序。种子固定物体位姿、干扰物和初始状态。</dd>
+          <dt>backward skill transfer</dt><dd>反向迁移：全部任务做完后，用完整技能库重跑早期低分任务一次。</dd>
+          <dt>incremental block execution</dt><dd>BEHAVIOR-1K 的评测方式：程序分块，每块根据当前轨迹现场生成。</dd>
+          <dt>LIBERO-Pro 位置 / 任务扰动</dt><dd>位置扰动改变物体初始布局；任务扰动改变任务目标（例如「关炉子」代替「开炉子」）。</dd>
+          <dt>CaP-Agent0</dt><dd>CaP-X 中的编码智能体基线：视觉差分、预定义技能库、每个种子单独生成程序并在测试时重试。</dd>
+          <dt>System 2 / MCP</dt><dd>真机上的在线智能体回路；MCP（Model Context Protocol）服务器把白名单内的机器人工具暴露给智能体。</dd>
+          <dt>Kociemba solver</dt><dd>魔方的符号求解算法，给出转面序列。</dd>
+        </dl>
+      </details>
+    </section>
+  </main>
+</div>
+<footer class="page">
+  <p>图全部来自论文 arXiv 源码（v2）里的原图；表 1–26 的数字取自 tex 表格，Robosuite 的 Human 一列取自 Figure 4b 矢量图的文字层，Figure 7c 的折线由表 12 复算。标「解读」的是我们的判断，标「我们算的」是按论文数字做的简单运算。</p>
+</footer>
+<dialog id="lb" aria-label="放大查看"><div class="box"><img id="lb-img" alt=""></div><div class="bar"><span id="lb-cap"></span><button type="button" id="lb-close">关闭</button></div></dialog>
+<div class="tip" id="tip" hidden></div>
+<script>
+(function(){
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const NS = 'http://www.w3.org/2000/svg';
+  const FMT = v => (typeof v === 'number' ? (Number.isInteger(v) ? String(v) : (Math.round(v * 100) / 100).toString()) : v);
+  function el(tag, attrs, text){ const e = document.createElementNS(NS, tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+
+  const tip = $('#tip');
+  function place(x, y){ const r = tip.getBoundingClientRect(); let l = x + 14, t = y + 14; if (l + r.width > innerWidth - 8) l = x - r.width - 14; if (t + r.height > innerHeight - 8) t = y - r.height - 14; tip.style.left = Math.max(8, l) + 'px'; tip.style.top = Math.max(8, t) + 'px'; }
+  document.addEventListener('pointerover', e => { const t = e.target.closest && e.target.closest('[data-tip]'); if (!t) return; tip.textContent = t.getAttribute('data-tip'); tip.hidden = false; place(e.clientX, e.clientY); });
+  document.addEventListener('pointermove', e => { if (tip.hidden) return; if (!(e.target.closest && e.target.closest('[data-tip]'))) { tip.hidden = true; return; } place(e.clientX, e.clientY); });
+
+  const lb = $('#lb');
+  $$('figure.plate .zoom').forEach(b => b.addEventListener('click', () => { $('#lb-img').src = b.dataset.src; const c = b.parentElement.querySelector('figcaption b'); $('#lb-cap').textContent = c ? c.textContent : ''; if (lb.showModal) lb.showModal(); else lb.setAttribute('open', ''); }));
+  $('#lb-close').addEventListener('click', () => lb.close());
+  lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+
+  const links = $$('.toc a');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id)); }), { rootMargin: '-35% 0px -60% 0px' });
+    $$('main section').forEach(s => io.observe(s));
+  }
+  function rawTable(host, head, rows){
+    const d = document.createElement('div'); d.className = 'tblwrap';
+    d.innerHTML = '<table class="t"><thead><tr>' + head.map((h, i) => '<th' + (i ? ' class="num"' : '') + '>' + h + '</th>').join('') + '</tr></thead><tbody>' +
+      rows.map(r => r.grp ? '<tr class="grp"><th colspan="' + head.length + '">' + r.grp + '</th></tr>' : '<tr' + (r.best ? ' class="best"' : '') + '>' + r.cells.map((c, i) => i ? '<td class="num' + (r.cls && r.cls[i] ? ' ' + r.cls[i] : '') + '">' + c + '</td>' : '<th>' + c + '</th>').join('') + '</tr>').join('') + '</tbody></table>';
+    host.appendChild(d); return d;
+  }
+  function seg(host, onPick){ $$('button', host).forEach(b => b.addEventListener('click', () => { $$('button', host).forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); onPick(b.dataset.k); })); }
+  const pct = v => v == null ? '–' : FMT(v) + '%';
+
+  function vgroups(svg, groups, series, opt){
+    opt = opt || {}; const W = opt.W || 760, H = opt.H || 260, L = 40, R = 10, T = opt.T || 22, B = opt.B || 44, lo = opt.lo || 0, hi = opt.max || 100;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.innerHTML = '';
+    const y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+    for (let g = lo; g <= hi + 1e-9; g += (opt.step || 25)) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g)); }
+    const n = groups.length, gw = (W - L - R) / n, bw = Math.min(opt.bw || 24, (gw - 10) / series.length);
+    groups.forEach((gr, i) => {
+      const cx = L + gw * i + gw / 2, x0 = cx - bw * series.length / 2; let lastY = null;
+      if (gr.sep) svg.appendChild(el('line', { x1: L + gw * i, x2: L + gw * i, y1: T - 10, y2: H - 8, stroke: 'var(--ink-2)', 'stroke-dasharray': '3 3' }));
+      series.forEach((s, j) => {
+        const v = gr.vals[j]; if (v == null) return; const yy = y(Math.max(lo, v));
+        let ly = yy - 4; if (j && lastY != null && Math.abs(ly - lastY) < 11) ly = Math.min(ly, lastY - 11); lastY = ly;
+        svg.appendChild(el('rect', { x: x0 + j * bw + 1, y: yy, width: bw - 2, height: Math.max(1, y(lo) - yy), rx: 2, class: s.cls, 'data-tip': gr.name.replace(/\n/g, ' ') + ' · ' + s.name + '：' + FMT(v) + (opt.unit || '') + (gr.note && gr.note[j] ? '（' + gr.note[j] + '）' : '') }));
+        svg.appendChild(el('text', { x: x0 + j * bw + bw / 2, y: ly, 'text-anchor': 'middle', class: 'val' + (s.hi ? ' hi' : ''), 'font-size': 10 }, FMT(v)));
+      });
+      gr.name.split('\n').forEach((w, k) => svg.appendChild(el('text', { x: cx, y: H - B + 16 + k * 14, 'text-anchor': 'middle', class: 'glabel', 'font-size': 11.5, 'font-weight': gr.bold ? 700 : 400 }, w)));
+    });
+    svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(lo), y2: y(lo), class: 'base' }));
+  }
+
+  /* ---------- trace lab ---------- */
+  (function(){
+    const PH = [
+      { a: 0, b: 0, n: '初始状态', calls: ['get_robot_position → [4.95, 5.04, 0.01]，yaw = −1.93 rad', '任务：拿起红色收音机；起始位姿下收音机不在画面里'], read: '先要找到收音机。' },
+      { a: 0, b: 153, n: '感知扫描', calls: ['find_object_base_rotate("red radio")：底盘旋转 10 次', '→ 在 [3.02, 4.91, 0.30] 找到收音机', 'd = 1.91 m，需要靠近'], read: '感知成功，位置可信，问题不在检测。' },
+      { a: 153, b: 545, n: '碰撞规避', fail: true, calls: ['依次尝试 3 个近处的导航目标：[3.64, 4.79]、[3.52, 4.89]、[3.62, 4.88]', '三个都在桌子的碰撞规避缓冲区内（正文：离桌沿约 20 cm）', 'cuRobo 内部返回 PLANNING_ERROR'], read: '失败定位到「导航目标不可行」，不是感知或抓取。所以不该改感知提示词或抓取原语。' },
+      { a: 545, b: 607, n: '多角度接近', calls: ['修复：for θ in [180°, −90°, 90°]: target = radio + 0.7·[cos θ, sin θ]', 'ang_180 → [2.32, 4.91]（收音机西侧 0.7 m，远离桌子的一侧）', 'cuRobo 找到无碰撞路径，一次移动 1.45 m 到 [2.80, 4.90]，d = 0.22 m'], read: '修复只改接近方向。' },
+      { a: 607, b: 1205, n: '重新感知 + 抓取', calls: ['sample_grasp_pose(red radio) → 2 个候选', 'grasp_object(arm=0, pose 1) → True', 'lift_arm → in_hand = True；reward = 1.0，task_completed = 1'], read: '验证通过。入库的是一条导航恢复技能：「cuRobo 对附近目标报 PLANNING_ERROR 时，把接近方向转 45°、90° 或 180°」，不是「拿收音机」的完整程序。' }
+    ];
+    const svg = $('#tr-svg'), say = $('#tr-say');
+    let mode = 'trace', sel = 2;
+    const x0 = 20, x1 = 740, X = t => x0 + (x1 - x0) * t / 1205;
+    function draw(){
+      svg.innerHTML = '';
+      for (let t = 0; t <= 1200; t += 200) { svg.appendChild(el('line', { x1: X(t), x2: X(t), y1: 30, y2: 78, class: 'grid', stroke: 'var(--line)' })); svg.appendChild(el('text', { x: X(t), y: 96, 'text-anchor': 'middle', class: 'mono' }, t + ' s')); }
+      PH.forEach((p, i) => {
+        const coarse = mode === 'coarse';
+        const w = Math.max(10, X(p.b) - X(p.a) - 2), xa = p.b === p.a ? X(p.a) - 2 : X(p.a) + 1;
+        const fill = coarse ? 'var(--surface-2)' : (p.fail ? 'var(--warn-soft)' : (i >= 3 ? 'var(--lime-soft)' : 'var(--eng-soft)'));
+        const stroke = coarse ? 'var(--line)' : (p.fail ? 'var(--warn)' : (i >= 3 ? 'var(--lime)' : 'var(--eng)'));
+        const r = el('rect', { x: xa, y: 36, width: w, height: 36, rx: 5, fill, stroke, class: 'seg-r' + (!coarse && i === sel ? ' sel' : ''), tabindex: coarse ? -1 : 0, role: 'button', 'aria-label': p.n + ' ' + p.a + '–' + p.b + ' 秒' });
+        if (!coarse) { r.addEventListener('click', () => { sel = i; draw(); }); r.addEventListener('keydown', k => { if (k.key === 'Enter' || k.key === ' ') { k.preventDefault(); sel = i; draw(); } }); }
+        svg.appendChild(r);
+        if (w > 60 && !coarse) svg.appendChild(el('text', { x: xa + 6, y: 58, style: 'pointer-events:none;fill:var(--ink)' }, p.n));
+      });
+      if (mode === 'coarse') {
+        svg.appendChild(el('text', { x: X(600), y: 58, 'text-anchor': 'middle', style: 'fill:var(--muted)' }, '中间发生了什么：看不到'));
+        svg.appendChild(el('text', { x: x0, y: 20, class: 'mono' }, '出错程序的这一回合 → task_completed = 0'));
+        say.innerHTML = '<span class="tag demo">示意</span>只给任务级结果时，出错的程序跑完一回合，智能体拿到的是 <b>task_completed = 0</b>（也许还有最后一帧画面：机器人停在桌边）。是感知没找到、导航到不了，还是抓取失败，都要它自己猜；常见的反应是改感知提示词或者重写抓取，正好改错了地方。这一模式是我们按论文的描述画的对照，论文的消融里没有这个条件。';
+      } else {
+        svg.appendChild(el('text', { x: x0, y: 20, class: 'mono' }, '点任一阶段看这一段的原语调用与返回值'));
+        const p = PH[sel];
+        say.innerHTML = '<b>' + p.a + (p.b !== p.a ? '–' + p.b : '') + ' s · ' + p.n + '</b><ul>' + p.calls.map(c => '<li><code>' + c.replace(/</g, '&lt;') + '</code></li>').join('') + '</ul><div style="margin-top:6px">智能体从这里读出：' + p.read + '</div>';
+      }
+    }
+    seg($('#tr-mode'), k => { mode = k; draw(); }); draw();
+  })();
+
+  /* ---------- evo lab ---------- */
+  (function(){
+    const EVO = [
+      ['Goal · 位置', '碗 → 盘子', [62, 60, 60, 18, 86]],
+      ['Goal · 位置', '酒瓶 → 酒架', [40, 76, 74, null, null]],
+      ['Goal · 位置', '碗 → 炉子', [62, 82, null, null, null]],
+      ['Goal · 任务', '推盘子 → 炉子前', [0, 80, null, null, null]],
+      ['Spatial · 位置', '柜子上的碗 → 盘子', [16, 38, 38, 46, 30]],
+      ['Spatial · 位置', '饼干盒旁的碗 → 盘子', [16, 20, 4, 4, 40]],
+      ['Spatial · 任务', '饼干盒上的碗 → 盘子', [26, 4, 70, null, null]],
+      ['Spatial · 任务', '小碗上的碗 → 盘子', [2, 0, 22, 36, 18]]
+    ];
+    const filled = EVO.map(e => { const o = []; let last = null; e[2].forEach(v => { if (v != null) last = v; o.push(last); }); return o; });
+    const MEAN = [0, 1, 2, 3, 4].map(i => filled.reduce((s, f) => s + f[i], 0) / filled.length);
+    let sel = 0;
+    const pick = $('#evo-pick'), rng = $('#evo-it'), svg = $('#evo-svg'), say = $('#evo-say');
+    EVO.forEach((e, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = e[1]; b.title = e[0]; b.setAttribute('aria-pressed', i === sel ? 'true' : 'false'); b.addEventListener('click', () => { sel = i; $$('button', pick).forEach((x, j) => x.setAttribute('aria-pressed', j === sel ? 'true' : 'false')); draw(); }); pick.appendChild(b); });
+    function draw(){
+      const it = +rng.value; svg.innerHTML = '';
+      const W = 760, H = 280, L = 44, R = 40, T = 22, B = 36;
+      const x = i => L + (W - L - R) * i / 4, y = v => T + (H - T - B) * (1 - v / 100);
+      for (let v = 0; v <= 100; v += 25) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, v)); }
+      for (let i = 0; i <= 4; i++) svg.appendChild(el('text', { x: x(i), y: H - 12, 'text-anchor': 'middle', class: 'tick' }, '第 ' + i + ' 轮'));
+      EVO.forEach((e, k) => { if (k === sel) return; let d = ''; e[2].forEach((v, i) => { if (v == null || i > it) return; d += (d ? 'L' : 'M') + x(i) + ' ' + y(v); }); svg.appendChild(el('path', { d, fill: 'none', stroke: 'var(--muted)', 'stroke-opacity': .35, 'stroke-width': 1.2 })); });
+      let dm = ''; MEAN.forEach((v, i) => { if (i > it) return; dm += (dm ? 'L' : 'M') + x(i) + ' ' + y(v); });
+      svg.appendChild(el('path', { d: dm, fill: 'none', stroke: 'var(--ink-2)', 'stroke-width': 1.6, 'stroke-dasharray': '5 4' }));
+      MEAN.forEach((v, i) => { if (i > it) return; svg.appendChild(el('rect', { x: x(i) - 4, y: y(v) - 4, width: 8, height: 8, fill: 'var(--surface)', stroke: 'var(--ink-2)', 'data-tip': '8 个任务平均（补齐末值）第 ' + i + ' 轮：' + FMT(v) + '%' })); });
+      svg.appendChild(el('text', { x: x(it) + (it === 4 ? -8 : 8), y: y(MEAN[it]) + 18, 'text-anchor': it === 4 ? 'end' : 'start', class: 'tick' }, '平均 ' + FMT(MEAN[it])));
+      const e = EVO[sel]; let d = '', lastI = 0;
+      e[2].forEach((v, i) => { if (v == null || i > it) return; d += (d ? 'L' : 'M') + x(i) + ' ' + y(v); lastI = i; });
+      svg.appendChild(el('path', { d, fill: 'none', stroke: 'var(--lime-f)', 'stroke-width': 3 }));
+      e[2].forEach((v, i) => { if (v == null || i > it) return; svg.appendChild(el('circle', { cx: x(i), cy: y(v), r: 6, fill: 'var(--lime-f)', stroke: 'var(--surface)', 'stroke-width': 2, 'data-tip': e[1] + ' 第 ' + i + ' 轮：' + v + '%' })); svg.appendChild(el('text', { x: x(i), y: y(v) - 11, 'text-anchor': 'middle', class: 'val hi' }, v)); });
+      const stop = e[2].findIndex(v => v == null);
+      if (stop > 0 && it >= stop) svg.appendChild(el('text', { x: x(stop - 1) + 12, y: y(e[2][stop - 1]) + 4, class: 'tick', style: 'fill:var(--lime)' }, '← 达到阈值，提前终止'));
+      const vals = e[2].slice(0, it + 1).filter(v => v != null), best = Math.max.apply(null, vals);
+      const ended = stop > 0 && it >= stop;
+      say.innerHTML = '<b>' + e[0] + ' · ' + e[1] + '</b>：' + e[2].map((v, i) => i > it ? '' : (v == null ? '' : '第 ' + i + ' 轮 ' + v + '%')).filter(Boolean).join(' → ') + (ended ? '（第 ' + (stop - 1) + ' 轮后搜索终止）' : '') + '。到目前为止 held-out 最高 ' + best + '%。<br>每一轮的点是「调试种子上最好的候选」在 50 个 held-out 种子上的成功率；它是事后测的，不参与搜索的选择，所以会下降。';
+    }
+    rng.addEventListener('input', draw); draw();
+  })();
+
+  /* ---------- LIBERO-Pro main ---------- */
+  const LP = [['OpenVLA', [0, 0, 0, 0, 0, 0, 0, 0, 0]], ['π0', [0, 0, 0, 0, 0, 0, 0, 0, 0]], ['π0.5', [17, 1, 38, 0, 20, 1, 25, 1, 13]], ['CaP-Agent0', [22, 18, 26, 17, 12, 14, 20, 16, 18]], ['ASPIRE（Opus 4.6）', [98, 95, 81, 45, 51, 60, 77, 67, 72]]];
+  const LPG = ['Object\n位置', 'Object\n任务', 'Goal\n位置', 'Goal\n任务', 'Spatial\n位置', 'Spatial\n任务', '总体\n位置', '总体\n任务', '总体\n全部'];
+  vgroups($('#ch-lp'), LPG.map((g, i) => ({ name: g, vals: [LP[2][1][i], LP[3][1][i], LP[4][1][i]], sep: i === 6, bold: i === 8 })), [{ name: 'π0.5', cls: 'c-pi' }, { name: 'CaP-Agent0', cls: 'c-cap' }, { name: 'ASPIRE', cls: 'c-lime', hi: 1 }], { unit: '%', bw: 20 });
+  rawTable($('#raw-lp'), ['方法', 'Obj 位置', 'Obj 任务', 'Goal 位置', 'Goal 任务', 'Spa 位置', 'Spa 任务', '总 位置', '总 任务', '总 全部'], LP.map((r, i) => ({ cells: [r[0]].concat(r[1].map(v => v + '%')), best: i === 4 })));
+
+  /* ---------- Robosuite ---------- */
+  const RS = [['cube_lift', 'Lift', 93, 97, 97], ['cube_stack', 'Stack', 73, 98, 99], ['cube_restack', 'Restack', 47, 89, 100], ['spill_wipe', 'Wipe', 100, 100, 99], ['two_arm_handover', '2A-Hand', 91, 20, 92], ['two_arm_lift', '2A-Lift', 94, 74, 71], ['nut_assembly', 'Insert', 80, 0, 9]];
+  const gRS = RS.map(r => ({ name: r[1], vals: [r[2], r[3], r[4]] }));
+  gRS.push({ name: '平均', vals: [82.6, 68.0, 81.0], sep: true, bold: true, note: ['按图中数字算，论文未报告', '表 6 写 68.0，逐项算 68.3', ''] });
+  vgroups($('#ch-rs'), gRS, [{ name: 'Human', cls: 'c-human' }, { name: 'CaP-Agent0', cls: 'c-cap' }, { name: 'ASPIRE', cls: 'c-lime', hi: 1 }], { unit: '%', bw: 20 });
+  rawTable($('#raw-rs'), ['任务（图中简称）', 'Human（图 4b）', 'CaP-Agent0', 'ASPIRE'], RS.map(r => ({ cells: [r[0] + '（' + r[1] + '）', r[2] + '%', r[3] + '%', r[4] + '%'] })).concat([{ cells: ['平均', '82.6%（我们算的）', '68.0%', '81.0%'], best: true }]));
+
+  /* ---------- BEHAVIOR-1K ---------- */
+  vgroups($('#ch-b1k'), [{ name: '汽水罐\n导航', vals: [80, 84, 92] }, { name: '汽水罐\n任务', vals: [72, 72, 88] }, { name: '收音机\n导航', vals: [88, 80, 100], sep: true }, { name: '收音机\n任务', vals: [36, 56, 88] }], [{ name: 'Human', cls: 'c-human' }, { name: 'CaP-Agent0', cls: 'c-cap' }, { name: 'ASPIRE', cls: 'c-lime', hi: 1 }], { unit: '%', bw: 30, H: 230 });
+
+  /* ---------- ablation ---------- */
+  const ABL = {
+    pos: {
+      Object: { t: ['Alphabet soup', 'BBQ sauce', 'Butter', 'Chocolate pudding', 'Cream cheese', 'Ketchup', 'Milk', 'Orange juice', 'Salad dressing', 'Tomato sauce'], b: [0, 6, 0, 0, 92, 2, 6, 46, 18, 66], w: [100, 100, 100, 100, 100, 92, 92, 100, 96, 98], e: [null, null, null, null, null, null, null, null, null, null], f: [100, 100, 100, 100, 100, 92, 92, 100, 96, 98], m: [24, 98, null, 98] },
+      Goal: { t: ['Open middle drawer', 'Open top drawer + bowl', 'Push plate to stove', 'Bowl on plate', 'Bowl on stove', 'Bowl on cabinet top', 'Cream cheese in bowl', 'Wine on rack', 'Wine on cabinet top', 'Turn on stove'], b: [28, 0, 0, 4, 16, 72, 0, 6, 100, 40], w: [2, 86, 0, 36, 56, 74, 74, 46, 24, 68], e: [72, null, 0, 92, 96, 100, 92, 98, 100, 90], f: [72, 86, 0, 92, 96, 100, 74, 98, 100, 90], m: [27, 47, 82, 81] },
+      Spatial: { t: ['Betw. plate + ramekin', 'From table center', 'In top drawer', 'Next to cookie box', 'Next to plate', 'Next to ramekin', 'On cookie box', 'On ramekin', 'On stove', 'On wooden cabinet'], b: [2, 0, 2, 2, 8, 0, 0, 58, 4, 10], w: [10, 32, 22, 16, 100, 20, 32, 42, 86, 56], e: [94, 82, 10, 12, 100, 40, 24, 94, null, 34], f: [94, 32, 10, 16, 100, 20, 24, 94, 86, 34], m: [9, 42, 54, 51] }
+    },
+    task: {
+      Object: { t: ['Alphabet soup', 'BBQ sauce', 'Butter', 'Chocolate pudding', 'Cream cheese', 'Ketchup', 'Milk', 'Orange juice', 'Salad dressing', 'Tomato sauce'], b: [0, 88, 78, 0, 0, 0, 0, 0, 0, 4], w: [100, 100, 98, 100, 72, 96, 100, 100, 92, 96], e: [null, null, null, null, 74, null, null, null, null, null], f: [100, 100, 98, 100, 72, 96, 100, 100, 92, 96], m: [17, 95, null, 95] },
+      Goal: { t: ['Open middle drawer', 'Open top drawer + bowl', 'Push plate to stove', 'Bowl on plate', 'Bowl on stove', 'Bowl on cabinet top', 'Cream cheese in bowl', 'Wine on rack', 'Wine on cabinet top', 'Turn on stove'], b: [0, 0, 26, 0, 0, 0, 0, 0, 0, 24], w: [0, 50, 58, 88, 0, 0, 82, 74, 14, 52], e: [0, 46, 76, 82, 0, 4, 74, 86, 72, 66], f: [0, 46, 76, 88, 0, 4, 74, 86, 14, 66], m: [5, 42, 51, 45] },
+      Spatial: { t: ['Betw. plate + ramekin', 'From table center', 'In top drawer', 'Next to cookie box', 'Next to plate', 'Next to ramekin', 'On cookie box', 'On ramekin', 'On stove', 'On wooden cabinet'], b: [14, 26, 4, 0, 8, 0, 0, 20, 0, 13], w: [8, 46, 96, 94, 70, 60, 6, 10, 32, 46], e: [84, 64, null, null, 92, 42, 70, 46, 42, 98], f: [8, 64, 96, 94, 70, 60, 70, 46, 42, 46], m: [4, 47, 67, 60] }
+    }
+  };
+  const OVR = { pos: [20, 62, 68, 77], task: [9, 61, 59, 67] };
+  (function(){
+    let mode = 'pos', suite = 'Goal';
+    const svg = $('#ch-abl'), det = $('#abl-detail');
+    function detail(){
+      det.innerHTML = '';
+      const s = ABL[mode][suite];
+      const h = document.createElement('p'); h.className = 'small muted'; h.style.margin = '12px 0 0'; h.textContent = suite + ' · ' + (mode === 'pos' ? '位置扰动' : '任务扰动') + '（表 ' + (mode === 'pos' ? 10 : 11) + '）。标红：held-out 上更好的程序被验证集选掉，且差距 ≥ 20 个点。'; det.appendChild(h);
+      const rows = s.t.map((n, i) => { const best = Math.max(s.w[i], s.e[i] == null ? -1 : s.e[i]); const miss = best - s.f[i] >= 20; return { cells: [n, pct(s.b[i]), pct(s.w[i]), pct(s.e[i]), pct(s.f[i])], cls: [null, null, null, null, miss ? 'miss' : (s.f[i] === best && s.f[i] > s.w[i] ? 'hi' : '')] }; });
+      rows.push({ cells: ['表中均值', s.m[0] + '%', s.m[1] + '%', s.m[2] == null ? '–' : s.m[2] + '%', s.m[3] + '%'], best: true });
+      rawTable(det, ['任务', '无引擎无进化', '+ 引擎（w/o Evo）', '进化搜索（原始）', '最终（验证集选）'], rows);
+    }
+    function draw(){
+      svg.innerHTML = '';
+      const W = 760, H = 260, L = 40, R = 10, T = 18, B = 40, y = v => T + (H - T - B) * (1 - v / 100);
+      for (let v = 0; v <= 100; v += 25) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, v)); }
+      const groups = ['Object', 'Goal', 'Spatial', '总体'], gw = (W - L - R) / 4, bw = 80;
+      groups.forEach((g, i) => {
+        const m = g === '总体' ? OVR[mode] : ABL[mode][g].m, cx = L + gw * i + gw / 2, xa = cx - bw / 2;
+        const segs = [[0, m[0], 'var(--surface-2)', '无引擎无进化'], [m[0], m[1], 'color-mix(in oklab,var(--lime-f) 45%,var(--surface))', '+ 执行引擎与技能库'], [m[1], m[3], 'var(--lime-f)', '+ 进化搜索']];
+        const grp = el('g', { class: g === '总体' ? '' : 'clk', tabindex: g === '总体' ? -1 : 0, role: g === '总体' ? null : 'button', 'aria-label': g + ' 逐任务' });
+        segs.forEach(sg => { if (sg[1] - sg[0] <= 0) return; grp.appendChild(el('rect', { x: xa, y: y(sg[1]), width: bw, height: y(sg[0]) - y(sg[1]), fill: sg[2], stroke: g === suite ? 'var(--ink)' : 'var(--line)', 'stroke-width': g === suite ? 1.5 : 1, 'data-tip': g + ' · ' + sg[3] + '：' + FMT(sg[0]) + ' → ' + FMT(sg[1]) + '%' })); });
+        if (g !== '总体') { grp.addEventListener('click', () => { suite = g; draw(); }); grp.addEventListener('keydown', k => { if (k.key === 'Enter' || k.key === ' ') { k.preventDefault(); suite = g; draw(); } }); }
+        svg.appendChild(grp);
+        [[m[0], 0], [m[1], 1], [m[3], 2]].forEach((p, j) => { if (j && p[0] === [m[0], m[1], m[3]][j - 1]) return; svg.appendChild(el('text', { x: xa + bw + 6, y: y(p[0]) + 4, class: 'val' + (j === 2 ? ' hi' : '') }, FMT(p[0]))); });
+        svg.appendChild(el('text', { x: cx, y: H - B + 18, 'text-anchor': 'middle', class: 'glabel', 'font-weight': g === suite ? 700 : 400 }, g + (g === '总体' ? '' : ' ▸')));
+      });
+      svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(0), y2: y(0), class: 'base' }));
+      detail();
+    }
+    seg($('#abl-mode'), k => { mode = k; draw(); }); draw();
+  })();
+
+  /* ---------- variance ---------- */
+  (function(){
+    const V = [['Open middle drawer', [0, 100, 0]], ['Bowl on stove', [8, 0, 0]], ['Wine bottle on cabinet', [100, 96, 96]], ['Open drawer + bowl inside', [62, 0, 0]], ['Bowl on cabinet top', [96, 80, 96]], ['Push plate to stove', [0, 0, 0]], ['Cream cheese in bowl', [100, 100, 100]], ['Turn on stove', [100, 100, 100]], ['Bowl on plate', [92, 100, 100]], ['Wine bottle on rack', [70, 98, 100]], ['套件平均', [62.8, 67.4, 59.2]]];
+    const svg = $('#ch-var'), W = 620, L = 180, R = 86, rowH = 26, T = 14, H = T + V.length * rowH + 30;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    const x = v => L + (W - L - R) * v / 100, COL = ['var(--eng)', 'var(--code)', 'var(--skill)'], RUN = ['Run 1', 'Run 3', 'Run 4'];
+    for (let v = 0; v <= 100; v += 25) { svg.appendChild(el('line', { x1: x(v), x2: x(v), y1: T - 6, y2: T + V.length * rowH, class: 'grid' })); svg.appendChild(el('text', { x: x(v), y: T + V.length * rowH + 18, 'text-anchor': 'middle', class: 'tick' }, v + '%')); }
+    V.forEach((r, i) => {
+      const yy = T + i * rowH + rowH / 2, last = i === V.length - 1;
+      if (last) svg.appendChild(el('line', { x1: 10, x2: W - R, y1: yy - rowH / 2, y2: yy - rowH / 2, stroke: 'var(--ink-2)', 'stroke-dasharray': '3 3' }));
+      svg.appendChild(el('text', { x: L - 12, y: yy + 4, 'text-anchor': 'end', class: 'glabel', 'font-weight': last ? 700 : 400 }, r[0]));
+      const lo = Math.min.apply(null, r[1]), hi = Math.max.apply(null, r[1]);
+      svg.appendChild(el('line', { x1: x(lo), x2: x(hi), y1: yy, y2: yy, stroke: 'var(--muted)', 'stroke-width': 2 }));
+      const seen = {};
+      r[1].forEach((v, j) => { const k = v; seen[k] = (seen[k] || 0) + 1; const off = (seen[k] - 1) * 5; svg.appendChild(el('circle', { cx: x(v), cy: yy - off + (seen[k] > 1 ? 0 : 0), r: 6, fill: COL[j], 'fill-opacity': .85, stroke: 'var(--surface)', 'stroke-width': 1.5, 'data-tip': r[0] + ' · ' + RUN[j] + '：' + v + '%' })); });
+      if (hi - lo >= 50) svg.appendChild(el('text', { x: W - R + 18, y: yy + 4, class: 'val hi', style: 'fill:var(--warn)' }, '相差 ' + (hi - lo)));
+    });
+  })();
+
+  /* ---------- cross-run ---------- */
+  (function(){
+    const X = [['Claude Opus 4.6', [[0, 'var(--lime-f)', '表 10'], [0, 'var(--eng)', '表 19'], [0, 'var(--code)', '表 26'], [0, 'var(--skill)', '表 25 ×3']]], ['Claude Opus 5', [[88, 'var(--lime-f)', '表 14'], [14, 'var(--eng)', '表 19'], [0, 'var(--code)', '表 26']]], ['Claude Opus 5.5', [[84, 'var(--lime-f)', '表 14'], [92, 'var(--eng)', '表 19'], [84, 'var(--code)', '表 26']]], ['GPT-6 Astra', [[98, 'var(--lime-f)', '表 14'], [54, 'var(--eng)', '表 19'], [62, 'var(--code)', '表 26']]]];
+    const svg = $('#ch-xrun'), W = 620, L = 130, R = 86, rowH = 36, T = 14, H = T + X.length * rowH + 28;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    const x = v => L + (W - L - R) * v / 100;
+    for (let v = 0; v <= 100; v += 25) { svg.appendChild(el('line', { x1: x(v), x2: x(v), y1: T - 6, y2: T + X.length * rowH, class: 'grid' })); svg.appendChild(el('text', { x: x(v), y: T + X.length * rowH + 18, 'text-anchor': 'middle', class: 'tick' }, v + '%')); }
+    X.forEach((r, i) => {
+      const yy = T + i * rowH + rowH / 2; svg.appendChild(el('text', { x: L - 12, y: yy + 4, 'text-anchor': 'end', class: 'glabel' }, r[0]));
+      const vs = r[1].map(p => p[0]), lo = Math.min.apply(null, vs), hi = Math.max.apply(null, vs);
+      svg.appendChild(el('line', { x1: x(lo), x2: x(hi), y1: yy, y2: yy, stroke: 'var(--muted)', 'stroke-width': 2 }));
+      r[1].forEach((p, j) => { const dup = r[1].slice(0, j).filter(q => q[0] === p[0]).length; svg.appendChild(el('circle', { cx: x(p[0]) + dup * 9, cy: yy, r: 7, fill: p[1], stroke: 'var(--surface)', 'stroke-width': 1.5, 'data-tip': r[0] + ' · ' + p[2] + '：' + p[0] + '%' })); });
+      svg.appendChild(el('text', { x: W - R + 18, y: yy + 4, class: 'val hi' }, lo === hi ? '全是 ' + lo + '%' : lo + '–' + hi + '%'));
+    });
+  })();
+
+  /* ---------- backward transfer ---------- */
+  (function(){
+    const BK = [['pos/0 汤 + 酱 → 篮子', 74, 94], ['pos/3 碗 → 抽屉，关上', 0, 52], ['pos/9 杯子 → 微波炉，关上', 0, 0], ['task/3 瓶子 → 抽屉，关上', 0, 72], ['task/6 红杯子 → 盘子，布丁放右', 78, 86], ['全部 20 个任务', 74.6, 82.2]];
+    const svg = $('#ch-back'), W = 620, L = 200, R = 60, rowH = 28, T = 12, H = T + BK.length * rowH + 28;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    const x = v => L + (W - L - R) * v / 100;
+    for (let v = 0; v <= 100; v += 25) { svg.appendChild(el('line', { x1: x(v), x2: x(v), y1: T - 4, y2: T + BK.length * rowH, class: 'grid' })); svg.appendChild(el('text', { x: x(v), y: T + BK.length * rowH + 18, 'text-anchor': 'middle', class: 'tick' }, v + '%')); }
+    BK.forEach((r, i) => {
+      const yy = T + i * rowH + rowH / 2, last = i === BK.length - 1;
+      if (last) svg.appendChild(el('line', { x1: 10, x2: W - R, y1: yy - rowH / 2, y2: yy - rowH / 2, stroke: 'var(--ink-2)', 'stroke-dasharray': '3 3' }));
+      svg.appendChild(el('text', { x: L - 12, y: yy + 4, 'text-anchor': 'end', class: 'glabel', 'font-weight': last ? 700 : 400 }, r[0]));
+      svg.appendChild(el('line', { x1: x(r[1]), x2: x(r[2]), y1: yy, y2: yy, stroke: 'var(--lime-f)', 'stroke-width': 3 }));
+      svg.appendChild(el('circle', { cx: x(r[1]), cy: yy, r: 6, fill: 'var(--muted)', 'data-tip': r[0] + ' 初始：' + r[1] + '%' }));
+      svg.appendChild(el('circle', { cx: x(r[2]) + (r[1] === r[2] ? 8 : 0), cy: yy, r: 6, fill: 'var(--lime-f)', 'data-tip': r[0] + ' 重跑后：' + r[2] + '%' }));
+      svg.appendChild(el('text', { x: W - R + 14, y: yy + 4, class: 'val hi' }, (r[2] - r[1] >= 0 ? '+' : '') + FMT(Math.round((r[2] - r[1]) * 10) / 10)));
+    });
+  })();
+
+  /* ---------- transfer ---------- */
+  const TRN = [0, 25, 50, 90], TPOS = [0, 5.6, 13.8, 22.6], TTASK = [9.4, 21.8, 29.2, 38.3];
+  (function(){
+    const svg = $('#ch-tr'), W = 760, H = 270, L = 44, R = 230, T = 14, B = 34;
+    const x = n => L + (W - L - R) * n / 90, y = v => T + (H - T - B) * (1 - v / 60);
+    for (let v = 0; v <= 60; v += 15) { svg.appendChild(el('line', { x1: L, x2: W - 20, y1: y(v), y2: y(v), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, v + '%')); }
+    TRN.forEach(n => svg.appendChild(el('text', { x: x(n), y: H - 12, 'text-anchor': 'middle', class: 'tick' }, 'N = ' + n)));
+    [[TPOS, 'var(--eng)', '位置'], [TTASK, 'var(--code)', '任务']].forEach(s => {
+      svg.appendChild(el('path', { d: s[0].map((v, i) => (i ? 'L' : 'M') + x(TRN[i]) + ' ' + y(v)).join(''), fill: 'none', stroke: s[1], 'stroke-width': 2.5 }));
+      s[0].forEach((v, i) => { svg.appendChild(el('circle', { cx: x(TRN[i]), cy: y(v), r: 5.5, fill: s[1], 'data-tip': s[2] + '扰动 · N = ' + TRN[i] + '：' + v + '%' })); svg.appendChild(el('text', { x: x(TRN[i]) + (i === 3 ? -8 : 8), y: y(v) - 7, 'text-anchor': i === 3 ? 'end' : 'start', class: 'val' }, v)); });
+    });
+    const rx = W - R + 40;
+    svg.appendChild(el('line', { x1: W - R + 10, x2: W - R + 10, y1: T, y2: H - B, stroke: 'var(--ink-2)', 'stroke-dasharray': '3 3' }));
+    const REF = [['π0.5', 8.0, 1.0, 'var(--pi)'], ['CaP-Agent0', 5.2, 2.4, 'var(--cap)'], ['N=90 + 迭代调试', 43.2, 52.0, 'var(--lime-f)']], RX = [0, 70, 150];
+    REF.forEach((r, i) => {
+      const cx = rx + RX[i];
+      svg.appendChild(el('rect', { x: cx - 5, y: y(r[1]) - 5, width: 10, height: 10, fill: r[3], stroke: 'var(--eng)', 'stroke-width': 2, 'data-tip': r[0] + ' 位置扰动：' + r[1] + '%' }));
+      svg.appendChild(el('circle', { cx, cy: y(r[2]), r: 5.5, fill: r[3], stroke: 'var(--code)', 'stroke-width': 2, 'data-tip': r[0] + ' 任务扰动：' + r[2] + '%' }));
+      r[0].split(' + ').forEach((w, k) => svg.appendChild(el('text', { x: cx, y: H - 20 + k * 12 - (r[0].indexOf('+') > 0 ? 6 : 0), 'text-anchor': 'middle', class: 'tick', 'font-size': 10 }, (k ? '+ ' : '') + w)));
+    });
+    svg.appendChild(el('text', { x: rx - 22, y: T + 10, class: 'tick', 'font-size': 10 }, '方块＝位置扰动，圆＝任务扰动'));
+  })();
+  (function(){
+    const NAMES = ['开炉 + 摩卡壶', '碗放进抽屉', '杯子进微波炉', '两个摩卡壶上炉', '汤 + 奶油奶酪', '汤 + 番茄酱', '奶油奶酪 + 黄油', '杯子放两个盘子', '杯子 + 布丁', '书放进收纳格'];
+    const HP = [[0, 30, 84, 100], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 12, 2, 0], [0, 14, 20, 0], [0, 0, 6, 94], [0, 0, 16, 32], [0, 0, 6, 0], [0, 0, 4, 0]];
+    const HT = [[0, 2, 68, 26], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 84, 100], [0, 68, 60, 70], [78, 68, 2, 70], [0, 0, 34, 86], [16, 28, 8, 0], [0, 0, 8, 4], [0, 52, 28, 26]];
+    const svg = $('#ch-hm');
+    function draw(mode){
+      const D = mode === 'pos' ? HP : HT, M = mode === 'pos' ? TPOS : TTASK; svg.innerHTML = '';
+      const W = 760, L = 150, cw = 120, rh = 28, T = 26;
+      svg.setAttribute('viewBox', '0 0 ' + W + ' ' + (T + (D.length + 1) * rh + 12));
+      TRN.forEach((n, j) => svg.appendChild(el('text', { x: L + j * cw + cw / 2, y: T - 8, 'text-anchor': 'middle', class: 'tick' }, 'N = ' + n)));
+      svg.appendChild(el('text', { x: L + 4 * cw + 14, y: T - 8, class: 'tick' }, '随 N 的走向'));
+      D.forEach((r, i) => {
+        const yy = T + i * rh;
+        svg.appendChild(el('text', { x: L - 10, y: yy + rh / 2 + 4, 'text-anchor': 'end', class: 'glabel' }, NAMES[i]));
+        r.forEach((v, j) => {
+          svg.appendChild(el('rect', { x: L + j * cw + 1, y: yy + 1, width: cw - 2, height: rh - 2, rx: 3, fill: v ? 'color-mix(in oklab,var(--lime-f) ' + Math.round(15 + v * .85) + '%,var(--surface))' : 'var(--surface-2)', 'data-tip': NAMES[i] + ' · N = ' + TRN[j] + '：' + v + '%' }));
+          svg.appendChild(el('text', { x: L + j * cw + cw / 2, y: yy + rh / 2 + 4, 'text-anchor': 'middle', class: 'val', style: v >= 60 ? 'fill:var(--on-lime);font-weight:600' : '' }, v));
+        });
+        let drop = false; for (let j = 1; j < 4; j++) if (r[j] < r[j - 1] - 10) drop = true;
+        const sx = L + 4 * cw + 14, sw = 90, sy = v => yy + rh - 4 - (rh - 8) * v / 100;
+        svg.appendChild(el('path', { d: r.map((v, j) => (j ? 'L' : 'M') + (sx + sw * j / 3) + ' ' + sy(v)).join(''), fill: 'none', stroke: drop ? 'var(--warn)' : 'var(--lime)', 'stroke-width': 1.6 }));
+      });
+      const yy = T + D.length * rh;
+      svg.appendChild(el('line', { x1: 10, x2: W - 10, y1: yy + 2, y2: yy + 2, stroke: 'var(--ink-2)', 'stroke-dasharray': '3 3' }));
+      svg.appendChild(el('text', { x: L - 10, y: yy + rh / 2 + 6, 'text-anchor': 'end', class: 'glabel', 'font-weight': 700 }, '宏平均（表 8）'));
+      M.forEach((v, j) => svg.appendChild(el('text', { x: L + j * cw + cw / 2, y: yy + rh / 2 + 6, 'text-anchor': 'middle', class: 'val hi' }, v + '%')));
+      svg.appendChild(el('text', { x: L + 4 * cw + 14, y: yy + rh / 2 + 6, class: 'tick', 'font-size': 10, style: 'fill:var(--warn)' }, '红线：中途跌超 10 点'));
+    }
+    seg($('#hm-mode'), k => draw(k)); draw('pos');
+  })();
+
+  /* ---------- model cost ---------- */
+  const MC = [['Claude Opus 5.5', 'c', 99.2, 18.29, 51], ['Claude Sonnet 5.5', 'c', 98.8, 12.11, 56], ['Claude Fable 5.1', 'c', 96.6, 42.24, 68], ['Claude Opus 5', 'c', 90.6, 59.72, 76], ['Claude Haiku 5.5', 'c', 68.0, 3.97, 54], ['Claude Opus 4.6', 'c', 55.6, 23.58, 61], ['GPT-6 Astra', 'g', 94.4, 35.37, 31], ['GPT-6.1 Sol', 'g', 88.0, 9.52, 49], ['GPT-6 Sol', 'g', 59.2, 7.64, 42], ['GPT-6 Luna', 'g', 14.8, 0.83, 47], ['Kimi K3', 'o', 78.4, 58.19, 139], ['Qwen 3.8 Max', 'o', 56.0, 39.82, 103]];
+  (function(){
+    const svg = $('#ch-cost');
+    function draw(mode){
+      svg.innerHTML = ''; const W = 760, H = 360, L = 50, R = 196, T = 16, B = 44;
+      const isC = mode === 'cost';
+      const x = isC ? (v => L + (W - L - R) * (Math.log10(v) - Math.log10(0.5)) / (Math.log10(100) - Math.log10(0.5))) : (v => L + (W - L - R) * (v - 20) / (150 - 20));
+      const y = v => T + (H - T - B) * (1 - v / 100);
+      (isC ? [0.5, 1, 2, 5, 10, 20, 50, 100] : [20, 40, 60, 80, 100, 120, 140]).forEach(t => { svg.appendChild(el('line', { x1: x(t), x2: x(t), y1: T, y2: H - B, class: 'grid' })); svg.appendChild(el('text', { x: x(t), y: H - B + 16, 'text-anchor': 'middle', class: 'tick' }, isC ? '$' + t : t)); });
+      for (let v = 0; v <= 100; v += 20) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, v + '%')); }
+      svg.appendChild(el('text', { x: (L + W - R) / 2, y: H - 8, 'text-anchor': 'middle', class: 'tick' }, isC ? '每任务估计 API 费用（对数刻度，标价）' : '每任务平均智能体时间（分钟）'));
+      const xv = m => isC ? m[3] : m[4];
+      const sorted = MC.slice().sort((a, b) => xv(a) - xv(b)); let best = -1, front = [];
+      sorted.forEach(m => { if (m[2] > best) { best = m[2]; front.push(m); } });
+      let d = 'M' + x(xv(front[0])) + ' ' + y(front[0][2]);
+      for (let i = 1; i < front.length; i++) d += 'L' + x(xv(front[i])) + ' ' + y(front[i - 1][2]) + 'L' + x(xv(front[i])) + ' ' + y(front[i][2]);
+      d += 'L' + (W - R) + ' ' + y(front[front.length - 1][2]);
+      svg.appendChild(el('path', { d, fill: 'none', stroke: 'var(--lime-f)', 'stroke-width': 2.5, 'stroke-opacity': .85 }));
+      const lx = W - R + 26, gap = 22.5;
+      const order = MC.slice().sort((a, b) => b[2] - a[2]);
+      const ly = order.map((m, i) => T + 6 + i * gap);
+      order.forEach((m, i) => {
+        const cx = x(xv(m)), cy = y(m[2]), onF = front.indexOf(m) >= 0;
+        const col = m[1] === 'c' ? 'var(--code)' : m[1] === 'g' ? 'var(--eng)' : 'var(--skill)';
+        svg.appendChild(el('path', { d: 'M' + (cx + 7) + ' ' + cy + 'C' + (lx - 40) + ' ' + cy + ',' + (lx - 40) + ' ' + (ly[i] - 4) + ',' + (lx - 4) + ' ' + (ly[i] - 4), fill: 'none', stroke: col, 'stroke-opacity': .35, 'stroke-width': 1 }));
+        svg.appendChild(el('circle', { cx, cy, r: onF ? 7.5 : 6, fill: m[1] === 'o' ? 'var(--surface)' : col, stroke: m[1] === 'o' ? col : 'var(--surface)', 'stroke-width': m[1] === 'o' ? 2.5 : 1.5, 'data-tip': m[0] + '：' + m[2] + '%，$' + m[3] + ' / 任务，' + m[4] + ' min / 任务' }));
+        svg.appendChild(el('text', { x: lx, y: ly[i], class: 'val' + (onF ? ' hi' : ''), 'font-size': 11, 'data-tip': m[0] + '：' + m[2] + '%，$' + m[3] + ' / 任务，' + m[4] + ' min / 任务' }, m[0].replace('Claude ', '') + '  ' + m[2] + '%  ' + (isC ? '$' + m[3] : m[4] + ' min')));
+      });
+      svg.appendChild(el('text', { x: lx, y: H - 8, class: 'tick', 'font-size': 10 }, '粗体：在前沿上'));
+    }
+    seg($('#cost-mode'), k => draw(k)); draw('cost');
+    rawTable($('#raw-cost'), ['模型', '成功率', '每任务费用', '总费用', '每任务智能体时间'], MC.map(m => ({ cells: [m[0] + (m[1] === 'o' ? '（开放权重）' : ''), m[2].toFixed(1) + '%', '$' + m[3].toFixed(2), '$' + Math.round(m[3] * 10), m[4] + ' min'] })));
+  })();
+
+  /* ---------- per-suite models ---------- */
+  (function(){
+    const CELLS = ['Obj\n位置', 'Goal\n位置', 'Spat\n位置', 'Long\n位置', 'Obj\n任务', 'Goal\n任务', 'Spat\n任务', 'Long\n任务'];
+    const MS = [
+      ['Claude Opus 4.6', 'color-mix(in oklab,var(--lime-f) 25%,var(--surface))', [98, 47, 42, 43.2, 95, 42, 47, 52.0], [98, 81, 51, null, 95, 45, 60, null]],
+      ['Claude Opus 5', 'color-mix(in oklab,var(--lime-f) 55%,var(--surface))', [98.6, 97.0, 97.8, 81.0, 100, 86.8, 98.0, 83.4], [98.6, 97.0, 97.8, 87.0, 100, 86.8, 98.0, 90.4]],
+      ['GPT-6 Astra', 'var(--lime-f)', [99.0, 97.0, 97.0, 80.8, 99.4, 96.8, 97.6, 95.0], [99.0, 97.0, 98.6, 84.6, 99.4, 96.8, 97.6, 95.0]],
+      ['Claude Opus 5.5', 'color-mix(in oklab,var(--lime-f) 55%,#123000)', [98.2, 97.0, 99.4, 97.0, 100, 99.4, 99.2, 98.8], [98.2, 98.0, 99.4, 97.0, 100, 99.4, 99.2, 98.8]]
+    ];
+    const svg = $('#ch-mod'), W = 760, H = 270, L = 40, R = 10, T = 18, B = 44, y = v => T + (H - T - B) * (1 - v / 100);
+    const defs = el('defs'); const pat = el('pattern', { id: 'hatch', width: 5, height: 5, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }); pat.appendChild(el('rect', { width: 5, height: 5, fill: 'var(--surface)' })); pat.appendChild(el('line', { x1: 0, y1: 0, x2: 0, y2: 5, stroke: 'var(--ink-2)', 'stroke-width': 2 })); defs.appendChild(pat); svg.appendChild(defs);
+    for (let v = 0; v <= 100; v += 25) { svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), class: 'grid' })); svg.appendChild(el('text', { x: L - 6, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, v)); }
+    const gw = (W - L - R) / CELLS.length, bw = 16;
+    CELLS.forEach((c, i) => {
+      const cx = L + gw * i + gw / 2, x0 = cx - bw * 2;
+      if (i === 4) svg.appendChild(el('line', { x1: L + gw * i, x2: L + gw * i, y1: T - 8, y2: H - 8, stroke: 'var(--ink-2)', 'stroke-dasharray': '3 3' }));
+      MS.forEach((m, j) => {
+        const a = m[2][i], b = m[3][i] == null ? a : m[3][i], xx = x0 + j * bw + 1;
+        svg.appendChild(el('rect', { x: xx, y: y(a), width: bw - 2, height: y(0) - y(a), fill: m[1], stroke: 'var(--line)', 'data-tip': c.replace('\n', ' ') + ' · ' + m[0] + '：' + FMT(a) + '%' + (b > a ? '，+ 进化搜索 ' + FMT(b) + '%' : '') }));
+        if (b > a) svg.appendChild(el('rect', { x: xx, y: y(b), width: bw - 2, height: y(a) - y(b), fill: 'url(#hatch)', stroke: 'var(--ink-2)', 'data-tip': c.replace('\n', ' ') + ' · ' + m[0] + ' + 进化搜索：' + FMT(a) + ' → ' + FMT(b) + '%' }));
+        if (b < 90) svg.appendChild(el('text', { x: xx + bw / 2 - 1, y: y(b) - 4, 'text-anchor': 'middle', class: 'val', 'font-size': 9.5 }, Math.round(b)));
+      });
+      c.split('\n').forEach((w, k) => svg.appendChild(el('text', { x: cx, y: H - B + 16 + k * 14, 'text-anchor': 'middle', class: 'glabel', 'font-size': 11.5 }, w)));
+    });
+    svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(0), y2: y(0), class: 'base' }));
+    const rows = [];
+    MS.forEach(m => { rows.push({ cells: [m[0] + ' w/o evo'].concat(m[2].map(v => FMT(v) + '%')) }); rows.push({ cells: [m[0] + ' w/ evo'].concat(m[3].map(v => v == null ? '–' : FMT(v) + '%')), best: m[0] === 'Claude Opus 5.5' }); });
+    rows.push({ grp: 'BEHAVIOR-1K（表 3，导航 / 任务）与 Robosuite 最难的三个（表 4）' });
+    rows.push({ cells: ['汽水罐', '92 / 88', '100 / 100', '96 / 96', '100 / 100', '', '', '', ''] });
+    rows.push({ cells: ['收音机', '100 / 88', '100 / 92', '96 / 96', '100 / 100', '', '', '', ''] });
+    rows.push({ cells: ['two_arm_handover', '92', '99', '95', '100', '', '', '', ''] });
+    rows.push({ cells: ['two_arm_lift', '71', '96', '100', '100', '', '', '', ''] });
+    rows.push({ cells: ['nut_assembly', '9', '98', '99', '100', '', '', '', ''] });
+    const t = rawTable($('#raw-mod'), ['配置', 'Obj 位置', 'Goal 位置', 'Spat 位置', 'Long 位置', 'Obj 任务', 'Goal 任务', 'Spat 任务', 'Long 任务'], rows);
+    const note = document.createElement('p'); note.className = 'small muted'; note.textContent = 'BEHAVIOR-1K 与 Robosuite 行的四列依次是 Opus 4.6、Opus 5、GPT-6 Astra、Opus 5.5。Opus 4.6 的 Long 两格取自表 24（迭代调试后），四个套件的其余格子取自表 10、11、13–16。'; t.after(note);
+  })();
+
+  /* ---------- case table ---------- */
+  rawTable($('#raw-case'), ['任务（套件）', 'Opus 4.6', 'Opus 5', 'Opus 5.5', 'Opus 5.5 + Evo', 'GPT-6 Astra', 'Astra + Evo'], [
+    ['书放到架子下（L90 #89）', 0, 2, 68, 100, 22, 96], ['打开底层抽屉（L90 #6）', 0, 0, 90, 90, 92, 100], ['推盘子到炉子前（Goal #5，位置）', 0, 0, 84, 94, 62, 92], ['碗放到炉子上（Goal #1，位置）', 56, 64, 90, 90, 90, 90], ['杯子进微波炉并关门（Long #9，位置）', 54, 16, 96, 96, 98, 98], ['盘子放到炉子上（Goal #1，任务）', 0, 54, 100, 100, 100, 100], ['碗放到盘子上（Spatial #2，任务）', 46, 62, 92, 92, 92, 92]
+  ].map(r => ({ cells: [r[0]].concat(r.slice(1).map(v => v + '%')) })));
+
+  /* ---------- real robot ---------- */
+  (function(){
+    const RR = [['碗放到盘子上', 8.65, 5.11, '20/20', '20/20', 0.05, 0.04], ['拿起汽水罐', 61.94, 6.58, '13/20', '19/20', 0.18, 0.03], ['开 / 推抽屉', 334.92, 81.67, '0/20', '11/20', 1.33, 0.36]];
+    const svg = $('#ch-real'), W = 760, H = 220, L = 120, R = 110, T = 14, rowH = 60;
+    const x = v => L + (W - L - R) * (Math.log10(v) - 0) / (Math.log10(1000) - 0);
+    [1, 3, 10, 30, 100, 300, 1000].forEach(t => { svg.appendChild(el('line', { x1: x(t), x2: x(t), y1: T - 4, y2: T + RR.length * rowH, class: 'grid' })); svg.appendChild(el('text', { x: x(t), y: T + RR.length * rowH + 16, 'text-anchor': 'middle', class: 'tick' }, t + 'M')); });
+    svg.appendChild(el('text', { x: W - 8, y: T + 4, 'text-anchor': 'end', class: 'tick' }, '评测成功'));
+    RR.forEach((r, i) => {
+      const y0 = T + i * rowH + 8;
+      svg.appendChild(el('text', { x: L - 10, y: y0 + 22, 'text-anchor': 'end', class: 'glabel' }, r[0]));
+      [[r[1], 'c-mut', '不带技能', r[3], r[5]], [r[2], 'c-skill', '带仿真技能', r[4], r[6]]].forEach((b, j) => {
+        const yy = y0 + j * 20;
+        svg.appendChild(el('rect', { x: L, y: yy, width: x(b[0]) - L, height: 16, rx: 2, class: b[1], 'data-tip': r[0] + ' · ' + b[2] + '：总 ' + b[0] + 'M token（输出 ' + b[4] + 'M），评测 ' + b[3] }));
+        svg.appendChild(el('text', { x: x(b[0]) + 6, y: yy + 12, class: 'val' + (j ? ' hi' : '') }, b[0] + 'M'));
+        svg.appendChild(el('text', { x: W - 8, y: yy + 12, 'text-anchor': 'end', class: 'val' + (j ? ' hi' : '') }, b[3]));
+      });
+    });
+    rawTable($('#raw-real'), ['任务', '输出 token 不带', '输出 token 带', '总 token 不带', '总 token 带', '成功 不带', '成功 带'], RR.map(r => ({ cells: [r[0], r[5] + 'M', r[6] + 'M', r[1] + 'M', r[2] + 'M', r[3], r[4]] })));
+  })();
+
+  /* ---------- cube ---------- */
+  (function(){
+    const svg = $('#ch-cube'); const EP = ['第 1 回合\n未解开 · 3 步', '第 2 回合\n解开 · 5 步', '第 3 回合\n解开 · 25 步'];
+    const P = [{ x: 60, t: '每步 token（M）', v: [11.27, 5.56, 2.01], max: 12, step: 3 }, { x: 440, t: '每步时间（分钟）', v: [16.97, 7.80, 3.09], max: 18, step: 6 }];
+    P.forEach(p => {
+      const w = 280, y = v => 20 + 140 * (1 - v / p.max);
+      svg.appendChild(el('text', { x: p.x, y: 12, class: 'tick' }, p.t));
+      for (let g = 0; g <= p.max; g += p.step) { svg.appendChild(el('line', { x1: p.x, x2: p.x + w, y1: y(g), y2: y(g), class: 'grid' })); svg.appendChild(el('text', { x: p.x - 6, y: y(g) + 4, 'text-anchor': 'end', class: 'tick' }, g)); }
+      p.v.forEach((v, i) => {
+        const cx = p.x + w * (i + .5) / 3;
+        svg.appendChild(el('rect', { x: cx - 26, y: y(v), width: 52, height: 160 - y(v), rx: 3, fill: 'color-mix(in oklab,var(--lime-f) ' + (35 + i * 30) + '%,var(--surface))', stroke: 'var(--line)', 'data-tip': EP[i].replace('\n', ' ') + '：' + v }));
+        svg.appendChild(el('text', { x: cx, y: y(v) - 5, 'text-anchor': 'middle', class: 'val hi' }, v));
+        EP[i].split('\n').forEach((s, k) => svg.appendChild(el('text', { x: cx, y: 178 + k * 14, 'text-anchor': 'middle', class: k ? 'tick' : 'glabel', 'font-size': k ? 10 : 11.5 }, s)));
+      });
+      svg.appendChild(el('line', { x1: p.x, x2: p.x + w, y1: 160, y2: 160, class: 'base' }));
+    });
+  })();
+})();
+</script>
+</body>
+</html>
