@@ -70,6 +70,15 @@
 [专题对照页](https://gongshukai.github.io/VisualizedAcademicPapers/topics/real2sim/)
 
 - [Real-is-Sim](https://gongshukai.github.io/VisualizedAcademicPapers/papers/real-is-sim/) · 2025-04 · arXiv [2504.03597](https://arxiv.org/abs/2504.03597) — 以 60 Hz 与真实世界同步的 Embodied Gaussians 数字孪生作为策略的唯一接口：策略只读仿真、只控仿真机器人，真机跟随；断开真机即可并行离线评估。PushT 上离线评估与真机排序一致，补仿真示范 56.7% → 80.0%，虚拟腕部相机 81.7%。
+
+### 开门与铰接操作（机器人 / 操作 / 开门与铰接操作）
+
+[专题对照页](https://gongshukai.github.io/VisualizedAcademicPapers/topics/door-manipulation/)
+
+- [Adaptive Door Control](https://gongshukai.github.io/VisualizedAcademicPapers/papers/adaptive-door-control/) · 2016-02 — 无先验运动学模型下只靠腕部 6 轴 F/T 传感器与曲率 κ = 1/r 参数化，统一柔顺打开未知旋转门、推拉门与抽屉并在线辨识转轴，Lyapunov 证明约束力与方向误差同步收敛；7-DoF 真机刚性抓取稳态误差 0.2°–1.2°，抓松软把手升至 6°–7°。
+- [DoorBot](https://gongshukai.github.io/VisualizedAcademicPapers/papers/doorbot/) · 2025-04 · arXiv [2504.09358](https://arxiv.org/abs/2504.09358) — 高层确定性状态机 + 6 运动原语 + 1,303 张网图/实拍图训练的 GUM 抓取解锁精修 + 肘关节（Joint 4）电机电流触觉闭环（免外置 F/T）；校园 8 栋楼 20 扇全未见门 400 条真机轨迹平均成功率 90%（VLM+VLM 50%，VLM+GUM 86%）。
+- [DoorMan](https://gongshukai.github.io/VisualizedAcademicPapers/papers/doorman/) · 2025-11 · arXiv [2512.01061](https://arxiv.org/abs/2512.01061) — 首个纯 RGB 零样本迁移的人形全身开门策略：IsaacLab 光真实随机化（5,233 穹顶光 + 秒级 PBR 换肤）+ 分阶段 100 帧快照复位 PPO → DAgger 视觉蒸馏 → 二值成功 GRPO 自举；Unitree G1 真机穿门 83% / 15.40 s，比同控制栈专家遥操（80% / 20.02 s）快 23.1%。
+- [UniDoorManip](https://gongshukai.github.io/VisualizedAcademicPapers/papers/unidoormanip/) · 2026-06 — 328 门体 × 204 把手拼出 6 类 10,217 个门资产与逼真锁闩/遮挡仿真；将开门解耦为抓把手（视觉可供性）、拧把手（cVAE）、闭环拉门（cVAE）三阶段并按 3→2→1 逆序条件训练；仿真 6 类拉门均值 84.5%（未见类 75–89%），真机 >30° 46.7%–80.0%。
 <!-- catalog:end -->
 
 ## 目录结构

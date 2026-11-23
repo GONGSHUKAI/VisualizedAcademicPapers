@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>开门与铰接操作 · 四篇精读</title>
+<meta name="description" content="Adaptive Door Control (KTH 2016)、DoorBot、DoorMan、UniDoorManip 四篇开门与铰接物体操作论文的中文精读索引、技术脉络与横向对照。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#EEF1F0; --surface:#F9FBFA; --ink:#182120; --ink-2:#44504E; --muted:#6B7775;
+  --rule:#D3DAD8; --rule-2:#BCC6C3; --accent:#235789; --accent-soft:#D9E7F4; --warn:#9A5B12;
+  --f-disp:"Schibsted Grotesk","Noto Sans SC",system-ui,sans-serif;
+  --f-body:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#111716; --surface:#172020; --ink:#E4EBE9; --ink-2:#B3BFBC; --muted:#85928F;
+    --rule:#283331; --rule-2:#364341; --accent:#72B0E8; --accent-soft:#192D40; --warn:#E0A55A;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#111716; --surface:#172020; --ink:#E4EBE9; --ink-2:#B3BFBC; --muted:#85928F;
+  --rule:#283331; --rule-2:#364341; --accent:#72B0E8; --accent-soft:#192D40; --warn:#E0A55A;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:var(--accent);text-underline-offset:3px}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:16px}
+@media (min-width:720px){.wrap{padding-inline:32px}}
+
+header.top{padding-block:56px 36px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1.4 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font:700 clamp(34px,5.4vw,56px)/1.12 var(--f-disp);letter-spacing:-.01em;margin:12px 0 18px;text-wrap:balance}
+.lede{max-width:46em;color:var(--ink-2);margin:0;font-size:17px}
+
+section{padding-block:44px}
+section+section{border-top:1px solid var(--rule)}
+h2{font:700 24px/1.3 var(--f-disp);margin:0 0 6px;text-wrap:balance}
+.sub{color:var(--muted);margin:0 0 24px;font-size:14.5px}
+.tag-interp{display:inline-block;font:500 11px/1.6 var(--f-mono);letter-spacing:.06em;color:var(--warn);border:1px solid currentColor;border-radius:3px;padding:0 6px;margin-left:8px;vertical-align:2px}
+
+.axes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:760px){.axes{grid-template-columns:1fr}}
+.axis{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:16px 18px}
+.axis h3{font:700 17px/1.35 var(--f-disp);margin:0 0 6px}
+.axis p{margin:0;color:var(--ink-2);font-size:14.5px;line-height:1.7}
+
+.strip-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px}
+.strip{display:grid;grid-template-columns:repeat(4,minmax(210px,1fr));position:relative;min-width:860px}
+.strip::before{content:"";position:absolute;left:0;right:14px;top:9px;height:2px;background:linear-gradient(90deg,var(--rule-2),var(--accent))}
+.strip::after{content:"";position:absolute;right:0;top:4px;border-left:14px solid var(--accent);border-top:6px solid transparent;border-bottom:6px solid transparent}
+.step{position:relative;padding:32px 18px 0 0}
+.step::before{content:"";position:absolute;left:0;top:4px;width:12px;height:12px;border-radius:50%;background:var(--bg);border:2px solid var(--accent)}
+.step .d{font:500 12px/1.4 var(--f-mono);color:var(--muted)}
+.step .n{font:700 18px/1.3 var(--f-disp);margin:6px 0 2px}
+.step .n a{color:var(--ink);text-decoration:none}
+.step .n a:hover{color:var(--accent);text-decoration:underline}
+.step .route{font:500 11.5px/1.5 var(--f-mono);color:var(--muted);letter-spacing:.03em}
+.step .role{font-weight:700;color:var(--accent);margin:10px 0 4px;font-size:15px}
+.step p{margin:0;color:var(--ink-2);font-size:14.5px;line-height:1.7}
+@media (max-width:760px){
+  .strip{grid-template-columns:1fr;padding-left:26px;min-width:0}
+  .strip::before{left:5px;right:auto;top:6px;bottom:14px;width:2px;height:auto;background:linear-gradient(180deg,var(--rule-2),var(--accent))}
+  .strip::after{left:-1px;right:auto;top:auto;bottom:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:14px solid var(--accent);border-bottom:0}
+  .step{padding:0 0 28px}
+  .step::before{left:-26px;top:5px}
+}
+
+.entries{display:grid;gap:0}
+.entry{display:grid;grid-template-columns:200px minmax(0,1fr);gap:8px 32px;padding-block:30px;border-top:1px solid var(--rule)}
+.entry:first-child{border-top:0;padding-top:4px}
+.meta{font:400 13px/1.7 var(--f-mono);color:var(--muted)}
+.meta b{display:block;font:500 13px/1.5 var(--f-mono);color:var(--ink-2);margin-bottom:4px}
+.meta a{color:var(--muted)}
+.entry h3{font:700 26px/1.2 var(--f-disp);margin:0}
+.entry h3 a{color:var(--ink);text-decoration:none}
+.entry h3 a:hover{color:var(--accent)}
+.orig{margin:4px 0 16px;color:var(--muted);font-size:14px;line-height:1.55}
+dl.facts{display:grid;grid-template-columns:3.2em minmax(0,1fr);gap:8px 14px;margin:0}
+dl.facts dt{font:500 13px/1.85 var(--f-body);color:var(--muted);letter-spacing:.04em}
+dl.facts dd{margin:0;color:var(--ink-2);max-width:46em}
+dl.facts dd.doubt{color:var(--ink)}
+.num{font-family:var(--f-mono);font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.go{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font:600 15px/1 var(--f-body);color:var(--accent);text-decoration:none;border:1px solid var(--accent);border-radius:4px;padding:10px 14px}
+.go:hover{background:var(--accent-soft)}
+@media (max-width:760px){
+  .entry{grid-template-columns:1fr}
+  .meta b{display:inline;margin-right:10px}
+}
+
+.tbl{overflow-x:auto;border:1px solid var(--rule);border-radius:4px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:960px;font-size:14px;line-height:1.65}
+th,td{text-align:left;vertical-align:top;padding:12px 14px;border-bottom:1px solid var(--rule)}
+tr:last-child th,tr:last-child td{border-bottom:0}
+thead th{font:700 15px/1.3 var(--f-disp);color:var(--ink);background:var(--bg);position:sticky;top:0}
+thead th a{color:inherit;text-decoration:none}
+thead th a:hover{color:var(--accent);text-decoration:underline}
+tbody th{font:500 13px/1.65 var(--f-body);color:var(--muted);white-space:nowrap;width:8.5em}
+td{color:var(--ink-2)}
+td .k{display:inline-block;font:500 11.5px/1.6 var(--f-mono);border-radius:3px;padding:0 6px;margin-right:6px;background:var(--accent-soft);color:var(--accent)}
+
+footer{padding-block:28px 56px;border-top:1px solid var(--rule);color:var(--muted);font-size:13.5px;line-height:1.75}
+footer p{margin:0 0 8px;max-width:60em}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+.vapnav-grp{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-cat{font-size:11.5px;letter-spacing:.04em;opacity:.5}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/door-manipulation/" aria-current="page">开门与铰接操作</a></span><span class="vapnav-links"><a href="../../papers/adaptive-door-control/">Adaptive Door Control</a><a href="../../papers/doorbot/">DoorBot</a><a href="../../papers/doorman/">DoorMan</a><a href="../../papers/unidoormanip/">UniDoorManip</a></span></div></div>
+<!-- /vap:nav -->
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Door &amp; Articulated Manipulation · 4 papers</div>
+  <h1>开门与铰接操作 · 四篇精读</h1>
+  <p class="lede">「打开一扇陌生的门」横跨了机器人学的四道难题：视觉定位多样的把手、拧开带弹簧与限位的锁闩、沿未知运动学约束施力且不卡死、协调移动底盘或双足全身穿过门框。这四篇跨越十年的论文恰好代表了四条截然不同的技术路线：经典无模型力/速度自适应控制、低成本电流触觉闭环状态机、纯 RGB 人形全身 Sim-to-Real 强化学习，以及大规模跨品类三阶段条件解耦策略。</p>
+</header>
+
+<section id="axes" aria-labelledby="h-axes">
+  <h2 id="h-axes">读这一专题时看三条主轴<span class="tag-interp">解读</span></h2>
+  <p class="sub">四篇论文看似都在「开门」，其实各自解决的难点切片和依赖的物理信号完全不同。</p>
+  <div class="axes">
+    <div class="axis">
+      <h3>谁来处理「看不见的约束」</h3>
+      <p>旋转还是推拉、该推还是该拉、弹簧多紧——2016 年用 6 轴 F/T 实时反推曲率 κ；DoorBot 用肘关节电流试探换向；DoorMan 靠仿真海量力学随机化让 LSTM 从本体跟踪误差隐式感知；UniDoorManip 只靠点云 + 关节状态且把问题限定在拉门。</p>
+    </div>
+    <div class="axis">
+      <h3>任务被拆成几段、怎么衔接</h3>
+      <p>KTH 2016 只接管「抓稳之后」；DoorBot 用 6 个显式原语 + 确定性状态机按报错回退；UniDoorManip 拆成 3 个神经网络阶段并靠逆序条件训练对齐上下游；DoorMan 把 6 阶段奖励只在教师期使用，最终压进一个 50 Hz 端到端纯 RGB 网络。</p>
+    </div>
+    <div class="axis">
+      <h3>真机泛化靠什么撑住</h3>
+      <p>零训练物理方程（KTH 2016） vs 千张网图视觉精修 + 电流重试（DoorBot） vs 5,233 穹顶光 + 秒级 PBR 换肤（DoorMan） vs 328×204 部件组合 3D 点云（UniDoorManip）。真机最诚实的试金石永远是光滑把手打滑、重门回弹与玻璃门。</p>
+    </div>
+  </div>
+</section>
+
+<section id="line" aria-labelledby="h-line">
+  <h2 id="h-line">按时间排一条演进线<span class="tag-interp">解读</span></h2>
+  <p class="sub">从接触后解析控制，到野外触觉状态机、人形纯视觉端到端全身 RL，再到跨品类通用门基准。</p>
+  <div class="strip-scroll"><div class="strip">
+    <div class="step">
+      <div class="d">2016-02 · IEEE T-RO</div>
+      <div class="n"><a href="../../papers/adaptive-door-control/">Adaptive Door Control</a></div>
+      <div class="route">经典解析控制 · 6 轴 F/T</div>
+      <div class="role">只管抓稳后：在线辨识与柔顺力控</div>
+      <p>用曲率 κ = 1/r 统一旋转门与推拉门/抽屉，Lyapunov 证明约束力与方向误差同步收敛。</p>
+    </div>
+    <div class="step">
+      <div class="d">2025-04 · arXiv 2504.09358</div>
+      <div class="n"><a href="../../papers/doorbot/">DoorBot</a></div>
+      <div class="route">工程闭环 · 状态机 + 电机电流</div>
+      <div class="role">野外全流程：零 F/T 传感器的试探适应</div>
+      <p>Detic+SAM+千张网图 GUM 精修抓取；Joint-4 电流做解锁停机、拧反换向与推拉判别，校园 20 扇真门 90%。</p>
+    </div>
+    <div class="step">
+      <div class="d">2025-11 · arXiv 2512.01061</div>
+      <div class="n"><a href="../../papers/doorman/">DoorMan</a></div>
+      <div class="route">Sim-to-Real RL · 纯 RGB 人形全身</div>
+      <div class="role">端到端像素到动作：双足人形穿门</div>
+      <p>IsaacLab 光真实随机化 + 分阶段快照复位 PPO + DAgger + 二值 GRPO，Unitree G1 零样本 83% 且快过专家遥操。</p>
+    </div>
+    <div class="step">
+      <div class="d">2026-06 · ICRA 2026</div>
+      <div class="n"><a href="../../papers/unidoormanip/">UniDoorManip</a></div>
+      <div class="route">3D 点云 · 三阶段逆序条件生成</div>
+      <div class="role">跨 6 大门类：上万实例通用基准与策略</div>
+      <p>328 门体 × 204 把手建逼真锁闩仿真；抓→拧→拉三阶段逆序条件训练，仿真未见类 75–89%，真机拉门 47–80%。</p>
+    </div>
+  </div></div>
+</section>
+
+<section id="papers" aria-labelledby="h-papers">
+  <h2 id="h-papers">四篇精读</h2>
+  <p class="sub">每篇提炼做法、核心数字与我们核对出的最大疑点。</p>
+  <div class="entries">
+
+    <article class="entry">
+      <div class="meta"><b>2016-02</b>IEEE T-RO Vol.32 No.1<br>KTH 皇家理工、查尔姆斯理工</div>
+      <div>
+        <h3><a href="../../papers/adaptive-door-control/">Adaptive Door Control</a></h3>
+        <p class="orig">An Adaptive Control Approach for Opening Doors and Drawers Under Uncertainties</p>
+        <dl class="facts">
+          <dt>做法</dt><dd>用曲率向量 κ = κ z<sub>h</sub> 统一旋转（κ ≠ 0）与移动（κ = 0）单自由度机构。沿估计方向 x̂<sub>h</sub> 施期望速度、在正交补空间 P(x̂<sub>h</sub>) 施 PI 力反馈，反过来驱动免投影的自适应律在线更新 x̂<sub>h</sub> 与 κ̂；区分被动旋转抓取（Assumption 1）与固定刚性抓取（Assumption 2），并给出速度扰动下的 UUB 误差界。</dd>
+          <dt>结果</dt><dd>5 个仿真机构统一初值全收敛（固定抓取 1.5 s 铰链误差 <span class="num">1.4 cm</span>，被动 4 s 误差 <span class="num">3.4 cm</span>）。7-DoF 真机（ATI Mini45）刚性抓取稳态角度误差：推拉门 <span class="num">&lt;0.2°</span>、旋转门 <span class="num">&lt;0.8°</span>、抽屉 <span class="num">1.2°</span>；被动把手 <span class="num">0.4°–0.9°</span>；抓不刚性原装把手时升至 <span class="num">6°–7°</span>。</dd>
+          <dt>疑点</dt><dd class="doubt">只管已抓稳且未上锁后的拉开阶段，不能区分推/拉（初始误差 ≥90° 会失效）；真机实验未披露恒定速度 v<sub>d</sub>、控制增益与重复次数，被动把手真机实验未报曲率误差。</dd>
+        </dl>
+        <a class="go" href="../../papers/adaptive-door-control/">读 Adaptive Door Control 精读 →</a>
+      </div>
+    </article>
+
+    <article class="entry">
+      <div class="meta"><b>2025-04</b><a href="https://arxiv.org/abs/2504.09358" target="_blank" rel="noopener">arXiv 2504.09358</a><br>UIUC、清华</div>
+      <div>
+        <h3><a href="../../papers/doorbot/">DoorBot</a></h3>
+        <p class="orig">Closed-Loop Task Planning and Manipulation for Door Opening in the Wild with Haptic Feedback</p>
+        <dl class="facts">
+          <dt>做法</dt><dd>确定性高层状态机调度 6 个运动原语（Approach / Grasp / Unlock-Lever / Unlock-Knob / Open / Traverse）。视觉用 Detic + SAM + 1,303 张网图/实拍图训练的 ResNet-18 模型 GUM 预测精细抓取偏移 (dx, dy) 与带符号旋转半径 R；不用外置 F/T，直接用肘关节（Joint 4）电机电流和夹爪阻力实现限位停机、拧反换向、推拉试探和 6 类错误恢复。</dd>
+          <dt>结果</dt><dd>校园 8 栋楼 20 扇全未见门 × 5 次（共 400 条轨迹）：SM+GUM 平均 <span class="num">90%</span>（VLM+GUM <span class="num">86%</span>、SM+VLM <span class="num">63%</span>、VLM+VLM <span class="num">50%</span>）。5 门消融：无 GUM <span class="num">20%</span> → 纯网图 GUM* <span class="num">92%</span>（实算 96%）→ 完整 GUM <span class="num">100%</span>；开环 <span class="num">40%</span> → 闭环 <span class="num">100%</span>；推拉分类触觉 <span class="num">100%</span> vs Gemini 1.5 Pro <span class="num">65%</span>。</dd>
+          <dt>疑点</dt><dd class="doubt">Table II 中 GUM* 逐门之和为 24/25 = 96%，与表末印的 92% 算术矛盾；Fig. 2 图注将 OPEN_COLLISION 回退目标误写成 grasp；主表成功标准只看开门 &gt;45°，未单报穿门成功率；对 C 形拉手和透明玻璃门 0% 成功。</dd>
+        </dl>
+        <a class="go" href="../../papers/doorbot/">读 DoorBot 精读 →</a>
+      </div>
+    </article>
+
+    <article class="entry">
+      <div class="meta"><b>2025-11</b><a href="https://arxiv.org/abs/2512.01061" target="_blank" rel="noopener">arXiv 2512.01061</a><br>NVIDIA、UC Berkeley、CMU、CUHK</div>
+      <div>
+        <h3><a href="../../papers/doorman/">DoorMan</a></h3>
+        <p class="orig">Opening the Sim-to-Real Door for Humanoid Pixel-to-Action Policy Transfer</p>
+        <dl class="facts">
+          <dt>做法</dt><dd>架在 HOMIE 全身控制栈上的纯 RGB 人形开门与穿门策略。在 IsaacLab 程序化生成随机门物理（弹簧锁舌 mimic joint）+ 每秒换肤 OmniPBR + 5,233 张全景穹顶光 + 运动模糊；三阶段训练：Phase 1 特权 PPO + 100 帧分阶段快照复位（防接触惩罚诱发反学习）→ Phase 2 DAgger 蒸馏成 ResNet + 2 层 512 维 LSTM 纯 RGB 学生 → Phase 3 二值成功 GRPO 自举补齐局部可观测差距。</dd>
+          <dt>结果</dt><dd>Unitree G1 真机未见门完整穿门至门后 1 m：DoorMan <span class="num">83%</span> / <span class="num">15.40 s</span>，专家 VR 遥操 <span class="num">80%</span> / <span class="num">20.02 s</span>（提速 <span class="num">23.1%</span>），非专家 <span class="num">60%</span> / <span class="num">22.55 s</span>（提速 <span class="num">31.7%</span>）。仿真视觉消融（各 120 次）：无随机化 <span class="num">5–20%</span> → 纯色+穹顶光 <span class="num">65.8–70.0%</span> → 全纹理+穹顶光 <span class="num">80.8–85.8%</span>。</dd>
+          <dt>疑点</dt><dd class="doubt">真机未披露测试门数量、总试验次数及三类门分项成绩，且外接台式 RTX 4090；单策略还是按门型分三策略表述不清；正文有三处数字笔误（29+14=33、23.1% vs 23.8%、83% vs 60% 写作高 28%）以及两张图均编号 Figure 1。</dd>
+        </dl>
+        <a class="go" href="../../papers/doorman/">读 DoorMan 精读 →</a>
+      </div>
+    </article>
+
+    <article class="entry">
+      <div class="meta"><b>2026-06</b>ICRA 2026<br>北京邮电大学、北京大学</div>
+      <div>
+        <h3><a href="../../papers/unidoormanip/">UniDoorManip</a></h3>
+        <p class="orig">Learning Universal Door Manipulation Policy Over Large-scale and Diverse Door Manipulation Environments</p>
+        <dl class="facts">
+          <dt>做法</dt><dd>在 IsaacGym 构建 6 大类（室内/窗/车/保险箱/橱柜/冰箱）共 328 门体 × 204 把手可组合的 10,217 个门资产库，补齐锁闩阻挡力、回弹力、移动机械臂自碰撞与单相机遮挡点云。策略解耦为抓把手（PointNet++ 视觉可供性 + 判别器）、拧把手（cVAE + 判别器）、闭环拉开门（cVAE + 判别器）三阶段，按 3 → 2 → 1 逆序条件训练并用最终门开角 θ<sub>d</sub> 监督前瞻抓握。</dd>
+          <dt>结果</dt><dd>仿真拉门（&gt;45°）4 训练类未见形状 <span class="num">0.99 / 0.91 / 0.81 / 0.72</span>，2 未见新类别 <span class="num">0.75 / 0.89</span>（6 类均值 <span class="num">0.845</span>，大幅领先 GAPartNet+GT / DoorGym / PartManip / VAT-MART / DP3）；联合 TAMP 穿室内门 <span class="num">74%</span>。真机（&gt;30°，各 15 次）：固定 Franka 室内门 <span class="num">7/15</span>、窗 <span class="num">8/15</span>、保险箱 <span class="num">10/15</span>、橱柜 <span class="num">12/15</span>；移动 ARX-x7s 室内门 <span class="num">9/15</span>、橱柜 <span class="num">12/15</span>。</dd>
+          <dt>疑点</dt><dd class="doubt">仅评测拉门（无推门与推拉未知场景）；完全未披露推理时 Stage 2 切到 Stage 3 的触发判定条件；真机阈值降到 30° 后室内门仍从仿真 99% 掉至 46.7%–60.0%（把手打滑与阻力问题突出）。</dd>
+        </dl>
+        <a class="go" href="../../papers/unidoormanip/">读 UniDoorManip 精读 →</a>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<section id="compare" aria-labelledby="h-compare">
+  <h2 id="h-compare">四篇横向对照</h2>
+  <p class="sub">窄屏可左右滑动。所有数字均核对自各论文原文。</p>
+  <div class="tbl">
+    <table>
+      <thead>
+        <tr>
+          <th>对比维度</th>
+          <th><a href="../../papers/adaptive-door-control/">Adaptive Door Control (2016)</a></th>
+          <th><a href="../../papers/doorbot/">DoorBot (2025)</a></th>
+          <th><a href="../../papers/doorman/">DoorMan (2025)</a></th>
+          <th><a href="../../papers/unidoormanip/">UniDoorManip (2026)</a></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>核心范式</th>
+          <td><span class="k">控制</span>无模型自适应速度-力控制 + Lyapunov 证明</td>
+          <td><span class="k">系统</span>确定性状态机 + 6 原语 + 视觉精修 + 电流触觉</td>
+          <td><span class="k">RL</span>Teacher PPO (Staged Reset) → DAgger → GRPO</td>
+          <td><span class="k">生成</span>3D 视觉可供性 + 三阶段 cVAE 逆序条件训练</td>
+        </tr>
+        <tr>
+          <th>机器人平台</th>
+          <td>固定底座 7-DoF 机械臂 + 二指夹爪</td>
+          <td>RealMan 双 7-DoF 臂 + 云迹轮式底盘 + 平行夹爪</td>
+          <td>Unitree G1 29-DoF 人形双足 + 双 7-DoF 三指灵巧手</td>
+          <td>仿真移动臂；真机固定 Franka &amp; 轮式双臂 ARX-x7s</td>
+        </tr>
+        <tr>
+          <th>视觉感知</th>
+          <td>无（盲操）</td>
+          <td>RealSense D435 RGB-D + Detic + SAM + GUM</td>
+          <td>RealSense D435i 纯 RGB（关闭深度）+ ResNet + LSTM</td>
+          <td>单视角深度点云（4,096 点，含遮挡）+ PointNet++</td>
+        </tr>
+        <tr>
+          <th>力/触觉反馈</th>
+          <td>腕部 ATI Mini45 6 轴 F/T（650 Hz）</td>
+          <td>肘关节（Joint 4）电机电流 + 夹爪阻力</td>
+          <td>无外置力传感（隐式依赖本体 q, q̇ 跟踪误差）</td>
+          <td>无（仅底层阻抗/PID 控制 + 关节角/速度输入）</td>
+        </tr>
+        <tr>
+          <th>覆盖门类与机制</th>
+          <td>旋转门、推拉门、抽屉（仅 1-DoF、无锁）</td>
+          <td>执手、旋钮、推/拉杠、橱柜/抽屉（含推拉未知）</td>
+          <td>推执手、拉执手、推杠（含弹簧锁舌与回弹铰链）</td>
+          <td>室内/窗/车/保险箱/橱柜/冰箱 6 大类（仅拉门）</td>
+        </tr>
+        <tr>
+          <th>任务闭环范围</th>
+          <td>仅「抓稳后拉开」</td>
+          <td>接近 → 抓 → 解锁 → 开 → 穿过（主表测 &gt;45°）</td>
+          <td>走近 → 抓 → 解锁 → 摆门 → 穿过至门后 1 m</td>
+          <td>抓 → 拧把手 → 拉开（仿真 + TAMP 穿门 74%）</td>
+        </tr>
+        <tr>
+          <th>代表真机成绩</th>
+          <td>刚性抓取方向误差 0.2°–1.2°；松软把手 6°–7°</td>
+          <td>8 栋楼 20 扇未见门 400 次轨迹平均 90%</td>
+          <td>未见门完整穿门 83% / 15.40 s（专家遥操 80% / 20.02 s）</td>
+          <td>&gt;30°：Franka 47–80%；ARX-x7s 室内门 60%、柜 80%</td>
+        </tr>
+        <tr>
+          <th>最大疑点/边界</th>
+          <td>不能判推拉；真机缺增益/速度与多轮统计</td>
+          <td>Table II 92% vs 96% 算术错；玻璃门与 C 形杠 0%</td>
+          <td>真机门数/试验数未披露；多处数字笔误；重奖励工程</td>
+          <td>推理阶段切换未交代；无推门；室内门真机易滑脱</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <p>本专题四篇精读均基于各论文完整 PDF（含附录与证明）核对撰写，所有图表数字逐字取自原文。标「解读」的内容为我们的横向归纳与判断。</p>
+</footer>
+</div>
+</body>
+</html>

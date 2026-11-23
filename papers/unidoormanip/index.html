@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>UniDoorManip 精读</title>
+<meta name="description" content="UniDoorManip: Learning Universal Door Manipulation Policy Over Large-scale and Diverse Door Manipulation Environments (ICRA 2026) 中文精读：328 门体 × 204 把手组合 6 类上万门实例 + 真实锁闩/遮挡仿真 + 三阶段解耦与反向条件训练，仿真与双平台真机结果与疑点。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F2F4F8; --surface:#FBFCFE; --surface-2:#E4E8F1; --ink:#151824; --ink-2:#3C4256; --muted:#636B82; --line:#D2D8E6;
+  --ind:#4338CA; --ind-soft:#E0E2FA; --on-ind:#FFFFFF;
+  --teal:#0D9488; --teal-soft:#D4F1EE;
+  --coral:#D93848; --coral-soft:#FADDE0;
+  --amber:#C26A12; --amber-soft:#F8E6CF;
+  --warn:#B42E2A; --warn-soft:#F7DAD7;
+  --base:#7E869B; --base-2:#B8C0D2;
+  --plate:#FFFFFF; --focus:#4338CA;
+  --f-display:"Outfit","Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0E1018; --surface:#151824; --surface-2:#1F2436; --ink:#E7EAF5; --ink-2:#B9C0D6; --muted:#868FA8; --line:#2A3045;
+    --ind:#8B86FA; --ind-soft:#211F4A; --on-ind:#0D0B26;
+    --teal:#4ED1C5; --teal-soft:#123330;
+    --coral:#F27B87; --coral-soft:#3D1920;
+    --amber:#ECA554; --amber-soft:#3A2610;
+    --warn:#EF8880; --warn-soft:#3B1B19;
+    --base:#767F96; --base-2:#464E63;
+    --plate:#F3F5FA; --focus:#8B86FA;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0E1018; --surface:#151824; --surface-2:#1F2436; --ink:#E7EAF5; --ink-2:#B9C0D6; --muted:#868FA8; --line:#2A3045;
+  --ind:#8B86FA; --ind-soft:#211F4A; --on-ind:#0D0B26;
+  --teal:#4ED1C5; --teal-soft:#123330;
+  --coral:#F27B87; --coral-soft:#3D1920;
+  --amber:#ECA554; --amber-soft:#3A2610;
+  --warn:#EF8880; --warn-soft:#3B1B19;
+  --base:#767F96; --base-2:#464E63;
+  --plate:#F3F5FA; --focus:#8B86FA;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.8 var(--f-body);-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:var(--ind);text-underline-offset:3px;text-decoration-thickness:1px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+strong{font-weight:700}
+code,.mono{font-family:var(--f-mono);font-size:.86em}
+sub,sup{font-size:.72em;line-height:0}
+.page{max-width:1200px;margin:0 auto;padding-inline:24px}
+@media (max-width:560px){.page{padding-inline:16px}}
+
+.hero{padding-block:44px 24px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.06fr) minmax(0,.94fr);gap:38px;align-items:center}
+@media (max-width:900px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+.kicker{font:500 12px/1.4 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ind);margin:0 0 12px}
+h1.title{font-family:var(--f-display);font-weight:800;font-size:clamp(2.5rem,1.6rem + 4.5vw,4.7rem);line-height:.98;letter-spacing:-.03em;margin:0}
+h1.title .u{color:var(--ind)}
+.entitle{font-family:var(--f-display);font-weight:500;font-size:clamp(.98rem,.9rem + .35vw,1.15rem);line-height:1.48;color:var(--ink-2);margin:14px 0 0}
+.thesis{font-size:clamp(1.03rem,1rem + .3vw,1.18rem);line-height:1.8;margin:18px 0 0;max-width:36em}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin:18px 0 0;padding:0;list-style:none;font:13px/1.6 var(--f-mono);color:var(--muted)}
+.meta b{color:var(--ink-2);font-weight:500}
+.ribbon{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.ribbon svg{display:block;width:100%;height:auto}
+.ribbon svg text{font-family:var(--f-mono);fill:var(--muted);font-size:10.5px}
+.ribbon svg .n{font-family:var(--f-body);font-weight:700;font-size:12.5px;fill:var(--ink)}
+.ribbon svg .m{font-family:var(--f-mono);font-size:10.5px;fill:var(--ink-2)}
+.ribbon figcaption{font:12.5px/1.6 var(--f-body);color:var(--muted);margin-top:8px}
+
+.tldr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:30px}
+@media (max-width:760px){.tldr{grid-template-columns:minmax(0,1fr)}}
+.tldr>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.tldr h3{font:500 12px/1.4 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.tldr p{margin:0;font-size:15px;line-height:1.75}
+.tldr .flag h3{color:var(--warn)}
+
+.layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:50px;padding-block:20px 80px}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr);gap:0}}
+.toc{position:sticky;top:20px;align-self:start;font-size:14px;line-height:1.5}
+.toc p{font:500 11px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.toc li a{display:block;padding:5px 0 5px 14px;margin-left:-1px;border-left:2px solid transparent;color:var(--muted);text-decoration:none}
+.toc li a:hover{color:var(--ink)}
+.toc li a.on{color:var(--ink);border-left-color:var(--ind);font-weight:500}
+@media (max-width:1000px){
+  .toc{position:static;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .toc p{display:none}
+  .toc ol{display:flex;gap:6px;border:0;white-space:nowrap;padding-bottom:6px}
+  .toc li a{border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin:0;background:var(--surface)}
+  .toc li a.on{border-color:var(--ind)}
+}
+main{min-width:0}
+section{padding-top:54px;scroll-margin-top:12px}
+section:first-child{padding-top:8px}
+.eyebrow{font:500 12px/1.4 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ind);margin:0 0 8px}
+h2{font-family:var(--f-display);font-weight:800;font-size:clamp(1.36rem,1.1rem + 1.1vw,1.95rem);line-height:1.3;letter-spacing:-.015em;margin:0 0 18px}
+h3{font-family:var(--f-display);font-weight:700;font-size:1.08rem;line-height:1.45;margin:34px 0 10px}
+p{margin:0 0 14px}
+.prose{max-width:46em}
+.prose li{margin-bottom:6px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.tag{display:inline-block;font:500 11px/1 var(--f-mono);padding:4px 6px 3px;border-radius:4px;vertical-align:2px;margin-right:6px;white-space:nowrap}
+.tag.read{border:1px dashed var(--ink-2);color:var(--ink-2)}
+.tag.doubt{background:var(--warn-soft);color:var(--warn)}
+.note{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px 18px;margin:18px 0;max-width:48em}
+.note>:last-child{margin-bottom:0}
+.note h4{font:500 13px/1.5 var(--f-body);margin:0 0 6px;color:var(--muted)}
+.note.doubt{border-color:color-mix(in oklab,var(--warn) 35%,var(--line));background:color-mix(in oklab,var(--warn-soft) 50%,var(--surface))}
+.note.doubt h4{color:var(--warn)}
+.eq{font-family:"Times New Roman",Georgia,"Noto Serif SC",serif;font-size:1.06rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:12px 0;overflow-x:auto;white-space:nowrap;display:flex;justify-content:space-between;gap:24px;max-width:48em}
+.eq .no{font:12px var(--f-mono);color:var(--muted);align-self:center}
+
+figure.plate{margin:22px 0}
+figure.plate .zoom{display:block;width:100%;padding:10px;background:var(--plate);border:1px solid var(--line);border-radius:8px;cursor:zoom-in}
+figure.plate img{display:block;width:100%;height:auto}
+figure.plate.narrow{max-width:520px}
+figure.plate figcaption{font-size:14px;line-height:1.7;color:var(--ink-2);margin-top:10px;max-width:54em}
+figure.plate figcaption b{font:500 12px var(--f-mono);color:var(--muted);margin-right:8px}
+.fig-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:20px 0;align-items:start}
+@media (max-width:760px){.fig-pair{grid-template-columns:minmax(0,1fr)}}
+.fig-pair figure.plate{margin:0}
+
+dialog#lb{border:0;padding:0;background:transparent;max-width:min(96vw,1800px);width:96vw}
+dialog#lb::backdrop{background:rgba(12,14,22,.88)}
+dialog#lb .box{background:var(--plate);border-radius:8px;padding:10px;max-height:88vh;overflow:auto}
+dialog#lb img{display:block;width:100%;height:auto}
+dialog#lb .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#EAEEF8;font-size:14px;padding:8px 2px 0}
+dialog#lb button{font:500 13px var(--f-mono);background:#EAEEF8;color:#151824;border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
+
+.tblwrap{overflow-x:auto;margin:16px 0;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;font-size:14px;line-height:1.6;min-width:100%}
+table.t th,table.t td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.t thead th{font:500 12px/1.4 var(--f-mono);color:var(--muted);border-bottom:1.5px solid var(--ink-2);white-space:nowrap}
+table.t tbody th{font-weight:500;white-space:nowrap;color:var(--ink-2)}
+table.t .num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t tr.best td,table.t tr.best th{font-weight:700}
+table.t td.bad{color:var(--warn);font-weight:700}
+
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.cards.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:860px){.cards.three{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.cards{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card h4{font-family:var(--f-display);font-weight:700;font-size:1rem;line-height:1.45;margin:0 0 8px}
+.card p{font-size:14.5px;line-height:1.75;margin:0 0 8px}
+.card p:last-child{margin:0}
+.card.ind{border-top:3px solid var(--ind)} .card.teal{border-top:3px solid var(--teal)} .card.coral{border-top:3px solid var(--coral)}
+
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin:22px 0}
+.lab-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;margin-bottom:12px}
+.lab-head h4{font-family:var(--f-display);font-weight:700;font-size:1.04rem;margin:0}
+.lab-head p{margin:0;font-size:13px;color:var(--muted)}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:0 0 12px;font-size:13.5px}
+.ctrl label{display:flex;align-items:center;gap:8px;color:var(--ink-2)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--bg);flex-wrap:wrap}
+.seg button{font:500 12.5px/1 var(--f-body);border:0;background:transparent;color:var(--muted);padding:8px 11px;cursor:pointer;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--ind);color:var(--on-ind)}
+input[type=range]{accent-color:var(--ind);width:130px}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.lab svg{display:block;width:100%;height:auto;min-width:650px}
+.lab svg text{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.lab svg .n{font-family:var(--f-body);font-weight:700;font-size:12.5px;fill:var(--ink)}
+.say{font-size:14px;line-height:1.75;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:12px 0 0}
+
+.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 16px 10px;margin:18px 0}
+.chartbox h4{font-family:var(--f-display);font-weight:700;font-size:1rem;margin:0 0 2px}
+.chartbox .sub{font-size:13px;color:var(--muted);margin:0 0 10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink-2);margin:0 0 8px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+svg.chart{display:block;width:100%;height:auto;min-width:640px}
+svg.chart text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
+svg.chart .tick{font:11px var(--f-mono);fill:var(--muted)}
+svg.chart .val{font:11px var(--f-mono);fill:var(--ink-2)}
+svg.chart .grid{stroke:var(--line);stroke-width:1}
+svg.chart .base{stroke:var(--ink-2);stroke-width:1}
+.bg-ind{background:var(--ind)} .bg-teal{background:var(--teal)} .bg-coral{background:var(--coral)} .bg-amber{background:var(--amber)} .bg-b0{background:var(--base)} .bg-b1{background:var(--base-2)}
+details.raw{margin:8px 0 4px;font-size:13.5px}
+details.raw summary{cursor:pointer;color:var(--muted);font:500 12.5px var(--f-mono)}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);font:12.5px/1.55 var(--f-body);padding:8px 10px;border-radius:6px;max-width:300px}
+
+details.faq{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:10px 0;max-width:50em}
+details.faq summary{cursor:pointer;padding:12px 16px;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::after{content:"+";font:500 16px var(--f-mono);color:var(--muted)}
+details.faq[open] summary::after{content:"−"}
+details.faq .a{padding:0 16px 14px;font-size:15px;line-height:1.8}
+details.faq .a p:last-child{margin:0}
+
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0;align-items:start}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.two>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.two h4{font:500 12.5px/1.4 var(--f-body);margin:0 0 10px;color:var(--muted)}
+.two ul{margin:0;padding-left:18px;font-size:14.5px;line-height:1.75}
+.two li{margin-bottom:8px}
+
+table.cmp{min-width:860px}
+table.cmp td{font-size:13.5px}
+table.cmp th.me,table.cmp td.me{background:color-mix(in oklab,var(--ind-soft) 55%,transparent)}
+details.gl{background:var(--surface);border:1px solid var(--line);border-radius:10px;max-width:52em}
+details.gl summary{cursor:pointer;padding:14px 18px;font-weight:500}
+details.gl dl{margin:0;padding:0 18px 16px;display:grid;grid-template-columns:minmax(130px,max-content) minmax(0,1fr);gap:8px 18px;font-size:14px;line-height:1.7}
+details.gl dt{font-family:var(--f-mono);font-size:13px;color:var(--ink)}
+details.gl dd{margin:0;color:var(--ink-2)}
+@media (max-width:560px){details.gl dl{grid-template-columns:minmax(0,1fr);gap:2px}details.gl dd{margin-bottom:10px}}
+footer{border-top:1px solid var(--line);padding-block:22px 40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+<!-- vap:nav-style -->
+<style>
+.vapnav{box-sizing:border-box;width:100%;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);color:inherit}
+.vapnav-in{box-sizing:border-box;max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font:500 13px/1.45 "Noto Sans SC",system-ui,-apple-system,"PingFang SC",sans-serif;letter-spacing:0}
+.vapnav a{color:inherit;text-decoration:none;opacity:.7}
+.vapnav a:hover,.vapnav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.vapnav a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vapnav a[aria-current="page"]{opacity:1;font-weight:700}
+.vapnav-crumb,.vapnav-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-sep{opacity:.4}
+.vapnav-grp{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.vapnav-cat{font-size:11.5px;letter-spacing:.04em;opacity:.5}
+</style>
+<!-- /vap:nav-style -->
+</head>
+<body>
+<!-- vap:nav -->
+<div class="vapnav" role="navigation" aria-label="论文导航"><div class="vapnav-in"><span class="vapnav-crumb"><a href="../../">全部论文</a><span class="vapnav-sep" aria-hidden="true">/</span><a href="../../topics/door-manipulation/">开门与铰接操作</a></span><span class="vapnav-links"><a href="../../papers/adaptive-door-control/">Adaptive Door Control</a><a href="../../papers/doorbot/">DoorBot</a><a href="../../papers/doorman/">DoorMan</a><a href="../../papers/unidoormanip/" aria-current="page">UniDoorManip</a></span></div></div>
+<!-- /vap:nav -->
+<header class="hero page">
+  <div class="hero-grid">
+    <div>
+      <p class="kicker">论文精读 · 开门与铰接操作 · 跨品类通用开门基准与三阶段条件策略</p>
+      <h1 class="title"><span class="u">Uni</span>DoorManip</h1>
+      <p class="entitle">Learning Universal Door Manipulation Policy Over Large-scale and Diverse Door Manipulation Environments</p>
+      <p class="thesis">不仅要开室内房门，还要把车门、窗户、保险箱、橱柜和冰箱门全都装进一套通用策略。UniDoorManip 先用 <strong>328 个门体 × 204 个把手</strong>拼出 <strong>10,217 个</strong>跨 6 类门实例的逼真锁闩仿真环境，再把开门解耦成<strong>抓把手 → 拧把手 → 拉开门</strong>三阶段，并按<strong>推理的逆序（3 → 2 → 1）条件训练</strong>，让前序抓握天然学会避开后续脱手与撞门。</p>
+      <ul class="meta">
+        <li><b>北京邮电大学</b> · 北京大学（Hao Dong 组）</li>
+        <li><b>ICRA 2026</b> · Vienna, Austria</li>
+        <li><b>出版</b> 2026-06 · <b>DOI</b> 10.1109/ICRA57385.2026.11696858</li>
+        <li><a href="https://unidoormanip.github.io/" target="_blank" rel="noopener">项目页</a></li>
+      </ul>
+    </div>
+    <figure class="ribbon">
+      <svg viewBox="0 0 520 260" role="img" aria-label="UniDoorManip 正向推理与反向条件训练：推理走 1 抓把手到 2 拧把手到 3 开门，训练反过来从 3 到 2 到 1 逐级替代规则专家">
+        <g id="rb"></g>
+      </svg>
+      <figcaption>核心思路：单端到端策略在跨品类复杂锁闩下探索空间爆炸；按三阶段解耦 + 逆序条件训练，把下游成败一路反传回 Stage 1 视觉可供性打分。</figcaption>
+    </figure>
+  </div>
+  <div class="tldr" aria-label="一分钟版">
+    <div><h3>做了什么</h3><p>① 在 IsaacGym 建了 6 类（室内门、窗、车门、保险箱、橱柜、冰箱）共 328 门体 + 204 把手的可组合数据集，并加入锁闩阻挡力、回弹力、移动机械臂自碰撞和单相机遮挡点云；② 提出三阶段通用策略：Stage 1 用 PointNet++ 视觉可供性 + 采样器 + 判别器抓把手，Stage 2/3 各用一对 cVAE 动作生成器 + 判别器闭环输出末端位姿，并按 Stage 3 → 2 → 1 逆序条件训练。</p></div>
+    <div><h3>放在专题里看</h3><p>相比 DoorBot 和 DoorMan 主要聚焦室内通行门，UniDoorManip 把「门」的几何和锁闩机制多样性拉满（涵盖保险箱转轮、车门、窗户、冰箱），并用<strong>点云视觉可供性 + cVAE 分阶段条件监督</strong>路线正面硬刚 DoorGym、PartManip、VAT-MART 和 DP3。</p></div>
+    <div><h3>结果</h3><p>仿真拉门（&gt;45°）全 6 类大幅领先：4 个训练类未见形状达 <strong>0.99 / 0.91 / 0.81 / 0.72</strong>（室内/窗/车/保险箱），2 个完全未见类别零样本达 <strong>0.75 / 0.89</strong>（橱柜/冰箱）；叠加 TAMP 穿室内门 <strong>74%</strong>。真机（&gt;30°，每类 15 次）：固定 Franka 7/15、8/15、10/15、12/15；轮式双臂 ARX-x7s 室内门 9/15、橱柜 12/15。</p></div>
+    <div class="flag"><h3>最该留意的</h3><p>仿真和真机<strong>全部只测「拉门（Pull）」</strong>，不含推门；且<strong>未说明推理时如何判断阶段切换</strong>（何时从拧把手切到拉门）。真机成功阈值从仿真 45° 放宽到 30° 后，室内门成功率仍从仿真的 <strong>99% 暴跌至 46.7%（固定）/ 60.0%（移动）</strong>——把手打滑与阻力造成的 sim-to-real 落差很大。</p></div>
+  </div>
+</header>
+
+<div class="page layout">
+  <nav class="toc" aria-label="目录">
+    <p>目录</p>
+    <ol>
+      <li><a href="#problem">问题与定位</a></li>
+      <li><a href="#env">数据集与锁闩仿真</a></li>
+      <li><a href="#method">三阶段与逆序训练</a></li>
+      <li><a href="#lab">机制与流程交互</a></li>
+      <li><a href="#setup">实验设置</a></li>
+      <li><a href="#results">仿真主结果与消融</a></li>
+      <li><a href="#real">真机迁移表现</a></li>
+      <li><a href="#insight">读懂它</a></li>
+      <li><a href="#limits">局限与疑点</a></li>
+      <li><a href="#topic">放到专题里看</a></li>
+      <li><a href="#glossary">术语表</a></li>
+    </ol>
+  </nav>
+  <main>
+    <section id="problem">
+      <p class="eyebrow">问题 · §I–II</p>
+      <h2>已有仿真太假、门类太少；单端到端策略一碰真实锁闩就学不动</h2>
+      <div class="prose">
+        <p>作者指出前人做通用开门策略卡在两座大山上：</p>
+        <ul>
+          <li><strong>环境失真与资产匮乏：</strong>Where2Act、UMPNet、GAPartNet 等只测无锁推拉门；Robosuite 的带锁门是小门配大把手；DoorGym 靠硬编码模板拼门且门板连独立 URDF 都没有；PartNet-Mobility 和 AKB-48 虽然品类多，但「门」这一类内部几何与锁闩机制多样性远远不够，且多数环境用飞空夹爪（flying gripper）和无遮挡点云。</li>
+          <li><strong>三阶段耦合导致单策略难学：</strong>开门天然包含「抓把手（单步 6D 抓取位姿）」「拧把手解锁（旋转/拨动序列）」「拉开门扇（长程圆弧轨迹）」三个动作形态迥异的子阶段。把它们揉进一个端到端 RL 或扩散策略（DoorGym / PartManip / DP3）里，面对上万种锁闩与几何组合时探索空间过大、极难泛化。</li>
+        </ul>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/teaser.jpg" aria-label="放大原文图 1"><img src="fig/teaser.jpg" width="1800" height="857" alt="原文图 1：UniDoorManip 门体把手部件库、6 大门类、多种锁闩机制与通用策略" loading="lazy"></button>
+        <figcaption><b>原文 Fig. 1</b>(a) 独立拆分的 328 门体与 204 把手资产；(b) 6 个门类别（室内门、窗、保险箱、车门、橱柜、冰箱）；(c) 执手、旋钮、钥匙、转轮等多种真实解锁机制；(d) 策略在已见类、未见类及真机上的泛化展示。</figcaption>
+      </figure>
+    </section>
+
+    <section id="env">
+      <p class="eyebrow">贡献一 · 大规模门数据集与逼真仿真 · §III · Table I–II</p>
+      <h2>328 门体 × 204 把手拼出 10,217 个门实例，补齐锁闩、移动底盘与遮挡</h2>
+      <div class="prose">
+        <p>与现有数据集直接给整门不同，UniDoorManip 把资产拆成 <strong>Body（门体）</strong> 与 <strong>Handle（把手）</strong> 两个兼容部件库，按类别自由组合出 <strong>10,217 个</strong>独立 URDF 门实例（室内门 5,472、保险箱 2,379、橱柜 1,280、窗户 666、车门 330、冰箱 90），跨类与类内多样性远超 AKB-48、PartNet-M、GAPartNet 和 DoorGym。</p>
+        <p>物理与观测端在 IsaacGym 中补齐了四项前作缺失的现实约束（Table II）：① <strong>真实锁闩力 + 弹簧回弹力</strong>（Eq. 1–2）；② <strong>完整移动机械臂</strong>（含连杆与门扇碰撞及关节限位，而非飞空夹爪）；③ <strong>对 k<sub>1</sub>, k<sub>2</sub>, F<sub>f</sub> 的物理域随机化</strong>；④ <strong>门前固定单深度相机</strong>生成的<strong>局部遮挡点云</strong>（机械臂与门扇会真实遮挡视线）。</p>
+      </div>
+      <div class="eq"><span>F<sub>door</sub>(θ<sub>d</sub>, θ<sub>h</sub>) = { F<sub>f</sub> (θ<sub>h</sub> ≤ thre);&nbsp; k<sub>1</sub> θ<sub>d</sub> (θ<sub>h</sub> &gt; thre) },&nbsp;&nbsp;&nbsp; F<sub>handle</sub>(θ<sub>h</sub>) = k<sub>2</sub> θ<sub>h</sub></span><span class="no">Eq. (1)–(2)</span></div>
+      <details class="raw" style="margin:14px 0">
+        <summary>展开原文 Table I（数据集统计对比）与 Table II（仿真特性对比）</summary>
+        <div class="tblwrap">
+          <table class="t">
+            <thead><tr><th>Datasets</th><th class="num">Int. (B/H/CO)</th><th class="num">Win. (B/H/CO)</th><th class="num">Car. (B/H/CO)</th><th class="num">Saf. (B/H/CO)</th><th class="num">Cab. (B/H/CO)</th><th class="num">Ref. (B/H/CO)</th></tr></thead>
+            <tbody>
+              <tr><th>AKB-48</th><td class="num">- / 9 / -</td><td class="num">-</td><td class="num">-</td><td class="num">-</td><td class="num">-</td><td class="num">-</td></tr>
+              <tr><th>PartNet-M</th><td class="num">26 / 22 / 26</td><td class="num">3 / 1 / 3</td><td class="num">-</td><td class="num">30 / 14 / 30</td><td class="num">155 / - / -</td><td class="num">4 / - / -</td></tr>
+              <tr><th>GAPartNet</th><td class="num">14 / 11 / 14</td><td class="num">-</td><td class="num">-</td><td class="num">29 / 1 / 29</td><td class="num">133 / - / -</td><td class="num">4 / - / -</td></tr>
+              <tr><th>DoorGym</th><td class="num">- / 20 / -</td><td class="num">-</td><td class="num">-</td><td class="num">-</td><td class="num">-</td><td class="num">-</td></tr>
+              <tr class="best"><th>Ours (328 B / 204 H)</th><td class="num">57 / 96 / 5472</td><td class="num">18 / 37 / 666</td><td class="num">22 / 15 / 330</td><td class="num">61 / 39 / 2379</td><td class="num">160 / 8 / 1280</td><td class="num">10 / 9 / 90</td></tr>
+            </tbody>
+          </table>
+          <table class="t" style="margin-top:10px">
+            <thead><tr><th>Env.</th><th>Data.</th><th>Mob. (移动底盘)</th><th>Latch. (锁闩)</th><th>Part. (局部点云)</th><th>Occ. (臂/门遮挡)</th></tr></thead>
+            <tbody>
+              <tr><th>GAPartNet</th><td>P+A</td><td>✗</td><td>✗</td><td>✗</td><td>✗</td></tr>
+              <tr><th>W2A / VAT-MART / AdaAfford</th><td>P</td><td>✗</td><td>✗</td><td>✓</td><td>✗</td></tr>
+              <tr><th>RLAfford</th><td>P</td><td>✓</td><td>✗</td><td>✗</td><td>✗</td></tr>
+              <tr><th>PartManip</th><td>G</td><td>✓</td><td>✗</td><td>✓</td><td>✗</td></tr>
+              <tr><th>DoorGym</th><td>D</td><td>✗</td><td>✓</td><td>✓</td><td>✗</td></tr>
+              <tr><th>Env-aware Afford</th><td>P</td><td>✗</td><td>✗</td><td>✓</td><td>✓</td></tr>
+              <tr class="best"><th>Ours</th><td>Ours</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <section id="method">
+      <p class="eyebrow">贡献二 · 三阶段解耦与反向条件训练 · §IV</p>
+      <h2>按 1→2→3 推理，按 3→2→1 训练：让「抓哪里」由「最后门开多大」来监督</h2>
+      <div class="prose">
+        <p>每一步策略输入为 4,096 点局部遮挡点云 O<sub>t</sub> ∈ ℝ<sup>3×4096</sup>（由 PointNet++ 提取逐点特征）与机器人本体状态 S<sub>t</sub>（关节角 + 关节速度），输出下一时刻末端位姿 a<sub>t</sub> = (p<sub>t</sub> ∈ ℝ³, r<sub>t</sub> ∈ SO(3))，由逆运动学映射为机械臂关节与底盘移动。</p>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/framework.jpg" aria-label="放大原文图 2"><img src="fig/framework.jpg" width="1800" height="1088" alt="原文图 2：UniDoorManip 三阶段架构与条件监督方向" loading="lazy"></button>
+        <figcaption><b>原文 Fig. 2</b>上排清晰画出了双向箭头：实线向右为推理执行顺序（抓把手 → 拧把手 → 闭环拉开门），顶上向左的 <code>supervise</code> 箭头即为反向条件训练：下游策略训完后替换规则专家，用来给上游采数据并把最终成败反传监督。</figcaption>
+      </figure>
+      <div class="cards three">
+        <div class="card coral">
+          <h4>Stage 1 · 抓把手（Affordance + 判别器）</h4>
+          <p><strong>推理：</strong>可供性预测器 E<sub>grasp</sub> 对 O<sub>0</sub> 输出逐点得分图，挑最高分点 p<sub>0</sub>；动作采样器在把手轴法平面内采样候选朝向 {a<sub>0</sub><sup>0</sup>…a<sub>0</sub><sup>k</sup>}；判别器 D<sub>grasp</sub> 给每个候选打分并取最优。</p>
+          <p><strong>监督：</strong>先训 D<sub>grasp</sub>（用<strong>整条轨迹结束后的最终门转角 θ<sub>d</sub></strong> 做 L1 监督！），再在每个接触点采 50 个随机朝向，让 E<sub>grasp</sub> 回归 D<sub>grasp</sub> 打分 <strong>Top-10 的均值</strong>。</p>
+        </div>
+        <div class="card ind">
+          <h4>Stage 2 · 拧把手（cVAE + 判别器）</h4>
+          <p><strong>推理：</strong>条件变分自编码器 G<sub>handle</sub> 读 O<sub>t</sub>, S<sub>t</sub> 采样多组候选解锁位姿（覆盖执手下压、旋钮旋转、转轮、钥匙等多模态机制），由判别器 D<sub>handle</sub> 过滤掉采歪的噪声动作，选分最高者执行。</p>
+          <p><strong>损失：</strong>G<sub>handle</sub> 用 <code>λ<sub>KL</sub> L<sub>kl</sub> + λ<sub>pos</sub> L<sub>pos</sub> + λ<sub>rot</sub> L<sub>rot</sub></code>（L1 位置 + 6D 旋转损失，Eq. 3）；D<sub>handle</sub> 用动作执行前后的<strong>把手转角残差 Δθ<sub>h</sub></strong> 做 L1 监督。</p>
+        </div>
+        <div class="card teal">
+          <h4>Stage 3 · 拉开门（闭环 cVAE + 判别器）</h4>
+          <p><strong>推理：</strong>采用与 Stage 2 同构的 G<sub>door</sub> + D<sub>door</sub>，但以<strong>闭环迭代</strong>方式每步读取最新遮挡点云 O<sub>t</sub> 与关节状态 S<sub>t</sub> 输出下一个末端位姿，克服大开角下的视角遮挡和机械臂奇异。</p>
+          <p><strong>监督：</strong>D<sub>door</sub> 用动作前后的<strong>门轴转角残差 Δθ<sub>d</sub></strong> 做 L1 监督；规则专家数据借助仿真真值转轴生成。</p>
+        </div>
+      </div>
+      <div class="note">
+        <h4><span class="tag read">解读</span>为什么逆序条件训练（3 → 2 → 1）比各训各的强 20–60 个点？</h4>
+        <p>如果三阶段都用仿真真值规则各自独立采数据训练（即消融 <code>w/o condition.</code>），Stage 1 可能挑出一个「规则专家能拧动、但真实学出来的 Stage 2/3 会脱手或撞门」的抓取点。逆序训练时：先训好 Stage 3 → 用训好的 Stage 3 替换规则去为 Stage 2 采数据 → 再用训好的 Stage 2+3 替换规则去为 Stage 1 采数据并用最终 θ<sub>d</sub> 监督抓握。这样 Stage 1 学出的可供性图天然带有<strong>前瞻性（foresightful）</strong>，能主动避开后续脱手和撞臂的位置。</p>
+      </div>
+    </section>
+
+    <section id="lab">
+      <p class="eyebrow">交互演示 · 推理/训练顺序切换 &amp; 锁闩物理模拟</p>
+      <h2>切换「正向推理」与「逆序条件训练」，再拉滑块感受锁闩力的突变</h2>
+      <div class="lab" id="uni-lab">
+        <div class="lab-head">
+          <h4>三阶段数据流视角 + Eq. (1)–(2) 门锁阻挡力曲线</h4>
+          <p>按原文 §III-B 与 §IV-F 实现</p>
+        </div>
+        <div class="ctrl">
+          <span class="muted small">流程视图</span>
+          <div class="seg" role="group" aria-label="流程方向" id="uni-mode">
+            <button type="button" data-k="infer" aria-pressed="true">正向推理 (1 → 2 → 3)</button>
+            <button type="button" data-k="train" aria-pressed="false">逆序条件训练 (3 → 2 → 1)</button>
+          </div>
+          <label>把手转角 θ<sub>h</sub> <input type="range" id="sl-th" min="0" max="60" value="15"><span class="mono" id="v-th">15°</span></label>
+          <label>门扇转角 θ<sub>d</sub> <input type="range" id="sl-td" min="0" max="60" value="25"><span class="mono" id="v-td">25°</span></label>
+        </div>
+        <div class="scroll"><svg id="uni-svg" viewBox="0 0 760 250" role="img" aria-label="UniDoorManip 正反向数据流与锁闩力突变可视化"></svg></div>
+        <p class="say" id="uni-say"></p>
+      </div>
+    </section>
+
+    <section id="setup">
+      <p class="eyebrow">实验设置 · §V-A–B</p>
+      <h2>4 训练类未见形状 + 2 完全未见类；对比 5 个基线与 4 组消融</h2>
+      <div class="prose">
+        <ul>
+          <li><strong>仿真任务与划分：</strong>主任务为 <strong>Pull Door（拉门）</strong>，门打开角度 θ<sub>d</sub> &gt; <strong>45°</strong> 算成功；辅助任务为 <strong>Move Through Door（穿门）</strong>，仅在室内门上将本文策略与 TAMP 结合评测。训练集用 Interior、Window、Car、Safe 四类（按物体划分训练/测试集以测<strong>未见形状</strong>），完全留出 Cabinet、Refrigerator 两类测<strong>跨品类零样本泛化</strong>。</li>
+          <li><strong>5 个基线：</strong><code>GAPartNet + GT</code>（直接喂仿真真值位姿跑启发式规划）、<code>DoorGym</code>（状态空间 PPO，飞空夹爪放把手旁）、<code>PartManip</code>（视觉 PPO，飞空夹爪）、<code>VAT-MART</code>（开环视觉动作轨迹）、<code>DP3</code>（3D 扩散策略端到端模仿学习）。</li>
+          <li><strong>4 组消融：</strong><code>w/o disentangle.</code>（抓完后用单策略合并 2/3 阶段）、<code>w/o condition.</code>（三阶段独立用规则数据训练，不逆序替换）、<code>w/o state.</code>（不输入机器人关节角/速度 S<sub>t</sub>）、<code>w/o mobile.</code>（固定底座机械臂）。</li>
+          <li><strong>未披露项：</strong>仿真测试集具体包含多少门实例、每类跑多少轮试验、训练数据总轨迹条数，以及推理时三阶段之间具体的切换触发条件，原文均<strong>未披露</strong>。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="results">
+      <p class="eyebrow">仿真结果 · §V-C · Table III · Fig. 4–5</p>
+      <h2>6 类门均值 84.5%，领先最强基线超 30 个点；固定底座在车门上直接归零</h2>
+      <div class="chartbox">
+        <h4>Pull Door 任务成功率对比（原文 Table III，阈值 θ<sub>d</sub> &gt; 45°）</h4>
+        <p class="sub">前 4 类为训练类未见形状，后 2 类为未见新类别。数字逐字取自 Table III；可点击上方按钮在「对比基线」与「对比消融」间切换。</p>
+        <div class="ctrl" style="margin-bottom:8px">
+          <div class="seg" role="group" aria-label="图表视图" id="t3-view">
+            <button type="button" data-k="base" aria-pressed="true">Ours vs 5 个基线</button>
+            <button type="button" data-k="abl" aria-pressed="false">Ours vs 4 组消融</button>
+          </div>
+        </div>
+        <div class="legend" id="t3-leg"></div>
+        <div class="scroll"><svg class="chart" id="ch-t3" viewBox="0 0 760 290"></svg></div>
+        <details class="raw" id="raw-t3"><summary>展开原文 Table III 完整数据（全部 10 行 × 6 类）</summary></details>
+      </div>
+
+      <div class="prose">
+        <p>四组消融把每个设计点拆得非常明白：</p>
+        <ul>
+          <li><strong>拆阶段（w/o disentangle.）：</strong>6 类均值从 0.845 暴跌至 0.330（Cabinet 仅 0.05、Safe 0.19），证明拧把手与拉开门合并成一个策略在跨机制下几乎学不动。</li>
+          <li><strong>逆序条件训练（w/o condition.）：</strong>均值降到 0.507（Window 从 0.91 掉到 0.31、Refrigerator 从 0.89 掉到 0.33），说明上下游脱节会大量触发脱手和撞臂。</li>
+          <li><strong>机器人本体状态（w/o state.）：</strong>均值掉到 0.443（Car 仅 0.16）。如 Fig. 4 所示，开门 &lt;30° 时无状态还能接近 0.8，一旦门开大、门扇遮挡住相机点云（Fig. 5c），缺少关节状态正则就会让 IK 跌进怪异构型而崩溃。</li>
+          <li><strong>移动底盘（w/o mobile.）：</strong>固定底座在车门（Car）上直接 <strong>0.00</strong>——因为车门又宽又重、开弧大，机械臂必撞门板（Fig. 5a）；加上移动底盘后还能结合 TAMP 在室内门上取得 <strong>74%</strong> 穿门成功率。</li>
+        </ul>
+      </div>
+      <div class="fig-pair">
+        <figure class="plate">
+          <button class="zoom" type="button" data-src="fig/angle-curve.png" aria-label="放大原文图 4"><img src="fig/angle-curve.png" width="766" height="626" alt="原文图 4：不同开门角度阈值下 Ours 与四组消融的成功率曲线" loading="lazy"></button>
+          <figcaption><b>原文 Fig. 4</b>全 6 类平均成功率随开门角度阈值 θ<sub>d</sub>（5°–60°）的变化：Ours 在 60° 大开角仍维持 ~0.70，而 <code>w/o state</code> 在超过 30° 遮挡加重后断崖下跌。</figcaption>
+        </figure>
+        <figure class="plate">
+          <button class="zoom" type="button" data-src="fig/failure-cases.jpg" aria-label="放大原文图 5"><img src="fig/failure-cases.jpg" width="963" height="306" alt="原文图 5：消融实验典型失败案例" loading="lazy"></button>
+          <figcaption><b>原文 Fig. 5</b>典型失败：(a) 固定底座拉车门撞臂；(b) 无状态输入导致关节跌入怪异姿态；(c) 门开大后点云严重遮挡缺失。</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="real">
+      <p class="eyebrow">真机迁移 · §V-C-5 · Table IV · Fig. 3 &amp; 6</p>
+      <h2>两台真机零样本迁移：橱柜 80%，但室内真门从仿真 99% 掉到 46.7%–60.0%</h2>
+      <div class="prose">
+        <p>作者把纯仿真训出的策略直接部署到两套真机平台，每类测 <strong>15 次</strong>，成功标准从仿真的 45° 调整为 <strong>&gt;30°</strong>：</p>
+        <ul>
+          <li><strong>固定底座平台：</strong>Franka Emika Panda + 侧置 Azure Kinect DK 深度相机，底层用阻抗控制执行末端位姿。测试 4 类门：Interior <strong>7/15 (46.7%)</strong>、Window <strong>8/15 (53.3%)</strong>、Safe <strong>10/15 (66.7%)</strong>、Cabinet <strong>12/15 (80.0%)</strong>。</li>
+          <li><strong>轮式移动平台：</strong>ARX-x7s 双臂轮式机器人 + 头部 RealSense，把底盘 xy 平面位移当成 2 个额外关节一起求逆解，轮子用 PID 跟踪。测试 2 类门：Interior <strong>9/15 (60.0%)</strong>（比固定底座多 2 次，因室内门工作空间需求大）、Cabinet <strong>12/15 (80.0%)</strong>。</li>
+        </ul>
+      </div>
+      <div class="chartbox">
+        <h4>仿真（45°）vs 真机固定/移动底座（30°）成功率对比（原文 Table III &amp; IV）</h4>
+        <p class="sub">把同类别的仿真成绩与真机 15 次换算百分比并排对比，直观看到不同门类的 sim-to-real 落差。</p>
+        <div class="legend">
+          <span><i class="bg-ind"></i>仿真 Pull Door (&gt;45°)</span>
+          <span><i class="bg-teal"></i>真机固定 Franka (&gt;30°, n=15)</span>
+          <span><i class="bg-coral"></i>真机移动 ARX-x7s (&gt;30°, n=15)</span>
+        </div>
+        <div class="scroll"><svg class="chart" id="ch-real" viewBox="0 0 760 265"></svg></div>
+        <details class="raw" id="raw-real"><summary>展开原文 Table IV</summary></details>
+      </div>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/qualitative.jpg" aria-label="放大原文图 3"><img src="fig/qualitative.jpg" width="1800" height="1001" alt="原文图 3：仿真拉门、穿门与真机 Franka 开门定性序列" loading="lazy"></button>
+        <figcaption><b>原文 Fig. 3</b>(a) 仿真四类门拉门序列（首列红点为 Stage 1 视觉可供性热点）；(b) 结合 TAMP 调整臂姿穿过室内门；(c) Franka 固定底座打开真实室内门、窗、保险箱与橱柜。</figcaption>
+      </figure>
+      <figure class="plate">
+        <button class="zoom" type="button" data-src="fig/mobile-real.jpg" aria-label="放大原文图 6"><img src="fig/mobile-real.jpg" width="974" height="230" alt="原文图 6：轮式双臂 ARX-x7s 真机开门序列" loading="lazy"></button>
+        <figcaption><b>原文 Fig. 6</b>ARX-x7s 移动机器人拉动真实室内门与橱柜门，把底盘当作 2-DoF 扩展关节与机械臂联合求解 IK。</figcaption>
+      </figure>
+    </section>
+
+    <section id="insight">
+      <p class="eyebrow">读懂它</p>
+      <h2>这篇工作最值得借鉴的设计与最该清醒看待的边界</h2>
+      <h3 style="margin-top:0">关键 insight</h3>
+      <div class="cards">
+        <div class="card"><h4>1. 部件组合（Body × Handle）是造多样化资产的高杠杆办法</h4><p>手工建上万扇完整 URDF 门不现实，但把 328 个门体与 204 个把手解耦并定义接口，就能组合出 10,217 个兼容资产，瞬间把跨几何泛化训练数据放大两个量级。</p></div>
+        <div class="card"><h4>2. 用「最终结果」逆序监督上游抓握，比局部抓握质量指标管用得多</h4><p>一个「抓得牢」的位姿不一定是「拧得开且不撞门」的位姿。Stage 1 的判别器直接用整个三阶段结束后的 θ<sub>d</sub> 监督，把下游机械臂运动学与碰撞约束隐式编译进了第一帧的逐点可供性热力图里。</p></div>
+        <div class="card"><h4>3. 「cVAE 生成 + 判别器挑优」兼顾多模态机制与执行稳健</h4><p>面对执手、旋钮、转轮等异构把手，回归单峰策略容易输出平均垃圾动作；cVAE 能提出多峰候选，再用残差转角监督的判别器掐掉采样噪声，在跨品类未见门（橱柜 75%、冰箱 89%）上依然稳健。</p></div>
+        <div class="card"><h4>4. 本体关节状态是对抗点云遮挡的低成本救生圈</h4><p>门开过 30° 后，门扇和手臂必然挡住固定相机视野；把关节角和速度拼进闭环输入，能约束动作连续性、防止 IK 跑偏，单这一项在表 III 中就值 +40 个百分点均值。</p></div>
+      </div>
+      <h3>容易误解的地方</h3>
+      <div class="prose">
+        <ul>
+          <li><strong>「Universal」目前仅覆盖「拉门（Pull）」。</strong>§V-A 明言所有测试门都设定为「初始关闭、只能解锁并拉动打开」，并没有评估未知推/拉方向的场景。</li>
+          <li><strong>并非无规则自探索 RL。</strong>训练数据全部先靠仿真真值（把手与门体转轴）写规则专家生成，再靠逆序替换逐步把规则换成学到的策略——所以它本质是<strong>分阶段条件模仿/生成学习 + 价值判别</strong>，不是纯无示范 RL。</li>
+          <li><strong>真机性能远不如仿真数字亮眼。</strong>仿真 0.99 的室内门在真机降阈值（30°）后只有 46.7%–60.0%，说明光滑金属把手的二指滑脱、真实锁舌高摩擦与阻力，是纯点云无力/触觉策略难以跨过的物理坎。</li>
+        </ul>
+      </div>
+      <h3>FAQ</h3>
+      <details class="faq"><summary>Stage 1 采样器「在把手轴法平面采样朝向」，推理时怎么知道把手轴？</summary><div class="a"><p>论文在 §IV-C 写到「by sampling random orientations from the normal plane of the handle axis」，但并未解释推理阶段在没有仿真真值、仅有局部遮挡点云 O<sub>0</sub> 时如何估计把手轴线（可能是 PCA 主轴或局部法向量），这是一个未披露的实现细节。</p></div></details>
+      <details class="faq"><summary>为什么真机上移动底座（ARX-x7s）开室内门更好，但开橱柜没提升？</summary><div class="a"><p>正如论文 §V-C-5 解释：室内门扇宽大、圆弧拉动半径长，固定底座容易触及工作空间边界而失败（7/15 → 9/15）；小橱柜开门半径小、阻力轻，固定臂本来就够得着，两边都是 12/15。</p></div></details>
+      <details class="faq"><summary>仿真里的 Move Through Door（74%）也是纯学出来的吗？</summary><div class="a"><p>不是。§V-C-3 说明它是把本文学到的开门策略与经典任务与运动规划（TAMP）拼接起来：门开到足够角度后由 TAMP 调整关节姿态让底盘穿过去，且该穿门任务仅在仿真室内门上评测，真机未测穿门。</p></div></details>
+    </section>
+
+    <section id="limits">
+      <p class="eyebrow">局限与疑点</p>
+      <h2>作者承认的，和我们读出来的</h2>
+      <div class="two">
+        <div>
+          <h4>论文自己承认的局限（§V-C-5）</h4>
+          <ul>
+            <li>真实世界中光滑把手表面容易让平行夹爪在整个拉门过程中打滑脱落，是真机主要失败原因。</li>
+            <li>室内门和窗户因为铰链摩擦与反向回弹力矩更大，真机成功率明显低于橱柜和保险箱。</li>
+          </ul>
+        </div>
+        <div>
+          <h4>我们读出来的疑点</h4>
+          <ul>
+            <li><span class="tag doubt">疑点</span><strong>推理时的阶段切换机制完全未披露：</strong>系统有 3 个独立模型（抓 → 拧 → 拉），在没有力/触觉和仿真真值 θ<sub>h</sub> 的真机部署时，到底靠什么条件判断「把手已经拧开、可以切到 Stage 3 拉门」？全文未作交代。</li>
+            <li><span class="tag doubt">疑点</span><strong>只做拉门，不做推门与推/拉未知判别：</strong>真实场景里遇到一扇陌生门首先面临推还是拉，本基准与策略把门全部限定为拉门。</li>
+            <li><span class="tag doubt">疑点</span><strong>仿真到真机的巨大落差与阈值放宽：</strong>仿真成功标准是 45°（室内门 99%），真机把标准放宽到 30° 后，室内门固定底座仍只有 7/15（46.7%）、移动底座 9/15（60.0%），且真机未测试车门、冰箱与穿门任务。</li>
+            <li><span class="tag doubt">疑点</span><strong>数据规模与采样细节缺失：</strong>未公开仿真测试集规模、规则专家采集轨迹条数、cVAE 隐藏层维度与超参 λ，也未解释推理时把手轴线（Stage 1 采样法平面）如何从点云获得。</li>
+            <li><strong>不公平的基线对比细节：</strong>虽然论文刻意给 DoorGym 和 PartManip 用了「飞空夹爪放在把手旁」的更简单设定（仍大幅落败，反而强化了本文结论），但未交代 DP3 使用了多少条示范数据、是否也用了完整移动机械臂数据。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="topic">
+      <p class="eyebrow">放到专题里看</p>
+      <h2>把「门」从走廊房门拓展到车门、窗、保险箱与冰箱的通用基准</h2>
+      <div class="prose">
+        <p>在 <a href="../../topics/door-manipulation/">开门与铰接操作专题</a> 中，UniDoorManip 是唯一把目标定在<strong>6 大跨品类铰接门（含车门、保险箱、窗、冰箱）</strong>且系统发布可组合资产库与逼真锁闩仿真基准的工作。与 <a href="../doorman/">DoorMan</a>（纯 RGB 人形端到端 RL）相比，它走的是<strong>3D 点云 + 显式三阶段解耦 + 反向条件生成</strong>路线；而它真机室内门 46.7%–60.0% 的滑脱痛点，也恰好反证了 <a href="../adaptive-door-control/">Adaptive Door Control (2016)</a> 与 <a href="../doorbot/">DoorBot (2025)</a> 强调力/触觉闭环的现实价值。</p>
+      </div>
+      <div class="tblwrap">
+        <table class="t cmp">
+          <thead><tr><th>维度</th><th><a href="../adaptive-door-control/">Adaptive Control (2016)</a></th><th><a href="../doorbot/">DoorBot (2025)</a></th><th><a href="../doorman/">DoorMan (2025)</a></th><th class="me">UniDoorManip (2026)</th></tr></thead>
+          <tbody>
+            <tr><th>门类覆盖</th><td>旋转门 / 推拉门 / 抽屉</td><td>4 类室内门与橱柜把手</td><td>3 类通行门（推/拉执手、推杠）</td><td class="me">6 大类（室内/窗/车/保险箱/柜/冰箱）</td></tr>
+            <tr><th>感知输入</th><td>腕部 6 轴 F/T</td><td>RGB-D + Joint-4 电流</td><td>纯 RGB + 本体状态</td><td class="me">局部遮挡 3D 点云 + 关节状态</td></tr>
+            <tr><th>核心方法</th><td>无模型 Lyapunov 自适应控制</td><td>状态机 + GUM + 电流闭环</td><td>PPO+Staged Reset → DAgger → GRPO</td><td class="me">三阶段解耦 + 逆序条件训练</td></tr>
+            <tr><th>主要短板</th><td>只管抓取后、需先验方向</td><td>玻璃门/怪把手失效</td><td>奖励工程重、真机门数未披露</td><td class="me">仅测拉门、阶段切换未交代、真机易打滑</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="glossary">
+      <p class="eyebrow">术语表</p>
+      <h2>读这篇会遇到的词</h2>
+      <details class="gl"><summary>展开术语表</summary>
+        <dl>
+          <dt>Visual Affordance（视觉可供性）</dt><dd>预测点云上每个 3D 点对于完成下游任务的「可操作性得分」，无需依赖预定义把手类别或刚体 6D 位姿。</dd>
+          <dt>Disentanglement（阶段解耦）</dt><dd>将整套开门拆为「抓把手」「拧把手」「拉开门」三个独立子策略，降低单一策略在复杂锁闩下的探索难度。</dd>
+          <dt>Reverse-Order Conditional Training</dt><dd>按推理逆序（Stage 3 → 2 → 1）依次训练并用已训好的下游策略替换规则专家来采集上游监督数据，把下游成败传回上游。</dd>
+          <dt>cVAE（条件变分自编码器）</dt><dd>以当前点云与关节状态为条件生成多模态候选动作的生成模型，配合判别器筛选最优动作。</dd>
+          <dt>6D Rotation Representation</dt><dd>Zhou et al. (CVPR 2019) 提出的连续 6 维旋转表示，避免欧拉角万向锁与四元数双覆盖不连续问题。</dd>
+          <dt>TAMP</dt><dd>Task and Motion Planning（任务与运动规划），本文中在门被拉开后接管调整机械臂构型并规划底盘穿门。</dd>
+        </dl>
+      </details>
+    </section>
+  </main>
+</div>
+
+<footer class="page">
+  <p>图均提取自 ICRA 2026 原文 PDF，数字逐字核对自原文 Table I–IV 与 Fig. 4。标「解读」的是我们的判断。</p>
+</footer>
+<dialog id="lb" aria-label="放大查看"><div class="box"><img id="lb-img" alt=""></div><div class="bar"><span id="lb-cap"></span><button type="button" id="lb-close">关闭</button></div></dialog>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+(function(){
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, text){ const e = document.createElementNS(NS, tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+  const tip = $('#tip');
+  function place(x, y){ const r = tip.getBoundingClientRect(); let l = x + 14, t = y + 14; if (l + r.width > innerWidth - 8) l = x - r.width - 14; if (t + r.height > innerHeight - 8) t = y - r.height - 14; tip.style.left = Math.max(8, l) + 'px'; tip.style.top = Math.max(8, t) + 'px'; }
+  document.addEventListener('pointerover', e => { const t = e.target.closest && e.target.closest('[data-tip]'); if (!t) return; tip.textContent = t.getAttribute('data-tip'); tip.hidden = false; place(e.clientX, e.clientY); });
+  document.addEventListener('pointermove', e => { if (tip.hidden) return; if (!(e.target.closest && e.target.closest('[data-tip]'))) { tip.hidden = true; return; } place(e.clientX, e.clientY); });
+  const lb = $('#lb');
+  $$('figure.plate .zoom').forEach(b => b.addEventListener('click', () => { $('#lb-img').src = b.dataset.src; const c = b.parentElement.querySelector('figcaption b'); $('#lb-cap').textContent = c ? c.textContent : ''; if (lb.showModal) lb.showModal(); else lb.setAttribute('open', ''); }));
+  $('#lb-close').addEventListener('click', () => lb.close());
+  lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+  const links = $$('.toc a');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id)); }), { rootMargin: '-35% 0px -60% 0px' });
+    $$('main section').forEach(s => io.observe(s));
+  }
+  function seg(host, onPick){ $$('button', host).forEach(b => b.addEventListener('click', () => { $$('button', host).forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); onPick(b.dataset.k); })); }
+  function arrowDefs(svg, id, col){ const df = el('defs'); const mk = el('marker', { id, viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto' }); mk.appendChild(el('path', { d: 'M0 0 L10 5 L0 10 z', fill: col })); df.appendChild(mk); svg.appendChild(df); }
+
+  /* ---------- Hero Ribbon ---------- */
+  (function(){
+    const g = $('#rb');
+    arrowDefs(g, 'ua', 'var(--ind)'); arrowDefs(g, 'uc', 'var(--coral)');
+    function box(x, y, w, h, t, sub1, sub2, c){
+      g.appendChild(el('rect', { x, y, width: w, height: h, rx: 10, fill: 'color-mix(in oklab,' + c + ' 14%,var(--surface))', stroke: c, 'stroke-width': 1.6 }));
+      g.appendChild(el('text', { x: x + w/2, y: y + 25, 'text-anchor': 'middle', class: 'n' }, t));
+      g.appendChild(el('text', { x: x + w/2, y: y + 46, 'text-anchor': 'middle', class: 'm' }, sub1));
+      g.appendChild(el('text', { x: x + w/2, y: y + 64, 'text-anchor': 'middle', class: 'm' }, sub2));
+    }
+    box(14, 72, 148, 86, 'Stage 1 · 抓把手', 'E_grasp + D_grasp', 'PointNet++ 可供性', 'var(--coral)');
+    box(186, 72, 148, 86, 'Stage 2 · 拧把手', 'G_handle + D_handle', 'cVAE 多模态解锁', 'var(--ind)');
+    box(358, 72, 148, 86, 'Stage 3 · 拉开门', 'G_door + D_door', '闭环迭代拉门', 'var(--teal)');
+
+    // Forward inference arrows (top)
+    g.appendChild(el('path', { d: 'M164 106 L182 106', stroke: 'var(--ind)', 'stroke-width': 2, 'marker-end': 'url(#ua)', fill: 'none' }));
+    g.appendChild(el('path', { d: 'M336 106 L354 106', stroke: 'var(--ind)', 'stroke-width': 2, 'marker-end': 'url(#ua)', fill: 'none' }));
+    g.appendChild(el('text', { x: 260, y: 48, 'text-anchor': 'middle', class: 'm', style: 'fill:var(--ind);font-weight:700' }, '正向推理：1 → 2 → 3'));
+
+    // Reverse conditional training arrows (bottom)
+    g.appendChild(el('path', { d: 'M432 162 C432 204, 260 204, 260 162', stroke: 'var(--coral)', 'stroke-width': 2, 'stroke-dasharray': '5 3', 'marker-end': 'url(#uc)', fill: 'none' }));
+    g.appendChild(el('path', { d: 'M260 162 C260 226, 88 226, 88 162', stroke: 'var(--coral)', 'stroke-width': 2, 'stroke-dasharray': '5 3', 'marker-end': 'url(#uc)', fill: 'none' }));
+    g.appendChild(el('text', { x: 260, y: 238, 'text-anchor': 'middle', class: 'm', style: 'fill:var(--coral);font-weight:700' }, '反向条件训练（3 → 2 → 1）：用最终 θ_d 监督前瞻抓握'));
+  })();
+
+  /* ---------- Interactive Flow + Latching Physics Lab ---------- */
+  (function(){
+    let mode = 'infer';
+    const slTh = $('#sl-th'), slTd = $('#sl-td');
+    const THRE = 30; // illustrative latch unlock angle 30 deg
+
+    function draw(){
+      const th = +slTh.value, td = +slTd.value;
+      $('#v-th').textContent = th + '°';
+      $('#v-td').textContent = td + '°';
+      const unlocked = th > THRE;
+      const svg = $('#uni-svg'); svg.innerHTML = '';
+      arrowDefs(svg, 'fi', 'var(--ind)'); arrowDefs(svg, 'fc', 'var(--coral)');
+
+      // Left half: 3-stage flow diagram (x: 10..420)
+      const stages = [
+        { x: 18, t: 'Stage 1 抓把手', sub: mode === 'infer' ? 'O₀ → E_grasp → D_grasp' : '第 3 步训：最终 θ_d 监督', c: 'var(--coral)' },
+        { x: 156, t: 'Stage 2 拧把手', sub: mode === 'infer' ? 'O_t,S_t → G/D_handle' : '第 2 步训：接已训 Stage 3', c: 'var(--ind)' },
+        { x: 294, t: 'Stage 3 拉开门', sub: mode === 'infer' ? '闭环迭代 G/D_door' : '第 1 步训：先学最大 θ_d', c: 'var(--teal)' }
+      ];
+      svg.appendChild(el('text', { x: 18, y: 20, class: 'n' }, mode === 'infer' ? '推理流向（单视角点云 + 关节状态 → 末端位姿）' : '反向条件训练流向（逐级用已训策略替代规则专家）'));
+      stages.forEach((s, i) => {
+        svg.appendChild(el('rect', { x: s.x, y: 42, width: 120, height: 74, rx: 9, fill: 'color-mix(in oklab,' + s.c + ' 15%,var(--surface))', stroke: s.c, 'stroke-width': 1.8 }));
+        svg.appendChild(el('text', { x: s.x + 60, y: 72, 'text-anchor': 'middle', class: 'n', style: 'font-size:12px' }, s.t));
+        svg.appendChild(el('text', { x: s.x + 60, y: 95, 'text-anchor': 'middle', style: 'fill:var(--ink-2);font-size:9.5px' }, s.sub));
+      });
+      if (mode === 'infer') {
+        svg.appendChild(el('path', { d: 'M140 79 L152 79', stroke: 'var(--ind)', 'stroke-width': 2.2, 'marker-end': 'url(#fi)', fill: 'none' }));
+        svg.appendChild(el('path', { d: 'M278 79 L290 79', stroke: 'var(--ind)', 'stroke-width': 2.2, 'marker-end': 'url(#fi)', fill: 'none' }));
+        // closed-loop arc on stage 3
+        svg.appendChild(el('path', { d: 'M385 118 C385 152, 325 152, 325 120', stroke: 'var(--teal)', 'stroke-width': 1.8, 'marker-end': 'url(#fi)', fill: 'none' }));
+        svg.appendChild(el('text', { x: 355, y: 164, 'text-anchor': 'middle', style: 'fill:var(--teal)' }, '闭环更新 O_t, S_t'));
+      } else {
+        svg.appendChild(el('path', { d: 'M354 120 C354 166, 216 166, 216 120', stroke: 'var(--coral)', 'stroke-width': 2.2, 'stroke-dasharray': '5 3', 'marker-end': 'url(#fc)', fill: 'none' }));
+        svg.appendChild(el('path', { d: 'M216 120 C216 196, 78 196, 78 120', stroke: 'var(--coral)', 'stroke-width': 2.2, 'stroke-dasharray': '5 3', 'marker-end': 'url(#fc)', fill: 'none' }));
+        svg.appendChild(el('text', { x: 216, y: 212, 'text-anchor': 'middle', style: 'fill:var(--coral);font-weight:700' }, '训完 3 → 替规则采 2 → 替规则采 1（θ_d 反传监督）'));
+      }
+      svg.appendChild(el('rect', { x: 18, y: 222, width: 396, height: 22, rx: 5, fill: 'var(--bg)', stroke: 'var(--line)' }));
+      svg.appendChild(el('text', { x: 216, y: 237, 'text-anchor': 'middle' }, mode === 'infer' ? '疑点提示：论文未披露真机上 Stage 2 切到 Stage 3 的触发判定条件' : 'Stage 1 的 E_grasp 回归 50 个候选朝向中 D_grasp 前 10 名的均分'));
+
+      // Right half: Eq. (1)-(2) Latching Force physics plot (x: 455..745)
+      const L = 472, R = 742, T0 = 42, B = 205;
+      svg.appendChild(el('text', { x: L, y: 20, class: 'n' }, 'Eq. (1)–(2) 门锁阻挡力 F_door 阶跃'));
+      const tx = a => L + (R - L) * (a / 60);
+      const ty = f => T0 + (B - T0) * (1 - f / 100);
+      svg.appendChild(el('rect', { x: L, y: T0, width: R - L, height: B - T0, rx: 6, fill: 'var(--bg)', stroke: 'var(--line)' }));
+      // Threshold vertical line
+      svg.appendChild(el('line', { x1: tx(THRE), x2: tx(THRE), y1: T0, y2: B, stroke: 'var(--amber)', 'stroke-dasharray': '4 3', 'stroke-width': 1.5 }));
+      svg.appendChild(el('text', { x: tx(THRE), y: T0 - 5, 'text-anchor': 'middle', style: 'fill:var(--amber)' }, '解锁阈值 thre = 30°'));
+      // Locked F_f = 85 vs unlocked k1*td
+      const fUnlock = 10 + 0.9 * td;
+      const dDoor = `M${tx(0)} ${ty(85)} L${tx(THRE)} ${ty(85)} L${tx(THRE)} ${ty(fUnlock)} L${tx(60)} ${ty(fUnlock)}`;
+      svg.appendChild(el('path', { d: dDoor, fill: 'none', stroke: 'var(--coral)', 'stroke-width': 2.5 }));
+      // Handle spring force F_handle = k2 * th
+      svg.appendChild(el('path', { d: `M${tx(0)} ${ty(0)} L${tx(60)} ${ty(55)}`, fill: 'none', stroke: 'var(--ind)', 'stroke-width': 2, 'stroke-dasharray': '4 2' }));
+      // Current marker
+      const curF = unlocked ? fUnlock : 85;
+      svg.appendChild(el('circle', { cx: tx(th), cy: ty(curF), r: 5.5, fill: unlocked ? 'var(--teal)' : 'var(--coral)' }));
+      svg.appendChild(el('text', { x: tx(th), y: ty(curF) - 9, 'text-anchor': 'middle', style: 'fill:var(--ink);font-weight:700' }, unlocked ? '已解锁 (k₁θ_d)' : '锁死阻挡 F_f'));
+      svg.appendChild(el('text', { x: (L+R)/2, y: 224, 'text-anchor': 'middle' }, '把手转角 θ_h（红实线 F_door，蓝虚线 F_handle = k₂θ_h）'));
+
+      $('#uni-say').textContent = (mode === 'infer'
+        ? '正向推理：Stage 1 从初始遮挡点云挑最高可供性点并选朝向抓握；Stage 2 拧动把手直到解锁；Stage 3 闭环读取最新点云和关节状态把门拉开。'
+        : '逆序条件训练：先训 Stage 3（拉门），再用它替换规则专家去采 Stage 2（拧把手）数据，最后用训好的 Stage 2+3 采 Stage 1 数据，使抓握直接以最终开门角度 θ_d 为监督信号。')
+        + ' 当前锁闩模拟：θ_h = ' + th + '°（' + (unlocked ? '超过解锁阈值，门锁弹开，阻力骤降至回弹力 k₁θ_d' : '未达阈值，门扇施加反向大阻挡力 F_f 模拟上锁') + '）。';
+    }
+    seg($('#uni-mode'), k => { mode = k; draw(); });
+    [slTh, slTd].forEach(s => s.addEventListener('input', draw));
+    draw();
+  })();
+
+  /* ---------- Table III Interactive Grouped Chart ---------- */
+  (function(){
+    const cats = ['Interior', 'Window', 'Car', 'Safe', 'Cabinet*', 'Refrig.*'];
+    const ALL = [
+      { n: 'GAPartNet+GT', grp: 'base', c: 'var(--base-2)', v: [0.62, 0.88, 0.41, 0.44, 0.52, 0.26] },
+      { n: 'DoorGym',      grp: 'base', c: 'var(--base)',   v: [0.56, 0.72, 0.61, 0.41, 0.19, 0.23] },
+      { n: 'PartManip',    grp: 'base', c: '#9A8CC4',       v: [0.47, 0.61, 0.54, 0.34, 0.42, 0.19] },
+      { n: 'VAT-MART',     grp: 'base', c: 'var(--amber)',  v: [0.59, 0.62, 0.57, 0.43, 0.51, 0.25] },
+      { n: 'DP3',          grp: 'base', c: 'var(--teal)',   v: [0.58, 0.71, 0.62, 0.36, 0.53, 0.28] },
+      { n: 'w/o disentangle.', grp: 'abl', c: 'var(--base-2)', v: [0.44, 0.88, 0.20, 0.19, 0.05, 0.22] },
+      { n: 'w/o condition.',   grp: 'abl', c: 'var(--amber)',  v: [0.77, 0.31, 0.58, 0.51, 0.54, 0.33] },
+      { n: 'w/o state.',       grp: 'abl', c: 'var(--coral)',  v: [0.73, 0.59, 0.16, 0.36, 0.45, 0.37] },
+      { n: 'w/o mobile.',      grp: 'abl', c: 'var(--teal)',   v: [0.87, 0.60, 0.00, 0.43, 0.50, 0.81] },
+      { n: 'Ours',             grp: 'both', c: 'var(--ind)',   v: [0.99, 0.91, 0.81, 0.72, 0.75, 0.89] }
+    ];
+
+    function render(view){
+      const series = ALL.filter(s => s.grp === view || s.grp === 'both');
+      $('#t3-leg').innerHTML = series.map(s => `<span><i style="background:${s.c}"></i>${s.n}</span>`).join('');
+      const svg = $('#ch-t3'); svg.innerHTML = '';
+      const W = 760, H = 290, L = 46, R = 16, T = 20, B = 48;
+      const y = v => T + (H - T - B) * (1 - v);
+      for (let v = 0; v <= 1.01; v += 0.2){
+        svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), class: v > 0 ? 'grid' : 'base' }));
+        svg.appendChild(el('text', { x: L - 8, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, v.toFixed(1)));
+      }
+      const gw = (W - L - R) / cats.length;
+      // Shade unseen test categories
+      svg.appendChild(el('rect', { x: L + 4 * gw, y: T - 6, width: 2 * gw, height: H - T - B + 10, rx: 6, fill: 'color-mix(in oklab,var(--ind) 7%,transparent)' }));
+      svg.appendChild(el('text', { x: L + 5 * gw, y: T + 10, 'text-anchor': 'middle', class: 'tick', style: 'fill:var(--ind)' }, '未见测试类别 (Test)'));
+
+      cats.forEach((c, ci) => {
+        const gx = L + ci * gw, bw = (gw - 16) / series.length;
+        series.forEach((s, si) => {
+          const bx = gx + 8 + si * bw, val = s.v[ci];
+          svg.appendChild(el('rect', { x: bx + 0.5, y: y(val), width: bw - 1, height: Math.max(1.5, y(0) - y(val)), rx: 2, fill: s.c, 'data-tip': `${s.n} · ${c}: ${val.toFixed(2)}` }));
+          if (s.n === 'Ours') svg.appendChild(el('text', { x: bx + bw/2, y: y(val) - 5, 'text-anchor': 'middle', class: 'val', style: 'fill:var(--ind);font-weight:700' }, val.toFixed(2)));
+        });
+        svg.appendChild(el('text', { x: gx + gw/2, y: H - 22, 'text-anchor': 'middle', style: ci >= 4 ? 'font-weight:700;fill:var(--ind)' : '' }, c));
+      });
+    }
+    seg($('#t3-view'), render);
+    render('base');
+
+    const raw = $('#raw-t3');
+    const div = document.createElement('div'); div.className = 'tblwrap';
+    div.innerHTML = '<table class="t"><thead><tr><th>Method</th><th class="num">Interior</th><th class="num">Window</th><th class="num">Car</th><th class="num">Safe</th><th class="num">Cabinet (Test)</th><th class="num">Refrig. (Test)</th><th class="num">6类均值(算)</th></tr></thead><tbody>' +
+      ALL.map(s => {
+        const avg = (s.v.reduce((a, b) => a + b, 0) / 6).toFixed(3);
+        return '<tr' + (s.n === 'Ours' ? ' class="best"' : '') + '><th>' + s.n + '</th>' + s.v.map(x => '<td class="num' + (x === 0 ? ' bad' : '') + '">' + x.toFixed(2) + '</td>').join('') + '<td class="num">' + avg + '</td></tr>';
+      }).join('') + '</tbody></table>';
+    raw.appendChild(div);
+  })();
+
+  /* ---------- Real-world Sim vs Real Comparison Chart ---------- */
+  (function(){
+    const cats = ['Interior', 'Window', 'Safe', 'Cabinet'];
+    const sim = [99.0, 91.0, 72.0, 75.0];
+    const fix = [7/15*100, 8/15*100, 10/15*100, 12/15*100];
+    const mob = [9/15*100, null, null, 12/15*100];
+    const fixStr = ['7/15', '8/15', '10/15', '12/15'];
+    const mobStr = ['9/15', '/', '/', '12/15'];
+
+    const svg = $('#ch-real'); svg.innerHTML = '';
+    const W = 760, H = 265, L = 46, R = 16, T = 22, B = 42;
+    const y = v => T + (H - T - B) * (1 - v / 100);
+    for (let v = 0; v <= 100; v += 25){
+      svg.appendChild(el('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), class: v ? 'grid' : 'base' }));
+      svg.appendChild(el('text', { x: L - 8, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, v + '%'));
+    }
+    const gw = (W - L - R) / cats.length;
+    cats.forEach((c, ci) => {
+      const gx = L + ci * gw, bw = (gw - 42) / 3;
+      const bars = [
+        { v: sim[ci], t: sim[ci].toFixed(0) + '%', col: 'var(--ind)', tip: `仿真 ${c} (>45°): ${sim[ci]}%` },
+        { v: fix[ci], t: fixStr[ci], col: 'var(--teal)', tip: `固定 Franka ${c} (>30°): ${fixStr[ci]} (${fix[ci].toFixed(1)}%)` },
+        { v: mob[ci], t: mobStr[ci], col: 'var(--coral)', tip: mob[ci] != null ? `移动 ARX-x7s ${c} (>30°): ${mobStr[ci]} (${mob[ci].toFixed(1)}%)` : '未测' }
+      ];
+      bars.forEach((b, bi) => {
+        const bx = gx + 21 + bi * bw;
+        if (b.v != null) {
+          svg.appendChild(el('rect', { x: bx + 2, y: y(b.v), width: bw - 4, height: y(0) - y(b.v), rx: 3, fill: b.col, 'data-tip': b.tip }));
+          svg.appendChild(el('text', { x: bx + bw/2, y: y(b.v) - 5, 'text-anchor': 'middle', class: 'val' }, b.t));
+        } else {
+          svg.appendChild(el('text', { x: bx + bw/2, y: y(6), 'text-anchor': 'middle', class: 'tick' }, '—'));
+        }
+      });
+      svg.appendChild(el('text', { x: gx + gw/2, y: H - 16, 'text-anchor': 'middle', style: 'font-weight:600' }, c));
+    });
+
+    const raw = $('#raw-real');
+    const div = document.createElement('div'); div.className = 'tblwrap';
+    div.innerHTML = '<table class="t"><thead><tr><th>Platform (成功标准 &gt; 30°)</th><th class="num">Interior</th><th class="num">Window</th><th class="num">Safe</th><th class="num">Cabinet</th></tr></thead><tbody>' +
+      '<tr><th>Fixed base (Franka + Azure Kinect)</th><td class="num">7/15 (46.7%)</td><td class="num">8/15 (53.3%)</td><td class="num">10/15 (66.7%)</td><td class="num">12/15 (80.0%)</td></tr>' +
+      '<tr><th>Mobile base (ARX-x7s + RealSense)</th><td class="num">9/15 (60.0%)</td><td class="num">/</td><td class="num">/</td><td class="num">12/15 (80.0%)</td></tr></tbody></table>';
+    raw.appendChild(div);
+  })();
+})();
+</script>
+</body>
+</html>
